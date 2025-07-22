@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mega Alchemy</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #1a1a2e;
+            color: #e6e6e6;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .game-container {
+            display: flex;
+            height: 100vh;
+        }
+        
+        .workspace {
+            flex: 3;
+            background: #16213e;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .sidebar {
+            flex: 1;
+            background: #0f3460;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .element {
+            background: #2a2a4a;
+            border-radius: 8px;
+            padding: 10px;
+            margin: 10px 0;
+            cursor: grab;
+            text-align: center;
+            transition: transform 0.2s;
+        }
+        
+        .element:hover {
+            transform: scale(1.05);
+            background: #3a3a5a;
+        }
+        
+        .element img {
+            width: 50px;
+            height: 50px;
+        }
+        
+        .element-name {
+            margin-top: 5px;
+            font-size: 14px;
+        }
+        
+        .discovered-elements {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .energy-bar {
+            height: 20px;
+            background: #333;
+            border-radius: 10px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+        
+        .energy-fill {
+            height: 100%;
+            background: #4ecca3;
+            width: 100%;
+            transition: width 0.5s;
+        }
+        
+        .research-panel {
+            margin-top: 20px;
+            padding: 10px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 8px;
+        }
+        
+        .draggable {
+            position: absolute;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="workspace" id="workspace">
+            <!-- Elements will be dragged here -->
+        </div>
+        
+        <div class="sidebar">
+            <h2>Elements Library</h2>
+            <div class="energy-container">
+                <div>Alchemy Energy: <span id="energy-value">100</span>/100</div>
+                <div class="energy-bar">
+                    <div class="energy-fill" id="energy-fill"></div>
+                </div>
+            </div>
+            
+            <div class="basic-elements">
+                <h3>Basic Elements</h3>
+                <div class="discovered-elements">
+                    <div class="element" draggable="true" data-element="fire">
+                        <img src="icons/fire.png" alt="Fire">
+                        <div class="element-name">Fire</div>
+                    </div>
+                    <div class="element" draggable="true" data-element="water">
+                        <img src="icons/water.png" alt="Water">
+                        <div class="element-name">Water</div>
+                    </div>
+                    <div class="element" draggable="true" data-element="earth">
+                        <img src="icons/earth.png" alt="Earth">
+                        <div class="element-name">Earth</div>
+                    </div>
+                    <div class="element" draggable="true" data-element="air">
+                        <img src="icons/air.png" alt="Air">
+                        <div class="element-name">Air</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="discovered-items">
+                <h3>Discovered Elements</h3>
+                <div class="discovered-elements" id="discovered-elements">
+                    <!-- New elements will appear here -->
+                </div>
+            </div>
+            
+            <div class="research-panel">
+                <h3>Research</h3>
+                <div class="research-options">
+                    <div class="research-option">
+                        <button class="research-btn" data-research="chemistry">Basic Chemistry (50 energy)</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Game state
+        const gameState = {
+            energy: 100,
+            maxEnergy: 100,
+            discoveredElements: ['fire', 'water', 'earth', 'air'],
+            unlockedCategories: ['basic'],
+            research: {
+                chemistry: false
+            },
+            combinations: {
+                // Basic combinations
+                'fire+water': { result: 'steam', energy: 5, time: 0 },
+                'water+earth': { result: 'mud', energy: 5, time: 0 },
+                'earth+air': { result: 'dust', energy: 5, time: 0 },
+                'air+fire': { result: 'energy', energy: 5, time: 0 },
+                
+                // Chemistry combinations (unlocked by research)
+                'water+energy': { result: 'hydrogen', energy: 10, time: 5, requires: 'chemistry' },
+                'hydrogen+hydrogen': { result: 'helium', energy: 15, time: 10, requires: 'chemistry' }
+            }
+        };
+
+        // DOM elements
+        const workspace = document.getElementById('workspace');
+        const discoveredElementsContainer = document.getElementById('discovered-elements');
+        const energyValue = document.getElementById('energy-value');
+        const energyFill = document.getElementById('energy-fill');
+
+        // Initialize the game
+        function initGame() {
+            updateEnergyDisplay();
+            renderDiscoveredElements();
+            setupDragAndDrop();
+        }
+
+        // Update energy display
+        function updateEnergyDisplay() {
+            energyValue.textContent = gameState.energy;
+            energyFill.style.width = `${(gameState.energy / gameState.maxEnergy) * 100}%`;
+        }
+
+        // Render discovered elements
+        function renderDiscoveredElements() {
+            discoveredElementsContainer.innerHTML = '';
+            gameState.discoveredElements.forEach(element => {
+                const el = document.createElement('div');
+                el.className = 'element';
+                el.draggable = true;
+                el.dataset.element = element;
+                el.innerHTML = `
+                    <img src="icons/${element}.png" alt="${element}">
+                    <div class="element-name">${capitalizeFirstLetter(element)}</div>
+                `;
+                discoveredElementsContainer.appendChild(el);
+            });
+            
+            // Re-setup drag and drop for new elements
+            setupDragAndDrop();
+        }
+
+        // Setup drag and drop functionality
+        function setupDragAndDrop() {
+            const elements = document.querySelectorAll('.element[draggable="true"]');
+            
+            elements.forEach(element => {
+                element.addEventListener('dragstart', dragStart);
+            });
+            
+            workspace.addEventListener('dragover', dragOver);
+            workspace.addEventListener('drop', drop);
+        }
+
+        // Drag and drop handlers
+        function dragStart(e) {
+            e.dataTransfer.setData('text/plain', e.target.dataset.element);
+            setTimeout(() => {
+                e.target.style.display = 'none';
+            }, 0);
+        }
+
+        function dragOver(e) {
+            e.preventDefault();
+        }
+
+        function drop(e) {
+            e.preventDefault();
+            const elementName = e.dataTransfer.getData('text/plain');
+            
+            // Create a new draggable element in the workspace
+            const newElement = document.createElement('div');
+            newElement.className = 'element draggable';
+            newElement.style.left = `${e.clientX - workspace.getBoundingClientRect().left - 25}px`;
+            newElement.style.top = `${e.clientY - workspace.getBoundingClientRect().top - 25}px`;
+            newElement.dataset.element = elementName;
+            newElement.innerHTML = `
+                <img src="icons/${elementName}.png" alt="${elementName}">
+                <div class="element-name">${capitalizeFirstLetter(elementName)}</div>
+            `;
+            
+            workspace.appendChild(newElement);
+            
+            // Make the new element draggable
+            newElement.draggable = true;
+            newElement.addEventListener('dragstart', dragStart);
+            
+            // Show the original element again
+            const elements = document.querySelectorAll('.element[draggable="true"]');
+            elements.forEach(el => {
+                if (el.dataset.element === elementName) {
+                    el.style.display = 'block';
+                }
+            });
+            
+            // Check for combinations
+            checkCombinations(newElement);
+        }
+
+        // Check for possible combinations
+        function checkCombinations(newElement) {
+            const elementsInWorkspace = document.querySelectorAll('.workspace .element');
+            
+            if (elementsInWorkspace.length >= 2) {
+                // Simple collision detection (for demo purposes)
+                const newElementRect = newElement.getBoundingClientRect();
+                
+                elementsInWorkspace.forEach(existingElement => {
+                    if (existingElement !== newElement) {
+                        const existingRect = existingElement.getBoundingClientRect();
+                        
+                        // Check if elements overlap
+                        if (!(
+                            newElementRect.right < existingRect.left || 
+                            newElementRect.left > existingRect.right || 
+                            newElementRect.bottom < existingRect.top || 
+                            newElementRect.top > existingRect.bottom
+                        )) {
+                            // Elements are overlapping - attempt combination
+                            const element1 = newElement.dataset.element;
+                            const element2 = existingElement.dataset.element;
+                            attemptCombination(element1, element2, newElement, existingElement);
+                        }
+                    }
+                });
+            }
+        }
+
+        // Attempt to combine two elements
+        function attemptCombination(element1, element2, elementNode1, elementNode2) {
+            const combinationKey1 = `${element1}+${element2}`;
+            const combinationKey2 = `${element2}+${element1}`;
+            
+            let combination = gameState.combinations[combinationKey1] || gameState.combinations[combinationKey2];
+            
+            if (combination) {
+                // Check if research requirement is met
+                if (combination.requires && !gameState.research[combination.requires]) {
+                    alert(`You need to research ${combination.requires} first!`);
+                    return;
+                }
+                
+                // Check if player has enough energy
+                if (gameState.energy < combination.energy) {
+                    alert("Not enough energy!");
+                    return;
+                }
+                
+                // Deduct energy
+                gameState.energy -= combination.energy;
+                updateEnergyDisplay();
+                
+                // Remove the original elements
+                elementNode1.remove();
+                elementNode2.remove();
+                
+                // If combination takes time, show progress bar
+                if (combination.time > 0) {
+                    createBrewingProcess(combination);
+                } else {
+                    // Instant combination
+                    discoverNewElement(combination.result);
+                }
+            } else {
+                alert("These elements don't combine!");
+            }
+        }
+
+        // Create a brewing process for timed combinations
+        function createBrewingProcess(combination) {
+            const brewingElement = document.createElement('div');
+            brewingElement.className = 'brewing';
+            brewingElement.innerHTML = `
+                <div class="brewing-progress"></div>
+                <div>Brewing...</div>
+            `;
+            brewingElement.style.position = 'absolute';
+            brewingElement.style.left = '50%';
+            brewingElement.style.top = '50%';
+            brewingElement.style.transform = 'translate(-50%, -50%)';
+            brewingElement.style.padding = '20px';
+            brewingElement.style.background = '#333';
+            brewingElement.style.borderRadius = '10px';
+            
+            workspace.appendChild(brewingElement);
+            
+            const progressBar = brewingElement.querySelector('.brewing-progress');
+            progressBar.style.height = '20px';
+            progressBar.style.background = '#555';
+            progressBar.style.borderRadius = '5px';
+            progressBar.style.marginBottom = '10px';
+            progressBar.style.width = '0%';
+            progressBar.style.transition = `width ${combination.time}s linear`;
+            
+            // Start the brewing process
+            setTimeout(() => {
+                progressBar.style.width = '100%';
+            }, 50);
+            
+            // When brewing is complete
+            setTimeout(() => {
+                brewingElement.remove();
+                discoverNewElement(combination.result);
+            }, combination.time * 1000 + 50);
+        }
+
+        // Discover a new element
+        function discoverNewElement(elementName) {
+            if (!gameState.discoveredElements.includes(elementName)) {
+                gameState.discoveredElements.push(elementName);
+                renderDiscoveredElements();
+                
+                // Show discovery animation
+                alert(`You discovered ${capitalizeFirstLetter(elementName)}!`);
+            } else {
+                // Element already known
+                alert(`You created ${capitalizeFirstLetter(elementName)} again.`);
+            }
+        }
+
+        // Helper function
+        function capitalizeFirstLetter(string) {
+            return string.charAt(0).toUpperCase() + string.slice(1);
+        }
+
+        // Initialize the game when loaded
+        window.addEventListener('DOMContentLoaded', initGame);
+    </script>
+</body>
+</html>

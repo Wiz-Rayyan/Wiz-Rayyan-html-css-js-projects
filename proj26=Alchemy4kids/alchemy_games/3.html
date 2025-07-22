@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Magical Alchemy Lab</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        .lab-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .lab-header {
+            text-align: center;
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .lab-title {
+            font-size: 2.5rem;
+            color: #ffd700;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            margin-bottom: 10px;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from { text-shadow: 2px 2px 4px rgba(0,0,0,0.5), 0 0 10px #ffd700; }
+            to { text-shadow: 2px 2px 4px rgba(0,0,0,0.5), 0 0 20px #ffd700, 0 0 30px #ffd700; }
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ffd700, #ff6b6b);
+            border-radius: 10px;
+            transition: width 0.5s ease;
+        }
+
+        .main-area {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .alchemy-workspace {
+            background: rgba(255,255,255,0.1);
+            border-radius: 20px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+
+        .ingredients-section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 1.3rem;
+            color: #ffd700;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .ingredients-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(50px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .ingredient {
+            background: rgba(255,255,255,0.15);
+            border: 2px solid transparent;
+            border-radius: 15px;
+            padding: 15px;
+            font-size: 1.8rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            user-select: none;
+        }
+
+        .ingredient:hover {
+            background: rgba(255,255,255,0.25);
+            border-color: #ffd700;
+            transform: translateY(-2px);
+        }
+
+        .ingredient.selected {
+            background: rgba(255,215,0,0.3);
+            border-color: #ffd700;
+            box-shadow: 0 0 15px rgba(255,215,0,0.5);
+        }
+
+        .cauldron-area {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .cauldron {
+            width: 200px;
+            height: 150px;
+            background: linear-gradient(45deg, #333, #666);
+            border-radius: 0 0 50% 50%;
+            margin: 0 auto 20px;
+            position: relative;
+            border: 4px solid #444;
+            overflow: hidden;
+        }
+
+        .cauldron::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: -20px;
+            right: -20px;
+            height: 20px;
+            background: #444;
+            border-radius: 50%;
+        }
+
+        .cauldron-contents {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 60%;
+            background: linear-gradient(45deg, #4a0e4e, #81166e);
+            border-radius: 0 0 50% 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            padding: 10px;
+            transition: all 0.5s ease;
+        }
+
+        .cauldron-contents.brewing {
+            animation: bubble 1s ease-in-out infinite;
+        }
+
+        @keyframes bubble {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .cauldron-ingredient {
+            font-size: 1.2rem;
+            margin: 2px;
+            animation: float 2s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
+        }
+
+        .wizard {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            animation: hover 3s ease-in-out infinite;
+        }
+
+        @keyframes hover {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .cast-button {
+            background: linear-gradient(45deg, #ff6b6b, #ffd700);
+            border: none;
+            color: white;
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        .cast-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+        }
+
+        .cast-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .encyclopedia, .puzzle-area {
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        .encyclopedia {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .discovered-spells {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(40px, 1fr));
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        .spell-entry {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 10px;
+            text-align: center;
+            font-size: 1.5rem;
+            border: 2px solid rgba(255,215,0,0.3);
+            transition: all 0.3s ease;
+        }
+
+        .spell-entry:hover {
+            background: rgba(255,215,0,0.2);
+            transform: scale(1.05);
+        }
+
+        .spell-entry.new {
+            animation: sparkle 1s ease-in-out;
+        }
+
+        @keyframes sparkle {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); box-shadow: 0 0 20px #ffd700; }
+        }
+
+        .puzzle-question {
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid #ffd700;
+        }
+
+        .puzzle-input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 8px;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            font-size: 1rem;
+            margin-bottom: 10px;
+        }
+
+        .puzzle-input::placeholder {
+            color: rgba(255,255,255,0.5);
+        }
+
+        .puzzle-submit {
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .puzzle-submit:hover {
+            transform: translateY(-1px);
+        }
+
+        .result-display {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 1.2rem;
+            transition: all 0.5s ease;
+        }
+
+        .result-display.success {
+            background: rgba(76, 175, 80, 0.3);
+            border: 2px solid #4caf50;
+        }
+
+        .result-display.error {
+            background: rgba(244, 67, 54, 0.3);
+            border: 2px solid #f44336;
+        }
+
+        .clear-button {
+            background: rgba(255,255,255,0.2);
+            border: 2px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-left: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .clear-button:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #ffd700;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: rgba(255,255,255,0.7);
+        }
+
+        @media (max-width: 768px) {
+            .main-area {
+                grid-template-columns: 1fr;
+            }
+            
+            .lab-title {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="lab-container">
+        <div class="lab-header">
+            <h1 class="lab-title">🧙‍♂️ Magical Alchemy Lab ✨</h1>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-value" id="discoveredCount">0</div>
+                    <div class="stat-label">Discovered</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="totalSpells">50</div>
+                    <div class="stat-label">Total Spells</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="puzzlesSolved">0</div>
+                    <div class="stat-label">Puzzles Solved</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-area">
+            <div class="alchemy-workspace">
+                <div class="ingredients-section">
+                    <h2 class="section-title">🧪 Ingredients</h2>
+                    <div class="ingredients-grid" id="ingredientsGrid">
+                        <!-- Ingredients will be populated by JavaScript -->
+                    </div>
+                </div>
+
+                <div class="cauldron-area">
+                    <div class="wizard">🧙‍♂️</div>
+                    <div class="cauldron">
+                        <div class="cauldron-contents" id="cauldronContents">
+                            <!-- Selected ingredients will appear here -->
+                        </div>
+                    </div>
+                    <button class="cast-button" id="castButton" onclick="castSpell()">Cast Spell</button>
+                    <button class="clear-button" onclick="clearCauldron()">Clear</button>
+                </div>
+
+                <div class="result-display" id="resultDisplay"></div>
+            </div>
+
+            <div class="sidebar">
+                <div class="encyclopedia">
+                    <h2 class="section-title">📚 Spell Encyclopedia</h2>
+                    <div class="discovered-spells" id="discoveredSpells">
+                        <!-- Discovered spells will appear here -->
+                    </div>
+                </div>
+
+                <div class="puzzle-area">
+                    <h2 class="section-title">🧩 Mystical Puzzle</h2>
+                    <div class="puzzle-question" id="puzzleQuestion">
+                        <!-- Current puzzle will appear here -->
+                    </div>
+                    <input type="text" class="puzzle-input" id="puzzleInput" placeholder="Enter your answer...">
+                    <button class="puzzle-submit" onclick="solvePuzzle()">Submit</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Game state
+        let gameState = {
+            selectedIngredients: [],
+            discoveredSpells: new Set(),
+            unlockedIngredients: new Set(),
+            currentPuzzle: null,
+            puzzlesSolved: 0,
+            spellRecipes: new Map()
+        };
+
+        // Base ingredients (always available)
+        const baseIngredients = ['🔥', '💧', '🌱', '🌙', '⭐', '🪨', '💨', '⚡'];
+
+        // Spell recipes (ingredient combinations -> result)
+        const spellRecipes = {
+            '🔥💧': '☁️',
+            '🌱💧': '🌸',
+            '🌙⭐': '✨',
+            '🔥🪨': '🌋',
+            '💨⚡': '🌪️',
+            '🌱🌙': '🍄',
+            '🔥⚡': '🔆',
+            '💧🪨': '💎',
+            '🌱⭐': '🌺',
+            '🌙💨': '🌫️',
+            '🔥🌱': '🌶️',
+            '💧⚡': '🌊',
+            '🪨💨': '🏔️',
+            '⭐💧': '🌈',
+            '🔥🌙': '🕯️',
+            '🌱🪨': '🌵',
+            '⚡🌙': '🌌',
+            '💨🌱': '🍃',
+            '🔥💨': '🎆',
+            '💧🌙': '🌙',
+            '🌱⚡': '🌻',
+            '🪨⭐': '💫',
+            '🔥🌱💧': '🌿',
+            '🌙⭐💨': '🌠',
+            '🔥⚡🪨': '⚡',
+            '💧🌱🌙': '🌾',
+            '🌱💨⭐': '🦋',
+            '🔥💧🌙': '🌡️',
+            '⚡💨🌱': '🌀',
+            '🪨💧⭐': '🔮',
+            '🔥🌱⚡': '🌋',
+            '💧🌙💨': '❄️',
+            '🌱🪨⭐': '🌲',
+            '🔥💨🌙': '🎇',
+            '💧⚡🌱': '🌺',
+            '🌙🪨💨': '🌌',
+            '🔥⭐💧': '🌠',
+            '🌱💧⚡': '🌊',
+            '💨🌙🪨': '🏔️',
+            '🔥🌱🌙⭐': '🌟',
+            '💧⚡💨🪨': '⛈️',
+            '🌱🔥💧🌙': '🌳',
+            '⭐💨🪨🌱': '🦅',
+            '🔥⚡🌙💧': '🌈',
+            '🌱💨⭐💧': '🌸',
+            '🪨🔥⚡🌙': '🌋',
+            '💧🌱🌙⭐': '🌺',
+            '🔥💨🪨⚡': '🌪️',
+            '🌙💧🌱⭐': '🌿',
+            '🔥🌱💧⚡🌙': '🌎'
+        };
+
+        // Puzzles that unlock new ingredients
+        const puzzles = [
+            {
+                question: "What comes after fire and water in the alchemical sequence?",
+                answer: "earth",
+                unlock: '🌍',
+                hint: "The third classical element"
+            },
+            {
+                question: "I am born from lightning and stone. What am I?",
+                answer: "crystal",
+                unlock: '💎',
+                hint: "Clear and sparkling"
+            },
+            {
+                question: "What element flows like water but burns like fire?",
+                answer: "lava",
+                unlock: '🌋',
+                hint: "Found in volcanoes"
+            },
+            {
+                question: "I dance in the sky after rain meets sun. What am I?",
+                answer: "rainbow",
+                unlock: '🌈',
+                hint: "Seven colors in the sky"
+            },
+            {
+                question: "Born from wind and water, I bring storms. What am I?",
+                answer: "cloud",
+                unlock: '☁️',
+                hint: "Fluffy and white in the sky"
+            },
+            {
+                question: "I am time's messenger, showing day and night. What am I?",
+                answer: "sun",
+                unlock: '☀️',
+                hint: "Brings light and warmth"
+            },
+            {
+                question: "From earth I grow, to sky I reach, wisdom I teach. What am I?",
+                answer: "tree",
+                unlock: '🌳',
+                hint: "Has roots and branches"
+            },
+            {
+                question: "I am cold as ice, yet I flow like water. What am I?",
+                answer: "snow",
+                unlock: '❄️',
+                hint: "White and cold"
+            },
+            {
+                question: "Born from fire and air, I rise without wings. What am I?",
+                answer: "smoke",
+                unlock: '💨',
+                hint: "Gray and wispy"
+            },
+            {
+                question: "I am the child of star and moon, twinkling in the night. What am I?",
+                answer: "comet",
+                unlock: '☄️',
+                hint: "Has a tail of light"
+            }
+        ];
+
+        // Initialize the game
+        function initGame() {
+            gameState.unlockedIngredients = new Set(baseIngredients);
+            gameState.spellRecipes = new Map(Object.entries(spellRecipes));
+            renderIngredients();
+            loadNewPuzzle();
+            updateStats();
+        }
+
+        // Render available ingredients
+        function renderIngredients() {
+            const grid = document.getElementById('ingredientsGrid');
+            grid.innerHTML = '';
+            
+            gameState.unlockedIngredients.forEach(ingredient => {
+                const div = document.createElement('div');
+                div.className = 'ingredient';
+                div.textContent = ingredient;
+                div.onclick = () => selectIngredient(ingredient);
+                grid.appendChild(div);
+            });
+        }
+
+        // Select an ingredient
+        function selectIngredient(ingredient) {
+            if (gameState.selectedIngredients.length < 5) {
+                gameState.selectedIngredients.push(ingredient);
+                updateCauldron();
+                updateCastButton();
+            }
+        }
+
+        // Update cauldron display
+        function updateCauldron() {
+            const cauldron = document.getElementById('cauldronContents');
+            cauldron.innerHTML = '';
+            
+            gameState.selectedIngredients.forEach(ingredient => {
+                const span = document.createElement('span');
+                span.className = 'cauldron-ingredient';
+                span.textContent = ingredient;
+                cauldron.appendChild(span);
+            });
+        }
+
+        // Update cast button state
+        function updateCastButton() {
+            const button = document.getElementById('castButton');
+            button.disabled = gameState.selectedIngredients.length === 0;
+        }
+
+        // Clear cauldron
+        function clearCauldron() {
+            gameState.selectedIngredients = [];
+            updateCauldron();
+            updateCastButton();
+            document.getElementById('resultDisplay').innerHTML = '';
+        }
+
+        // Cast spell
+        function castSpell() {
+            if (gameState.selectedIngredients.length === 0) return;
+
+            const cauldron = document.getElementById('cauldronContents');
+            cauldron.classList.add('brewing');
+            
+            setTimeout(() => {
+                const recipe = gameState.selectedIngredients.sort().join('');
+                const result = gameState.spellRecipes.get(recipe);
+                
+                const resultDisplay = document.getElementById('resultDisplay');
+                
+                if (result) {
+                    const isNew = !gameState.discoveredSpells.has(result);
+                    gameState.discoveredSpells.add(result);
+                    
+                    resultDisplay.className = 'result-display success';
+                    resultDisplay.innerHTML = `
+                        <div style="font-size: 2rem; margin-bottom: 10px;">${result}</div>
+                        <div>${isNew ? 'New spell discovered!' : 'Spell already known'}</div>
+                    `;
+                    
+                    if (isNew) {
+                        addToEncyclopedia(result);
+                        updateStats();
+                    }
+                } else {
+                    resultDisplay.className = 'result-display error';
+                    resultDisplay.innerHTML = `
+                        <div style="font-size: 2rem; margin-bottom: 10px;">💥</div>
+                        <div>The spell fizzled out... Try a different combination!</div>
+                    `;
+                }
+                
+                cauldron.classList.remove('brewing');
+                clearCauldron();
+            }, 1000);
+        }
+
+        // Add spell to encyclopedia
+        function addToEncyclopedia(spell) {
+            const encyclopedia = document.getElementById('discoveredSpells');
+            const div = document.createElement('div');
+            div.className = 'spell-entry new';
+            div.textContent = spell;
+            encyclopedia.appendChild(div);
+            
+            setTimeout(() => {
+                div.classList.remove('new');
+            }, 1000);
+        }
+
+        // Load new puzzle
+        function loadNewPuzzle() {
+            const availablePuzzles = puzzles.filter(p => !gameState.unlockedIngredients.has(p.unlock));
+            if (availablePuzzles.length === 0) {
+                document.getElementById('puzzleQuestion').innerHTML = '<div>🎉 All puzzles solved! You are a master alchemist!</div>';
+                return;
+            }
+            
+            gameState.currentPuzzle = availablePuzzles[Math.floor(Math.random() * availablePuzzles.length)];
+            document.getElementById('puzzleQuestion').innerHTML = `
+                <div style="margin-bottom: 10px;"><strong>Riddle:</strong></div>
+                <div>${gameState.currentPuzzle.question}</div>
+                <div style="margin-top: 10px; font-size: 0.9rem; color: #ffd700;">
+                    <strong>Hint:</strong> ${gameState.currentPuzzle.hint}
+                </div>
+            `;
+            document.getElementById('puzzleInput').value = '';
+        }
+
+        // Solve puzzle
+        function solvePuzzle() {
+            const input = document.getElementById('puzzleInput').value.toLowerCase().trim();
+            if (!gameState.currentPuzzle) return;
+            
+            if (input === gameState.currentPuzzle.answer) {
+                gameState.unlockedIngredients.add(gameState.currentPuzzle.unlock);
+                gameState.puzzlesSolved++;
+                
+                document.getElementById('puzzleQuestion').innerHTML = `
+                    <div style="color: #4caf50; text-align: center;">
+                        <div style="font-size: 2rem; margin-bottom: 10px;">✅</div>
+                        <div>Correct! You unlocked: ${gameState.currentPuzzle.unlock}</div>
+                    </div>
+                `;
+                
+                renderIngredients();
+                updateStats();
+                
+                setTimeout(() => {
+                    loadNewPuzzle();
+                }, 2000);
+            } else {
+                document.getElementById('puzzleQuestion').innerHTML = `
+                    <div style="color: #f44336; text-align: center;">
+                        <div style="font-size: 2rem; margin-bottom: 10px;">❌</div>
+                        <div>Not quite right... Try again!</div>
+                    </div>
+                `;
+                
+                setTimeout(() => {
+                    loadNewPuzzle();
+                }, 1500);
+            }
+        }
+
+        // Update stats display
+        function updateStats() {
+            document.getElementById('discoveredCount').textContent = gameState.discoveredSpells.size;
+            document.getElementById('puzzlesSolved').textContent = gameState.puzzlesSolved;
+            
+            const progress = (gameState.discoveredSpells.size / Object.keys(spellRecipes).length) * 100;
+            document.getElementById('progressFill').style.width = progress + '%';
+        }
+
+        // Handle enter key in puzzle input
+        document.getElementById('puzzleInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                solvePuzzle();
+            }
+        });
+
+        // Initialize the game when page loads
+        window.onload = initGame;
+    </script>
+</body>
+</html>

@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emoji Alchemy Lab</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1a1a2e;
+            color: #e6e6e6;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        header {
+            background-color: #16213e;
+            width: 100%;
+            padding: 1rem;
+            text-align: center;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            margin: 0;
+            color: #f8bb22;
+            text-shadow: 0 0 10px #f8bb22aa;
+        }
+
+        .container {
+            display: flex;
+            width: 100%;
+            max-width: 1200px;
+            padding: 1rem;
+            gap: 1rem;
+        }
+
+        .lab-section {
+            flex: 2;
+            background-color: #0f3460;
+            border-radius: 10px;
+            padding: 1rem;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .encyclopedia-section {
+            flex: 1;
+            background-color: #0f3460;
+            border-radius: 10px;
+            padding: 1rem;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            overflow-y: auto;
+            max-height: 80vh;
+        }
+
+        .cauldron {
+            background-color: #1a1a2e;
+            border: 3px solid #533d7b;
+            border-radius: 50%;
+            width: 300px;
+            height: 300px;
+            margin: 2rem auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 0 20px #533d7b, 0 0 30px #533d7b;
+        }
+
+        .cauldron-content {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            width: 80%;
+            height: 80%;
+            background-color: #1a1a2e;
+            border-radius: 50%;
+            padding: 1rem;
+        }
+
+        .emoji {
+            font-size: 2rem;
+            cursor: grab;
+            transition: transform 0.2s;
+        }
+
+        .emoji:hover {
+            transform: scale(1.2);
+        }
+
+        .ingredients {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 1rem;
+            margin: 1rem 0;
+            padding: 1rem;
+            background-color: #16213e;
+            border-radius: 10px;
+        }
+
+        .spell-button {
+            background-color: #533d7b;
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            font-size: 1.2rem;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 1rem auto;
+            display: block;
+            box-shadow: 0 0 10px #533d7b;
+        }
+
+        .spell-button:hover {
+            background-color: #8a6bbe;
+            box-shadow: 0 0 20px #8a6bbe;
+        }
+
+        .spell-button:disabled {
+            background-color: #333;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .spell-effects {
+            text-align: center;
+            min-height: 60px;
+            font-size: 3rem;
+            margin: 1rem 0;
+        }
+
+        .progress-container {
+            width: 100%;
+            background-color: #16213e;
+            border-radius: 10px;
+            padding: 0.5rem;
+            margin: 1rem 0;
+        }
+
+        .progress-bar {
+            height: 20px;
+            background-color: #4CAF50;
+            border-radius: 5px;
+            width: 0%;
+            transition: width 0.5s;
+        }
+
+        .spell-item {
+            background-color: #16213e;
+            border-radius: 5px;
+            padding: 0.5rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .spell-item.discovered {
+            background-color: #533d7b;
+        }
+
+        .spell-emoji {
+            font-size: 1.5rem;
+        }
+
+        .spell-name {
+            flex-grow: 1;
+        }
+
+        .spell-count {
+            color: #f8bb22;
+            font-weight: bold;
+        }
+
+        .tab-buttons {
+            display: flex;
+            margin-bottom: 1rem;
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 0.5rem;
+            background-color: #16213e;
+            border: none;
+            color: white;
+            cursor: pointer;
+        }
+
+        .tab-button.active {
+            background-color: #533d7b;
+            font-weight: bold;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .bubbles {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .bubble {
+            position: absolute;
+            background-color: #8a6bbe55;
+            border-radius: 50%;
+            animation: float-up 3s infinite;
+        }
+
+        @keyframes float-up {
+            0% {
+                transform: translateY(0) scale(0.5);
+                opacity: 0;
+            }
+            50% {
+                opacity: 0.7;
+            }
+            100% {
+                transform: translateY(-100px) scale(1);
+                opacity: 0;
+            }
+        }
+
+        .hint {
+            color: #f8bb22;
+            font-style: italic;
+            text-align: center;
+            margin: 1rem 0;
+        }
+
+        .puzzle-container {
+            background-color: #16213e;
+            padding: 1rem;
+            border-radius: 10px;
+            margin: 1rem 0;
+            display: none;
+        }
+
+        .puzzle-question {
+            margin-bottom: 1rem;
+        }
+
+        .puzzle-options {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .puzzle-option {
+            background-color: #0f3460;
+            border: none;
+            color: white;
+            padding: 0.5rem;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .puzzle-option:hover {
+            background-color: #533d7b;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>✨ Emoji Alchemy Lab ✨</h1>
+    </header>
+
+    <div class="container">
+        <div class="lab-section">
+            <h2>Alchemy Cauldron</h2>
+            
+            <div class="ingredients">
+                <div class="emoji" draggable="true" data-emoji="🔥">🔥</div>
+                <div class="emoji" draggable="true" data-emoji="💧">💧</div>
+                <div class="emoji" draggable="true" data-emoji="🌱">🌱</div>
+                <div class="emoji" draggable="true" data-emoji="🌬️">🌬️</div>
+                <div class="emoji" draggable="true" data-emoji="💎">💎</div>
+                <div class="emoji" draggable="true" data-emoji="🧂">🧂</div>
+                <div class="emoji" draggable="true" data-emoji="🍎">🍎</div>
+                <div class="emoji" draggable="true" data-emoji="🍄">🍄</div>
+            </div>
+
+            <div class="cauldron">
+                <div class="bubbles" id="bubbles"></div>
+                <div class="cauldron-content" id="cauldron">
+                    <div class="emoji">?</div>
+                </div>
+            </div>
+
+            <div class="spell-effects" id="spellEffects"></div>
+
+            <button class="spell-button" id="castSpell" disabled>Cast Spell</button>
+
+            <div class="hint" id="hint">Drag emojis into the cauldron to begin your alchemy!</div>
+
+            <div class="puzzle-container" id="puzzleContainer">
+                <div class="puzzle-question" id="puzzleQuestion"></div>
+                <div class="puzzle-options" id="puzzleOptions"></div>
+            </div>
+
+            <div class="progress-container">
+                <div>Discovery Progress: <span id="discoveredCount">0</span>/<span id="totalSpells">0</span></div>
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+        </div>
+
+        <div class="encyclopedia-section">
+            <h2>Spell Encyclopedia</h2>
+            
+            <div class="tab-buttons">
+                <button class="tab-button active" data-tab="all">All</button>
+                <button class="tab-button" data-tab="discovered">Discovered</button>
+                <button class="tab-button" data-tab="undiscovered">Undiscovered</button>
+            </div>
+            
+            <div class="tab-content active" id="tab-all">
+                <div id="allSpells"></div>
+            </div>
+            
+            <div class="tab-content" id="tab-discovered">
+                <div id="discoveredSpells"></div>
+            </div>
+            
+            <div class="tab-content" id="tab-undiscovered">
+                <div id="undiscoveredSpells"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Game data
+        const spells = [
+            { emoji: "💀", ingredients: ["🔥", "🌱"], puzzle: null },
+            { emoji: "🌊", ingredients: ["💧", "💧"], puzzle: null },
+            { emoji: "🌪️", ingredients: ["🌬️", "🌬️"], puzzle: null },
+            { emoji: "💎", ingredients: ["🧂", "💎"], puzzle: null },
+            { emoji: "🍹", ingredients: ["🍎", "💧"], puzzle: null },
+            { emoji: "🍄", ingredients: ["🌱", "🍄"], puzzle: null },
+            { emoji: "🌈", ingredients: ["💧", "🔥"], puzzle: null },
+            { emoji: "🌋", ingredients: ["🔥", "💎"], puzzle: null },
+            { emoji: "🌿", ingredients: ["🌱", "💧"], puzzle: null },
+            { emoji: "☁️", ingredients: ["💧", "🌬️"], puzzle: null },
+            { emoji: "🧙", ingredients: ["🔥", "💧", "🌱"], 
+              puzzle: {
+                question: "What is the alchemical symbol for the philosopher's stone?",
+                options: ["☉", "♁", "🜍", "☿"],
+                answer: 2
+              } 
+            },
+            { emoji: "🦄", ingredients: ["🌈", "🌱"], 
+              puzzle: {
+                question: "In alchemy, what does the unicorn symbolize?",
+                options: ["Purity", "Strength", "Mercury", "The moon"],
+                answer: 0
+              } 
+            },
+            { emoji: "🧪", ingredients: ["💎", "💧", "🔥"], 
+              puzzle: {
+                question: "Which of these is NOT one of the four classical elements?",
+                options: ["Earth", "Fire", "Metal", "Air"],
+                answer: 2
+              } 
+            },
+            { emoji: "⚗️", ingredients: ["🧪", "🌿"], puzzle: null },
+            { emoji: "🧚", ingredients: ["🌿", "🌈"], puzzle: null },
+            { emoji: "🐉", ingredients: ["🌋", "🌪️"], 
+              puzzle: {
+                question: "In alchemy, the dragon often represents...",
+                options: ["Prima materia", "The sun", "The final step", "Distillation"],
+                answer: 0
+              } 
+            },
+            { emoji: "🌑", ingredients: ["💀", "☁️"], puzzle: null },
+            { emoji: "☀️", ingredients: ["🔥", "🌈"], puzzle: null },
+            { emoji: "🌕", ingredients: ["☀️", "🌑"], puzzle: null },
+            { emoji: "🧿", ingredients: ["💎", "🌕"], puzzle: null }
+        ];
+
+        // Game state
+        let discoveredSpells = [];
+        let currentCauldron = [];
+        let currentPuzzle = null;
+        let hintTimeout = null;
+
+        // DOM elements
+        const cauldron = document.getElementById('cauldron');
+        const spellEffects = document.getElementById('spellEffects');
+        const castSpellButton = document.getElementById('castSpell');
+        const hintElement = document.getElementById('hint');
+        const puzzleContainer = document.getElementById('puzzleContainer');
+        const puzzleQuestion = document.getElementById('puzzleQuestion');
+        const puzzleOptions = document.getElementById('puzzleOptions');
+        const discoveredCount = document.getElementById('discoveredCount');
+        const totalSpells = document.getElementById('totalSpells');
+        const progressBar = document.getElementById('progressBar');
+        const allSpellsList = document.getElementById('allSpells');
+        const discoveredSpellsList = document.getElementById('discoveredSpells');
+        const undiscoveredSpellsList = document.getElementById('undiscoveredSpells');
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        // Initialize the game
+        function initGame() {
+            // Set up drag and drop for emojis
+            const emojis = document.querySelectorAll('.emoji[draggable="true"]');
+            emojis.forEach(emoji => {
+                emoji.addEventListener('dragstart', dragStart);
+            });
+
+            cauldron.addEventListener('dragover', dragOver);
+            cauldron.addEventListener('drop', drop);
+            cauldron.addEventListener('dragenter', dragEnter);
+            cauldron.addEventListener('dragleave', dragLeave);
+
+            // Set up spell casting
+            castSpellButton.addEventListener('click', castSpell);
+
+            // Set up tab switching
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => switchTab(button.dataset.tab));
+            });
+
+            // Initialize encyclopedia
+            totalSpells.textContent = spells.length;
+            updateEncyclopedia();
+            updateProgress();
+
+            // Create bubbles
+            createBubbles();
+        }
+
+        // Drag and drop functions
+        function dragStart(e) {
+            e.dataTransfer.setData('text/plain', e.target.dataset.emoji);
+            setTimeout(() => e.target.classList.add('dragging'), 0);
+        }
+
+        function dragOver(e) {
+            e.preventDefault();
+        }
+
+        function dragEnter(e) {
+            e.preventDefault();
+            cauldron.style.boxShadow = 'inset 0 0 20px #8a6bbe, 0 0 30px #8a6bbe';
+        }
+
+        function dragLeave() {
+            cauldron.style.boxShadow = 'inset 0 0 20px #533d7b, 0 0 30px #533d7b';
+        }
+
+        function drop(e) {
+            e.preventDefault();
+            dragLeave();
+            
+            const emoji = e.dataTransfer.getData('text/plain');
+            addToCauldron(emoji);
+        }
+
+        // Cauldron functions
+        function addToCauldron(emoji) {
+            if (currentCauldron.length >= 5) {
+                showHint("The cauldron can't hold more than 5 ingredients!");
+                return;
+            }
+
+            currentCauldron.push(emoji);
+            updateCauldronDisplay();
+            checkPossibleSpells();
+        }
+
+        function updateCauldronDisplay() {
+            cauldron.innerHTML = '';
+            
+            if (currentCauldron.length === 0) {
+                cauldron.innerHTML = '<div class="emoji">?</div>';
+                castSpellButton.disabled = true;
+                return;
+            }
+
+            currentCauldron.forEach(emoji => {
+                const emojiElement = document.createElement('div');
+                emojiElement.className = 'emoji';
+                emojiElement.textContent = emoji;
+                emojiElement.addEventListener('click', () => removeFromCauldron(emoji));
+                cauldron.appendChild(emojiElement);
+            });
+
+            castSpellButton.disabled = false;
+        }
+
+        function removeFromCauldron(emoji) {
+            const index = currentCauldron.indexOf(emoji);
+            if (index > -1) {
+                currentCauldron.splice(index, 1);
+                updateCauldronDisplay();
+                checkPossibleSpells();
+            }
+        }
+
+        function clearCauldron() {
+            currentCauldron = [];
+            updateCauldronDisplay();
+        }
+
+        // Spell casting functions
+        function castSpell() {
+            if (currentCauldron.length === 0) return;
+
+            // Check if combination matches any spell
+            const matchedSpell = findMatchingSpell();
+            
+            if (matchedSpell) {
+                if (matchedSpell.puzzle && !discoveredSpells.includes(matchedSpell.emoji)) {
+                    // Show puzzle to unlock spell
+                    showPuzzle(matchedSpell);
+                    return;
+                }
+                
+                // Spell already discovered or no puzzle required
+                completeSpell(matchedSpell);
+            } else {
+                // Failed combination
+                spellEffects.textContent = '💥';
+                showHint("The combination fizzles with no effect... Try something else!");
+                setTimeout(() => {
+                    spellEffects.textContent = '';
+                }, 1000);
+            }
+        }
+
+        function findMatchingSpell() {
+            // Sort both arrays to compare regardless of order
+            const sortedCauldron = [...currentCauldron].sort();
+            
+            return spells.find(spell => {
+                const sortedIngredients = [...spell.ingredients].sort();
+                return JSON.stringify(sortedCauldron) === JSON.stringify(sortedIngredients);
+            });
+        }
+
+        function completeSpell(spell) {
+            if (!discoveredSpells.includes(spell.emoji)) {
+                discoveredSpells.push(spell.emoji);
+                showHint(`You discovered a new spell: ${spell.emoji}!`);
+                updateEncyclopedia();
+                updateProgress();
+            } else {
+                showHint(`You cast the ${spell.emoji} spell again!`);
+            }
+
+            // Show spell effect
+            spellEffects.textContent = spell.emoji;
+            
+            // Add animation
+            spellEffects.style.transform = 'scale(1.5)';
+            spellEffects.style.transition = 'transform 0.5s';
+            
+            setTimeout(() => {
+                spellEffects.style.transform = 'scale(1)';
+                spellEffects.textContent = '';
+            }, 1000);
+            
+            clearCauldron();
+        }
+
+        // Puzzle functions
+        function showPuzzle(spell) {
+            currentPuzzle = spell;
+            puzzleQuestion.textContent = spell.puzzle.question;
+            puzzleOptions.innerHTML = '';
+            
+            spell.puzzle.options.forEach((option, index) => {
+                const button = document.createElement('button');
+                button.className = 'puzzle-option';
+                button.textContent = option;
+                button.addEventListener('click', () => checkPuzzleAnswer(index));
+                puzzleOptions.appendChild(button);
+            });
+            
+            puzzleContainer.style.display = 'block';
+            showHint("Solve the puzzle to unlock this spell!");
+        }
+
+        function checkPuzzleAnswer(selectedIndex) {
+            if (currentPuzzle.puzzle.answer === selectedIndex) {
+                // Correct answer
+                puzzleContainer.style.display = 'none';
+                completeSpell(currentPuzzle);
+            } else {
+                // Wrong answer
+                showHint("That's not correct. Try again!");
+            }
+        }
+
+        // Encyclopedia functions
+        function updateEncyclopedia() {
+            allSpellsList.innerHTML = '';
+            discoveredSpellsList.innerHTML = '';
+            undiscoveredSpellsList.innerHTML = '';
+            
+            spells.forEach(spell => {
+                const isDiscovered = discoveredSpells.includes(spell.emoji);
+                const spellElement = createSpellElement(spell, isDiscovered);
+                
+                // Add to all spells tab
+                allSpellsList.appendChild(spellElement.cloneNode(true));
+                
+                // Add to discovered/undiscovered tabs
+                if (isDiscovered) {
+                    discoveredSpellsList.appendChild(spellElement.cloneNode(true));
+                } else {
+                    undiscoveredSpellsList.appendChild(spellElement.cloneNode(true));
+                }
+            });
+        }
+
+        function createSpellElement(spell, isDiscovered) {
+            const element = document.createElement('div');
+            element.className = `spell-item ${isDiscovered ? 'discovered' : ''}`;
+            
+            const emoji = document.createElement('div');
+            emoji.className = 'spell-emoji';
+            emoji.textContent = spell.emoji;
+            
+            const name = document.createElement('div');
+            name.className = 'spell-name';
+            name.textContent = isDiscovered 
+                ? `= ${spell.ingredients.join(' + ')}` 
+                : '???';
+            
+            element.appendChild(emoji);
+            element.appendChild(name);
+            
+            return element;
+        }
+
+        // Progress functions
+        function updateProgress() {
+            discoveredCount.textContent = discoveredSpells.length;
+            const progress = (discoveredSpells.length / spells.length) * 100;
+            progressBar.style.width = `${progress}%`;
+        }
+
+        // Helper functions
+        function checkPossibleSpells() {
+            if (currentCauldron.length === 0) return;
+            
+            // Check if current combination matches any spell ingredients
+            const sortedCauldron = [...currentCauldron].sort();
+            const possibleSpell = spells.find(spell => {
+                const sortedIngredients = [...spell.ingredients].sort();
+                return JSON.stringify(sortedCauldron) === JSON.stringify(sortedIngredients);
+            });
+            
+            if (possibleSpell) {
+                if (discoveredSpells.includes(possibleSpell.emoji)) {
+                    showHint("This combination looks familiar...");
+                } else {
+                    showHint("You sense magical potential in this combination!");
+                }
+            } else {
+                showHint("Experiment with different combinations...");
+            }
+        }
+
+        function showHint(message, duration = 3000) {
+            hintElement.textContent = message;
+            
+            if (hintTimeout) clearTimeout(hintTimeout);
+            hintTimeout = setTimeout(() => {
+                hintElement.textContent = "Drag emojis into the cauldron to begin your alchemy!";
+            }, duration);
+        }
+
+        function switchTab(tabId) {
+            // Update active tab button
+            tabButtons.forEach(button => {
+                button.classList.toggle('active', button.dataset.tab === tabId);
+            });
+            
+            // Update active tab content
+            tabContents.forEach(content => {
+                content.classList.toggle('active', content.id === `tab-${tabId}`);
+            });
+        }
+
+        function createBubbles() {
+            const bubblesContainer = document.getElementById('bubbles');
+            
+            for (let i = 0; i < 10; i++) {
+                const bubble = document.createElement('div');
+                bubble.className = 'bubble';
+                
+                // Random size
+                const size = Math.random() * 20 + 10;
+                bubble.style.width = `${size}px`;
+                bubble.style.height = `${size}px`;
+                
+                // Random position
+                bubble.style.left = `${Math.random() * 100}%`;
+                bubble.style.bottom = `-${size}px`;
+                
+                // Random animation duration and delay
+                bubble.style.animationDuration = `${Math.random() * 3 + 2}s`;
+                bubble.style.animationDelay = `${Math.random() * 3}s`;
+                
+                bubblesContainer.appendChild(bubble);
+            }
+        }
+
+        // Initialize the game when DOM is loaded
+        document.addEventListener('DOMContentLoaded', initGame);
+    </script>
+</body>
+</html>

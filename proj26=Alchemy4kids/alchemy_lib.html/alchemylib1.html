@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arcane Alchemy Library</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Old+Standard+TT:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --parchment: #f5e8c9;
+            --gold: #d4af37;
+            --deep-blue: #0a0a12;
+            --ink: #1a1a1a;
+        }
+        
+        body {
+            background-color: var(--deep-blue);
+            color: var(--parchment);
+            font-family: 'Old Standard TT', serif;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+        
+        header {
+            background: linear-gradient(to right, #0a0a12, #1a1a2e, #0a0a12);
+            padding: 1rem;
+            text-align: center;
+            border-bottom: 1px solid var(--gold);
+        }
+        
+        h1 {
+            font-family: 'Cinzel Decorative', serif;
+            color: var(--gold);
+            text-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
+            margin: 0;
+        }
+        
+        .book-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 2rem;
+            padding: 2rem;
+        }
+        
+        .book-cover {
+            position: relative;
+            height: 350px;
+            background: linear-gradient(145deg, #1a1a2e, #16213e);
+            border: 2px solid var(--gold);
+            box-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 1rem;
+            perspective: 1000px;
+        }
+        
+        .book-cover::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="none" stroke="%23d4af37" stroke-width="0.5" opacity="0.3"/></svg>');
+            opacity: 0.2;
+        }
+        
+        .book-cover:hover {
+            transform: translateY(-10px) rotate(2deg);
+            box-shadow: 0 15px 30px rgba(212, 175, 55, 0.6);
+        }
+        
+        .cover-title {
+            font-family: 'Cinzel Decorative', serif;
+            font-size: 1.5rem;
+            color: var(--gold);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .cover-subtitle {
+            font-size: 0.9rem;
+            color: var(--parchment);
+            opacity: 0.8;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .book-viewer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 10, 18, 0.98);
+            display: none;
+            flex-direction: column;
+            z-index: 100;
+            overflow: hidden;
+        }
+        
+        .viewer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: rgba(26, 26, 46, 0.8);
+            border-bottom: 1px solid var(--gold);
+        }
+        
+        .viewer-title {
+            font-family: 'Cinzel Decorative', serif;
+            color: var(--gold);
+            margin: 0;
+        }
+        
+        .close-viewer {
+            background: none;
+            border: 1px solid var(--gold);
+            color: var(--gold);
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .close-viewer:hover {
+            background: rgba(212, 175, 55, 0.2);
+        }
+        
+        .book-content {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            position: relative;
+        }
+        
+        .page {
+            width: 80%;
+            max-width: 800px;
+            height: 80vh;
+            background-color: var(--parchment);
+            border: 1px solid #c0a880;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            padding: 2rem;
+            position: relative;
+            display: none;
+        }
+        
+        .page::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="none" stroke="%231a1a1a" stroke-width="0.2" opacity="0.1"/></svg>');
+            pointer-events: none;
+        }
+        
+        .page.active {
+            display: block;
+        }
+        
+        .page h2 {
+            color: var(--ink);
+            border-bottom: 1px solid var(--ink);
+            padding-bottom: 0.5rem;
+            margin-top: 0;
+        }
+        
+        .page p {
+            color: var(--ink);
+            line-height: 1.6;
+        }
+        
+        .page-controls {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            padding: 1rem;
+        }
+        
+        .page-btn {
+            background: rgba(26, 26, 46, 0.8);
+            border: 1px solid var(--gold);
+            color: var(--gold);
+            padding: 0.5rem 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .page-btn:hover {
+            background: rgba(212, 175, 55, 0.2);
+        }
+        
+        .page-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .alchemy-symbol {
+            position: absolute;
+            opacity: 0.1;
+            z-index: 1;
+        }
+        
+        @media (max-width: 768px) {
+            .book-gallery {
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            }
+            
+            .page {
+                width: 95%;
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Arcane Alchemy Library</h1>
+    </header>
+    
+    <main class="book-gallery">
+        <div class="book-cover" data-book="spectrum-1">
+            <div class="cover-title">Spectrum 1.0</div>
+            <div class="cover-subtitle">Scotland and open</div>
+            <svg class="alchemy-symbol" width="100" height="100" viewBox="0 0 100 100" style="top: 20%; left: 10%;">
+                <circle cx="50" cy="50" r="40" stroke="var(--gold)" stroke-width="2" fill="none" />
+                <line x1="10" y1="50" x2="90" y2="50" stroke="var(--gold)" stroke-width="2" />
+                <line x1="50" y1="10" x2="50" y2="90" stroke="var(--gold)" stroke-width="2" />
+            </svg>
+        </div>
+        
+        <div class="book-cover" data-book="multi-relationship">
+            <div class="cover-title">TECHNOLOGY</div>
+            <div class="cover-subtitle">MULTI-RELATIONSHIP</div>
+            <svg class="alchemy-symbol" width="120" height="120" viewBox="0 0 100 100" style="top: 60%; left: 70%;">
+                <path d="M20,20 L80,20 L80,80 L20,80 Z" stroke="var(--gold)" stroke-width="2" fill="none" />
+                <path d="M30,30 L70,30 L70,70 L30,70 Z" stroke="var(--gold)" stroke-width="2" fill="none" />
+                <line x1="20" y1="20" x2="30" y2="30" stroke="var(--gold)" stroke-width="2" />
+                <line x1="80" y1="20" x2="70" y2="30" stroke="var(--gold)" stroke-width="2" />
+                <line x1="80" y1="80" x2="70" y2="70" stroke="var(--gold)" stroke-width="2" />
+                <line x1="20" y1="80" x2="30" y2="70" stroke="var(--gold)" stroke-width="2" />
+            </svg>
+        </div>
+        
+        <div class="book-cover" data-book="transitions-axis">
+            <div class="cover-title">TRANSITIONS</div>
+            <div class="cover-subtitle">AXIS: Trading/Light</div>
+            <svg class="alchemy-symbol" width="150" height="150" viewBox="0 0 100 100" style="top: 50%; left: 50%; transform: translate(-50%, -50%);">
+                <path d="M10,50 Q50,10 90,50 Q50,90 10,50 Z" stroke="var(--gold)" stroke-width="2" fill="none" />
+                <circle cx="50" cy="50" r="15" stroke="var(--gold)" stroke-width="2" fill="none" />
+            </svg>
+        </div>
+    </main>
+    
+    <div class="book-viewer" id="bookViewer">
+        <div class="viewer-header">
+            <h2 class="viewer-title" id="viewerTitle">Book Title</h2>
+            <button class="close-viewer" id="closeViewer">Close</button>
+        </div>
+        
+        <div class="book-content">
+            <div class="page active" id="page1">
+                <h2>Introduction</h2>
+                <p>Alchemy is an ancient branch of natural philosophy, a philosophical and protoscientific tradition that was historically practiced in China, India, the Muslim world, and Europe.</p>
+                <p>In its Western form, alchemy is first attested in a number of pseudepigraphical texts written in Greco-Roman Egypt during the first few centuries AD.</p>
+            </div>
+            
+            <div class="page" id="page2">
+                <h2>The Four Elements</h2>
+                <p>Western alchemy makes use of the Hellenic elements. The symbols used for these are:</p>
+                <ul>
+                    <li>Air (🜁)</li>
+                    <li>Earth (🜃)</li>
+                    <li>Fire (🜂)</li>
+                    <li>Water (🜄)</li>
+                </ul>
+                <p>The three primes: salt (🜔), sulfur (🜍), and mercury (🜓), contain the four elements.</p>
+            </div>
+            
+            <div class="page" id="page3">
+                <h2>The Magnum Opus</h2>
+                <p>The Great Work of alchemy is often described as a series of four stages represented by colors:</p>
+                <ol>
+                    <li>Nigredo (blackening)</li>
+                    <li>Albedo (whitening)</li>
+                    <li>Citrinitas (yellowing)</li>
+                    <li>Rubedo (reddening)</li>
+                </ol>
+                <p>Some texts omit the citrinitas stage, describing only three stages.</p>
+            </div>
+        </div>
+        
+        <div class="page-controls">
+            <button class="page-btn" id="prevPage" disabled>Previous</button>
+            <span id="pageIndicator">Page 1 of 3</span>
+            <button class="page-btn" id="nextPage">Next</button>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Book viewer functionality
+            const bookViewer = document.getElementById('bookViewer');
+            const closeViewer = document.getElementById('closeViewer');
+            const viewerTitle = document.getElementById('viewerTitle');
+            const prevPageBtn = document.getElementById('prevPage');
+            const nextPageBtn = document.getElementById('nextPage');
+            const pageIndicator = document.getElementById('pageIndicator');
+            const pages = document.querySelectorAll('.page');
+            
+            let currentPage = 0;
+            const totalPages = pages.length;
+            
+            // Open book viewer when a cover is clicked
+            document.querySelectorAll('.book-cover').forEach(cover => {
+                cover.addEventListener('click', function() {
+                    const bookTitle = this.querySelector('.cover-title').textContent;
+                    const bookSubtitle = this.querySelector('.cover-subtitle').textContent;
+                    
+                    viewerTitle.textContent = `${bookTitle}: ${bookSubtitle}`;
+                    bookViewer.style.display = 'flex';
+                    document.body.style.overflow = 'hidden';
+                    
+                    // Reset to first page
+                    currentPage = 0;
+                    updatePages();
+                });
+            });
+            
+            // Close book viewer
+            closeViewer.addEventListener('click', function() {
+                bookViewer.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            });
+            
+            // Page navigation
+            prevPageBtn.addEventListener('click', function() {
+                if (currentPage > 0) {
+                    currentPage--;
+                    updatePages();
+                }
+            });
+            
+            nextPageBtn.addEventListener('click', function() {
+                if (currentPage < totalPages - 1) {
+                    currentPage++;
+                    updatePages();
+                }
+            });
+            
+            function updatePages() {
+                // Hide all pages
+                pages.forEach(page => {
+                    page.classList.remove('active');
+                });
+                
+                // Show current page
+                pages[currentPage].classList.add('active');
+                
+                // Update buttons
+                prevPageBtn.disabled = currentPage === 0;
+                nextPageBtn.disabled = currentPage === totalPages - 1;
+                
+                // Update indicator
+                pageIndicator.textContent = `Page ${currentPage + 1} of ${totalPages}`;
+            }
+            
+            // Add keyboard navigation
+            document.addEventListener('keydown', function(e) {
+                if (bookViewer.style.display === 'flex') {
+                    if (e.key === 'ArrowLeft' && currentPage > 0) {
+                        currentPage--;
+                        updatePages();
+                    } else if (e.key === 'ArrowRight' && currentPage < totalPages - 1) {
+                        currentPage++;
+                        updatePages();
+                    } else if (e.key === 'Escape') {
+                        bookViewer.style.display = 'none';
+                        document.body.style.overflow = 'auto';
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

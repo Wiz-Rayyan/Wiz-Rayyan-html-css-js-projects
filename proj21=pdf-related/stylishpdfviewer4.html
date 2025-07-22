@@ -1,0 +1,489 @@
+<!--
+goal: This implementation gives you the ability to style PDF content as if it were regular HTML content,  goal accomplished:20%. The styling is applied to the extracted content rather than trying to style the PDF directly.
+to be done: it does not extract image, in styling only font size, font color and font style works, and few other things, more css styling options to be included.
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Image Extractor with Styling</title>
+    <style>
+        /* Base Styles */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background: linear-gradient(135deg, #6e48aa, #9d50bb);
+            color: white;
+            padding: 20px 0;
+            text-align: center;
+            margin-bottom: 30px;
+            border-radius: 0 0 10px 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 2.2rem;
+        }
+
+        /* Upload Section */
+        .upload-section {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .file-input-wrapper {
+            margin: 20px 0;
+        }
+
+        #pdfInput {
+            display: none;
+        }
+
+        .file-input-label {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #6e48aa;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .file-input-label:hover {
+            background: #5d3a99;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Style Controls */
+        .style-controls {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            margin-bottom: 30px;
+        }
+
+        .style-presets {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .style-preset {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        .style-preset:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .style-preset.active {
+            box-shadow: 0 0 0 3px rgba(110, 72, 170, 0.3);
+        }
+
+        .custom-style-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .style-control-group {
+            margin-bottom: 15px;
+        }
+
+        .style-control-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .style-control-group input[type="range"] {
+            width: 100%;
+        }
+
+        /* Content Display */
+        .content-display {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .pdf-page {
+            margin-bottom: 40px;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .page-number {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            z-index: 10;
+        }
+
+        .page-content {
+            padding: 20px;
+            background-color: white;
+        }
+
+        .extracted-image {
+            max-width: 100%;
+            height: auto;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .extracted-text {
+            white-space: pre-wrap;
+            margin-bottom: 15px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 4px;
+            border-left: 4px solid #6e48aa;
+        }
+
+        /* Status Messages */
+        #status {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+            text-align: center;
+            display: none;
+        }
+
+        .status-loading {
+            background-color: #e3f2fd;
+            color: #0d47a1;
+        }
+
+        .status-success {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .status-error {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+
+        /* Style Preset Colors */
+        .preset-default {
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .preset-newspaper {
+            background: #f0e6cc;
+            color: #333;
+        }
+
+        .preset-dark {
+            background: #2d3748;
+            color: #f7fafc;
+        }
+
+        .preset-modern {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: #2d3748;
+        }
+
+        .preset-vintage {
+            background: #f3e9d2;
+            color: #5c3a21;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>PDF Content Styler</h1>
+            <p>Extract and style PDF content with CSS</p>
+        </div>
+    </header>
+
+    <div class="container">
+        <section class="upload-section">
+            <h2>Upload PDF File</h2>
+            <div class="file-input-wrapper">
+                <input type="file" id="pdfInput" accept=".pdf">
+                <label for="pdfInput" class="file-input-label">Choose PDF File</label>
+            </div>
+            <div id="status"></div>
+        </section>
+
+        <section class="style-controls">
+            <h2>Style Controls</h2>
+            <div class="style-presets">
+                <button class="style-preset preset-default active" data-style="default">Default</button>
+                <button class="style-preset preset-newspaper" data-style="newspaper">Newspaper</button>
+                <button class="style-preset preset-dark" data-style="dark">Dark Mode</button>
+                <button class="style-preset preset-modern" data-style="modern">Modern</button>
+                <button class="style-preset preset-vintage" data-style="vintage">Vintage</button>
+            </div>
+
+            <div class="custom-style-controls">
+                <div class="style-control-group">
+                    <label for="textColor">Text Color</label>
+                    <input type="color" id="textColor" value="#333333">
+                </div>
+                <div class="style-control-group">
+                    <label for="bgColor">Background Color</label>
+                    <input type="color" id="bgColor" value="#ffffff">
+                </div>
+                <div class="style-control-group">
+                    <label for="fontFamily">Font Family</label>
+                    <select id="fontFamily">
+                        <option value="'Segoe UI', Tahoma, Geneva, Verdana, sans-serif">Segoe UI</option>
+                        <option value="Georgia, serif">Georgia</option>
+                        <option value="'Courier New', monospace">Courier New</option>
+                        <option value="Arial, sans-serif">Arial</option>
+                        <option value="'Times New Roman', serif">Times New Roman</option>
+                    </select>
+                </div>
+                <div class="style-control-group">
+                    <label for="fontSize">Font Size</label>
+                    <input type="range" id="fontSize" min="12" max="24" value="16">
+                </div>
+            </div>
+        </section>
+
+        <section class="content-display" id="contentDisplay">
+            <h2>Extracted Content</h2>
+            <p>Upload a PDF to see extracted images and text.</p>
+        </section>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <script>
+        // Initialize PDF.js
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+
+        // DOM elements
+        const pdfInput = document.getElementById('pdfInput');
+        const contentDisplay = document.getElementById('contentDisplay');
+        const statusElement = document.getElementById('status');
+        const stylePresets = document.querySelectorAll('.style-preset');
+        
+        // Style controls
+        const textColor = document.getElementById('textColor');
+        const bgColor = document.getElementById('bgColor');
+        const fontFamily = document.getElementById('fontFamily');
+        const fontSize = document.getElementById('fontSize');
+
+        // Current state
+        let currentStyle = 'default';
+
+        // Handle PDF file selection
+        pdfInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            showStatus(`Loading ${file.name}...`, 'status-loading');
+
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const typedArray = new Uint8Array(arrayBuffer);
+
+                // Load the PDF
+                const pdf = await pdfjsLib.getDocument(typedArray).promise;
+                showStatus(`Processing ${pdf.numPages} pages...`, 'status-loading');
+
+                // Clear previous content
+                contentDisplay.innerHTML = '<h2>Extracted Content</h2>';
+
+                // Process each page
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    showStatus(`Processing page ${i} of ${pdf.numPages}`, 'status-loading');
+
+                    // Create page container
+                    const pageContainer = document.createElement('div');
+                    pageContainer.className = 'pdf-page';
+                    pageContainer.dataset.pageNumber = i;
+
+                    // Add page number
+                    const pageNumber = document.createElement('div');
+                    pageNumber.className = 'page-number';
+                    pageNumber.textContent = `Page ${i}`;
+                    pageContainer.appendChild(pageNumber);
+
+                    // Create content container
+                    const contentContainer = document.createElement('div');
+                    contentContainer.className = 'page-content';
+
+                    // Get text content
+                    const textContent = await page.getTextContent();
+                    const text = textContent.items.map(item => item.str).join(' ');
+
+                    // Add text to container
+                    if (text.trim().length > 0) {
+                        const textElement = document.createElement('div');
+                        textElement.className = 'extracted-text';
+                        textElement.textContent = text;
+                        contentContainer.appendChild(textElement);
+                    }
+
+                    // Get images (this is a simplified approach - PDF.js doesn't directly extract images)
+                    // For a real implementation, you'd need more complex image extraction
+                    const viewport = page.getViewport({ scale: 1.5 });
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
+
+                    await page.render({
+                        canvasContext: context,
+                        viewport: viewport
+                    }).promise;
+
+                    // Add canvas as image
+                    const img = document.createElement('img');
+                    img.className = 'extracted-image';
+                    img.src = canvas.toDataURL('image/png');
+                    contentContainer.insertBefore(img, contentContainer.firstChild);
+
+                    // Add to page container
+                    pageContainer.appendChild(contentContainer);
+                    contentDisplay.appendChild(pageContainer);
+
+                    // Apply current style
+                    applyCurrentStyle();
+                }
+
+                showStatus('PDF processing complete!', 'status-success');
+
+            } catch (error) {
+                showStatus(`Error processing PDF: ${error.message}`, 'status-error');
+                console.error(error);
+            }
+        });
+
+        // Style preset selection
+        stylePresets.forEach(preset => {
+            preset.addEventListener('click', () => {
+                // Update active state
+                stylePresets.forEach(p => p.classList.remove('active'));
+                preset.classList.add('active');
+                currentStyle = preset.dataset.style;
+
+                // Apply style
+                applyCurrentStyle();
+            });
+        });
+
+        // Custom style controls
+        textColor.addEventListener('input', applyCurrentStyle);
+        bgColor.addEventListener('input', applyCurrentStyle);
+        fontFamily.addEventListener('change', applyCurrentStyle);
+        fontSize.addEventListener('input', applyCurrentStyle);
+
+        // Apply current style to all content
+        function applyCurrentStyle() {
+            const pages = document.querySelectorAll('.pdf-page');
+            const textElements = document.querySelectorAll('.extracted-text');
+            const images = document.querySelectorAll('.extracted-image');
+
+            // Apply base styles based on preset
+            pages.forEach(page => {
+                // Reset styles
+                page.style.backgroundColor = '';
+                page.style.color = '';
+                page.style.fontFamily = '';
+                page.style.fontSize = '';
+
+                // Apply preset styles
+                switch(currentStyle) {
+                    case 'newspaper':
+                        page.style.backgroundColor = '#f0e6cc';
+                        page.style.color = '#333';
+                        page.style.fontFamily = 'Georgia, serif';
+                        break;
+                    case 'dark':
+                        page.style.backgroundColor = '#2d3748';
+                        page.style.color = '#f7fafc';
+                        break;
+                    case 'modern':
+                        page.style.background = 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)';
+                        page.style.color = '#2d3748';
+                        page.style.fontFamily = 'Arial, sans-serif';
+                        break;
+                    case 'vintage':
+                        page.style.backgroundColor = '#f3e9d2';
+                        page.style.color = '#5c3a21';
+                        page.style.fontFamily = '"Times New Roman", serif';
+                        break;
+                    default:
+                        // Default styles
+                        page.style.backgroundColor = '#ffffff';
+                        page.style.color = '#333';
+                }
+
+                // Apply custom styles
+                page.style.color = textColor.value;
+                page.style.backgroundColor = bgColor.value;
+                page.style.fontFamily = fontFamily.value;
+                page.style.fontSize = `${fontSize.value}px`;
+            });
+
+            // Apply styles to text elements
+            textElements.forEach(text => {
+                text.style.color = textColor.value;
+                text.style.fontFamily = fontFamily.value;
+                text.style.fontSize = `${fontSize.value}px`;
+            });
+
+            // Apply styles to images
+            images.forEach(img => {
+                // You could apply filters here if desired
+                // img.style.filter = 'sepia(30%)';
+            });
+        }
+
+        // Show status message
+        function showStatus(message, className) {
+            statusElement.textContent = message;
+            statusElement.className = className;
+            statusElement.style.display = 'block';
+        }
+    </script>
+</body>
+</html>

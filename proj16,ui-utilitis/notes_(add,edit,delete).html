@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Notes App</title>
+     <style>
+      *{
+    margin: 0px;
+    padding: 0px;
+    box-sizing: border-box;
+}
+
+body{
+    padding: 15px;
+    background-color: rgb(79, 0, 216);
+}
+
+h1, p {
+    color: #fff;
+}
+
+h1 {
+    margin-bottom: 30px;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    margin-top: 30px;
+}
+
+.input-container {
+    width: 100%;
+    max-width: 450px;
+    padding: 20px;
+    display: flex;
+    gap: 15px;
+}
+
+.input-container input {
+    border: none;
+    outline: none;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 16px;
+}
+
+.input-container button {
+    background-color: #fbff28;
+    color: #000;
+    font-size: 18px;
+    font-weight: bold;
+    border: 1px solid #000;
+    cursor: pointer;
+    padding: 12px 24px;
+    border-radius: 8px;
+}
+
+ul {
+    width: 450px;
+    list-style: none;
+}
+
+ul li {
+    cursor: pointer;
+    margin-bottom: 15px;
+    padding: 6px 12px;
+    background-color: #f7a604;
+    border-radius: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+}
+
+ul li p{
+    font-size: 20px;
+}
+
+ul li button {
+    padding: 10px 15px;
+    background-color: #fbff28;
+    color: #000;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 8px;
+    border: none;
+}
+
+.deleteBtn {
+    background-color: rgb(198, 0, 228);
+    color: #fff;
+}
+     </style>
+  </head>
+  <body>
+    <div class="container">
+        <h1>Notes App</h1>
+      <div class="input-container">
+        <input
+          type="text"
+          name="input"
+          placeholder="Add your note here..."
+          id="input"
+          class="input"
+        />
+        <button type="button" class="addBtn">Add Note</button>
+      </div>
+      <p class="error-message-text"></p>
+      <ul class="notes-list-wrapper"></ul>
+    </div>
+
+    <script  >
+      const inputBox = document.querySelector(".input");
+const addButton = document.querySelector(".addBtn");
+const notesListWrapper = document.querySelector(".notes-list-wrapper");
+const errorMessageText = document.querySelector(".error-message-text");
+
+let currentEditedNote = null;
+// creating/adding new note
+
+function createNewNoteItem(getCurrentNote) {
+  const li = document.createElement("li");
+  const p = document.createElement("p");
+
+  p.textContent = getCurrentNote;
+  li.appendChild(p);
+
+  const editBtn = document.createElement("button");
+  editBtn.innerText = "Edit";
+  editBtn.classList.add("btn", "editBtn");
+  li.appendChild(editBtn);
+
+  const deleteBtn = document.createElement("button");
+  deleteBtn.innerText = "Delete";
+  deleteBtn.classList.add("btn", "deleteBtn");
+  li.appendChild(deleteBtn);
+
+  return li;
+}
+
+function saveNotesToStroage(getCurrentNote) {
+  let notesList;
+
+  if (localStorage.getItem("notes") === null) {
+    notesList = [];
+  } else {
+    notesList = JSON.parse(localStorage.getItem("notes"));
+  }
+
+  notesList.push(getCurrentNote);
+  localStorage.setItem("notes", JSON.stringify(notesList));
+}
+
+function addNewNote() {
+  const extractInputText = inputBox.value.trim();
+  if (extractInputText.length <= 0) {
+    errorMessageText.textContent =
+      "Input can not be empty ! You must write some note to proceed";
+    return false;
+  }
+
+  console.log(addButton.innerText);
+  if (addButton.innerText === "Edit Note") {
+    handleEditCurrentNote(
+      currentEditedNote.target.previousElementSibling.innerHTML
+    );
+    currentEditedNote.target.previousElementSibling.innerHTML =
+      extractInputText;
+    addButton.innerText = "Add Note";
+    inputBox.value = "";
+    errorMessageText.textContent = ''
+  } else {
+    const newNoteItem = createNewNoteItem(extractInputText);
+    notesListWrapper.appendChild(newNoteItem);
+    inputBox.value = "";
+    errorMessageText.textContent = ''
+
+    saveNotesToStroage(extractInputText);
+  }
+}
+
+function fetchAllNotes() {
+  let notesList;
+  if (localStorage.getItem("notes" === null)) {
+    notesList = [];
+  } else {
+    notesList = JSON.parse(localStorage.getItem("notes"));
+
+    notesList.forEach((noteItem) => {
+      const extractLi = createNewNoteItem(noteItem);
+      notesListWrapper.appendChild(extractLi);
+    });
+  }
+
+  console.log(notesList);
+}
+
+function handleEditCurrentNote(currentNote) {
+  let notes = JSON.parse(localStorage.getItem("notes"));
+  let index = notes.indexOf(currentNote);
+
+  notes[index] = inputBox.value;
+  localStorage.setItem("notes", JSON.stringify(notes));
+}
+
+function handleDeleteNotes(currentNote) {
+  let notesList;
+  if (localStorage.getItem("notes") === null) {
+    notesList = [];
+  } else {
+    notesList = JSON.parse(localStorage.getItem("notes"));
+  }
+
+  let currentNoteText = currentNote.children[0].innerHTML;
+  let index = notesList.indexOf(currentNoteText);
+
+  notesList.splice(index, 1);
+  localStorage.setItem("notes", JSON.stringify(notesList));
+}
+
+function handleEditOrDeleteNote(event) {
+  console.log(event.target.previousElementSibling, event.target.innerHTML);
+
+  if (event.target.innerHTML === "Delete") {
+    notesListWrapper.removeChild(event.target.parentElement);
+    handleDeleteNotes(event.target.parentElement);
+
+    console.log(event.target.parentElement);
+  }
+
+  if (event.target.innerHTML === "Edit") {
+    console.log(event.target.previousElementSibling.innerHTML);
+    inputBox.value = event.target.previousElementSibling.innerHTML;
+    inputBox.focus();
+    addButton.innerText = "Edit Note";
+    currentEditedNote = event;
+  }
+}
+
+document.addEventListener("DOMContentLoaded", fetchAllNotes);
+addButton.addEventListener("click", addNewNote);
+notesListWrapper.addEventListener("click", handleEditOrDeleteNote);
+    </script>
+  </body>
+</html>

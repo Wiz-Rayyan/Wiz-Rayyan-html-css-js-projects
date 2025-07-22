@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ImageSearch - Search Engine for Images</title>
+    <style>
+        :root {
+            --primary-color: #4285f4;
+            --secondary-color: #34a853;
+            --accent-color: #ea4335;
+            --text-color: #3c4043;
+            --light-gray: #f8f9fa;
+            --border-color: #dfe1e5;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Roboto', Arial, sans-serif;
+            color: var(--text-color);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        header {
+            padding: 20px;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .nav-link {
+            text-decoration: none;
+            color: var(--text-color);
+            font-size: 14px;
+        }
+        
+        .nav-link:hover {
+            text-decoration: underline;
+        }
+        
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .logo {
+            margin-bottom: 30px;
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+        
+        .search-container {
+            width: 100%;
+            max-width: 600px;
+            margin-bottom: 30px;
+            position: relative;
+        }
+        
+        .search-box {
+            width: 100%;
+            padding: 12px 20px;
+            font-size: 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            outline: none;
+            box-shadow: 0 1px 6px rgba(32, 33, 36, 0.28);
+        }
+        
+        .search-box:hover, .search-box:focus {
+            box-shadow: 0 1px 6px rgba(32, 33, 36, 0.4);
+        }
+        
+        .search-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+        
+        .search-button {
+            padding: 8px 16px;
+            background-color: var(--light-gray);
+            border: 1px solid transparent;
+            border-radius: 4px;
+            color: var(--text-color);
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .search-button:hover {
+            border: 1px solid var(--border-color);
+            box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
+        }
+        
+        .source-selector {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .source-button {
+            padding: 8px 12px;
+            background-color: white;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--text-color);
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .source-button.active {
+            background-color: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        
+        .results-container {
+            width: 100%;
+            max-width: 1200px;
+        }
+        
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 16px;
+        }
+        
+        .image-card {
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .image-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+        
+        .image-container {
+            position: relative;
+            width: 100%;
+            padding-top: 100%;
+            overflow: hidden;
+        }
+        
+        .image-container img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .image-info {
+            padding: 10px;
+            font-size: 14px;
+        }
+        
+        .image-title {
+            font-weight: bold;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .image-source {
+            color: #5f6368;
+            font-size: 12px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 18px;
+            color: #5f6368;
+        }
+        
+        .error {
+            text-align: center;
+            padding: 40px;
+            font-size: 18px;
+            color: var(--accent-color);
+        }
+        
+        footer {
+            background-color: var(--light-gray);
+            padding: 20px;
+            font-size: 14px;
+            color: #5f6368;
+            text-align: center;
+        }
+        
+        @media (max-width: 768px) {
+            .results-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <a href="#" class="nav-link">Images</a>
+        <a href="#" class="nav-link">About</a>
+    </header>
+    
+    <main>
+        <div class="logo">ImageSearch</div>
+        
+        <div class="search-container">
+            <input type="text" class="search-box" id="searchQuery" placeholder="Search for images...">
+        </div>
+        
+        <div class="search-buttons">
+            <button class="search-button" id="searchButton">Image Search</button>
+            <button class="search-button" id="luckyButton">I'm Feeling Lucky</button>
+        </div>
+        
+        <div class="source-selector">
+            <button class="source-button active" data-source="all">All Sources</button>
+            <button class="source-button" data-source="unsplash">Unsplash</button>
+            <button class="source-button" data-source="pixabay">Pixabay</button>
+            <button class="source-button" data-source="pexels">Pexels</button>
+        </div>
+        
+        <div class="results-container" id="resultsContainer">
+            <!-- Results will be inserted here -->
+        </div>
+    </main>
+    
+    <footer>
+        <div>ImageSearch - Search across multiple free image sources</div>
+    </footer>
+
+    <script>
+        // DOM Elements
+        const searchQuery = document.getElementById('searchQuery');
+        const searchButton = document.getElementById('searchButton');
+        const luckyButton = document.getElementById('luckyButton');
+        const sourceButtons = document.querySelectorAll('.source-button');
+        const resultsContainer = document.getElementById('resultsContainer');
+        
+        // App State
+        let currentSource = 'all';
+        let currentQuery = '';
+        let isLoading = false;
+        
+        // Event Listeners
+        searchButton.addEventListener('click', performSearch);
+        luckyButton.addEventListener('click', performLuckySearch);
+        searchQuery.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') performSearch();
+        });
+        
+        sourceButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                sourceButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                currentSource = button.dataset.source;
+                if (currentQuery) performSearch();
+            });
+        });
+        
+        // Search Functions
+        async function performSearch() {
+            currentQuery = searchQuery.value.trim();
+            if (!currentQuery) return;
+            
+            isLoading = true;
+            resultsContainer.innerHTML = '<div class="loading">Searching for images...</div>';
+            
+            try {
+                let results = [];
+                
+                // In a real app, you would call actual APIs here
+                // For demo purposes, we'll simulate API responses
+                
+                if (currentSource === 'all' || currentSource === 'unsplash') {
+                    const unsplashResults = await simulateUnsplashSearch(currentQuery);
+                    results = [...results, ...unsplashResults];
+                }
+                
+                if (currentSource === 'all' || currentSource === 'pixabay') {
+                    const pixabayResults = await simulatePixabaySearch(currentQuery);
+                    results = [...results, ...pixabayResults];
+                }
+                
+                if (currentSource === 'all' || currentSource === 'pexels') {
+                    const pexelsResults = await simulatePexelsSearch(currentQuery);
+                    results = [...results, ...pexelsResults];
+                }
+                
+                displayResults(results);
+            } catch (error) {
+                console.error('Search error:', error);
+                resultsContainer.innerHTML = '<div class="error">Failed to load images. Please try again.</div>';
+            }
+            
+            isLoading = false;
+        }
+        
+        async function performLuckySearch() {
+            currentQuery = searchQuery.value.trim();
+            if (!currentQuery) return;
+            
+            isLoading = true;
+            resultsContainer.innerHTML = '<div class="loading">Finding a random image...</div>';
+            
+            try {
+                // Get one random image from any source
+                const sources = currentSource === 'all' 
+                    ? ['unsplash', 'pixabay', 'pexels'] 
+                    : [currentSource];
+                
+                const randomSource = sources[Math.floor(Math.random() * sources.length)];
+                let result;
+                
+                switch(randomSource) {
+                    case 'unsplash':
+                        const unsplashResults = await simulateUnsplashSearch(currentQuery, 1);
+                        result = unsplashResults[0];
+                        break;
+                    case 'pixabay':
+                        const pixabayResults = await simulatePixabaySearch(currentQuery, 1);
+                        result = pixabayResults[0];
+                        break;
+                    case 'pexels':
+                        const pexelsResults = await simulatePexelsSearch(currentQuery, 1);
+                        result = pexelsResults[0];
+                        break;
+                }
+                
+                if (result) {
+                    resultsContainer.innerHTML = '';
+                    resultsContainer.appendChild(createImageCard(result));
+                } else {
+                    resultsContainer.innerHTML = '<div class="error">No images found. Try a different search.</div>';
+                }
+            } catch (error) {
+                console.error('Lucky search error:', error);
+                resultsContainer.innerHTML = '<div class="error">Failed to load image. Please try again.</div>';
+            }
+            
+            isLoading = false;
+        }
+        
+        // Display Functions
+        function displayResults(results) {
+            if (results.length === 0) {
+                resultsContainer.innerHTML = '<div class="error">No images found. Try a different search.</div>';
+                return;
+            }
+            
+            resultsContainer.innerHTML = '';
+            const grid = document.createElement('div');
+            grid.className = 'results-grid';
+            
+            results.forEach(result => {
+                grid.appendChild(createImageCard(result));
+            });
+            
+            resultsContainer.appendChild(grid);
+        }
+        
+        function createImageCard(imageData) {
+            const card = document.createElement('div');
+            card.className = 'image-card';
+            
+            const imageContainer = document.createElement('div');
+            imageContainer.className = 'image-container';
+            
+            const img = document.createElement('img');
+            img.src = imageData.url;
+            img.alt = imageData.title;
+            img.loading = 'lazy';
+            
+            const info = document.createElement('div');
+            info.className = 'image-info';
+            
+            const title = document.createElement('div');
+            title.className = 'image-title';
+            title.textContent = imageData.title;
+            
+            const source = document.createElement('div');
+            source.className = 'image-source';
+            source.textContent = imageData.source;
+            
+            imageContainer.appendChild(img);
+            info.appendChild(title);
+            info.appendChild(source);
+            card.appendChild(imageContainer);
+            card.appendChild(info);
+            
+            return card;
+        }
+        
+        // Simulated API Responses (in a real app, replace with actual API calls)
+        async function simulateUnsplashSearch(query, count = 12) {
+            // Simulate network delay
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            const results = [];
+            for (let i = 0; i < count; i++) {
+                results.push({
+                    url: `https://source.unsplash.com/600x600/?${encodeURIComponent(query)}&sig=${Math.random()}`,
+                    title: `${query} image ${i+1}`,
+                    source: 'Unsplash',
+                    id: `unsplash-${Math.floor(Math.random() * 10000)}`
+                });
+            }
+            return results;
+        }
+        
+        async function simulatePixabaySearch(query, count = 12) {
+            await new Promise(resolve => setTimeout(resolve, 600));
+            
+            const results = [];
+            for (let i = 0; i < count; i++) {
+                results.push({
+                    url: `https://pixabay.com/get/g${Math.random().toString(36).substring(2, 15)}.jpg`,
+                    title: `${query} photo ${i+1}`,
+                    source: 'Pixabay',
+                    id: `pixabay-${Math.floor(Math.random() * 10000)}`
+                });
+            }
+            return results;
+        }
+        
+        async function simulatePexelsSearch(query, count = 12) {
+            await new Promise(resolve => setTimeout(resolve, 700));
+            
+            const results = [];
+            for (let i = 0; i < count; i++) {
+                results.push({
+                    url: `https://images.pexels.com/photos/${Math.floor(Math.random() * 100000)}/pexels-photo-${Math.floor(Math.random() * 100000)}.jpeg`,
+                    title: `${query} picture ${i+1}`,
+                    source: 'Pexels',
+                    id: `pexels-${Math.floor(Math.random() * 10000)}`
+                });
+            }
+            return results;
+        }
+    </script>
+</body>
+</html>

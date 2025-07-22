@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emoji Alchemy Lab</title>
+    <style>
+        :root {
+            --dark-bg: #1a1a23;
+            --panel-bg: #23232e;
+            --scrollbar: #464656;
+            --highlight: #3a3a4a;
+            --fusion: #dc5050;
+            --purge: #50dc50;
+            --amplify: #5050dc;
+            --fracture: #dcdc50;
+            --chaos: #b450dc;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background-color: var(--dark-bg);
+            color: white;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            user-select: none;
+        }
+        
+        #game-container {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            grid-template-rows: auto 1fr;
+            height: 100vh;
+            gap: 10px;
+            padding: 10px;
+        }
+        
+        .panel {
+            background-color: var(--panel-bg);
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        #elements-panel {
+            grid-row: span 2;
+        }
+        
+        #terminal {
+            min-height: 200px;
+        }
+        
+        .panel-title {
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .scroll-container {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+        
+        .scroll-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .scroll-container::-webkit-scrollbar-track {
+            background: var(--panel-bg);
+            border-radius: 4px;
+        }
+        
+        .scroll-container::-webkit-scrollbar-thumb {
+            background: var(--scrollbar);
+            border-radius: 4px;
+        }
+        
+        .element {
+            display: flex;
+            align-items: center;
+            padding: 8px 10px;
+            margin-bottom: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .element:hover {
+            background-color: var(--highlight);
+        }
+        
+        .element.selected {
+            background-color: var(--highlight);
+        }
+        
+        .element-emoji {
+            font-size: 1.8rem;
+            margin-right: 15px;
+            width: 40px;
+            text-align: center;
+        }
+        
+        .element-name {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+        
+        .element-undiscovered {
+            position: relative;
+        }
+        
+        .element-undiscovered::after {
+            content: "?";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            border-radius: 5px;
+        }
+        
+        #crucibles-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(2, 1fr) auto;
+            gap: 15px;
+            padding: 10px;
+        }
+        
+        .crucible {
+            position: relative;
+            background-color: var(--panel-bg);
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .crucible:hover {
+            transform: translateY(-3px);
+        }
+        
+        .crucible::before {
+            content: "";
+            position: absolute;
+            top: -20px;
+            width: 40px;
+            height: 20px;
+            background-color: inherit;
+            clip-path: polygon(0% 100%, 50% 0%, 100% 100%);
+        }
+        
+        .crucible.fusion { background-color: var(--fusion); }
+        .crucible.purge { background-color: var(--purge); }
+        .crucible.amplify { background-color: var(--amplify); }
+        .crucible.fracture { background-color: var(--fracture); }
+        .crucible.chaos { background-color: var(--chaos); }
+        
+        .crucible.active {
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+        }
+        
+        .crucible-emoji {
+            font-size: 2.5rem;
+            margin-bottom: 5px;
+        }
+        
+        .crucible-contents {
+            font-size: 2rem;
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .crucible-label {
+            font-size: 0.9rem;
+            margin-top: 10px;
+            text-transform: capitalize;
+        }
+        
+        .bubble {
+            position: absolute;
+            background-color: rgba(255, 255, 255, 0.7);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        
+        #terminal-content {
+            display: flex;
+            flex-direction: column-reverse;
+            min-height: 100%;
+        }
+        
+        .log-entry {
+            padding: 5px 0;
+            border-bottom: 1px solid #333;
+            font-size: 0.9rem;
+        }
+        
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+        
+        #view-toggle {
+            background: none;
+            border: 1px solid #555;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        #selected-element {
+            position: absolute;
+            pointer-events: none;
+            font-size: 2rem;
+            z-index: 100;
+        }
+        
+        #chaos-crucible {
+            grid-column: span 2;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="elements-panel" class="panel">
+            <div class="panel-title">
+                <span>Elements</span>
+                <button id="view-toggle">Show: Discovered</button>
+            </div>
+            <div class="scroll-container" id="elements-list">
+                <!-- Elements will be added here by JavaScript -->
+            </div>
+        </div>
+        
+        <div id="crucibles-container">
+            <div class="crucible fusion" data-type="fusion">
+                <div class="crucible-emoji">🧪🔥</div>
+                <div class="crucible-contents"></div>
+                <div class="crucible-label">Fusion</div>
+            </div>
+            
+            <div class="crucible purge" data-type="purge">
+                <div class="crucible-emoji">🧪💨</div>
+                <div class="crucible-contents"></div>
+                <div class="crucible-label">Purge</div>
+            </div>
+            
+            <div class="crucible amplify" data-type="amplify">
+                <div class="crucible-emoji">🧪⚡</div>
+                <div class="crucible-contents"></div>
+                <div class="crucible-label">Amplify</div>
+            </div>
+            
+            <div class="crucible fracture" data-type="fracture">
+                <div class="crucible-emoji">🧪💥</div>
+                <div class="crucible-contents"></div>
+                <div class="crucible-label">Fracture</div>
+            </div>
+            
+            <div class="crucible chaos" id="chaos-crucible" data-type="chaos">
+                <div class="crucible-emoji">🧪🌀</div>
+                <div class="crucible-contents"></div>
+                <div class="crucible-label">Chaos</div>
+            </div>
+        </div>
+        
+        <div id="terminal" class="panel">
+            <div class="panel-title">Alchemy Log</div>
+            <div class="scroll-container">
+                <div id="terminal-content">
+                    <!-- Log entries will be added here by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="selected-element"></div>
+    
+    <script>
+        // Game Data
+        const elements = [
+            { emoji: "🔥", name: "Fire", category: "element", discovered: true },
+            { emoji: "💧", name: "Water", category: "element", discovered: true },
+            { emoji: "🌪️", name: "Wind", category: "element", discovered: true },
+            { emoji: "🪨", name: "Earth", category: "element", discovered: true },
+            { emoji: "⚡", name: "Lightning", category: "element", discovered: false },
+            { emoji: "❄️", name: "Ice", category: "element", discovered: false },
+            { emoji: "🌱", name: "Plant", category: "nature", discovered: false },
+            { emoji: "💨", name: "Steam", category: "element", discovered: false },
+            { emoji: "🌊", name: "Wave", category: "element", discovered: false },
+            { emoji: "🪙", name: "Metal", category: "material", discovered: false },
+            { emoji: "🏆", name: "Gold", category: "material", discovered: false },
+            { emoji: "💎", name: "Diamond", category: "material", discovered: false },
+            { emoji: "🐍", name: "Snake", category: "animal", discovered: false },
+            { emoji: "🦅", name: "Eagle", category: "animal", discovered: false },
+            { emoji: "🐉", name: "Dragon", category: "mythical", discovered: false },
+            { emoji: "🦄", name: "Unicorn", category: "mythical", discovered: false },
+            { emoji: "☀️", name: "Sun", category: "celestial", discovered: false },
+            { emoji: "🌙", name: "Moon", category: "celestial", discovered: false },
+            { emoji: "⭐", name: "Star", category: "celestial", discovered: false },
+            { emoji: "🌠", name: "Shooting Star", category: "celestial", discovered: false },
+            { emoji: "🧙", name: "Wizard", category: "magic", discovered: false },
+            { emoji: "🧚", name: "Fairy", category: "magic", discovered: false },
+            { emoji: "👻", name: "Ghost", category: "magic", discovered: false },
+            { emoji: "🧛", name: "Vampire", category: "magic", discovered: false },
+            { emoji: "🔋", name: "Battery", category: "tech", discovered: false },
+            { emoji: "💻", name: "Computer", category: "tech", discovered: false },
+            { emoji: "📱", name: "Phone", category: "tech", discovered: false },
+            { emoji: "🤖", name: "Robot", category: "tech", discovered: false },
+            { emoji: "💀", name: "Death", category: "special", discovered: false },
+            { emoji: "❤️", name: "Heart", category: "special", discovered: false },
+            { emoji: "✨", name: "Magic", category: "special", discovered: false },
+            { emoji: "♾️", name: "Infinity", category: "special", discovered: false }
+        ];
+
+        const recipes = {
+            fusion: [
+                { ingredients: ["🔥", "💧"], result: "💨", name: "Steam" },
+                { ingredients: ["🪨", "💧"], result: "🌱", name: "Plant" },
+                { ingredients: ["🌱", "☀️"], result: "🌻", name: "Sunflower" },
+                { ingredients: ["🪙", "🔥"], result: "🏆", name: "Gold" },
+                { ingredients: ["🧙", "✨"], result: "🧚", name: "Fairy" },
+                { ingredients: ["🐉", "🦄"], result: "🐲", name: "Dragon Hybrid" },
+                { ingredients: ["💻", "🤖"], result: "🦾", name: "Cyborg" }
+            ],
+            purge: [
+                { ingredients: ["🍎", "🐍"], result: "🧠", name: "Knowledge" },
+                { ingredients: ["💀", "❤️"], result: "👻", name: "Ghost" },
+                { ingredients: ["🌊", "🌪️"], result: "💧", name: "Pure Water" },
+                { ingredients: ["🏆", "🪙"], result: "💎", name: "Diamond" },
+                { ingredients: ["🧟", "🧠"], result: "💀", name: "Skeleton" }
+            ],
+            amplify: [
+                { ingredients: ["🐜", "🔥"], result: "🐜🔥", name: "Fire Ant Swarm" },
+                { ingredients: ["💀", "♾️"], result: "💀💀💀", name: "Ossuary Dimension" },
+                { ingredients: ["🌱", "☀️"], result: "🌳🌳🌳", name: "Forest" },
+                { ingredients: ["⚡", "🌪️"], result: "🌩️🌩️", name: "Thunderstorm" },
+                { ingredients: ["🧚", "✨"], result: "🧚🧚🧚", name: "Fairy Circle" }
+            ],
+            fracture: [
+                { ingredients: ["🧙", "✨"], result: "🧚🧚", name: "Twin Fairies" },
+                { ingredients: ["💎", "🪙"], result: "💎💎", name: "Gem Shards" },
+                { ingredients: ["🌕", "🌑"], result: "🌓🌓", name: "Crescent Moons" },
+                { ingredients: ["🏆", "🔥"], result: "🪙🪙", name: "Melted Gold" },
+                { ingredients: ["🐉", "🪶"], result: "🐲🐲", name: "Baby Dragons" }
+            ],
+            chaos: [
+                { ingredients: ["🌈", "🦄"], result: "🌈🦄", name: "Prismatic Unicorn" },
+                { ingredients: ["🚽", "👑"], result: "🚽👑", name: "Golden Throne" },
+                { ingredients: ["🤖", "🐑"], result: "🤖🐑", name: "Cyber-Sheep" },
+                { ingredients: ["🧦", "🐇"], result: "🧦🐇", name: "Rabbit Hole" },
+                { ingredients: ["🍕", "🌪️"], result: "🍕🌪️", name: "Pizza Tornado" }
+            ]
+        };
+
+        // Game State
+        let selectedElement = null;
+        let viewMode = "discovered";
+        let discoveryCount = 4; // Starting with 4 basic elements
+        const crucibles = {
+            fusion: { contents: [], active: false },
+            purge: { contents: [], active: false },
+            amplify: { contents: [], active: false },
+            fracture: { contents: [], active: false },
+            chaos: { contents: [], active: false }
+        };
+
+        // DOM Elements
+        const elementsList = document.getElementById("elements-list");
+        const terminalContent = document.getElementById("terminal-content");
+        const viewToggle = document.getElementById("view-toggle");
+        const selectedElementDisplay = document.getElementById("selected-element");
+        const crucibleElements = document.querySelectorAll(".crucible");
+
+        // Initialize the game
+        function initGame() {
+            renderElements();
+            addLog("Welcome to the Emoji Alchemy Lab!");
+            
+            // Set up event listeners
+            viewToggle.addEventListener("click", toggleViewMode);
+            
+            document.addEventListener("mousemove", (e) => {
+                if (selectedElement) {
+                    selectedElementDisplay.style.display = "block";
+                    selectedElementDisplay.style.left = `${e.clientX - 20}px`;
+                    selectedElementDisplay.style.top = `${e.clientY - 20}px`;
+                    selectedElementDisplay.textContent = selectedElement;
+                } else {
+                    selectedElementDisplay.style.display = "none";
+                }
+            });
+            
+            document.addEventListener("click", (e) => {
+                if (selectedElement && !e.target.closest(".crucible") && !e.target.closest(".element")) {
+                    // Clicked outside - deselect
+                    clearSelection();
+                }
+            });
+            
+            crucibleElements.forEach(crucible => {
+                crucible.addEventListener("click", handleCrucibleClick);
+            });
+        }
+
+        // Render elements based on current view mode
+        function renderElements() {
+            elementsList.innerHTML = "";
+            
+            const elementsToShow = viewMode === "all" ? elements : elements.filter(e => e.discovered);
+            
+            elementsToShow.forEach(element => {
+                const elementDiv = document.createElement("div");
+                elementDiv.className = `element ${element.discovered ? "" : "element-undiscovered"}`;
+                elementDiv.innerHTML = `
+                    <div class="element-emoji">${element.emoji}</div>
+                    <div class="element-name">${element.name}</div>
+                `;
+                
+                if (element.discovered) {
+                    elementDiv.addEventListener("click", () => selectElement(element.emoji));
+                }
+                
+                elementsList.appendChild(elementDiv);
+            });
+            
+            viewToggle.textContent = `Show: ${viewMode === "discovered" ? "All" : "Discovered"}`;
+        }
+
+        // Toggle between discovered/all elements view
+        function toggleViewMode() {
+            viewMode = viewMode === "discovered" ? "all" : "discovered";
+            renderElements();
+        }
+
+        // Select an element
+        function selectElement(emoji) {
+            clearSelection();
+            selectedElement = emoji;
+            
+            // Highlight selected element
+            document.querySelectorAll(".element").forEach(el => {
+                if (el.textContent.includes(emoji)) {
+                    el.classList.add("selected");
+                }
+            });
+            
+            addLog(`Selected: ${emoji} ${elements.find(e => e.emoji === emoji).name}`);
+        }
+
+        // Clear current selection
+        function clearSelection() {
+            if (selectedElement) {
+                document.querySelectorAll(".element").forEach(el => {
+                    el.classList.remove("selected");
+                });
+                selectedElement = null;
+            }
+        }
+
+        // Handle crucible clicks
+        function handleCrucibleClick(e) {
+            const crucible = e.currentTarget;
+            const type = crucible.dataset.type;
+            
+            if (selectedElement) {
+                if (crucibles[type].contents.length < 2) {
+                    // Add element to crucible
+                    crucibles[type].contents.push(selectedElement);
+                    crucible.querySelector(".crucible-contents").textContent = crucibles[type].contents.join("");
+                    
+                    // Activate crucible
+                    crucible.classList.add("active");
+                    crucibles[type].active = true;
+                    
+                    addLog(`Added ${selectedElement} to ${type} crucible`);
+                    
+                    // Create bubbles
+                    createBubbles(crucible);
+                    
+                    // If we have 2 elements, mix them
+                    if (crucibles[type].contents.length === 2) {
+                        setTimeout(() => performReaction(type), 1000);
+                    }
+                    
+                    clearSelection();
+                }
+            }
+        }
+
+        // Perform alchemical reaction
+        function performReaction(type) {
+            const [e1, e2] = crucibles[type].contents;
+            let result, resultName;
+            
+            // Check for known recipes first
+            const recipe = recipes[type].find(r => 
+                (r.ingredients[0] === e1 && r.ingredients[1] === e2) ||
+                (r.ingredients[0] === e2 && r.ingredients[1] === e1)
+            );
+            
+            if (recipe) {
+                result = recipe.result;
+                resultName = recipe.name;
+            } else {
+                // Default behavior based on crucible type
+                switch (type) {
+                    case "fusion":
+                        result = e1 + e2;
+                        resultName = "Combined Element";
+                        break;
+                    case "purge":
+                        result = e1;
+                        resultName = `Purified ${e1}`;
+                        break;
+                    case "amplify":
+                        result = e1 + e1 + e1;
+                        resultName = `Amplified ${e1}`;
+                        break;
+                    case "fracture":
+                        result = e1.slice(0, Math.floor(e1.length / 2));
+                        resultName = `Fragment of ${e1}`;
+                        break;
+                    case "chaos":
+                        const outcomes = [
+                            { result: e1 + e2, name: "Chaos Fusion" },
+                            { result: "💥", name: "Explosion" },
+                            { result: "❓", name: "Unknown Reaction" },
+                            { result: ["✨", "⚡", "🔥", "💧"][Math.floor(Math.random() * 4)], name: "Elemental Essence" }
+                        ];
+                        const outcome = outcomes[Math.floor(Math.random() * outcomes.length)];
+                        result = outcome.result;
+                        resultName = outcome.name;
+                        break;
+                }
+            }
+            
+            // Check if this is a new discovery
+            const elementExists = elements.some(e => e.emoji === result);
+            if (!elementExists) {
+                elements.push({
+                    emoji: result,
+                    name: resultName,
+                    category: "special",
+                    discovered: true
+                });
+                discoveryCount++;
+                addLog(`NEW DISCOVERY: ${result} ${resultName}!`);
+            } else {
+                const element = elements.find(e => e.emoji === result);
+                if (!element.discovered) {
+                    element.discovered = true;
+                    discoveryCount++;
+                    addLog(`Discovered: ${result} ${resultName}!`);
+                } else {
+                    addLog(`Created: ${result} ${resultName}`);
+                }
+            }
+            
+            // Show result in crucible temporarily
+            crucibles[type].contents = [result];
+            document.querySelector(`.crucible[data-type="${type}"] .crucible-contents`).textContent = result;
+            
+            // Reset crucible after delay
+            setTimeout(() => {
+                crucibles[type].contents = [];
+                crucibles[type].active = false;
+                document.querySelector(`.crucible[data-type="${type}"] .crucible-contents`).textContent = "";
+                document.querySelector(`.crucible[data-type="${type}"]`).classList.remove("active");
+            }, 2000);
+            
+            // Update elements list if needed
+            if (!elementExists || !elements.find(e => e.emoji === result).discovered) {
+                renderElements();
+            }
+        }
+
+        // Create bubble animation
+        function createBubbles(crucible) {
+            const rect = crucible.getBoundingClientRect();
+            
+            for (let i = 0; i < 15; i++) {
+                setTimeout(() => {
+                    const bubble = document.createElement("div");
+                    bubble.className = "bubble";
+                    
+                    // Random size and position
+                    const size = Math.random() * 10 + 5;
+                    const left = Math.random() * (rect.width - size * 2) + rect.left;
+                    const top = rect.bottom - size;
+                    
+                    bubble.style.width = `${size}px`;
+                    bubble.style.height = `${size}px`;
+                    bubble.style.left = `${left}px`;
+                    bubble.style.top = `${top}px`;
+                    bubble.style.opacity = Math.random() * 0.5 + 0.3;
+                    
+                    document.body.appendChild(bubble);
+                    
+                    // Animate bubble
+                    const duration = Math.random() * 2 + 1;
+                    bubble.style.transition = `all ${duration}s linear`;
+                    
+                    setTimeout(() => {
+                        bubble.style.top = `${rect.top - size}px`;
+                        bubble.style.opacity = "0";
+                    }, 10);
+                    
+                    // Remove bubble after animation
+                    setTimeout(() => {
+                        bubble.remove();
+                    }, duration * 1000 + 10);
+                }, i * 100);
+            }
+        }
+
+        // Add message to terminal
+        function addLog(message) {
+            const entry = document.createElement("div");
+            entry.className = "log-entry";
+            entry.textContent = message;
+            terminalContent.insertBefore(entry, terminalContent.firstChild);
+            
+            // Limit log size
+            if (terminalContent.children.length > 50) {
+                terminalContent.removeChild(terminalContent.lastChild);
+            }
+        }
+
+        // Start the game
+        initGame();
+    </script>
+</body>
+</html>

@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Obscura: Alchemic Terminal</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #0a0a0f;
+            color: #d4af37;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+        }
+        
+        #gate {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: radial-gradient(circle, transparent 0%, #000000 70%);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9998;
+        }
+        
+        .alchemy-circle {
+            width: 400px;
+            height: 400px;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="none" stroke="%23d4af37" stroke-width="0.5"/><circle cx="50" cy="50" r="40" fill="none" stroke="%23d4af37" stroke-width="0.3" stroke-dasharray="5,5"/></svg>') center/contain no-repeat;
+            animation: pulse 2s infinite alternate;
+        }
+        
+        #ritualMessage {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(10, 10, 15, 0.8);
+            padding: 10px 20px;
+            border-radius: 5px;
+            opacity: 0;
+            transition: opacity 0.5s;
+            z-index: 9999;
+        }
+        
+        #ritualConsole {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            background: rgba(10, 10, 15, 0.9);
+            color: #d4af37;
+            font-family: monospace;
+            padding: 10px;
+            z-index: 10000;
+            box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.5);
+        }
+        
+        #ritualInput {
+            background: transparent;
+            border: none;
+            color: #fff;
+            font-size: 1rem;
+            width: 90%;
+            outline: none;
+            margin-left: 5px;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.7; transform: scale(0.95); }
+            100% { opacity: 1; transform: scale(1.05); }
+        }
+        
+        @keyframes spiritRise {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0); }
+            20% { opacity: 1; }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(2) rotate(360deg); }
+        }
+        
+        @keyframes riftExpand {
+            0% { transform: scale(0.1); opacity: 0; }
+            40% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        @keyframes sigilCraft {
+            0% { transform: scale(0) rotate(0deg); opacity: 0; }
+            50% { transform: scale(1.2) rotate(180deg); opacity: 1; }
+            100% { transform: scale(1) rotate(360deg); opacity: 0.8; }
+        }
+        
+        .rift-core {
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            border: 4px dashed #ff00cc;
+            background: radial-gradient(circle, #440044, #000000);
+            animation: riftExpand 7s ease-out forwards;
+        }
+        
+        .rift-warning {
+            position: absolute;
+            bottom: 5vh;
+            color: #f5e663;
+            font-family: monospace;
+            font-size: 1.2rem;
+            text-align: center;
+            animation: blink 1s infinite;
+        }
+        
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+    </style>
+</head>
+<body>
+    <div id="ritualMessage"></div>
+    <div id="gate">
+        <div class="alchemy-circle"></div>
+    </div>
+    
+    <script>
+        // Initialize console
+        const ritualConsole = document.createElement("div");
+        ritualConsole.id = "ritualConsole";
+        ritualConsole.innerHTML = '<span>🜔 </span><input type="text" id="ritualInput" placeholder="Invoke a sigil...">';
+        document.body.appendChild(ritualConsole);
+        
+        const msg = document.getElementById("ritualMessage");
+        const gate = document.getElementById("gate");
+        let ritualAudio;
+        
+        // Basic commands
+        const basicCommands = {
+            "invoke azoth": () => {
+                msg.textContent = "🜕 Azoth invoked. Prima materia responds...";
+                showMessage();
+            },
+            "unlock gate": () => {
+                msg.textContent = "🝓 Gate opening... Prepare for transmutation";
+                gate.style.display = "flex";
+                setTimeout(() => gate.style.display = "none", 7000);
+                showMessage();
+            },
+            "summon spiritus": () => {
+                summonSpiritus();
+                msg.textContent = "☿ Spiritus summoned";
+                showMessage();
+            },
+            "create circle": () => {
+                const x = Math.random() * window.innerWidth;
+                const y = Math.random() * window.innerHeight;
+                spawnAlchemyCircle(x, y);
+                msg.textContent = "🜃 Circle cast";
+                showMessage();
+            },
+            "trace pentagram": () => {
+                createPentagramTrace();
+                msg.textContent = "⛧ Pentagram traced";
+                showMessage();
+            },
+            "chant ambient": () => {
+                if (!ritualAudio) {
+                    ritualAudio = new Audio('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3');
+                    ritualAudio.loop = true;
+                    ritualAudio.volume = 0.3;
+                }
+                ritualAudio.play();
+                msg.textContent = "🎼 Ambient ritual chant awakened";
+                showMessage();
+            },
+            "silence": () => {
+                if (ritualAudio) {
+                    ritualAudio.pause();
+                    msg.textContent = "🔇 Chant silenced";
+                    showMessage();
+                }
+            },
+            "open rift": () => {
+                openRift();
+                msg.textContent = "🌌 Rift opened across the veil.";
+                showMessage();
+            },
+            "craft sigil": () => {
+                craftSigil();
+                msg.textContent = "🜍 Sigil forged in aether.";
+                showMessage();
+            },
+            "chain rituals": () => {
+                chainRituals([openRift, () => craftSigil("bound"), summonSpiritus]);
+                msg.textContent = "⛤ Ritual chain initiated.";
+                showMessage();
+            }
+        };
+        
+        // Transmutation commands
+        const transmutationCommands = {
+            "gold → silver": "⚗ Transmuting Aurum → Argentum",
+            "silver → lead": "⚗ Transmuting Argentum → Plumbum",
+            "lead → gold": "⚗ Transmuting Plumbum → Aurum",
+            "water → wine": "⚗ Transmuting Aqua → Vinum",
+            "stone → gold": "⚗ Transmuting Lapis → Aurum"
+        };
+        
+        // Show message helper
+        function showMessage() {
+            msg.style.opacity = 1;
+            setTimeout(() => msg.style.opacity = 0, 3000);
+        }
+        
+        // Ritual functions
+        function summonSpiritus() {
+            const spiritusLayer = document.createElement("div");
+            spiritusLayer.style.position = "fixed";
+            spiritusLayer.style.top = 0;
+            spiritusLayer.style.left = 0;
+            spiritusLayer.style.width = "100%";
+            spiritusLayer.style.height = "100%";
+            spiritusLayer.style.zIndex = 9000;
+            document.body.appendChild(spiritusLayer);
+            
+            for (let i = 0; i < 12; i++) {
+                const glyph = document.createElement("div");
+                glyph.textContent = ["☿", "♄", "♃", "♁", "♇", "⚕"][i % 6];
+                glyph.style.position = "absolute";
+                glyph.style.fontSize = `${20 + Math.random() * 40}px`;
+                glyph.style.color = "#f5e663";
+                glyph.style.opacity = 0;
+                glyph.style.left = '${Math.random() * 100}%';
+                glyph.style.top = '${Math.random() * 100}%';
+                glyph.style.transform = `translate(-50%, -50%) scale(0)`;
+                glyph.style.animation = `spiritRise 10s ease-out forwards`;
+                spiritusLayer.appendChild(glyph);
+                setTimeout(() => glyph.remove(), 10000);
+            }
+            
+            setTimeout(() => spiritusLayer.remove(), 10000);
+        }
+        
+        function spawnAlchemyCircle(x, y) {
+            const circle = document.createElement("div");
+            circle.className = "alchemy-circle";
+            circle.style.position = "absolute";
+            circle.style.left = `${x - 200}px`;
+            circle.style.top = `${y - 200}px`;
+            document.body.appendChild(circle);
+            setTimeout(() => circle.remove(), 15000);
+        }
+        
+        function createPentagramTrace() {
+            const canvas = document.createElement("canvas");
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            canvas.style.position = "fixed";
+            canvas.style.top = 0;
+            canvas.style.left = 0;
+            canvas.style.zIndex = 9500;
+            const ctx = canvas.getContext("2d");
+            ctx.strokeStyle = "#f5e663";
+            ctx.lineWidth = 2;
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = "#f5e663";
+            
+            const centerX = window.innerWidth / 2;
+            const centerY = window.innerHeight / 2;
+            const r = 100;
+            const points = [];
+            
+            for (let i = 0; i < 5; i++) {
+                const angle = Math.PI / 2 + i * ((2 * Math.PI) / 5);
+                points.push([
+                    centerX + r * Math.cos(angle),
+                    centerY - r * Math.sin(angle),
+                ]);
+            }
+            
+            ctx.beginPath();
+            const order = [0, 2, 4, 1, 3, 0];
+            ctx.moveTo(...points[order[0]]);
+            for (let i = 1; i < order.length; i++) {
+                ctx.lineTo(...points[order[i]]);
+            }
+            ctx.stroke();
+            
+            document.body.appendChild(canvas);
+            setTimeout(() => canvas.remove(), 7000);
+        }
+        
+        function openRift() {
+            const veil = document.createElement("div");
+            veil.style.position = "fixed";
+            veil.style.top = 0;
+            veil.style.left = 0;
+            veil.style.width = "100vw";
+            veil.style.height = "100vh";
+            veil.style.background = "radial-gradient(ellipse at center, #000000cc, #000000ff)";
+            veil.style.zIndex = 9999;
+            veil.style.display = "flex";
+            veil.style.alignItems = "center";
+            veil.style.justifyContent = "center";
+            veil.innerHTML = `<div class='alchemy-circle' style='animation: pulse-circle 2s infinite, riftExpand 7s ease-out forwards;'></div>`;
+            
+            document.body.appendChild(veil);
+            setTimeout(() => veil.remove(), 8000);
+        }
+        
+        function craftSigil(name = "sigil") {
+            const sigil = document.createElement("div");
+            sigil.className = "alchemy-circle";
+            sigil.style.position = "fixed";
+            sigil.style.left = `${Math.random() * window.innerWidth}px`;
+            sigil.style.top = `${Math.random() * window.innerHeight}px`;
+            sigil.style.transform = "scale(0.5) rotate(45deg)";
+            sigil.style.animation = "sigilCraft 4s ease-out forwards";
+            document.body.appendChild(sigil);
+            setTimeout(() => sigil.remove(), 6000);
+        }
+        
+        function chainRituals(rituals = []) {
+            if (!Array.isArray(rituals) || rituals.length === 0) return;
+            
+            const runNext = (i) => {
+                if (i >= rituals.length) return;
+                rituals[i]();
+                setTimeout(() => runNext(i + 1), 3000);
+            };
+            runNext(0);
+        }
+        
+        // Input handler
+        document.getElementById("ritualInput").addEventListener("keypress", function(e) {
+            if (e.key === "Enter") {
+                const val = e.target.value.trim().toLowerCase();
+                e.target.value = "";
+                
+                // Check basic commands
+                if (basicCommands[val]) {
+                    basicCommands[val]();
+                    return;
+                }
+                
+                // Check transmutations
+                for (const [cmd, response] of Object.entries(transmutationCommands)) {
+                    if (val.includes(cmd)) {
+                        msg.textContent = response;
+                        showMessage();
+                        
+                        // Visual effect for transmutation
+                        const x = Math.random() * window.innerWidth;
+                        const y = Math.random() * window.innerHeight;
+                        spawnAlchemyCircle(x, y);
+                        return;
+                    }
+                }
+                
+                // Unknown command
+                msg.textContent = "Unknown sigil: " + val;
+                showMessage();
+            }
+        });
+        
+        // Focus input on page load
+        window.addEventListener("load", () => {
+            document.getElementById("ritualInput").focus();
+        });
+    </script>
+</body>
+</html>

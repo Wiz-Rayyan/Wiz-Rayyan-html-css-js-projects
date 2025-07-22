@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ranking Timeline Animation</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    #timeline {
+      width: 800px;
+      height: 500px;
+      margin: 0 auto;
+      position: relative;
+      border-left: 2px solid #333;
+      border-bottom: 2px solid #333;
+    }
+    .year-label {
+      position: absolute;
+      bottom: -30px;
+      transform: translateX(-50%);
+    }
+    .object-label {
+      position: absolute;
+      left: -40px;
+      transform: translateY(-50%);
+      font-weight: bold;
+    }
+    .rank-line {
+      position: absolute;
+      height: 2px;
+      background: #333;
+      left: 0;
+      transition: all 1s ease;
+    }
+    .rank-dot {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background: #333;
+      border-radius: 50%;
+      transform: translate(-5px, -5px);
+      transition: all 1s ease;
+    }
+    #controls {
+      text-align: center;
+      margin: 20px;
+    }
+    button {
+      padding: 8px 16px;
+      font-size: 16px;
+    }
+    #year-display {
+      font-size: 24px;
+      font-weight: bold;
+      margin: 0 20px;
+    }
+  </style>
+</head>
+<body>
+  <div id="timeline"></div>
+  <div id="controls">
+    <button id="prev-year">Previous Year</button>
+    <span id="year-display">2016</span>
+    <button id="next-year">Next Year</button>
+  </div>
+
+  <script>
+    // Data: Ranks for each year
+    const rankData = {
+      2016: { A: 1, B: 2, C: 3, D: 4, E: 5, F: 6 },
+      2017: { A: 1, B: 2, C: 3, E: 4, F: 5, D: 6 },
+      2018: { A: 1, B: 2, C: 3, F: 4, D: 5, E: 6 },
+      2019: { A: 2, B: 1, C: 3, F: 4, E: 5, D: 6 },
+      2020: { A: 3, B: 1, C: 2, F: 4, D: 5, E: 6 }
+    };
+
+    const years = Object.keys(rankData).map(Number).sort();
+    let currentYearIndex = 0;
+
+    const timeline = document.getElementById('timeline');
+    const yearDisplay = document.getElementById('year-display');
+    const prevButton = document.getElementById('prev-year');
+    const nextButton = document.getElementById('next-year');
+
+    // Object names and colors
+    const objects = ['A', 'B', 'C', 'D', 'E', 'F'];
+    const colors = {
+      A: '#FF6384', B: '#36A2EB', C: '#FFCE56', 
+      D: '#4BC0C0', E: '#9966FF', F: '#FF9F40'
+    };
+
+    // Initialize timeline
+    function initTimeline() {
+      // Add year labels
+      years.forEach(year => {
+        const yearLabel = document.createElement('div');
+        yearLabel.className = 'year-label';
+        yearLabel.textContent = year;
+        yearLabel.style.left = `${getXPosition(year)}px`;
+        timeline.appendChild(yearLabel);
+      });
+
+      // Add object labels
+      objects.forEach((obj, i) => {
+        const objLabel = document.createElement('div');
+        objLabel.className = 'object-label';
+        objLabel.textContent = obj;
+        objLabel.style.color = colors[obj];
+        objLabel.style.top = `${getYPosition(i + 1)}px`;
+        timeline.appendChild(objLabel);
+
+        // Create rank line and dot
+        const line = document.createElement('div');
+        line.className = 'rank-line';
+        line.id = `line-${obj}`;
+        line.style.backgroundColor = colors[obj];
+        line.style.top = `${getYPosition(i + 1)}px`;
+        line.style.width = `${getXPosition(years[0])}px`;
+        timeline.appendChild(line);
+
+        const dot = document.createElement('div');
+        dot.className = 'rank-dot';
+        dot.id = `dot-${obj}`;
+        dot.style.backgroundColor = colors[obj];
+        dot.style.left = `${getXPosition(years[0])}px`;
+        dot.style.top = `${getYPosition(i + 1)}px`;
+        timeline.appendChild(dot);
+      });
+
+      updateYearDisplay();
+    }
+
+    // Update visualization for current year
+    function updateTimeline() {
+      const currentYear = years[currentYearIndex];
+      const currentRanks = rankData[currentYear];
+
+      // Reverse mapping: rank -> object
+      const rankToObject = {};
+      Object.keys(currentRanks).forEach(obj => {
+        rankToObject[currentRanks[obj]] = obj;
+      });
+
+      // Update lines and dots
+      objects.forEach(obj => {
+        const rank = currentRanks[obj];
+        const line = document.getElementById(`line-${obj}`);
+        const dot = document.getElementById(`dot-${obj}`);
+
+        line.style.width = `${getXPosition(currentYear)}px`;
+        line.style.top = `${getYPosition(rank)}px`;
+        dot.style.left = `${getXPosition(currentYear)}px`;
+        dot.style.top = `${getYPosition(rank)}px`;
+      });
+    }
+
+    // Helper: Get X position for a year
+    function getXPosition(year) {
+      const minYear = Math.min(...years);
+      const maxYear = Math.max(...years);
+      const yearRange = maxYear - minYear;
+      return ((year - minYear) / yearRange) * 700;
+    }
+
+    // Helper: Get Y position for a rank (1-6)
+    function getYPosition(rank) {
+      const rankHeight = 400 / 6; // 6 ranks, 400px height
+      return 20 + (rank - 0.5) * rankHeight;
+    }
+
+    // Update year display
+    function updateYearDisplay() {
+      yearDisplay.textContent = years[currentYearIndex];
+      updateTimeline();
+    }
+
+    // Event listeners
+    prevButton.addEventListener('click', () => {
+      if (currentYearIndex > 0) {
+        currentYearIndex--;
+        updateYearDisplay();
+      }
+    });
+
+    nextButton.addEventListener('click', () => {
+      if (currentYearIndex < years.length - 1) {
+        currentYearIndex++;
+        updateYearDisplay();
+      }
+    });
+
+    // Initialize
+    initTimeline();
+  </script>
+</body>
+</html>

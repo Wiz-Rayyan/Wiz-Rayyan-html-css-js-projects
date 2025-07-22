@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive 3D Library</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Georgia', serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            overflow: hidden;
+            height: 100vh;
+            cursor: grab;
+        }
+
+        body:active {
+            cursor: grabbing;
+        }
+
+        .library-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            perspective: 1000px;
+            background: radial-gradient(ellipse at center, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.3) 100%);
+        }
+
+        .library-scene {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+            transition: transform 0.3s ease;
+        }
+
+        .shelf {
+            position: absolute;
+            width: 800px;
+            height: 200px;
+            background: linear-gradient(45deg, #8B4513, #A0522D);
+            border: 2px solid #654321;
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            transform-style: preserve-3d;
+        }
+
+        .shelf::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: 0;
+            right: 0;
+            height: 20px;
+            background: linear-gradient(45deg, #A0522D, #8B4513);
+            border-radius: 8px 8px 0 0;
+            transform: rotateX(90deg);
+            transform-origin: bottom;
+        }
+
+        .shelf-1 { transform: translateZ(0px) translateY(-200px) rotateY(0deg); }
+        .shelf-2 { transform: translateZ(-200px) translateY(-200px) rotateY(-15deg); }
+        .shelf-3 { transform: translateZ(200px) translateY(-200px) rotateY(15deg); }
+        .shelf-4 { transform: translateZ(0px) translateY(50px) rotateY(0deg); }
+        .shelf-5 { transform: translateZ(-200px) translateY(50px) rotateY(-15deg); }
+        .shelf-6 { transform: translateZ(200px) translateY(50px) rotateY(15deg); }
+
+        .book {
+            position: absolute;
+            width: 60px;
+            height: 180px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            transform-style: preserve-3d;
+            bottom: 10px;
+        }
+
+        .book:hover {
+            transform: translateY(-10px) scale(1.05);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.8);
+        }
+
+        .book-spine {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, var(--book-color), var(--book-color-dark));
+            border: 2px solid var(--book-border);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            writing-mode: vertical-lr;
+            text-orientation: mixed;
+            padding: 10px 5px;
+        }
+
+        .book-1 { --book-color: #8B0000; --book-color-dark: #660000; --book-border: #4A0000; left: 20px; }
+        .book-2 { --book-color: #006400; --book-color-dark: #004400; --book-border: #002200; left: 90px; }
+        .book-3 { --book-color: #191970; --book-color-dark: #000080; --book-border: #000050; left: 160px; }
+        .book-4 { --book-color: #8B4513; --book-color-dark: #654321; --book-border: #3D2612; left: 230px; }
+        .book-5 { --book-color: #800080; --book-color-dark: #600060; --book-border: #400040; left: 300px; }
+        .book-6 { --book-color: #2F4F4F; --book-color-dark: #1C3A3A; --book-border: #0F2020; left: 370px; }
+        .book-7 { --book-color: #8B0000; --book-color-dark: #660000; --book-border: #4A0000; left: 440px; }
+        .book-8 { --book-color: #006400; --book-color-dark: #004400; --book-border: #002200; left: 510px; }
+        .book-9 { --book-color: #191970; --book-color-dark: #000080; --book-border: #000050; left: 580px; }
+        .book-10 { --book-color: #8B4513; --book-color-dark: #654321; --book-border: #3D2612; left: 650px; }
+
+        .book-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0,0,0,0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+
+        .book-open {
+            width: 80vw;
+            max-width: 1200px;
+            height: 80vh;
+            max-height: 800px;
+            background: #f5f5dc;
+            border: 3px solid #8B4513;
+            border-radius: 10px;
+            display: flex;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .page {
+            width: 50%;
+            height: 100%;
+            padding: 40px;
+            background: linear-gradient(45deg, #fdfcf0, #f5f5dc);
+            border-right: 1px solid #d3d3d3;
+            overflow-y: auto;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .page:hover {
+            background: linear-gradient(45deg, #fefdf5, #f8f8e8);
+        }
+
+        .page-right {
+            border-right: none;
+            border-left: 1px solid #d3d3d3;
+        }
+
+        .page-content {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #333;
+            text-align: justify;
+        }
+
+        .page-number {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            font-size: 14px;
+            color: #666;
+            font-weight: bold;
+        }
+
+        .page-number-left {
+            left: 20px;
+            right: auto;
+        }
+
+        .close-book {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: #8B4513;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .close-book:hover {
+            background: #654321;
+            transform: scale(1.1);
+        }
+
+        .navigation {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+        }
+
+        .nav-btn {
+            background: #8B4513;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-btn:hover {
+            background: #654321;
+            transform: translateY(-2px);
+        }
+
+        .nav-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .ambient-light {
+            position: absolute;
+            top: 20%;
+            left: 50%;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            border-radius: 50%;
+            transform: translateX(-50%);
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateX(-50%) translateY(0px); }
+            50% { transform: translateX(-50%) translateY(-20px); }
+        }
+
+        .book-title {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 24px;
+            font-weight: bold;
+            color: #8B4513;
+            text-align: center;
+        }
+
+        .sparkle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: #FFD700;
+            border-radius: 50%;
+            animation: sparkle 2s ease-in-out infinite;
+        }
+
+        @keyframes sparkle {
+            0%, 100% { opacity: 0; transform: scale(0); }
+            50% { opacity: 1; transform: scale(1); }
+        }
+
+        .controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            font-size: 14px;
+            z-index: 100;
+            background: rgba(0,0,0,0.5);
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .page-flip {
+            animation: flip 0.6s ease-in-out;
+        }
+
+        @keyframes flip {
+            0% { transform: rotateY(0deg); }
+            50% { transform: rotateY(-90deg); }
+            100% { transform: rotateY(0deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="library-container">
+        <div class="controls">
+            <div>🖱️ Click and drag to look around</div>
+            <div>📚 Click books to open them</div>
+            <div>📄 Click pages to flip them</div>
+        </div>
+        
+        <div class="ambient-light"></div>
+        
+        <div class="library-scene" id="scene">
+            <!-- Shelf 1 -->
+            <div class="shelf shelf-1">
+                <div class="book book-1" data-title="Mystery Tales">
+                    <div class="book-spine">Mystery Tales</div>
+                </div>
+                <div class="book book-2" data-title="Garden Secrets">
+                    <div class="book-spine">Garden Secrets</div>
+                </div>
+                <div class="book book-3" data-title="Ocean Deep">
+                    <div class="book-spine">Ocean Deep</div>
+                </div>
+                <div class="book book-4" data-title="Mountain High">
+                    <div class="book-spine">Mountain High</div>
+                </div>
+                <div class="book book-5" data-title="Magic Spells">
+                    <div class="book-spine">Magic Spells</div>
+                </div>
+                <div class="book book-6" data-title="Time Travel">
+                    <div class="book-spine">Time Travel</div>
+                </div>
+                <div class="book book-7" data-title="Ancient Lore">
+                    <div class="book-spine">Ancient Lore</div>
+                </div>
+                <div class="book book-8" data-title="Forest Wisdom">
+                    <div class="book-spine">Forest Wisdom</div>
+                </div>
+                <div class="book book-9" data-title="Star Maps">
+                    <div class="book-spine">Star Maps</div>
+                </div>
+                <div class="book book-10" data-title="Desert Songs">
+                    <div class="book-spine">Desert Songs</div>
+                </div>
+            </div>
+
+            <!-- Shelf 2 -->
+            <div class="shelf shelf-2">
+                <div class="book book-1" data-title="Dragon Chronicles">
+                    <div class="book-spine">Dragon Chronicles</div>
+                </div>
+                <div class="book book-2" data-title="Fairy Tales">
+                    <div class="book-spine">Fairy Tales</div>
+                </div>
+                <div class="book book-3" data-title="Space Odyssey">
+                    <div class="book-spine">Space Odyssey</div>
+                </div>
+                <div class="book book-4" data-title="Earth Stories">
+                    <div class="book-spine">Earth Stories</div>
+                </div>
+                <div class="book book-5" data-title="Crystal Visions">
+                    <div class="book-spine">Crystal Visions</div>
+                </div>
+                <div class="book book-6" data-title="Shadow Realm">
+                    <div class="book-spine">Shadow Realm</div>
+                </div>
+                <div class="book book-7" data-title="Fire Legends">
+                    <div class="book-spine">Fire Legends</div>
+                </div>
+                <div class="book book-8" data-title="Water Spirits">
+                    <div class="book-spine">Water Spirits</div>
+                </div>
+                <div class="book book-9" data-title="Wind Whispers">
+                    <div class="book-spine">Wind Whispers</div>
+                </div>
+                <div class="book book-10" data-title="Stone Secrets">
+                    <div class="book-spine">Stone Secrets</div>
+                </div>
+            </div>
+
+            <!-- Shelf 3 -->
+            <div class="shelf shelf-3">
+                <div class="book book-1" data-title="Enchanted Forest">
+                    <div class="book-spine">Enchanted Forest</div>
+                </div>
+                <div class="book book-2" data-title="Golden Age">
+                    <div class="book-spine">Golden Age</div>
+                </div>
+                <div class="book book-3" data-title="Quantum Realm">
+                    <div class="book-spine">Quantum Realm</div>
+                </div>
+                <div class="book book-4" data-title="Lost Civilization">
+                    <div class="book-spine">Lost Civilization</div>
+                </div>
+                <div class="book book-5" data-title="Mystic Arts">
+                    <div class="book-spine">Mystic Arts</div>
+                </div>
+                <div class="book book-6" data-title="Dark Chronicles">
+                    <div class="book-spine">Dark Chronicles</div>
+                </div>
+                <div class="book book-7" data-title="Bright Future">
+                    <div class="book-spine">Bright Future</div>
+                </div>
+                <div class="book book-8" data-title="Nature's Call">
+                    <div class="book-spine">Nature's Call</div>
+                </div>
+                <div class="book book-9" data-title="Cosmic Dance">
+                    <div class="book-spine">Cosmic Dance</div>
+                </div>
+                <div class="book book-10" data-title="Soul Journey">
+                    <div class="book-spine">Soul Journey</div>
+                </div>
+            </div>
+
+            <!-- Shelf 4 -->
+            <div class="shelf shelf-4">
+                <div class="book book-1" data-title="Adventure Quest">
+                    <div class="book-spine">Adventure Quest</div>
+                </div>
+                <div class="book book-2" data-title="Secret Garden">
+                    <div class="book-spine">Secret Garden</div>
+                </div>
+                <div class="book book-3" data-title="Blue Horizons">
+                    <div class="book-spine">Blue Horizons</div>
+                </div>
+                <div class="book book-4" data-title="Brown Earth">
+                    <div class="book-spine">Brown Earth</div>
+                </div>
+                <div class="book book-5" data-title="Purple Dreams">
+                    <div class="book-spine">Purple Dreams</div>
+                </div>
+                <div class="book book-6" data-title="Grey Shadows">
+                    <div class="book-spine">Grey Shadows</div>
+                </div>
+                <div class="book book-7" data-title="Red Passion">
+                    <div class="book-spine">Red Passion</div>
+                </div>
+                <div class="book book-8" data-title="Green Life">
+                    <div class="book-spine">Green Life</div>
+                </div>
+                <div class="book book-9" data-title="Blue Mystery">
+                    <div class="book-spine">Blue Mystery</div>
+                </div>
+                <div class="book book-10" data-title="Golden Light">
+                    <div class="book-spine">Golden Light</div>
+                </div>
+            </div>
+
+            <!-- Shelf 5 -->
+            <div class="shelf shelf-5">
+                <div class="book book-1" data-title="Heroes Journey">
+                    <div class="book-spine">Heroes Journey</div>
+                </div>
+                <div class="book book-2" data-title="Emerald Isle">
+                    <div class="book-spine">Emerald Isle</div>
+                </div>
+                <div class="book book-3" data-title="Midnight Sky">
+                    <div class="book-spine">Midnight Sky</div>
+                </div>
+                <div class="book book-4" data-title="Autumn Leaves">
+                    <div class="book-spine">Autumn Leaves</div>
+                </div>
+                <div class="book book-5" data-title="Royal Purple">
+                    <div class="book-spine">Royal Purple</div>
+                </div>
+                <div class="book book-6" data-title="Steel Storm">
+                    <div class="book-spine">Steel Storm</div>
+                </div>
+                <div class="book book-7" data-title="Crimson Rose">
+                    <div class="book-spine">Crimson Rose</div>
+                </div>
+                <div class="book book-8" data-title="Jade Forest">
+                    <div class="book-spine">Jade Forest</div>
+                </div>
+                <div class="book book-9" data-title="Sapphire Sea">
+                    <div class="book-spine">Sapphire Sea</div>
+                </div>
+                <div class="book book-10" data-title="Bronze Age">
+                    <div class="book-spine">Bronze Age</div>
+                </div>
+            </div>
+
+            <!-- Shelf 6 -->
+            <div class="shelf shelf-6">
+                <div class="book book-1" data-title="Epic Tales">
+                    <div class="book-spine">Epic Tales</div>
+                </div>
+                <div class="book book-2" data-title="Verdant Valley">
+                    <div class="book-spine">Verdant Valley</div>
+                </div>
+                <div class="book book-3" data-title="Starlit Night">
+                    <div class="book-spine">Starlit Night</div>
+                </div>
+                <div class="book book-4" data-title="Rustic Charm">
+                    <div class="book-spine">Rustic Charm</div>
+                </div>
+                <div class="book book-5" data-title="Violet Twilight">
+                    <div class="book-spine">Violet Twilight</div>
+                </div>
+                <div class="book book-6" data-title="Silver Moon">
+                    <div class="book-spine">Silver Moon</div>
+                </div>
+                <div class="book book-7" data-title="Ruby Fire">
+                    <div class="book-spine">Ruby Fire</div>
+                </div>
+                <div class="book book-8" data-title="Emerald Dream">
+                    <div class="book-spine">Emerald Dream</div>
+                </div>
+                <div class="book book-9" data-title="Azure Sky">
+                    <div class="book-spine">Azure Sky</div>
+                </div>
+                <div class="book book-10" data-title="Copper Sun">
+                    <div class="book-spine">Copper Sun</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Book Modal -->
+        <div class="book-modal" id="bookModal">
+            <div class="book-open">
+                <button class="close-book" onclick="closeBook()">✕</button>
+                <div class="book-title" id="bookTitle"></div>
+                <div class="page" id="leftPage" onclick="previousPage()">
+                    <div class="page-content" id="leftContent"></div>
+                    <div class="page-number page-number-left" id="leftPageNum"></div>
+                </div>
+                <div class="page page-right" id="rightPage" onclick="nextPage()">
+                    <div class="page-content" id="rightContent"></div>
+                    <div class="page-number" id="rightPageNum"></div>
+                </div>
+                <div class="navigation">
+                    <button class="nav-btn" id="prevBtn" onclick="previousPage()">◀ Previous</button>
+                    <button class="nav-btn" id="nextBtn" onclick="nextPage()">Next ▶</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isDragging = false;
+        let startX = 0;
+        let startY = 0;
+        let rotationX = 0;
+        let rotationY = 0;
+        let currentBook = '';
+        let currentPage = 0;
+        let maxPages = 10;
+
+        const scene = document.getElementById('scene');
+        const bookModal = document.getElementById('bookModal');
+
+        // Sample book content
+        const bookContent = {
+            "Mystery Tales": [
+                "In the shadow of the ancient oak tree, Detective Sarah Mills discovered a peculiar clue that would change everything. The morning mist hung heavy over the sleepy town of Millbrook, and she could sense that something was terribly wrong.",
+                "The old mansion on Elm Street had been abandoned for decades, yet someone had been living there recently. Fresh footprints in the dust, warm ashes in the fireplace, and a half-eaten meal on the table suggested recent habitation.",
+                "As Sarah explored the mansion's hidden passages, she found a journal filled with cryptic entries. Each page revealed more about the mysterious disappearances that had plagued the town for years.",
+                "The truth was more shocking than she could have imagined. The missing people weren't gone—they had been living in a secret community beneath the town, hiding from a danger that threatened them all.",
+                "In the final confrontation, Sarah realized that the real mystery wasn't who was behind the disappearances, but why these people felt they had to disappear in the first place."
+            ],
+            "Garden Secrets": [
+                "The greenhouse at the end of Rosemary Lane held secrets that went back generations. Emma had inherited it from her grandmother, along with a collection of unusual seeds and a mysterious journal.",
+                "Each plant in the greenhouse seemed to have its own personality and purpose. The midnight blooms that only opened under starlight, the whispering grass that rustled warnings, and the healing herbs that glowed with inner light.",
+                "Emma discovered that her grandmother had been the keeper of an ancient botanical legacy. The plants were not ordinary—they were guardians of old magic, protectors of forgotten wisdom.",
+                "As Emma learned to tend the magical garden, she found herself becoming part of a network of gardeners around the world, all working to preserve the earth's most precious secrets.",
+                "The garden's greatest secret was that it was alive, conscious, and had been waiting for Emma to take her place as its next guardian."
+            ],
+            "Ocean Deep": [
+                "Captain Marina's submarine descended into the abyssal depths where few had ventured before. The pressure was immense, but her mission was crucial—to find the lost city of Aquatica.",
+                "Strange bioluminescent creatures danced in the darkness, their light creating an otherworldly ballet. Marina had never seen anything so beautiful and terrifying at the same time.",
+                "The ruins of Aquatica rose from the ocean floor like a fever dream. Crystalline spires twisted toward the surface, and buildings that seemed to pulse with their own inner light.",
+                "Within the city, Marina discovered that the Aquaticans had not died out—they had evolved. The descendants of the ancient civilization had adapted to life in the deepest trenches.",
+                "The meeting between surface dweller and deep sea inhabitant would change both their worlds forever, opening new possibilities for cooperation and understanding."
+            ]
+        };
+
+        // Mouse controls for scene rotation
+        scene.addEventListener('mousedown', startDrag);
+        scene.addEventListener('mousemove', drag);
+        scene.addEventListener('mouseup', endDrag);
+        scene.addEventListener('mouseleave', endDrag);
+
+        function startDrag(e) {
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+        }
+
+        function drag(e) {
+            if (!isDragging) return;
+            
+            const deltaX = e.clientX - startX;
+            const deltaY = e.clientY - startY;
+            
+            rotationY += deltaX * 0.5;
+            rotationX -= deltaY * 0.5;
+            
+            rotationX = Math.max(-30, Math.min(30, rotationX));
+            
+            scene.style.transform = `rotateX(${rotationX}deg) rotateY(${rotationY}deg)`;
+            
+            startX = e.clientX;
+            startY = e.clientY;
+        }
+
+        function endDrag() {
+            isDragging = false;
+        }
+
+        // Book click handlers
+        document.querySelectorAll('.book').forEach(book => {
+            book.addEventListener('click', function() {
+                const title = this.getAttribute('data-title');
+                openBook(title);
+            });
+        });
+
+        function openBook(title) {
+            currentBook = title;
+            currentPage = 0;
+            maxPages = bookContent[title] ? bookContent[title].length : 5;
+            
+            document.getElementById('bookTitle').textContent = title;
+            updateBookPages();
+            bookModal.style.display = 'flex';
+            
+            // Add sparkle effect
+            addSparkles();
+        }
+
+        function closeBook() {
+            bookModal.style.display = 'none';
+            removeSparkles();
+        }
+
+        function updateBookPages() {
+            const leftContent = document.getElementById('leftContent');
+            const rightContent = document.getElementById('rightContent');
+            const leftPageNum = document.getElementById('leftPageNum');
+            const rightPageNum = document.getElementById('rightPageNum');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+
+            // Left page (even page numbers)
+            if (currentPage < maxPages) {
+                leftContent.textContent = bookContent[currentBook] ? 
+                    bookContent[currentBook][currentPage] : 
+                    generatePlaceholderText(currentPage);
+                leftPageNum.textContent = currentPage + 1;
+            } else {
+                leftContent.textContent = "The End";
+                leftPageNum.textContent = "";
+            }
+
+            // Right page (odd page numbers)
+            if (currentPage + 1 < maxPages) {
+                rightContent.textContent = bookContent[currentBook] ? 
+                    bookContent[currentBook][currentPage + 1] : 
+                    generatePlaceholderText(currentPage + 1);
+                rightPageNum.textContent = currentPage + 2;
+            } else {
+                rightContent.textContent = "";
+                rightPageNum.textContent = "";
+            }
+
+            // Button states
+            prevBtn.disabled = currentPage <= 0;
+            nextBtn.disabled = currentPage >= maxPages - 1;
+        }
+
+        function generatePlaceholderText(pageNum) {
+            const placeholderTexts = [
+                "Once upon a time, in a land far away, there lived a wise old sage who knew the secrets of the ancient world. The sage spent days contemplating the mysteries of existence.",
+                "The journey continued through enchanted forests where magical creatures dwelt in harmony. Every step revealed new wonders and ancient wisdom passed down through generations.",
+                "In the heart of the mystical realm, a great library stood tall, its shelves filled with books containing the knowledge of countless civilizations that had come before.",
+                "As the sun set over the distant mountains, the travelers realized that their quest was just beginning. The real adventure lay ahead, full of challenges and discoveries.",
+                "The ancient scrolls spoke of a time when magic flowed freely through the world, when dragons soared through crystalline skies and unicorns danced in moonlit meadows."
+            ];
+            return placeholderTexts[pageNum % placeholderTexts.length];
+        }
+
+        function nextPage() {
+            if (currentPage < maxPages - 2) {
+                currentPage += 2;
+                document.getElementById('rightPage').classList.add('page-flip');
+                setTimeout(() => {
+                    updateBookPages();
+                    document.getElementById('rightPage').classList.remove('page-flip');
+                }, 300);
+            }
+        }
+
+        function previousPage() {
+            if (currentPage > 0) {
+                currentPage -= 2;
+                document.getElementById('leftPage').classList.add('page-flip');
+                setTimeout(() => {
+                    updateBookPages();
+                    document.getElementById('leftPage').classList.remove('page-flip');
+                }, 300);
+            }
+        }
+
+        function addSparkles() {
+            for (let i = 0; i < 20; i++) {
+                setTimeout(() => {
+                    const sparkle = document.createElement('div');
+                    sparkle.className = 'sparkle';
+                    sparkle.style.left = Math.random() * 100 + '%';
+                    sparkle.style.top = Math.random() * 100 + '%';
+                    sparkle.style.animationDelay = Math.random() * 2 + 's';
+                                    document.querySelector('.book-open').appendChild(sparkle);
+                                }, Math.random() * 1000);
+                            }
+                        }
+                
+                        function removeSparkles() {
+                            document.querySelectorAll('.sparkle').forEach(sparkle => sparkle.remove());
+                        }
+                    </script>
+</body>
+</html>
+<!-- This code creates an interactive 3D library with shelves and books. Users can click and drag to look around, click on books to open them, and flip through pages. The design includes ambient lighting, a radial gradient background, and a modern aesthetic with hover effects. -->
+<!-- The library features multiple shelves with books, each book has a unique spine color and title. The book modal displays the content of the book with page flipping animations and navigation buttons. Sparkle effects enhance the visual appeal when a book is opened. -->
+<!-- The JavaScript handles the 3D rotation of the library scene, book opening and closing, page flipping, and sparkle effects. The CSS styles create a visually appealing layout with gradients, shadows, and hover effects. -->
+ 

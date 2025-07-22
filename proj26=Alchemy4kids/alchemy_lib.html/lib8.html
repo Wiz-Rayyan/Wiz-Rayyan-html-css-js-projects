@@ -1,0 +1,1297 @@
+<!-->
+Here's the enhanced version with a realistic 3D book viewer that shows two pages (left image, right text) with page-flipping animation:
+-->
+ 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ancient Tome Library</title>
+    <link href="https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&family=MedievalSharp&family=Cinzel&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --parchment: #f5e8c9;
+            --aged-paper: #e6d8b5;
+            --ink: #1a1a1a;
+            --wax-red: #8b0000;
+            --gold-leaf: #d4af37;
+            --library-dark: #1a120b;
+            --candle-glow: rgba(255, 200, 100, 0.6);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--library-dark);
+            background-image: 
+                radial-gradient(circle at center, rgba(26, 18, 11, 0.9), rgba(10, 7, 4, 0.95)),
+                url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><path d="M20,50 Q35,30 50,50 T80,50" stroke="%233a2a15" fill="none" stroke-width="1" opacity="0.2"/></svg>');
+            color: var(--ink);
+            font-family: 'Cinzel', serif;
+            line-height: 1.6;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Header */
+        header {
+            background: linear-gradient(
+                to right, 
+                rgba(30, 22, 13, 0.9), 
+                rgba(50, 35, 15, 0.8), 
+                rgba(30, 22, 13, 0.9)
+            );
+            padding: 2rem;
+            text-align: center;
+            border-bottom: 3px solid var(--wax-red);
+            position: relative;
+            box-shadow: 0 5px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        h1 {
+            font-family: 'UnifrakturMaguntia', cursive;
+            color: var(--gold-leaf);
+            text-shadow: 
+                2px 2px 4px rgba(0, 0, 0, 0.7),
+                0 0 10px var(--candle-glow);
+            margin: 0;
+            font-size: 3.5rem;
+            letter-spacing: 3px;
+        }
+
+        /* Library Controls */
+        .library-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+            background: rgba(30, 22, 13, 0.8);
+            border-bottom: 1px solid rgba(139, 0, 0, 0.3);
+            position: sticky;
+            top: 0;
+            z-index: 5;
+        }
+
+        .category-filter {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .control-btn {
+            background: none;
+            border: 1px solid var(--wax-red);
+            color: var(--parchment);
+            padding: 0.5rem 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'MedievalSharp', cursive;
+            border-radius: 0;
+            font-size: 0.9rem;
+        }
+
+        .control-btn:hover {
+            background: rgba(139, 0, 0, 0.2);
+            box-shadow: 0 0 10px rgba(139, 0, 0, 0.5);
+        }
+
+        .control-btn.active {
+            background: rgba(139, 0, 0, 0.3);
+            box-shadow: 
+                0 0 15px rgba(139, 0, 0, 0.5),
+                inset 0 0 10px rgba(139, 0, 0, 0.3);
+        }
+
+        .add-book-btn {
+            background: var(--wax-red);
+            color: var(--parchment);
+            border: none;
+            font-weight: bold;
+        }
+
+        .add-book-btn:hover {
+            background: #a52a2a;
+            box-shadow: 0 0 15px rgba(139, 0, 0, 0.7);
+        }
+
+        /* Book Shelf */
+        .book-shelf {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 2rem;
+            padding: 3rem;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .ancient-tome {
+            position: relative;
+            height: 380px;
+            cursor: pointer;
+            transition: all 0.8s ease;
+            perspective: 1000px;
+        }
+
+        .ancient-tome:hover {
+            transform: translateY(-10px);
+        }
+
+        .tome-cover {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-color: #2a1a0a;
+            border-radius: 2px 15px 15px 2px;
+            box-shadow: 
+                0 10px 30px rgba(0, 0, 0, 0.7),
+                inset 5px 0 20px rgba(0, 0, 0, 0.5);
+            transform-style: preserve-3d;
+            transition: all 0.8s ease;
+            overflow: hidden;
+            z-index: 1;
+            border-right: 15px solid #3a1a0a;
+        }
+
+        .tome-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: sepia(50%) brightness(80%) contrast(120%);
+            transition: all 0.6s ease;
+        }
+
+        .tome-title {
+            position: absolute;
+            bottom: 40px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-family: 'UnifrakturMaguntia', cursive;
+            font-size: 1.8rem;
+            color: var(--gold-leaf);
+            text-shadow: 
+                2px 2px 5px rgba(0, 0, 0, 0.7),
+                0 0 10px rgba(139, 0, 0, 0.5);
+            z-index: 3;
+            padding: 0 1.5rem;
+        }
+
+        .tome-category {
+            position: absolute;
+            bottom: 15px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 0.9rem;
+            color: rgba(212, 175, 55, 0.8);
+            z-index: 3;
+            font-family: 'MedievalSharp', cursive;
+        }
+
+        .tome-spine {
+            position: absolute;
+            right: -15px;
+            top: 0;
+            bottom: 0;
+            width: 15px;
+            background: linear-gradient(
+                to bottom,
+                #5a2a0a,
+                #3a1a0a,
+                #5a2a0a
+            );
+            z-index: 2;
+            box-shadow: 
+                inset 0 0 15px rgba(0, 0, 0, 0.5),
+                2px 0 10px rgba(0, 0, 0, 0.7);
+        }
+
+        .tome-spine::after {
+            content: '';
+            position: absolute;
+            top: 10%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 8px;
+            height: 80%;
+            background: linear-gradient(
+                to bottom,
+                rgba(0, 0, 0, 0.6),
+                rgba(212, 175, 55, 0.4),
+                rgba(0, 0, 0, 0.6)
+            );
+        }
+
+        /* Add Book Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 7, 4, 0.95);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+        }
+
+        .add-book-modal {
+            background: linear-gradient(145deg, #2a1a0a, #1a0a00);
+            border: 3px solid var(--wax-red);
+            border-radius: 5px;
+            box-shadow: 
+                inset 0 0 30px rgba(0, 0, 0, 0.5),
+                0 10px 50px rgba(0, 0, 0, 0.7);
+            padding: 2rem;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid var(--wax-red);
+            padding-bottom: 1rem;
+        }
+
+        .modal-title {
+            font-family: 'UnifrakturMaguntia', cursive;
+            color: var(--gold-leaf);
+            font-size: 2rem;
+        }
+
+        .close-modal {
+            background: none;
+            border: 2px solid var(--wax-red);
+            color: var(--parchment);
+            padding: 0.3rem 1rem;
+            cursor: pointer;
+            font-family: 'MedievalSharp', cursive;
+            border-radius: 0;
+        }
+
+        .close-modal:hover {
+            background: rgba(139, 0, 0, 0.2);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-family: 'MedievalSharp', cursive;
+            color: var(--gold-leaf);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.8rem;
+            background: rgba(30, 22, 13, 0.7);
+            border: 1px solid var(--wax-red);
+            color: var(--parchment);
+            font-family: 'Cinzel', serif;
+            border-radius: 0;
+        }
+
+        .form-textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .page-controls {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .submit-btn {
+            background: var(--wax-red);
+            color: var(--parchment);
+            border: none;
+            padding: 0.8rem 2rem;
+            font-family: 'UnifrakturMaguntia', cursive;
+            font-size: 1.2rem;
+            border-radius: 0;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 1rem;
+        }
+
+        .submit-btn:hover {
+            background: #a52a2a;
+            box-shadow: 0 0 15px rgba(139, 0, 0, 0.7);
+        }
+
+        /* 3D Book Viewer */
+        .book-viewer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 7, 4, 0.97);
+            display: none;
+            flex-direction: column;
+            z-index: 100;
+            overflow: hidden;
+        }
+
+        .viewer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem 2rem;
+            background: linear-gradient(
+                to right, 
+                rgba(30, 22, 13, 0.9), 
+                rgba(50, 35, 15, 0.8), 
+                rgba(30, 22, 13, 0.9)
+            );
+            border-bottom: 3px solid var(--wax-red);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            box-shadow: 0 5px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .viewer-title {
+            font-family: 'UnifrakturMaguntia', cursive;
+            color: var(--gold-leaf);
+            margin: 0;
+            font-size: 2.2rem;
+            letter-spacing: 2px;
+        }
+
+        .close-viewer {
+            background: none;
+            border: 2px solid var(--wax-red);
+            color: var(--parchment);
+            padding: 0.5rem 1.5rem;
+            cursor: pointer;
+            font-family: 'MedievalSharp', cursive;
+            border-radius: 0;
+        }
+
+        .close-viewer:hover {
+            background: rgba(139, 0, 0, 0.2);
+        }
+
+        /* 3D Book Content */
+        .book-content-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            overflow: auto;
+            position: relative;
+            perspective: 2000px;
+        }
+
+        .book-3d {
+            width: 800px;
+            height: 600px;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 1s ease;
+        }
+
+        .book-page {
+            position: absolute;
+            width: 50%;
+            height: 100%;
+            background-color: var(--aged-paper);
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            backface-visibility: hidden;
+            transform-origin: left center;
+            transition: transform 1s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .left-page {
+            left: 0;
+            border-right: 1px solid rgba(90, 58, 32, 0.5);
+            background-size: cover;
+            background-position: center;
+        }
+
+        .right-page {
+            right: 0;
+            border-left: 1px solid rgba(90, 58, 32, 0.5);
+            padding: 2rem;
+            overflow-y: auto;
+        }
+
+        .page-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: sepia(30%) contrast(110%);
+        }
+
+        .page-content {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 1rem;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><path d="M10,10 L90,10 M10,30 L90,30 M10,50 L90,50 M10,70 L90,70" stroke="%233a2a15" stroke-width="1" opacity="0.1" fill="none"/></svg>');
+            background-size: 100% 2rem;
+            line-height: 2rem;
+            position: relative;
+        }
+
+        .page-content::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 50px;
+            height: 50px;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="%238b0000" opacity="0.8"/><path d="M30,50 Q50,30 70,50 Q50,70 30,50" fill="%23d4af37"/></svg>');
+            background-size: contain;
+            opacity: 0.7;
+        }
+
+        .page-content h2 {
+            color: var(--wax-red);
+            border-bottom: 2px solid var(--wax-red);
+            padding-bottom: 0.5rem;
+            margin-bottom: 1.5rem;
+            font-family: 'UnifrakturMaguntia', cursive;
+            font-size: 2rem;
+        }
+
+        .page-content p {
+            margin-bottom: 1.5rem;
+            color: var(--ink);
+            text-align: justify;
+        }
+
+        .page-content ul, 
+        .page-content ol {
+            margin: 1.5rem 0;
+            padding-left: 2.5rem;
+        }
+
+        .page-content li {
+            margin-bottom: 0.8rem;
+            position: relative;
+        }
+
+        .page-content li::before {
+            content: '✧';
+            color: var(--wax-red);
+            position: absolute;
+            left: -1.5rem;
+            font-size: 0.9rem;
+        }
+
+        /* Page Controls */
+        .book-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 2rem;
+            padding: 1.5rem;
+            background: linear-gradient(
+                to right, 
+                rgba(30, 22, 13, 0.9), 
+                rgba(50, 35, 15, 0.8), 
+                rgba(30, 22, 13, 0.9)
+            );
+            border-top: 3px solid var(--wax-red);
+            position: sticky;
+            bottom: 0;
+            z-index: 10;
+            box-shadow: 0 -5px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .book-btn {
+            background: none;
+            border: 2px solid var(--wax-red);
+            color: var(--parchment);
+            padding: 0.8rem 2rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'MedievalSharp', cursive;
+            border-radius: 0;
+            min-width: 120px;
+        }
+
+        .book-btn:hover {
+            background: rgba(139, 0, 0, 0.2);
+            box-shadow: 0 0 15px rgba(139, 0, 0, 0.5);
+        }
+
+        .book-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .book-indicator {
+            color: var(--gold-leaf);
+            padding: 0 2rem;
+            font-family: 'MedievalSharp', cursive;
+            font-size: 1.2rem;
+            min-width: 150px;
+            text-align: center;
+        }
+
+        /* Loading Spinner */
+        .loading-spinner {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1000;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid var(--wax-red);
+            border-top: 5px solid var(--gold-leaf);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Flip animation */
+        @keyframes flipLeft {
+            from { transform: rotateY(0deg); }
+            to { transform: rotateY(-180deg); }
+        }
+
+        @keyframes flipRight {
+            from { transform: rotateY(180deg); }
+            to { transform: rotateY(0deg); }
+        }
+
+        .flipping-left {
+            animation: flipLeft 1s forwards;
+        }
+
+        .flipping-right {
+            animation: flipRight 1s forwards;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .book-shelf {
+                grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            }
+            
+            .book-3d {
+                width: 700px;
+                height: 500px;
+            }
+        }
+
+        @media (max-width: 900px) {
+            .book-3d {
+                width: 600px;
+                height: 400px;
+            }
+            
+            .page-content h2 {
+                font-size: 1.8rem;
+            }
+            
+            .book-controls {
+                gap: 1rem;
+            }
+            
+            .book-btn {
+                padding: 0.7rem 1.5rem;
+                min-width: 110px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2.5rem;
+            }
+            
+            .library-controls {
+                flex-direction: column;
+                gap: 1rem;
+                padding: 1rem;
+            }
+            
+            .category-filter {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .book-shelf {
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+                padding: 2rem;
+                gap: 1.5rem;
+            }
+            
+            .ancient-tome {
+                height: 340px;
+            }
+            
+            .tome-title {
+                font-size: 1.6rem;
+                bottom: 35px;
+            }
+            
+            .book-3d {
+                width: 90%;
+                height: 70vh;
+            }
+            
+            .book-controls {
+                flex-wrap: wrap;
+                padding: 1rem;
+            }
+            
+            .book-indicator {
+                order: -1;
+                width: 100%;
+                padding-bottom: 1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .control-btn {
+                padding: 0.4rem 1rem;
+                font-size: 0.8rem;
+            }
+            
+            .book-shelf {
+                grid-template-columns: 1fr;
+                padding: 1.5rem;
+                gap: 1.2rem;
+            }
+            
+            .ancient-tome {
+                height: 300px;
+            }
+            
+            .tome-title {
+                font-size: 1.4rem;
+            }
+            
+            .page-content h2 {
+                font-size: 1.6rem;
+            }
+            
+            .book-btn {
+                padding: 0.6rem 1.2rem;
+                font-size: 0.9rem;
+                min-width: auto;
+            }
+            
+            .right-page {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Ancient Tome Library</h1>
+    </header>
+    
+    <div class="library-controls">
+        <div class="category-filter" id="categoryFilter">
+            <button class="control-btn active" data-category="all">All Tomes</button>
+            <button class="control-btn" data-category="history">Ancient History</button>
+            <button class="control-btn" data-category="magic">Arcane Magic</button>
+            <button class="control-btn" data-category="alchemy">Alchemy</button>
+        </div>
+        <button class="control-btn add-book-btn" id="addBookBtn">+ Add Tome</button>
+    </div>
+    
+    <main class="book-shelf" id="bookShelf">
+        <!-- Books will be loaded here -->
+    </main>
+    
+    <!-- Loading Spinner -->
+    <div class="loading-spinner" id="loadingSpinner">
+        <div class="spinner"></div>
+    </div>
+    
+    <!-- Add Book Modal -->
+    <div class="modal-overlay" id="addBookModal">
+        <div class="add-book-modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Add New Tome</h2>
+                <button class="close-modal" id="closeModal">Close</button>
+            </div>
+            <form id="bookForm">
+                <div class="form-group">
+                    <label for="bookTitle" class="form-label">Tome Title</label>
+                    <input type="text" id="bookTitle" class="form-input" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="bookCategory" class="form-label">Category</label>
+                    <select id="bookCategory" class="form-input" required>
+                        <option value="history">Ancient History</option>
+                        <option value="magic">Arcane Magic</option>
+                        <option value="alchemy">Alchemy</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="coverImage" class="form-label">Cover Image URL</label>
+                    <input type="url" id="coverImage" class="form-input" required>
+                </div>
+                
+                <div id="pagesContainer">
+                    <div class="form-group page-group" data-page="1">
+                        <div class="page-controls">
+                            <h3 class="form-label">Page 1</h3>
+                        </div>
+                        <label for="pageImage1" class="form-label">Page Image URL</label>
+                        <input type="url" id="pageImage1" class="form-input page-image">
+                        
+                        <label for="pageContent1" class="form-label">Page Content</label>
+                        <textarea id="pageContent1" class="form-input form-textarea page-content" required></textarea>
+                    </div>
+                </div>
+                
+                <button type="button" class="control-btn" id="addPageBtn">+ Add Page</button>
+                <button type="submit" class="submit-btn">Add Tome to Library</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- 3D Book Viewer -->
+    <div class="book-viewer" id="bookViewer">
+        <div class="viewer-header">
+            <h2 class="viewer-title" id="viewerTitle">Tome Title</h2>
+            <button class="close-viewer" id="closeViewer">Close</button>
+        </div>
+        
+        <div class="book-content-container">
+            <div class="book-3d" id="book3d">
+                <div class="book-page left-page" id="leftPage"></div>
+                <div class="book-page right-page" id="rightPage">
+                    <div class="page-content" id="pageContent"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="book-controls">
+            <button class="book-btn" id="prevBtn">Previous</button>
+            <span class="book-indicator" id="bookIndicator">Page 1 of 1</span>
+            <button class="book-btn" id="nextBtn">Next</button>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // DOM Elements
+            const bookShelf = document.getElementById('bookShelf');
+            const categoryFilter = document.getElementById('categoryFilter');
+            const addBookBtn = document.getElementById('addBookBtn');
+            const addBookModal = document.getElementById('addBookModal');
+            const closeModal = document.getElementById('closeModal');
+            const bookForm = document.getElementById('bookForm');
+            const pagesContainer = document.getElementById('pagesContainer');
+            const addPageBtn = document.getElementById('addPageBtn');
+            const bookViewer = document.getElementById('bookViewer');
+            const viewerTitle = document.getElementById('viewerTitle');
+            const leftPage = document.getElementById('leftPage');
+            const rightPage = document.getElementById('rightPage');
+            const pageContent = document.getElementById('pageContent');
+            const closeViewer = document.getElementById('closeViewer');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const bookIndicator = document.getElementById('bookIndicator');
+            const loadingSpinner = document.getElementById('loadingSpinner');
+
+            // State variables
+            let currentBook = null;
+            let currentPage = 0;
+            let currentCategory = 'all';
+            let nextPageId = 2;
+            let library = {};
+            let isAnimating = false;
+
+            // Preloaded books (will work offline)
+            const preloadedBooks = {
+                "lost-civilizations": {
+                    title: "Lost Civilizations",
+                    category: "history",
+                    cover: "https://i.pinimg.com/736x/44/e1/e9/44e1e9952b45eec036b020fcc5101f55.jpg",
+                    pages: [
+                        {
+                            image: "https://i.pinimg.com/736x/39/ba/81/39ba8194d87d7ac65161064e99b96b5c.jpg",
+                            content: `
+                                <h2>Atlantis</h2>
+                                <p>The legendary island first mentioned by Plato, said to have sunk into the ocean "in a single day and night of misfortune."</p>
+                                <ul>
+                                    <li>Described as an advanced naval power</li>
+                                    <li>Located "beyond the Pillars of Hercules"</li>
+                                    <li>Possible connections to Minoan civilization</li>
+                                </ul>
+                            `
+                        },
+                        {
+                            image: "https://i.pinimg.com/736x/06/24/a7/0624a7be2ccc841c2f4fd2483a252c59.jpg",
+                            content: `
+                                <h2>Lemuria</h2>
+                                <p>The hypothetical lost land in the Indian Ocean, proposed by 19th century scientists to explain lemur fossils.</p>
+                                <ol>
+                                    <li>First proposed by zoologist Philip Sclater</li>
+                                    <li>Later adopted by occult theories</li>
+                                    <li>Sometimes connected to Kumari Kandam</li>
+                                </ol>
+                            `
+                        },
+                         {
+                            image: "https://i.pinimg.com/736x/39/ba/81/39ba8194d87d7ac65161064e99b96b5c.jpg",
+                            content: `
+                                <h2>Atlantis</h2>
+                                <p>The legendary island first mentioned by Plato, said to have sunk into the ocean "in a single day and night of misfortune."</p>
+                                <ul>
+                                    <li>Described as an advanced naval power</li>
+                                    <li>Located "beyond the Pillars of Hercules"</li>
+                                    <li>Possible connections to Minoan civilization</li>
+                                </ul>
+                            `
+                        },
+                        {
+                            image: "https://i.pinimg.com/736x/06/24/a7/0624a7be2ccc841c2f4fd2483a252c59.jpg",
+                            content: `
+                                <h2>Lemuria</h2>
+                                <p>The hypothetical lost land in the Indian Ocean, proposed by 19th century scientists to explain lemur fossils.</p>
+                                <ol>
+                                    <li>First proposed by zoologist Philip Sclater</li>
+                                    <li>Later adopted by occult theories</li>
+                                    <li>Sometimes connected to Kumari Kandam</li>
+                                </ol>
+                            `
+                        },
+                        {
+                            image: "https://i.pinimg.com/736x/5a/3c/5a/5a3c5a5a3c5a5a3c5a5a3c5a5a3c5a5a.jpg",
+                            content: `
+                                <h2>Mu</h2>
+                                <p>The lost continent of Mu, said to have been located in the Pacific Ocean before its destruction.</p>
+                                <p>According to various pseudoscientific theories, Mu was an advanced civilization that predated all other ancient cultures.</p>
+                            `
+                        }
+                    ]
+                },
+                "hermetic-principles": {
+                    title: "Hermetic Principles",
+                    category: "magic",
+                    cover: "https://i.pinimg.com/736x/d9/7f/d7/d97fd70d0a4908603c5814aefeb9dbc3.jpg",
+                    pages: [
+                        {
+                            image: "https://i.pinimg.com/736x/12/80/50/128050c7f8a69f91e6f4298678d13bd2.jpg",
+                            content: `
+                                <h2>The Seven Hermetic Laws</h2>
+                                <p>Ancient wisdom attributed to Hermes Trismegistus:</p>
+                                <ul>
+                                    <li>Mentalism: The All is Mind</li>
+                                    <li>Correspondence: As above, so below</li>
+                                    <li>Vibration: Nothing rests, everything moves</li>
+                                    <li>Polarity: Everything has its pair of opposites</li>
+                                    <li>Rhythm: Everything flows in and out</li>
+                                    <li>Cause and Effect: Every cause has its effect</li>
+                                    <li>Gender: Everything has masculine and feminine principles</li>
+                                </ul>
+                            `
+                        },
+                        {
+                            image: "https://i.pinimg.com/736x/c3/76/bb/c376bb4ba0fdb2611f19f08855f3e531.jpg",
+                            content: `
+                                <h2>Practical Applications</h2>
+                                <p>How to apply hermetic principles:</p>
+                                <ol>
+                                    <li>Meditation for mental discipline</li>
+                                    <li>Symbolic correspondences in ritual</li>
+                                    <li>Vibrational magic through sound</li>
+                                    <li>Balancing opposites in alchemy</li>
+                                    <li>Working with natural cycles</li>
+                                </ol>
+                            `
+                        },
+                        {
+                            image: "https://i.pinimg.com/736x/3c/5a/3c/3c5a3c5a3c5a3c5a3c5a3c5a3c5a3c.jpg",
+                            content: `
+                                <h2>The Emerald Tablet</h2>
+                                <p>The most famous text of Hermetic wisdom:</p>
+                                <p>"That which is below is like that which is above, and that which is above is like that which is below, to perform the miracles of the one thing."</p>
+                                <p>This principle of correspondence is fundamental to all hermetic practices.</p>
+                            `
+                        }
+                    ]
+                },
+                "alchemical-secrets": {
+                    title: "Alchemical Secrets",
+                    category: "alchemy",
+                    cover: "https://i.pinimg.com/736x/3f/1a/0c/3f1a0c7c5a3c5c0a5c5c5c5a3c5c0a5c.jpg",
+                    pages: [
+                        {
+                            image: "https://i.pinimg.com/736x/5a/3c/5a/5a3c5a5a3c5a5a3c5a5a3c5a5a3c5a5a.jpg",
+                            content: `
+                                <h2>The Magnum Opus</h2>
+                                <p>The Great Work of alchemy, the process of creating the Philosopher's Stone:</p>
+                                <ol>
+                                    <li>Nigredo (Blackening) - Putrefaction</li>
+                                    <li>Albedo (Whitening) - Purification</li>
+                                    <li>Citrinitas (Yellowing) - Spiritualization</li>
+                                    <li>Rubedo (Reddening) - Perfection</li>
+                                </ol>
+                            `
+                        },
+                        {
+                            image: "https://i.pinimg.com/736x/3c/5a/3c/3c5a3c5a3c5a3c5a3c5a3c5a3c5a3c.jpg",
+                            content: `
+                                <h2>Prima Materia</h2>
+                                <p>The formless prime substance that is the basis of all matter according to alchemical theory.</p>
+                                <p>Alchemists believed that transforming base metals into gold required first reducing them to their prima materia.</p>
+                            `
+                        },
+                        {
+                            image: "https://i.pinimg.com/736x/12/80/50/128050c7f8a69f91e6f4298678d13bd2.jpg",
+                            content: `
+                                <h2>The Philosopher's Stone</h2>
+                                <p>The legendary substance said to be capable of turning base metals into gold and granting immortality.</p>
+                                <p>Many alchemists believed the Stone was not just a physical substance but also a spiritual truth representing enlightenment.</p>
+                            `
+                        }
+                    ]
+                }
+            };
+
+            // Initialize the library
+            function initLibrary() {
+                // Try to load from localStorage first
+                const savedLibrary = localStorage.getItem('ancientTomeLibrary');
+                
+                if (savedLibrary) {
+                    library = JSON.parse(savedLibrary);
+                } else {
+                    // Use preloaded books
+                    library = {...preloadedBooks};
+                }
+                
+                renderLibrary();
+            }
+
+            // Save library to localStorage
+            function saveLibrary() {
+                localStorage.setItem('ancientTomeLibrary', JSON.stringify(library));
+            }
+
+            // Render books based on current category
+            function renderLibrary() {
+                bookShelf.innerHTML
+                                const filteredBooks = Object.entries(library)
+                    .filter(([id, book]) => currentCategory === 'all' || book.category === currentCategory);
+                
+                filteredBooks.forEach(([id, book]) => {
+                    createBookElement(id, book);
+                });
+            }
+
+            // Create book element
+            function createBookElement(id, book) {
+                const bookElement = document.createElement('div');
+                bookElement.className = 'ancient-tome';
+                bookElement.setAttribute('data-book', id);
+                
+                bookElement.innerHTML = `
+                    <div class="tome-cover">
+                        <img src="${book.cover}" alt="${book.title}" class="tome-image">
+                        <div class="tome-title">${book.title}</div>
+                        <div class="tome-category">${book.category.charAt(0).toUpperCase() + book.category.slice(1)}</div>
+                        <div class="tome-spine"></div>
+                    </div>
+                `;
+                
+                bookElement.addEventListener('click', () => openBook(id));
+                bookShelf.appendChild(bookElement);
+            }
+
+            // Open book viewer
+            function openBook(bookId) {
+                currentBook = library[bookId];
+                currentPage = 0;
+                
+                viewerTitle.textContent = currentBook.title;
+                bookViewer.style.display = 'flex';
+                setTimeout(() => {
+                    bookViewer.style.opacity = '1';
+                }, 10);
+                
+                loadPage();
+            }
+
+            // Close book viewer
+            function closeBook() {
+                bookViewer.style.opacity = '0';
+                setTimeout(() => {
+                    bookViewer.style.display = 'none';
+                }, 500);
+            }
+
+            // Load current page (showing two pages at once)
+            function loadPage() {
+                if (!currentBook) return;
+                
+                const leftPageNum = currentPage * 2;
+                const rightPageNum = leftPageNum + 1;
+                
+                // Clear previous content
+                leftPage.style.backgroundImage = 'none';
+                leftPage.innerHTML = '';
+                pageContent.innerHTML = '';
+                
+                // Check if left page exists
+                if (leftPageNum < currentBook.pages.length) {
+                    const leftPageData = currentBook.pages[leftPageNum];
+                    
+                    // Create image element for left page
+                    const img = document.createElement('img');
+                    img.src = leftPageData.image;
+                    img.className = 'page-image';
+                    img.onload = () => {
+                        leftPage.style.backgroundImage = `url(${leftPageData.image})`;
+                        leftPage.style.backgroundSize = 'cover';
+                        leftPage.style.backgroundPosition = 'center';
+                    };
+                    leftPage.appendChild(img);
+                }
+                
+                // Check if right page exists
+                if (rightPageNum < currentBook.pages.length) {
+                    const rightPageData = currentBook.pages[rightPageNum];
+                    pageContent.innerHTML = rightPageData.content;
+                } else {
+                    pageContent.innerHTML = '<p>This page intentionally left blank</p>';
+                }
+                
+                // Update page indicator
+                const totalPages = Math.ceil(currentBook.pages.length / 2) * 2;
+                bookIndicator.textContent = `Page ${currentPage + 1} of ${Math.ceil(currentBook.pages.length / 2)}`;
+                
+                // Update button states
+                prevBtn.disabled = currentPage === 0;
+                nextBtn.disabled = (currentPage + 1) * 2 >= currentBook.pages.length;
+            }
+
+            // Navigate between pages with flip animation
+            function navigatePage(direction) {
+                if (isAnimating) return;
+                
+                const newPage = currentPage + direction;
+                const totalPages = Math.ceil(currentBook.pages.length / 2);
+                
+                if (newPage >= 0 && newPage < totalPages) {
+                    isAnimating = true;
+                    
+                    // Add flipping animation class
+                    if (direction > 0) {
+                        leftPage.classList.add('flipping-left');
+                    } else {
+                        leftPage.classList.add('flipping-right');
+                    }
+                    
+                    // After animation completes, update page
+                    setTimeout(() => {
+                        currentPage = newPage;
+                        loadPage();
+                        
+                        // Remove animation class
+                        leftPage.classList.remove('flipping-left', 'flipping-right');
+                        isAnimating = false;
+                    }, 1000);
+                }
+            }
+
+            // Add new page to form
+            function addPage() {
+                const pageId = nextPageId++;
+                const pageHtml = `
+                    <div class="form-group page-group" data-page="${pageId}">
+                        <div class="page-controls">
+                            <h3 class="form-label">Page ${pageId}</h3>
+                            <button type="button" class="control-btn remove-page" data-page="${pageId}">Remove</button>
+                        </div>
+                        <label for="pageImage${pageId}" class="form-label">Page Image URL</label>
+                        <input type="url" id="pageImage${pageId}" class="form-input page-image">
+                        
+                        <label for="pageContent${pageId}" class="form-label">Page Content</label>
+                        <textarea id="pageContent${pageId}" class="form-input form-textarea page-content" required></textarea>
+                    </div>
+                `;
+                
+                pagesContainer.insertAdjacentHTML('beforeend', pageHtml);
+                
+                // Add event listener to new remove button
+                document.querySelector(`.remove-page[data-page="${pageId}"]`).addEventListener('click', function() {
+                    this.closest('.page-group').remove();
+                    // Renumber remaining pages
+                    const pages = pagesContainer.querySelectorAll('.page-group');
+                    pages.forEach((page, index) => {
+                        const pageNum = index + 1;
+                        page.setAttribute('data-page', pageNum);
+                        page.querySelector('.form-label').textContent = `Page ${pageNum}`;
+                        const inputs = page.querySelectorAll('input, textarea');
+                        inputs[0].id = `pageImage${pageNum}`;
+                        inputs[1].id = `pageContent${pageNum}`;
+                    });
+                    nextPageId = pages.length + 1;
+                });
+            }
+
+            // Submit new book form
+            function submitBookForm(e) {
+                e.preventDefault();
+                
+                const title = document.getElementById('bookTitle').value;
+                const category = document.getElementById('bookCategory').value;
+                const cover = document.getElementById('coverImage').value;
+                
+                const pages = [];
+                const pageGroups = document.querySelectorAll('.page-group');
+                
+                pageGroups.forEach(group => {
+                    const pageId = group.dataset.page;
+                    const image = document.getElementById(`pageImage${pageId}`).value;
+                    const content = document.getElementById(`pageContent${pageId}`).value;
+                    
+                    pages.push({
+                        image,
+                        content
+                    });
+                });
+                
+                // Generate a unique ID for the book
+                const bookId = title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
+                
+                const newBook = {
+                    title,
+                    category,
+                    cover,
+                    pages
+                };
+                
+                // Add to library
+                library[bookId] = newBook;
+                saveLibrary();
+                
+                // Reset form
+                bookForm.reset();
+                pagesContainer.innerHTML = `
+                    <div class="form-group page-group" data-page="1">
+                        <div class="page-controls">
+                            <h3 class="form-label">Page 1</h3>
+                        </div>
+                        <label for="pageImage1" class="form-label">Page Image URL</label>
+                        <input type="url" id="pageImage1" class="form-input page-image">
+                        
+                        <label for="pageContent1" class="form-label">Page Content</label>
+                        <textarea id="pageContent1" class="form-input form-textarea page-content" required></textarea>
+                    </div>
+                `;
+                nextPageId = 2;
+                
+                // Update library display
+                renderLibrary();
+                closeAddBookModal();
+            }
+
+            // Show/hide loading spinner
+            function showLoading() {
+                loadingSpinner.style.display = 'block';
+            }
+
+            function hideLoading() {
+                loadingSpinner.style.display = 'none';
+            }
+
+            // Open add book modal
+            function openAddBookModal() {
+                addBookModal.style.display = 'flex';
+                setTimeout(() => {
+                    addBookModal.style.opacity = '1';
+                }, 10);
+            }
+
+            // Close add book modal
+            function closeAddBookModal() {
+                addBookModal.style.opacity = '0';
+                setTimeout(() => {
+                    addBookModal.style.display = 'none';
+                }, 500);
+            }
+
+            // Filter books by category
+            function filterBooks(category) {
+                currentCategory = category;
+                renderLibrary();
+                
+                // Update active button state
+                document.querySelectorAll('.category-filter .control-btn').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.category === category);
+                });
+            }
+
+            // Event listeners
+            categoryFilter.addEventListener('click', function(e) {
+                if (e.target.classList.contains('control-btn')) {
+                    filterBooks(e.target.dataset.category);
+                }
+            });
+
+            addBookBtn.addEventListener('click', openAddBookModal);
+            closeModal.addEventListener('click', closeAddBookModal);
+            addPageBtn.addEventListener('click', addPage);
+            bookForm.addEventListener('submit', submitBookForm);
+            closeViewer.addEventListener('click', closeBook);
+            prevBtn.addEventListener('click', () => navigatePage(-1));
+            nextBtn.addEventListener('click', () => navigatePage(1));
+
+            // Keyboard navigation in book viewer
+            document.addEventListener('keydown', function(e) {
+                if (bookViewer.style.display === 'flex') {
+                    if (e.key === 'ArrowLeft' && !prevBtn.disabled) {
+                        navigatePage(-1);
+                    } else if (e.key === 'ArrowRight' && !nextBtn.disabled) {
+                        navigatePage(1);
+                    } else if (e.key === 'Escape') {
+                        closeBook();
+                    }
+                }
+            });
+
+            // Initialize the library
+            initLibrary();
+        });
+    </script>
+</body>
+</html>

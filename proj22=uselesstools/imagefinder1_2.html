@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Image Generator</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+        }
+        .controls {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        .search-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .source-selector {
+            margin-bottom: 15px;
+        }
+        select, input, button {
+            padding: 10px 15px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        select {
+            width: 100%;
+            background-color: white;
+        }
+        #imageSearch {
+            flex: 1;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        #searchButton {
+            background-color: #2ecc71;
+        }
+        #searchButton:hover {
+            background-color: #27ae60;
+        }
+        .load-more-images {
+            display: block;
+            margin: 20px auto;
+            padding: 12px 24px;
+            background-color: #9b59b6;
+        }
+        .load-more-images:hover {
+            background-color: #8e44ad;
+        }
+        .images-wrapper {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .image-card {
+            background-color: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s;
+        }
+        .image-card:hover {
+            transform: translateY(-5px);
+        }
+        .image-card img {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+        }
+        .image-info {
+            padding: 15px;
+        }
+        .image-id {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .image-tags {
+            color: #7f8c8d;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #7f8c8d;
+        }
+    </style>
+</head>
+<body>
+    <h1>Advanced Image Generator</h1>
+    
+    <div class="controls">
+        <div class="source-selector">
+            <select id="imageSource">
+                <option value="picsum">Lorem Picsum (Random)</option>
+                <option value="picsum-id">Lorem Picsum (By ID)</option>
+                <option value="unsplash">Unsplash (Random)</option>
+                <option value="unsplash-search">Unsplash (Search)</option>
+                <option value="placeholder">Placeholder.com</option>
+                <option value="dummy">Dummy Image</option>
+            </select>
+        </div>
+        
+        <div class="search-container">
+            <input type="text" id="imageSearch" placeholder="Enter ID, keyword or hashtag...">
+            <button id="searchButton">Search</button>
+        </div>
+    </div>
+    
+    <div class="images-wrapper"></div>
+    <button class="load-more-images">Load More Images</button>
+
+    <script>
+        const imagesWrapper = document.querySelector(".images-wrapper");
+        const loadMoreImagesBtn = document.querySelector(".load-more-images");
+        const imageSearch = document.getElementById("imageSearch");
+        const searchButton = document.getElementById("searchButton");
+        const imageSource = document.getElementById("imageSource");
+        
+        let count = 1;
+        let currentSource = 'picsum';
+        let currentQuery = '';
+        let isLoading = false;
+
+        // Sample tags for demonstration
+        const sampleTags = {
+            1: ['nature', 'mountains', 'landscape'],
+            2: ['city', 'urban', 'architecture'],
+            3: ['animal', 'wildlife', 'lion'],
+            4: ['food', 'restaurant', 'pizza'],
+            5: ['people', 'portrait', 'woman'],
+            10: ['beach', 'ocean', 'sunset'],
+            100: ['technology', 'computer', 'keyboard'],
+            1000: ['abstract', 'art', 'colors']
+        };
+
+        // Update source when selection changes
+        imageSource.addEventListener('change', () => {
+            currentSource = imageSource.value;
+            imagesWrapper.innerHTML = '';
+            count = 1;
+            currentQuery = '';
+            imageSearch.value = '';
+            loadImages();
+        });
+
+        // Load images based on current source and query
+        async function loadImages() {
+            if (isLoading) return;
+            isLoading = true;
+            
+            imagesWrapper.innerHTML = '<div class="loading">Loading images...</div>';
+            
+            try {
+                let images = [];
+                const itemsToLoad = 5;
+                
+                switch(currentSource) {
+                    case 'picsum':
+                        for (let i = count; i < count + itemsToLoad; i++) {
+                            images.push(createPicsumImage(i, false));
+                        }
+                        break;
+                        
+                    case 'picsum-id':
+                        if (currentQuery) {
+                            images.push(createPicsumImage(currentQuery, true));
+                        } else {
+                            images.push(createPicsumImage(count, true));
+                        }
+                        break;
+                        
+                    case 'unsplash':
+                        for (let i = 0; i < itemsToLoad; i++) {
+                            images.push(createUnsplashImage());
+                        }
+                        break;
+                        
+                    case 'unsplash-search':
+                        if (currentQuery) {
+                            const searchResults = await searchUnsplash(currentQuery, itemsToLoad);
+                            images = searchResults;
+                        } else {
+                            for (let i = 0; i < itemsToLoad; i++) {
+                                images.push(createUnsplashImage());
+                            }
+                        }
+                        break;
+                        
+                    case 'placeholder':
+                        for (let i = count; i < count + itemsToLoad; i++) {
+                            images.push(createPlaceholderImage(i));
+                        }
+                        break;
+                        
+                    case 'dummy':
+                        for (let i = count; i < count + itemsToLoad; i++) {
+                            images.push(createDummyImage(i));
+                        }
+                        break;
+                }
+                
+                imagesWrapper.innerHTML = '';
+                images.forEach(img => imagesWrapper.appendChild(img));
+                
+                if (currentSource !== 'picsum-id') {
+                    count += itemsToLoad;
+                }
+            } catch (error) {
+                console.error("Error loading images:", error);
+                imagesWrapper.innerHTML = '<div class="loading">Error loading images. Please try again.</div>';
+            }
+            
+            isLoading = false;
+        }
+
+        // Create Lorem Picsum image card
+        function createPicsumImage(id, useIdDirectly) {
+            const imgId = useIdDirectly ? id : Math.floor(Math.random() * 1000) + 1;
+            const imgUrl = `https://picsum.photos/id/${imgId}/600/400`;
+            
+            const card = document.createElement('div');
+            card.className = 'image-card';
+            
+            const img = document.createElement('img');
+            img.src = imgUrl;
+            img.alt = `Random Image ${imgId}`;
+            img.loading = 'lazy';
+            
+            const info = document.createElement('div');
+            info.className = 'image-info';
+            
+            const idElement = document.createElement('div');
+            idElement.className = 'image-id';
+            idElement.textContent = `Image ID: ${imgId}`;
+            
+            const tagsElement = document.createElement('div');
+            tagsElement.className = 'image-tags';
+            tagsElement.textContent = `Tags: ${getTagsForImage(imgId).join(', ')}`;
+            
+            info.appendChild(idElement);
+            info.appendChild(tagsElement);
+            card.appendChild(img);
+            card.appendChild(info);
+            
+            return card;
+        }
+
+        // Create Unsplash random image card
+        function createUnsplashImage() {
+            const imgId = Math.floor(Math.random() * 1000000);
+            const imgUrl = `https://source.unsplash.com/random/600x400?sig=${imgId}`;
+            
+            const card = document.createElement('div');
+            card.className = 'image-card';
+            
+            const img = document.createElement('img');
+            img.src = imgUrl;
+            img.alt = 'Unsplash Random Image';
+            img.loading = 'lazy';
+            
+            const info = document.createElement('div');
+            info.className = 'image-info';
+            
+            const idElement = document.createElement('div');
+            idElement.className = 'image-id';
+            idElement.textContent = 'Unsplash Random Image';
+            
+            const tagsElement = document.createElement('div');
+            tagsElement.className = 'image-tags';
+            tagsElement.textContent = 'Tags: random, unsplash';
+            
+            info.appendChild(idElement);
+            info.appendChild(tagsElement);
+            card.appendChild(img);
+            card.appendChild(info);
+            
+            return card;
+        }
+
+        // Search Unsplash images
+        async function searchUnsplash(query, count) {
+            try {
+                // Note: In a real app, you would use the Unsplash API with your own API key
+                // This is a simplified version using their public endpoint
+                const cards = [];
+                for (let i = 0; i < count; i++) {
+                    const imgUrl = `https://source.unsplash.com/600x400/?${query.replace(/#/g, '')}&sig=${i}`;
+                    
+                    const card = document.createElement('div');
+                    card.className = 'image-card';
+                    
+                    const img = document.createElement('img');
+                    img.src = imgUrl;
+                    img.alt = `Unsplash Image: ${query}`;
+                    img.loading = 'lazy';
+                    
+                    const info = document.createElement('div');
+                    info.className = 'image-info';
+                    
+                    const idElement = document.createElement('div');
+                    idElement.className = 'image-id';
+                    idElement.textContent = `Search: ${query}`;
+                    
+                    const tagsElement = document.createElement('div');
+                    tagsElement.className = 'image-tags';
+                    tagsElement.textContent = `Tags: ${query.toLowerCase().split(' ').join(', ')}`;
+                    
+                    info.appendChild(idElement);
+                    info.appendChild(tagsElement);
+                    card.appendChild(img);
+                    card.appendChild(info);
+                    
+                    cards.push(card);
+                }
+                return cards;
+            } catch (error) {
+                console.error("Error searching Unsplash:", error);
+                return [];
+            }
+        }
+
+        // Create Placeholder.com image card
+        function createPlaceholderImage(id) {
+            const imgUrl = `https://via.placeholder.com/600x400/cccccc/969696?text=Image+${id}`;
+            
+            const card = document.createElement('div');
+            card.className = 'image-card';
+            
+            const img = document.createElement('img');
+            img.src = imgUrl;
+            img.alt = `Placeholder Image ${id}`;
+            
+            const info = document.createElement('div');
+            info.className = 'image-info';
+            
+            const idElement = document.createElement('div');
+            idElement.className = 'image-id';
+            idElement.textContent = `Placeholder Image ${id}`;
+            
+            const tagsElement = document.createElement('div');
+            tagsElement.className = 'image-tags';
+            tagsElement.textContent = 'Tags: placeholder, generated';
+            
+            info.appendChild(idElement);
+            info.appendChild(tagsElement);
+            card.appendChild(img);
+            card.appendChild(info);
+            
+            return card;
+        }
+
+        // Create Dummyimage.com image card
+        function createDummyImage(id) {
+            const colors = ['ff0000', '00ff00', '0000ff', 'ffff00', 'ff00ff', '00ffff'];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            const imgUrl = `https://dummyimage.com/600x400/${color}/ffffff&text=Image+${id}`;
+            
+            const card = document.createElement('div');
+            card.className = 'image-card';
+            
+            const img = document.createElement('img');
+            img.src = imgUrl;
+            img.alt = `Dummy Image ${id}`;
+            
+            const info = document.createElement('div');
+            info.className = 'image-info';
+            
+            const idElement = document.createElement('div');
+            idElement.className = 'image-id';
+            idElement.textContent = `Dummy Image ${id}`;
+            
+            const tagsElement = document.createElement('div');
+            tagsElement.className = 'image-tags';
+            tagsElement.textContent = `Tags: dummy, ${color}`;
+            
+            info.appendChild(idElement);
+            info.appendChild(tagsElement);
+            card.appendChild(img);
+            card.appendChild(info);
+            
+            return card;
+        }
+
+        // Get tags for an image (simulated for demo)
+        function getTagsForImage(id) {
+            if (sampleTags[id]) {
+                return sampleTags[id];
+            }
+            const allTags = ['nature', 'city', 'people', 'animals', 'food', 'travel', 'art', 'technology'];
+            const numTags = Math.floor(Math.random() * 3) + 1;
+            const selectedTags = [];
+            
+            for (let i = 0; i < numTags; i++) {
+                const randomIndex = Math.floor(Math.random() * allTags.length);
+                if (!selectedTags.includes(allTags[randomIndex])) {
+                    selectedTags.push(allTags[randomIndex]);
+                }
+            }
+            
+            return selectedTags.length > 0 ? selectedTags : ['random'];
+        }
+
+        // Handle search
+        function handleSearch() {
+            currentQuery = imageSearch.value.trim();
+            imagesWrapper.innerHTML = '';
+            
+            if (currentSource === 'picsum-id' && !currentQuery) {
+                count = 1;
+            }
+            
+            loadImages();
+        }
+
+        // Event listeners
+        loadMoreImagesBtn.addEventListener("click", loadImages);
+        searchButton.addEventListener("click", handleSearch);
+        imageSearch.addEventListener("keypress", (e) => {
+            if (e.key === "Enter") handleSearch();
+        });
+
+        // Initial load
+        loadImages();
+    </script>
+</body>
+</html>

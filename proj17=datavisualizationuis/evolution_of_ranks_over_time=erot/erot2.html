@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Rank Evolution Chart</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+      background: #1e1e2f;
+      color: white;
+    }
+    .chart {
+      position: relative;
+      width: 1000px;
+      height: 400px;
+      border-left: 2px solid #aaa;
+      border-bottom: 2px solid #aaa;
+      margin-top: 40px;
+    }
+    .object-label {
+      position: absolute;
+      left: -40px;
+      transform: translateY(-50%);
+      width: 30px;
+      text-align: right;
+      color: #fff;
+    }
+    svg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      overflow: visible;
+    }
+    .line {
+      fill: none;
+      stroke-width: 3;
+    }
+  </style>
+</head>
+<body>
+  <h2>Rank Evolution Chart</h2>
+  <div class="chart" id="chart">
+    <svg width="1000" height="400"></svg>
+  </div>
+
+  <script>
+    const data = {
+      years: [2016, 2017, 2018],
+      objects: ['A', 'B', 'C', 'D', 'E', 'F'],
+      ranks: {
+        2016: ['A', 'B', 'C', 'D', 'E', 'F'],
+        2017: ['A', 'B', 'C', 'E', 'F', 'D'],
+        2018: ['B', 'A', 'E', 'D', 'F', 'C']
+      }
+    };
+
+    const chart = document.getElementById("chart");
+    const svg = chart.querySelector("svg");
+
+    const chartHeight = chart.clientHeight;
+    const chartWidth = chart.clientWidth;
+    const yearSpacing = chartWidth / (data.years.length - 1);
+    const objectCount = data.objects.length;
+    const rowHeight = chartHeight / objectCount;
+
+    // Add vertical object labels
+    data.objects.forEach((obj, index) => {
+      const label = document.createElement("div");
+      label.className = "object-label";
+      label.style.top = `${(index + 0.5) * rowHeight}px`;
+      label.textContent = obj;
+      chart.appendChild(label);
+    });
+
+    const colors = ['#ff4b5c', '#ffb400', '#2ecc71', '#3498db', '#9b59b6', '#1abc9c'];
+
+    data.objects.forEach((obj, objIdx) => {
+      const points = [];
+      data.years.forEach((year, i) => {
+        const rankList = data.ranks[year];
+        const y = (rankList.indexOf(obj) + 0.5) * rowHeight;
+        const x = i * yearSpacing;
+        points.push([x, y]);
+      });
+
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+
+      let d = `M ${points[0][0]},${points[0][1]}`;
+      for (let i = 1; i < points.length; i++) {
+        const [x1, y1] = points[i - 1];
+        const [x2, y2] = points[i];
+        const cx = (x1 + x2) / 2;
+        d += ` C ${cx},${y1} ${cx},${y2} ${x2},${y2}`; // smooth curves
+      }
+
+      path.setAttribute("d", d);
+      path.setAttribute("class", "line");
+      path.setAttribute("stroke", colors[objIdx % colors.length]);
+      svg.appendChild(path);
+    });
+  </script>
+</body>
+</html>

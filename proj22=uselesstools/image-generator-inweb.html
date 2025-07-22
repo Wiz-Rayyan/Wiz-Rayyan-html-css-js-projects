@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Binary Image Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .controls {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select, button {
+            padding: 10px;
+            font-size: 16px;
+            width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .canvas-container {
+            text-align: center;
+            margin-top: 20px;
+        }
+        canvas {
+            max-width: 100%;
+            border: 1px solid #ddd;
+            background-color: white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .binary-code {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Binary Image Generator</h1>
+    
+    <div class="controls">
+        <div class="input-group">
+            <label for="imageType">Image Type:</label>
+            <select id="imageType">
+                <option value="gradient">Color Gradient</option>
+                <option value="geometric">Geometric Pattern</option>
+                <option value="fractal">Fractal</option>
+                <option value="noise">Noise</option>
+                <option value="text">Text Image</option>
+            </select>
+        </div>
+        
+        <div class="input-group">
+            <label for="imageText">Text/Parameters:</label>
+            <input type="text" id="imageText" placeholder="Enter parameters or text for image">
+        </div>
+        
+        <div class="input-group">
+            <label for="width">Width:</label>
+            <input type="number" id="width" value="256" min="16" max="1024">
+        </div>
+        
+        <div class="input-group">
+            <label for="height">Height:</label>
+            <input type="number" id="height" value="256" min="16" max="1024">
+        </div>
+        
+        <button id="generateBtn">Generate Image</button>
+    </div>
+    
+    <div class="canvas-container">
+        <canvas id="imageCanvas"></canvas>
+    </div>
+    
+    <div class="binary-code" id="binaryCode">
+        Generated binary code will appear here...
+    </div>
+
+    <script>
+        const canvas = document.getElementById('imageCanvas');
+        const ctx = canvas.getContext('2d');
+        const generateBtn = document.getElementById('generateBtn');
+        const binaryCodeDisplay = document.getElementById('binaryCode');
+        
+        // Initialize canvas size
+        updateCanvasSize();
+        
+        // Event listeners
+        generateBtn.addEventListener('click', generateImage);
+        document.getElementById('width').addEventListener('change', updateCanvasSize);
+        document.getElementById('height').addEventListener('change', updateCanvasSize);
+        
+        function updateCanvasSize() {
+            const width = parseInt(document.getElementById('width').value);
+            const height = parseInt(document.getElementById('height').value);
+            canvas.width = width;
+            canvas.height = height;
+        }
+        
+        function generateImage() {
+            const imageType = document.getElementById('imageType').value;
+            const text = document.getElementById('imageText').value;
+            const width = canvas.width;
+            const height = canvas.height;
+            
+            // Clear canvas
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, width, height);
+            
+            // Generate image based on type
+            switch(imageType) {
+                case 'gradient':
+                    createGradientImage(text, width, height);
+                    break;
+                case 'geometric':
+                    createGeometricImage(text, width, height);
+                    break;
+                case 'fractal':
+                    createFractalImage(width, height);
+                    break;
+                case 'noise':
+                    createNoiseImage(width, height);
+                    break;
+                case 'text':
+                    createTextImage(text, width, height);
+                    break;
+            }
+            
+            // Display binary representation
+            displayBinaryRepresentation();
+        }
+        
+        function createGradientImage(colors, width, height) {
+            const colorStops = colors.split(/\s*,\s*/).filter(c => c);
+            if (colorStops.length < 2) {
+                colorStops.push('#FF0000', '#0000FF'); // Default colors
+            }
+            
+            const gradient = ctx.createLinearGradient(0, 0, width, height);
+            const step = 1 / (colorStops.length - 1);
+            
+            colorStops.forEach((color, index) => {
+                gradient.addColorStop(index * step, color);
+            });
+            
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, width, height);
+        }
+        
+        function createGeometricImage(shape, width, height) {
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, width, height);
+            
+            shape = shape.toLowerCase();
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const size = Math.min(width, height) * 0.8;
+            
+            ctx.fillStyle = getRandomColor();
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 2;
+            
+            if (shape.includes('circle')) {
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, size/2, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+            } 
+            else if (shape.includes('square')) {
+                ctx.fillRect(centerX - size/2, centerY - size/2, size, size);
+                ctx.strokeRect(centerX - size/2, centerY - size/2, size, size);
+            }
+            else if (shape.includes('triangle')) {
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY - size/2);
+                ctx.lineTo(centerX + size/2, centerY + size/2);
+                ctx.lineTo(centerX - size/2, centerY + size/2);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+            }
+            else {
+                // Default pattern - concentric shapes
+                for (let i = 5; i > 0; i--) {
+                    ctx.fillStyle = getRandomColor();
+                    ctx.beginPath();
+                    ctx.arc(centerX, centerY, size * i/10, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.stroke();
+                }
+            }
+        }
+        
+        function createFractalImage(width, height) {
+            // Simple fractal pattern (Mandelbrot-like)
+            const maxIterations = 100;
+            const zoom = 200;
+            const moveX = -width/1.5;
+            const moveY = -height/2;
+            
+            for (let x = 0; x < width; x++) {
+                for (let y = 0; y < height; y++) {
+                    let zx = 0;
+                    let zy = 0;
+                    let cX = (x + moveX) / zoom;
+                    let cY = (y + moveY) / zoom;
+                    let iter = maxIterations;
+                    
+                    while (zx * zx + zy * zy < 4 && iter > 0) {
+                        let tmp = zx * zx - zy * zy + cX;
+                        zy = 2 * zx * zy + cY;
+                        zx = tmp;
+                        iter--;
+                    }
+                    
+                    const color = iter === 0 ? '#000000' : 
+                        `hsl(${360 * iter / maxIterations}, 100%, 50%)`;
+                    ctx.fillStyle = color;
+                    ctx.fillRect(x, y, 1, 1);
+                }
+            }
+        }
+        
+        function createNoiseImage(width, height) {
+            // Perlin noise would be better, but this is simple random noise
+            const imageData = ctx.createImageData(width, height);
+            const data = imageData.data;
+            
+            for (let i = 0; i < data.length; i += 4) {
+                const value = Math.floor(Math.random() * 256);
+                data[i] = value;     // R
+                data[i + 1] = value; // G
+                data[i + 2] = value; // B
+                data[i + 3] = 255;   // A
+            }
+            
+            ctx.putImageData(imageData, 0, 0);
+        }
+        
+        function createTextImage(text, width, height) {
+            if (!text) text = "Sample Text";
+            
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, width, height);
+            
+            ctx.fillStyle = '#000000';
+            ctx.font = `${Math.min(width, height)/5}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text, width/2, height/2);
+        }
+        
+        function getRandomColor() {
+            return `hsl(${Math.random() * 360}, 70%, 60%)`;
+        }
+        
+        function displayBinaryRepresentation() {
+            // Get image data as binary string (simplified representation)
+            const width = canvas.width;
+            const height = canvas.height;
+            const imageData = ctx.getImageData(0, 0, width, height);
+            const data = imageData.data;
+            
+            // Create a simplified binary representation
+            let binaryStr = '';
+            const sampleSize = 32; // Only show a small sample for display
+            
+            for (let i = 0; i < data.length && i < sampleSize * 4; i += 4) {
+                const r = data[i].toString(2).padStart(8, '0');
+                const g = data[i + 1].toString(2).padStart(8, '0');
+                const b = data[i + 2].toString(2).padStart(8, '0');
+                const a = data[i + 3].toString(2).padStart(8, '0');
+                binaryStr += `Pixel ${i/4}: R${r} G${g} B${b} A${a}\n`;
+            }
+            
+            if (data.length > sampleSize * 4) {
+                binaryStr += `\n... and ${data.length/4 - sampleSize} more pixels ...`;
+            }
+            
+            binaryCodeDisplay.textContent = binaryStr;
+            
+            // For a real binary download, we would use canvas.toBlob()
+        }
+        
+        // Initial generation
+        generateImage();
+    </script>
+</body>
+</html>

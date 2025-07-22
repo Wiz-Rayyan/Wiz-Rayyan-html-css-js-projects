@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web App Logging System Design</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .nav {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .nav-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .nav-btn:hover, .nav-btn.active {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .content {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+
+        .section {
+            display: none;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        .code-block {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+            font-family: 'Consolas', 'Monaco', monospace;
+            overflow-x: auto;
+            position: relative;
+        }
+
+        .code-block::before {
+            content: attr(data-lang);
+            position: absolute;
+            top: 5px;
+            right: 10px;
+            font-size: 12px;
+            color: #a0aec0;
+        }
+
+        .log-level {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+
+        .log-debug { background: #4a5568; color: white; }
+        .log-info { background: #3182ce; color: white; }
+        .log-warn { background: #d69e2e; color: white; }
+        .log-error { background: #e53e3e; color: white; }
+
+        .architecture-diagram {
+            background: #f7fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .flow-item {
+            display: inline-block;
+            background: #4299e1;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            margin: 5px;
+            font-size: 14px;
+        }
+
+        .arrow {
+            font-size: 20px;
+            color: #4299e1;
+            margin: 0 10px;
+        }
+
+        h2 {
+            color: #2d3748;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+
+        h3 {
+            color: #4a5568;
+            margin: 20px 0 10px 0;
+            font-size: 1.3em;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .feature-card {
+            background: #f7fafc;
+            border-left: 4px solid #4299e1;
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        .demo-logger {
+            background: #1a202c;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-family: monospace;
+            min-height: 200px;
+            overflow-y: auto;
+        }
+
+        .demo-controls {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+        }
+
+        .demo-btn {
+            background: #4299e1;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .demo-btn:hover {
+            background: #3182ce;
+        }
+
+        .clear-btn {
+            background: #e53e3e;
+        }
+
+        .clear-btn:hover {
+            background: #c53030;
+        }
+
+        ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+
+        li {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Web App Logging System</h1>
+            <p>Comprehensive logging architecture for modern web applications</p>
+        </div>
+
+        <div class="nav">
+            <button class="nav-btn active" onclick="showSection('overview')">Overview</button>
+            <button class="nav-btn" onclick="showSection('architecture')">Architecture</button>
+            <button class="nav-btn" onclick="showSection('frontend')">Frontend</button>
+            <button class="nav-btn" onclick="showSection('backend')">Backend</button>
+            <button class="nav-btn" onclick="showSection('demo')">Live Demo</button>
+        </div>
+
+        <div class="content">
+            <div id="overview" class="section active">
+                <h2>🎯 Logging System Overview</h2>
+                
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <h3>🔍 Log Levels</h3>
+                        <p><span class="log-level log-debug">DEBUG</span> Development details</p>
+                        <p><span class="log-level log-info">INFO</span> General information</p>
+                        <p><span class="log-level log-warn">WARN</span> Warning messages</p>
+                        <p><span class="log-level log-error">ERROR</span> Error conditions</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <h3>📊 Key Features</h3>
+                        <ul>
+                            <li>Structured JSON logging</li>
+                            <li>Contextual metadata</li>
+                            <li>Performance tracking</li>
+                            <li>Error correlation</li>
+                            <li>User session tracking</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h3>🏗️ Implementation Strategy</h3>
+                <div class="architecture-diagram">
+                    <div class="flow-item">Frontend Logger</div>
+                    <span class="arrow">→</span>
+                    <div class="flow-item">API Gateway</div>
+                    <span class="arrow">→</span>
+                    <div class="flow-item">Log Aggregator</div>
+                    <span class="arrow">→</span>
+                    <div class="flow-item">Storage & Analysis</div>
+                </div>
+
+                <div class="code-block" data-lang="JavaScript">
+// Universal log format
+const logEntry = {
+  timestamp: new Date().toISOString(),
+  level: 'INFO',
+  message: 'User login successful',
+  userId: 'user123',
+  sessionId: 'sess456',
+  component: 'auth',
+  metadata: {
+    ip: '192.168.1.1',
+    userAgent: 'Mozilla/5.0...',
+    duration: 150
+  }
+};
+                </div>
+            </div>
+
+            <div id="architecture" class="section">
+                <h2>🏛️ System Architecture</h2>
+                
+                <h3>📋 Architecture Components</h3>
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <h3>🌐 Frontend Layer</h3>
+                        <ul>
+                            <li>Browser console logging</li>
+                            <li>Remote log shipping</li>
+                            <li>Error boundary capture</li>
+                            <li>Performance metrics</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <h3>⚙️ Backend Layer</h3>
+                        <ul>
+                            <li>Application logging</li>
+                            <li>Request/response tracking</li>
+                            <li>Database query logging</li>
+                            <li>System metrics</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <h3>📈 Aggregation Layer</h3>
+                        <ul>
+                            <li>Log collection (ELK Stack)</li>
+                            <li>Real-time processing</li>
+                            <li>Alerting system</li>
+                            <li>Dashboard visualization</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <h3>💾 Storage Layer</h3>
+                        <ul>
+                            <li>Time-series database</li>
+                            <li>Log retention policies</li>
+                            <li>Backup strategies</li>
+                            <li>Compliance requirements</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h3>🔄 Data Flow</h3>
+                <div class="code-block" data-lang="YAML">
+# docker-compose.yml for logging stack
+version: '3.8'
+services:
+  elasticsearch:
+    image: elasticsearch:7.14.0
+    environment:
+      - discovery.type=single-node
+    ports:
+      - "9200:9200"
+      
+  logstash:
+    image: logstash:7.14.0
+    ports:
+      - "5000:5000"
+    depends_on:
+      - elasticsearch
+      
+  kibana:
+    image: kibana:7.14.0
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
+                </div>
+            </div>
+
+            <div id="frontend" class="section">
+                <h2>🎨 Frontend Logging</h2>
+                
+                <h3>📱 Client-Side Logger Implementation</h3>
+                <div class="code-block" data-lang="JavaScript">
+class WebAppLogger {
+  constructor(config = {}) {
+    this.config = {
+      apiEndpoint: config.apiEndpoint || '/api/logs',
+      bufferSize: config.bufferSize || 100,
+      flushInterval: config.flushInterval || 5000,
+      enableConsole: config.enableConsole !== false,
+      ...config
+    };
+    
+    this.logBuffer = [];
+    this.sessionId = this.generateSessionId();
+    this.userId = null;
+    
+    this.startBufferFlush();
+    this.setupErrorHandling();
+  }
+
+  log(level, message, metadata = {}) {
+    const entry = {
+      timestamp: new Date().toISOString(),
+      level: level.toUpperCase(),
+      message,
+      sessionId: this.sessionId,
+      userId: this.userId,
+      url: window.location.href,
+      userAgent: navigator.userAgent,
+      ...metadata
+    };
+
+    if (this.config.enableConsole) {
+      console[level.toLowerCase()](message, entry);
+    }
+
+    this.logBuffer.push(entry);
+    
+    if (this.logBuffer.length >= this.config.bufferSize) {
+      this.flush();
+    }
+  }
+
+  debug(message, metadata) { this.log('debug', message, metadata); }
+  info(message, metadata) { this.log('info', message, metadata); }
+  warn(message, metadata) { this.log('warn', message, metadata); }
+  error(message, metadata) { this.log('error', message, metadata); }
+
+  setUserId(userId) {
+    this.userId = userId;
+    this.info('User context set', { userId });
+  }
+
+  trackPageView(page) {
+    this.info('Page view', { 
+      page, 
+      referrer: document.referrer,
+      loadTime: performance.now()
+    });
+  }
+
+  trackUserAction(action, element = null) {
+    this.info('User action', {
+      action,
+      element: element ? element.tagName + '#' + element.id : null,
+      timestamp: Date.now()
+    });
+  }
+
+  async flush() {
+    if (this.logBuffer.length === 0) return;
+
+    const logs = [...this.logBuffer];
+    this.logBuffer = [];
+
+    try {
+      await fetch(this.config.apiEndpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ logs })
+      });
+    } catch (error) {
+      console.error('Failed to send logs:', error);
+      // Re-add logs to buffer for retry
+      this.logBuffer.unshift(...logs);
+    }
+  }
+
+  setupErrorHandling() {
+    window.addEventListener('error', (event) => {
+      this.error('JavaScript error', {
+        message: event.message,
+        filename: event.filename,
+        lineno: event.lineno,
+        colno: event.colno,
+        stack: event.error?.stack
+      });
+    });
+
+    window.addEventListener('unhandledrejection', (event) => {
+      this.error('Unhandled promise rejection', {
+        reason: event.reason,
+        stack: event.reason?.stack
+      });
+    });
+  }
+
+  generateSessionId() {
+    return 'sess_' + Math.random().toString(36).substr(2, 9);
+  }
+
+  startBufferFlush() {
+    setInterval(() => this.flush(), this.config.flushInterval);
+  }
+}
+
+// Initialize global logger
+const logger = new WebAppLogger({
+  apiEndpoint: '/api/logs',
+  enableConsole: true
+});
+
+// Usage examples
+logger.info('Application started');
+logger.trackPageView('/dashboard');
+logger.setUserId('user123');
+                </div>
+
+                <h3>⚡ Performance Monitoring</h3>
+                <div class="code-block" data-lang="JavaScript">
+// Performance tracking utilities
+class PerformanceTracker {
+  static trackAPICall(url, method = 'GET') {
+    const startTime = performance.now();
+    
+    return {
+      complete: (status, responseSize = 0) => {
+        const duration = performance.now() - startTime;
+        logger.info('API call completed', {
+          url,
+          method,
+          status,
+          duration: Math.round(duration),
+          responseSize
+        });
+      },
+      error: (error) => {
+        const duration = performance.now() - startTime;
+        logger.error('API call failed', {
+          url,
+          method,
+          duration: Math.round(duration),
+          error: error.message
+        });
+      }
+    };
+  }
+
+  static trackComponentRender(componentName) {
+    const startTime = performance.now();
+    
+    return () => {
+      const duration = performance.now() - startTime;
+      logger.debug('Component render', {
+        component: componentName,
+        renderTime: Math.round(duration)
+      });
+    };
+  }
+}
+
+// Usage in API calls
+async function fetchUserData(userId) {
+  const tracker = PerformanceTracker.trackAPICall('/api/users/' + userId);
+  
+  try {
+    const response = await fetch('/api/users/' + userId);
+    const data = await response.json();
+    tracker.complete(response.status, JSON.stringify(data).length);
+    return data;
+  } catch (error) {
+    tracker.error(error);
+    throw error;
+  }
+}
+                </div>
+            </div>
+
+            <div id="backend" class="section">
+                <h2>🔧 Backend Logging</h2>
+                
+                <h3>🐍 Python (Flask/FastAPI) Implementation</h3>
+                <div class="code-block" data-lang="Python">
+import logging
+import json
+import time
+from datetime import datetime
+from functools import wraps
+from flask import Flask, request, g
+import uuid
+
+class StructuredLogger:
+    def __init__(self, name):
+        self.logger = logging.getLogger(name)
+        self.logger.setLevel(logging.DEBUG)
+        
+        # Create structured formatter
+        formatter = logging.Formatter(
+            '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        )
+        
+        # Console handler
+        console_handler = logging.StreamHandler()
+        console_handler.setFormatter(formatter)
+        self.logger.addHandler(console_handler)
+        
+        # File handler for structured JSON logs
+        file_handler = logging.FileHandler('app.log')
+        file_handler.setFormatter(self.JSONFormatter())
+        self.logger.addHandler(file_handler)
+    
+    class JSONFormatter(logging.Formatter):
+        def format(self, record):
+            log_entry = {
+                'timestamp': datetime.utcnow().isoformat(),
+                'level': record.levelname,
+                'message': record.getMessage(),
+                'module': record.module,
+                'function': record.funcName,
+                'line': record.lineno
+            }
+            
+            # Add extra fields if present
+            if hasattr(record, 'extra_fields'):
+                log_entry.update(record.extra_fields)
+                
+            return json.dumps(log_entry)
+    
+    def log(self, level, message, **kwargs):
+        extra = {'extra_fields': kwargs}
+        getattr(self.logger, level.lower())(message, extra=extra)
+    
+    def debug(self, message, **kwargs):
+        self.log('DEBUG', message, **kwargs)
+    
+    def info(self, message, **kwargs):
+        self.log('INFO', message, **kwargs)
+    
+    def warning(self, message, **kwargs):
+        self.log('WARNING', message, **kwargs)
+    
+    def error(self, message, **kwargs):
+        self.log('ERROR', message, **kwargs)
+
+# Initialize logger
+logger = StructuredLogger(__name__)
+
+app = Flask(__name__)
+
+# Request logging middleware
+@app.before_request
+def before_request():
+    g.start_time = time.time()
+    g.request_id = str(uuid.uuid4())
+    
+    logger.info('Request started', 
+                request_id=g.request_id,
+                method=request.method,
+                url=request.url,
+                user_agent=request.headers.get('User-Agent'),
+                ip=request.remote_addr)
+
+@app.after_request
+def after_request(response):
+    duration = time.time() - g.start_time
+    
+    logger.info('Request completed',
+                request_id=g.request_id,
+                status_code=response.status_code,
+                duration=round(duration * 1000, 2),
+                response_size=response.content_length)
+    
+    return response
+
+# Logging decorator for functions
+def log_function_call(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        start_time = time.time()
+        
+        logger.debug(f'Function {func.__name__} called',
+                    function=func.__name__,
+                    args=str(args)[:100],
+                    kwargs=str(kwargs)[:100])
+        
+        try:
+            result = func(*args, **kwargs)
+            duration = time.time() - start_time
+            
+            logger.debug(f'Function {func.__name__} completed',
+                        function=func.__name__,
+                        duration=round(duration * 1000, 2),
+                        success=True)
+            
+            return result
+        except Exception as e:
+            duration = time.time() - start_time
+            
+            logger.error(f'Function {func.__name__} failed',
+                        function=func.__name__,
+                        duration=round(duration * 1000, 2),
+                        error=str(e),
+                        success=False)
+            raise
+    
+    return wrapper
+
+# Example usage
+@app.route('/api/users/<user_id>')
+@log_function_call
+def get_user(user_id):
+    logger.info('Fetching user data', user_id=user_id)
+    
+    # Simulate database query
+    if user_id == '404':
+        logger.warning('User not found', user_id=user_id)
+        return {'error': 'User not found'}, 404
+    
+    user_data = {'id': user_id, 'name': 'John Doe'}
+    
+    logger.info('User data retrieved', 
+                user_id=user_id,
+                data_size=len(str(user_data)))
+    
+    return user_data
+
+# Log aggregation endpoint
+@app.route('/api/logs', methods=['POST'])
+def receive_logs():
+    try:
+        log_data = request.get_json()
+        
+        for log_entry in log_data.get('logs', []):
+            logger.info('Frontend log received',
+                       frontend_log=log_entry)
+        
+        return {'status': 'success'}
+    except Exception as e:
+        logger.error('Failed to process frontend logs', error=str(e))
+        return {'error': 'Failed to process logs'}, 500
+                </div>
+
+                <h3>🟢 Node.js (Express) Implementation</h3>
+                <div class="code-block" data-lang="JavaScript">
+const express = require('express');
+const winston = require('winston');
+const { v4: uuidv4 } = require('uuid');
+
+// Configure Winston logger
+const logger = winston.createLogger({
+  level: 'debug',
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.errors({ stack: true }),
+    winston.format.json()
+  ),
+  transports: [
+    new winston.transports.Console({
+      format: winston.format.simple()
+    }),
+    new winston.transports.File({ 
+      filename: 'app.log',
+      format: winston.format.json()
+    })
+  ]
+});
+
+const app = express();
+app.use(express.json());
+
+// Request logging middleware
+app.use((req, res, next) => {
+  req.id = uuidv4();
+  req.startTime = Date.now();
+  
+  logger.info('Request started', {
+    requestId: req.id,
+    method: req.method,
+    url: req.url,
+    userAgent: req.headers['user-agent'],
+    ip: req.ip
+  });
+  
+  const originalSend = res.send;
+  res.send = function(data) {
+    const duration = Date.now() - req.startTime;
+    
+    logger.info('Request completed', {
+      requestId: req.id,
+      statusCode: res.statusCode,
+      duration,
+      responseSize: data ? data.length : 0
+    });
+    
+    originalSend.call(res, data);
+  };
+  
+  next();
+});
+
+// Error handling middleware
+app.use((error, req, res, next) => {
+  logger.error('Request error', {
+    requestId: req.id,
+    error: error.message,
+    stack: error.stack,
+    url: req.url,
+    method: req.method
+  });
+  
+  res.status(500).json({ error: 'Internal server error' });
+});
+
+// Database query logging
+class DatabaseLogger {
+  static logQuery(query, params = []) {
+    const startTime = Date.now();
+    
+    return {
+      success: (rowCount = 0) => {
+        const duration = Date.now() - startTime;
+        logger.debug('Database query completed', {
+          query: query.substring(0, 100),
+          params,
+          duration,
+          rowCount,
+          success: true
+        });
+      },
+      error: (error) => {
+        const duration = Date.now() - startTime;
+        logger.error('Database query failed', {
+          query: query.substring(0, 100),
+          params,
+          duration,
+          error: error.message,
+          success: false
+        });
+      }
+    };
+  }
+}
+
+// Example routes
+app.get('/api/users/:id', async (req, res) => {
+  const userId = req.params.id;
+  
+  logger.info('Fetching user', { userId, requestId: req.id });
+  
+  const queryLogger = DatabaseLogger.logQuery(
+    'SELECT * FROM users WHERE id = ?', 
+    [userId]
+  );
+  
+  try {
+    // Simulate database query
+    const user = { id: userId, name: 'John Doe' };
+    queryLogger.success(1);
+    
+    logger.info('User retrieved', { 
+      userId, 
+      requestId: req.id,
+      userFound: true 
+    });
+    
+    res.json(user);
+  } catch (error) {
+    queryLogger.error(error);
+    throw error;
+  }
+});
+
+app.listen(3000, () => {
+  logger.info('Server started', { port: 3000 });
+});
+                </div>
+            </div>
+
+            <div id="demo" class="section">
+                <h2>🎮 Live Demo</h2>
+                <p>Interactive logging demonstration - try the different log levels and see the output!</p>
+                
+                <div class="demo-controls">
+                    <button class="demo-btn" onclick="demoLog('debug')">Debug Log</button>
+                    <button class="demo-btn" onclick="demoLog('info')">Info Log</button>
+                    <button class="demo-btn" onclick="demoLog('warn')">Warning Log</button>
+                    <button class="demo-btn" onclick="demoLog('error')">Error Log</button>
+                    <button class="demo-btn" onclick="demoApiCall()">API Call</button>
+                    <button class="demo-btn clear-btn" onclick="clearDemo()">Clear Logs</button>
+                </div>
+                
+                <div id="demo-output" class="demo-logger">
+                    <div style="color: #4a90e2;">WebApp Logger Demo - Ready</div>
+                    <div style="color: #7f8c8d;">Click buttons above to generate log entries</div>
+                </div>
+
+                <h3>🔧 Integration Checklist</h3>
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <h3>✅ Frontend Setup</h3>
+                        <ul>
+                            <li>Install logger class</li>
+                            <li>Configure API endpoint</li>
+                            <li>Set up error boundaries</li>
+                            <li>Add performance tracking</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <h3>✅ Backend Setup</h3>
+                        <ul>
+                            <li>Configure logging framework</li>
+                            <li>Set up structured logging</li>
+                            <li>Add request/response middleware</li>
+                            <li>Implement log aggregation endpoint</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <h3>✅ Infrastructure</h3>
+                        <ul>
+                            <li>Set up log aggregation (ELK/Loki)</li>
+                            <li>Configure log retention</li>
+                            <li>Set up monitoring dashboards</li>
+                            <li>Create alerting rules</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <h3>✅ Security & Compliance</h3>
+                        <ul>
+                            <li>Remove sensitive data from logs</li>
+                            <li>Implement log encryption</li>
+                            <li>Set up access controls</li>
+                            <li>Ensure GDPR compliance</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let demoSessionId = 'demo_' + Math.random().toString(36).substr(2, 9);
+        let demoLogCount = 0;
+
+        function showSection(sectionId) {
+            // Hide all sections
+            const sections = document.querySelectorAll('.section');
+            sections.forEach(section => section.classList.remove('active'));
+            
+            // Show selected section
+            document.getElementById(sectionId).classList.add('active');
+            
+            // Update nav buttons
+            const navButtons = document.querySelectorAll('.nav-btn');
+            navButtons.forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        function demoLog(level) {
+            const messages = {
+                debug: 'Debug: Checking user permissions',
+                info: 'Info: User logged in successfully',
+                warn: 'Warning: API rate limit approaching',
+                error: 'Error: Database connection failed'
+            };
+            
+            const colors = {
+                debug: '#a0aec0',
+                info: '#4299e1',
+                warn: '#d69e2e',
+                error: '#e53e3e'
+            };
+            
+            const output = document.getElementById('demo-output');
+            const timestamp = new Date().toLocaleTimeString();
+            
+            const logEntry = `
+                <div style="color: ${colors[level]}; margin: 5px 0;">
+                    [${timestamp}] ${level.toUpperCase()}: ${messages[level]}
+                    <span style="color: #718096; font-size: 12px;">
+                        | sessionId: ${demoSessionId} | logId: ${++demoLogCount}
+                    </span>
+                </div>
+            `;
+            
+                output.innerHTML += logEntry;
+                output.scrollTop = output.scrollHeight;
+            }
+            </script>
+</body>
+</html>  

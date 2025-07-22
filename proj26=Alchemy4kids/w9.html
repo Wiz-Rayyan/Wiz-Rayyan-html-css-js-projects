@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Neo-Alchemy Portal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=UnifrakturCook:wght@700&display=swap" rel="stylesheet">
+  <style>
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      background-color: #0a0a0a;
+      font-family: 'UnifrakturCook', serif;
+      color: #f5e663;
+    }
+
+    canvas {
+      display: block;
+    }
+
+    .overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    .sigil-button {
+      position: absolute;
+      font-size: 2rem;
+      pointer-events: all;
+      cursor: pointer;
+      transition: transform 0.3s ease, text-shadow 0.3s ease;
+    }
+
+    .sigil-button:hover {
+      transform: scale(1.2);
+      text-shadow: 0 0 10px #fff199;
+    }
+  </style>
+</head>
+<body>
+  <div class="overlay">
+    <div class="sigil-button" style="top:10%; left:45%;" onclick="enterChamber('Air')">🜁</div>
+    <div class="sigil-button" style="top:40%; right:10%;" onclick="enterChamber('Fire')">🜂</div>
+    <div class="sigil-button" style="bottom:10%; left:45%;" onclick="enterChamber('Water')">🜃</div>
+    <div class="sigil-button" style="top:40%; left:10%;" onclick="enterChamber('Earth')">🜄</div>
+  </div>
+
+  <script>
+    function enterChamber(name) {
+      alert(`Entering Chamber of ${name}...`);
+      // Replace with window.location or modal
+    }
+
+    // === Three.js Setup ===
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    // Create Sigil Geometry (glowing ring)
+    const geometry = new THREE.RingGeometry(1, 1.5, 64);
+    const material = new THREE.MeshBasicMaterial({ color: 0xffffaa, side: THREE.DoubleSide });
+    const ring = new THREE.Mesh(geometry, material);
+    scene.add(ring);
+
+    // Particle effect (glowing sigil particles)
+    const particleCount = 100;
+    const particles = new THREE.BufferGeometry();
+    const positions = new Float32Array(particleCount * 3);
+    for (let i = 0; i < particleCount; i++) {
+      const angle = Math.random() * 2 * Math.PI;
+      const radius = 2 + Math.random() * 0.5;
+      positions[i * 3] = Math.cos(angle) * radius;
+      positions[i * 3 + 1] = Math.sin(angle) * radius;
+      positions[i * 3 + 2] = 0;
+    }
+    particles.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    const particleMat = new THREE.PointsMaterial({ color: 0xf0e6c0, size: 0.05 });
+    const pointCloud = new THREE.Points(particles, particleMat);
+    scene.add(pointCloud);
+
+    camera.position.z = 5;
+
+    function animate() {
+      requestAnimationFrame(animate);
+      ring.rotation.z += 0.002;
+      pointCloud.rotation.z += 0.001;
+      renderer.render(scene, camera);
+    }
+
+    animate();
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+</html>

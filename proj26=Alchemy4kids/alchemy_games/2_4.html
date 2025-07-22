@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emoji Math Alchemy</title>
+    <style>
+        :root {
+            --bg-dark: #1a1a2e;
+            --neon-blue: #00f5ff;
+            --neon-pink: #ff00aa;
+            --gold: #ffd700;
+        }
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, var(--bg-dark), #4a2c82);
+            color: white;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+        }
+        h1 {
+            color: var(--gold);
+            text-shadow: 0 0 10px var(--gold);
+        }
+        .workspace {
+            background: rgba(0,0,0,0.3);
+            border: 2px solid var(--neon-blue);
+            border-radius: 15px;
+            min-height: 300px;
+            margin: 20px auto;
+            padding: 20px;
+            position: relative;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 0 20px var(--neon-blue);
+        }
+        .element {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px;
+            display: inline-block;
+            cursor: grab;
+            user-select: none;
+            transition: all 0.3s;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .element:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 15px var(--gold);
+        }
+        .element-emoji {
+            font-size: 40px;
+            font-family: "Segoe UI Emoji", "Apple Color Emoji", sans-serif;
+        }
+        .element-name {
+            font-size: 14px;
+            color: var(--neon-blue);
+            margin-top: 5px;
+        }
+        .equation {
+            font-family: monospace;
+            font-size: 18px;
+            color: var(--neon-pink);
+            margin: 20px 0;
+        }
+        .energy-bar {
+            width: 80%;
+            height: 20px;
+            background: rgba(0,0,0,0.5);
+            border-radius: 10px;
+            margin: 20px auto;
+            overflow: hidden;
+        }
+        .energy-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--neon-pink), var(--neon-blue));
+            width: 100%;
+            transition: width 0.5s;
+        }
+        @keyframes glow {
+            0% { opacity: 0.7; }
+            50% { opacity: 1; }
+            100% { opacity: 0.7; }
+        }
+        .glow {
+            animation: glow 2s infinite;
+        }
+    </style>
+</head>
+<body>
+    <h1>✨ Emoji Math Alchemy ✨</h1>
+    <p>Combine emojis using mathematical alchemy!</p>
+    
+    <div class="energy-bar">
+        <div class="energy-fill" id="energy-fill"></div>
+    </div>
+    
+    <div class="workspace" id="workspace">
+        <p>Drag emojis here to combine them</p>
+    </div>
+    
+    <div class="equation" id="equation">
+        Start by dragging two emojis together!
+    </div>
+    
+    <h3>Basic Elements:</h3>
+    <div id="basic-elements">
+        <!-- Elements will be added by JavaScript -->
+    </div>
+    
+    <h3>Discovered Elements:</h3>
+    <div id="discovered-elements">
+        <!-- New elements appear here -->
+    </div>
+
+    <script>
+        // 🧪 Alchemy Equation: (a × b) + (a + b) = Result Value
+        function alchemyEquation(a, b) {
+            return (a * b) + (a + b);
+        }
+
+        // 🌟 Emoji Database with creative names
+        const emojiData = [
+            { emoji: '🔥', value: 2, name: "Blazing Spirit" },
+            { emoji: '💧', value: 3, name: "Aqua Essence" },
+            { emoji: '🌍', value: 5, name: "Terra Core" },
+            { emoji: '💨', value: 7, name: "Zephyr Breath" },
+            { emoji: '❤️', value: 11, name: "Vital Pulse" },
+            { emoji: '🌟', value: 13, name: "Stellar Fragment" },
+            { emoji: '⚡', value: 17, name: "Voltaic Surge" },
+            { emoji: '🌱', value: 19, name: "Verdant Spark" },
+            { emoji: '🍎', value: 23, name: "Forbidden Knowledge" },
+            { emoji: '🧠', value: 29, name: "Cosmic Mind" },
+            { emoji: '🔮', value: 31, name: "Oracle Sphere" },
+            { emoji: '🦄', value: 37, name: "Mythic Steed" },
+            { emoji: '🌈', value: 41, name: "Prism Bridge" },
+            { emoji: '🌙', value: 43, name: "Lunar Whisper" },
+            { emoji: '☄️', value: 47, name: "Celestial Wanderer" }
+        ];
+
+        // 🎮 Game State
+        const gameState = {
+            energy: 100,
+            maxEnergy: 100,
+            discoveredEmojis: ['🔥', '💧', '🌍', '💨'],
+            elements: {}
+        };
+
+        // Initialize emoji data
+        emojiData.forEach(item => {
+            gameState.elements[item.emoji] = item;
+        });
+
+        // 🏗️ Create Element Button
+        function createElementButton(emoji) {
+            const element = document.createElement('div');
+            element.className = 'element';
+            element.draggable = true;
+            element.dataset.emoji = emoji;
+            element.innerHTML = `
+                <div class="element-emoji">${emoji}</div>
+                <div class="element-name">${gameState.elements[emoji].name}</div>
+            `;
+            
+            element.addEventListener('dragstart', e => {
+                e.dataTransfer.setData('text/plain', e.target.dataset.emoji);
+                e.target.style.opacity = '0.5';
+            });
+            
+            element.addEventListener('dragend', e => {
+                e.target.style.opacity = '1';
+            });
+            
+            return element;
+        }
+
+        // 🔄 Update Energy Display
+        function updateEnergy() {
+            document.getElementById('energy-fill').style.width = 
+                `${(gameState.energy / gameState.maxEnergy) * 100}%`;
+        }
+
+        // 🎯 Setup Workspace
+        const workspace = document.getElementById('workspace');
+        workspace.addEventListener('dragover', e => e.preventDefault());
+        
+        workspace.addEventListener('drop', e => {
+            e.preventDefault();
+            const emoji = e.dataTransfer.getData('text/plain');
+            createElementInWorkspace(emoji, e.clientX, e.clientY);
+        });
+
+        // 🏗️ Create Element in Workspace
+        function createElementInWorkspace(emoji, x, y) {
+            const rect = workspace.getBoundingClientRect();
+            const element = document.createElement('div');
+            element.className = 'element';
+            element.style.position = 'absolute';
+            element.style.left = `${x - rect.left - 30}px`;
+            element.style.top = `${y - rect.top - 30}px`;
+            element.dataset.emoji = emoji;
+            element.innerHTML = `
+                <div class="element-emoji">${emoji}</div>
+                <div class="element-name">${gameState.elements[emoji].name}</div>
+            `;
+            
+            element.draggable = true;
+            element.addEventListener('dragstart', e => {
+                e.dataTransfer.setData('text/plain', e.target.dataset.emoji);
+                e.target.style.opacity = '0.5';
+            });
+            
+            element.addEventListener('dragend', e => {
+                e.target.style.opacity = '1';
+            });
+            
+            workspace.appendChild(element);
+            checkCombinations(element);
+        }
+
+        // 🔍 Check for Combinations
+        function checkCombinations(newElement) {
+            const elements = workspace.querySelectorAll('.element');
+            
+            if (elements.length >= 2) {
+                elements.forEach(existingElement => {
+                    if (existingElement !== newElement) {
+                        const rect1 = newElement.getBoundingClientRect();
+                        const rect2 = existingElement.getBoundingClientRect();
+                        
+                        // Simple collision detection
+                        if (!(rect1.right < rect2.left || 
+                              rect1.left > rect2.right || 
+                              rect1.bottom < rect2.top || 
+                              rect1.top > rect2.bottom)) {
+                            attemptCombination(
+                                newElement.dataset.emoji,
+                                existingElement.dataset.emoji,
+                                newElement,
+                                existingElement
+                            );
+                        }
+                    }
+                });
+            }
+        }
+
+        // ⚗️ Attempt Combination
+        function attemptCombination(emoji1, emoji2, element1, element2) {
+            const a = gameState.elements[emoji1].value;
+            const b = gameState.elements[emoji2].value;
+            const resultValue = alchemyEquation(a, b);
+            
+            // Find closest emoji by value
+            let closestEmoji = null;
+            let minDiff = Infinity;
+            
+            emojiData.forEach(item => {
+                const diff = Math.abs(item.value - resultValue);
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    closestEmoji = item.emoji;
+                }
+            });
+            
+            // Display equation
+            document.getElementById('equation').textContent = 
+                `(${a} × ${b}) + (${a} + ${b}) = ${resultValue} → ${gameState.elements[closestEmoji].name}`;
+            
+            // Deduct energy
+            gameState.energy -= 10;
+            if (gameState.energy < 0) gameState.energy = 0;
+            updateEnergy();
+            
+            // Remove old elements
+            element1.remove();
+            element2.remove();
+            
+            // Create new element
+            if (!gameState.discoveredEmojis.includes(closestEmoji)) {
+                gameState.discoveredEmojis.push(closestEmoji);
+                renderDiscoveredElements();
+            }
+            
+            setTimeout(() => {
+                createElementInWorkspace(
+                    closestEmoji,
+                    parseInt(element1.style.left) + 30,
+                    parseInt(element1.style.top) + 30
+                );
+            }, 500);
+        }
+
+        // 🔄 Render Elements
+        function renderBasicElements() {
+            const container = document.getElementById('basic-elements');
+            container.innerHTML = '';
+            
+            gameState.discoveredEmojis.forEach(emoji => {
+                if (['🔥', '💧', '🌍', '💨'].includes(emoji)) {
+                    container.appendChild(createElementButton(emoji));
+                }
+            });
+        }
+
+        function renderDiscoveredElements() {
+            const container = document.getElementById('discovered-elements');
+            container.innerHTML = '';
+            
+            gameState.discoveredEmojis.forEach(emoji => {
+                if (!['🔥', '💧', '🌍', '💨'].includes(emoji)) {
+                    container.appendChild(createElementButton(emoji));
+                }
+            });
+        }
+
+        // 🚀 Initialize Game
+        function initGame() {
+            renderBasicElements();
+            renderDiscoveredElements();
+            updateEnergy();
+        }
+
+        window.addEventListener('DOMContentLoaded', initGame);
+    </script>
+</body>
+</html>

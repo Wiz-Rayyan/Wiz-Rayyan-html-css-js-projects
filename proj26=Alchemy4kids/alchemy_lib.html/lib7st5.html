@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Celestial Library</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=EB+Garamond:wght@500&family=MedievalSharp&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --parchment: #f5e8c9;
+            --gold: #d4af37;
+            --silver: #c0c0c0;
+            --deep-blue: #0a0e2a;
+            --starry-night: #1a1a3a;
+            --glow: rgba(255, 215, 0, 0.6);
+            --magic-blue: rgba(100, 180, 255, 0.6);
+            --magic-purple: rgba(180, 100, 255, 0.6);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--deep-blue);
+            background-image: 
+                radial-gradient(circle at center, var(--starry-night), var(--deep-blue)),
+                url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><circle cx="20" cy="20" r="1" fill="white" opacity="0.8"/><circle cx="50" cy="30" r="1" fill="white" opacity="0.6"/><circle cx="80" cy="20" r="1" fill="white" opacity="0.7"/><circle cx="30" cy="70" r="1" fill="white" opacity="0.5"/><circle cx="70" cy="60" r="1" fill="white" opacity="0.9"/></svg>');
+            color: white;
+            font-family: 'EB Garamond', serif;
+            line-height: 1.6;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        header {
+            background: linear-gradient(to right, 
+                rgba(10, 14, 42, 0.9), 
+                rgba(30, 25, 70, 0.8), 
+                rgba(10, 14, 42, 0.9));
+            padding: 1.5rem;
+            text-align: center;
+            border-bottom: 2px solid var(--gold);
+            position: relative;
+            z-index: 10;
+            box-shadow: 0 5px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        h1 {
+            font-family: 'Cinzel Decorative', cursive;
+            color: var(--gold);
+            text-shadow: 0 0 10px var(--glow);
+            margin: 0;
+            letter-spacing: 2px;
+            font-size: 2.8rem;
+        }
+
+        h1::before, h1::after {
+            content: '✧';
+            color: var(--gold);
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.8rem;
+            opacity: 0.8;
+        }
+
+        h1::before { left: 1.5rem; }
+        h1::after { right: 1.5rem; }
+
+        /* Category Filter */
+        .category-filter {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            padding: 1.5rem;
+            background: rgba(10, 14, 42, 0.8);
+            border-bottom: 1px solid rgba(212, 175, 55, 0.3);
+            position: sticky;
+            top: 0;
+            z-index: 5;
+        }
+
+        .category-btn {
+            background: none;
+            border: 1px solid var(--gold);
+            color: var(--gold);
+            padding: 0.5rem 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'MedievalSharp', cursive;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+
+        .category-btn:hover {
+            background: rgba(212, 175, 55, 0.1);
+            box-shadow: 0 0 10px var(--glow);
+        }
+
+        .category-btn.active {
+            background: rgba(212, 175, 55, 0.3);
+            box-shadow: 0 0 15px var(--glow);
+        }
+
+        /* Book Gallery */
+        .book-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 2rem;
+            padding: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+            perspective: 1000px;
+        }
+
+        .celestial-book {
+            position: relative;
+            height: 300px;
+            cursor: pointer;
+            transform-style: preserve-3d;
+            transition: transform 0.6s ease;
+        }
+
+        .celestial-book:hover {
+            transform: translateY(-10px) rotateY(10deg);
+        }
+
+        .book-cover {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(145deg, #1a1a3a, #0a0e2a);
+            border-radius: 5px;
+            box-shadow: 
+                0 10px 25px rgba(0, 0, 0, 0.5),
+                inset 0 0 20px rgba(212, 175, 55, 0.2);
+            transform-style: preserve-3d;
+            transition: all 0.6s ease;
+            overflow: hidden;
+            z-index: 1;
+            border: 1px solid var(--gold);
+        }
+
+        .book-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: sepia(20%) brightness(90%) contrast(110%);
+            transition: all 0.6s ease;
+        }
+
+        .book-title {
+            position: absolute;
+            bottom: 30px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-family: 'Cinzel Decorative', cursive;
+            font-size: 1.4rem;
+            color: var(--gold);
+            text-shadow: 0 0 8px rgba(0, 0, 0, 0.7);
+            z-index: 3;
+            padding: 0 1rem;
+        }
+
+        .book-category {
+            position: absolute;
+            bottom: 10px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.8);
+            z-index: 3;
+            font-family: 'MedievalSharp', cursive;
+        }
+
+        .celestial-glow {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: 5px;
+            box-shadow: 0 0 20px var(--magic-blue);
+            opacity: 0;
+            transition: opacity 0.6s ease;
+            z-index: 0;
+        }
+
+        .celestial-book:hover .celestial-glow {
+            opacity: 0.7;
+            box-shadow: 0 0 30px var(--magic-purple);
+        }
+
+        /* Book Viewer */
+        .book-viewer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(5, 3, 15, 0.95);
+            display: none;
+            flex-direction: column;
+            z-index: 100;
+            overflow: hidden;
+        }
+
+        .viewer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+            background: linear-gradient(to right, 
+                rgba(10, 14, 42, 0.9), 
+                rgba(30, 25, 70, 0.8), 
+                rgba(10, 14, 42, 0.9));
+            border-bottom: 2px solid var(--gold);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            box-shadow: 0 5px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .viewer-title {
+            font-family: 'Cinzel Decorative', cursive;
+            color: var(--gold);
+            margin: 0;
+            font-size: 1.8rem;
+            letter-spacing: 1px;
+        }
+
+        .close-viewer {
+            background: none;
+            border: 2px solid var(--gold);
+            color: var(--gold);
+            padding: 0.5rem 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Cinzel Decorative', cursive;
+            border-radius: 4px;
+        }
+
+        .close-viewer:hover {
+            background: rgba(212, 175, 55, 0.2);
+            box-shadow: 0 0 15px var(--gold);
+        }
+
+        /* Book Content */
+        .book-content-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            overflow: auto;
+        }
+
+        .celestial-reader {
+            width: 90%;
+            max-width: 900px;
+            min-height: 70vh;
+            background: linear-gradient(145deg, #1a1a3a, #0a0e2a);
+            border: 10px solid var(--gold);
+            border-radius: 10px;
+            box-shadow: 
+                inset 0 0 30px rgba(212, 175, 55, 0.2),
+                0 10px 50px rgba(0, 0, 0, 0.5);
+            padding: 2rem;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .reader-image {
+            width: 100%;
+            max-height: 400px;
+            object-fit: contain;
+            border: 5px solid var(--gold);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+            margin-bottom: 2rem;
+        }
+
+        .celestial-content {
+            width: 100%;
+            max-height: 50vh;
+            overflow-y: auto;
+            padding: 1rem;
+            color: white;
+            font-size: 1.1rem;
+            line-height: 1.8;
+            text-align: justify;
+        }
+
+        .celestial-content h2 {
+            color: var(--gold);
+            border-bottom: 1px solid var(--gold);
+            padding-bottom: 0.5rem;
+            margin-bottom: 1rem;
+            font-family: 'Cinzel Decorative', cursive;
+            font-size: 1.6rem;
+        }
+
+        .celestial-content p {
+            margin-bottom: 1.5rem;
+        }
+
+        .celestial-content ul, 
+        .celestial-content ol {
+            margin: 1.5rem 0;
+            padding-left: 2rem;
+        }
+
+        .celestial-content li {
+            margin-bottom: 0.8rem;
+            position: relative;
+        }
+
+        .celestial-content li::before {
+            content: '✦';
+            color: var(--gold);
+            position: absolute;
+            left: -1.5rem;
+            font-size: 0.8rem;
+        }
+
+        /* Page Controls */
+        .book-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1.5rem;
+            padding: 1rem;
+            background: linear-gradient(to right, 
+                rgba(10, 14, 42, 0.9), 
+                rgba(30, 25, 70, 0.8), 
+                rgba(10, 14, 42, 0.9));
+            border-top: 2px solid var(--gold);
+            position: sticky;
+            bottom: 0;
+            z-index: 10;
+            box-shadow: 0 -5px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .book-btn {
+            background: none;
+            border: 2px solid var(--gold);
+            color: var(--gold);
+            padding: 0.5rem 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Cinzel Decorative', cursive;
+            border-radius: 4px;
+            min-width: 100px;
+        }
+
+        .book-btn:hover {
+            background: rgba(212, 175, 55, 0.2);
+            box-shadow: 0 0 15px var(--gold);
+        }
+
+        .book-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .book-indicator {
+            color: var(--gold);
+            font-family: 'Cinzel Decorative', cursive;
+            min-width: 120px;
+            text-align: center;
+        }
+
+        /* Magic Particles */
+        .magic-particle {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--magic-purple);
+            pointer-events: none;
+            z-index: 1;
+            opacity: 0;
+        }
+
+        /* Animations */
+        @keyframes float {
+            0%, 100% { transform: translateY(0) rotateY(0); }
+            50% { transform: translateY(-15px) rotateY(5deg); }
+        }
+
+        @keyframes sparkle {
+            0% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(0); opacity: 0; }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            h1 { font-size: 2rem; }
+            h1::before, h1::after { display: none; }
+            
+            .book-gallery {
+                grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+                padding: 1rem;
+                gap: 1.5rem;
+            }
+            
+            .celestial-book { height: 260px; }
+            .book-title { font-size: 1.2rem; }
+            
+            .celestial-reader {
+                padding: 1.5rem;
+                border-width: 5px;
+            }
+            
+            .book-controls {
+                gap: 1rem;
+                padding: 0.8rem;
+            }
+            
+            .book-btn {
+                padding: 0.4rem 1rem;
+                min-width: 80px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            h1 { font-size: 1.6rem; }
+            
+            .category-filter {
+                gap: 0.5rem;
+                padding: 1rem;
+            }
+            
+            .category-btn {
+                padding: 0.3rem 1rem;
+                font-size: 0.8rem;
+            }
+            
+            .book-gallery {
+                grid-template-columns: 1fr;
+                padding: 1rem;
+                gap: 1.2rem;
+            }
+            
+            .celestial-book { height: 240px; }
+            .book-title { font-size: 1.1rem; }
+            
+            .celestial-content {
+                font-size: 1rem;
+                padding: 0.5rem;
+            }
+            
+            .book-btn {
+                padding: 0.3rem 0.8rem;
+                font-size: 0.9rem;
+                min-width: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Celestial Library</h1>
+    </header>
+    
+    <div class="category-filter" id="categoryFilter">
+        <button class="category-btn active" data-category="all">All Tomes</button>
+        <button class="category-btn" data-category="alchemy">Alchemy</button>
+        <button class="category-btn" data-category="magic">Magic</button>
+        <button class="category-btn" data-category="astrology">Astrology</button>
+        <button class="category-btn" data-category="history">Ancient History</button>
+    </div>
+    
+    <main class="book-gallery" id="bookGallery"></main>
+    
+    <div class="book-viewer" id="bookViewer">
+        <div class="viewer-header">
+            <h2 class="viewer-title" id="viewerTitle">Book Title</h2>
+            <button class="close-viewer" id="closeViewer">Close</button>
+        </div>
+        
+        <div class="book-content-container">
+            <div class="celestial-reader">
+                <img src="" alt="Book Image" class="reader-image" id="readerImage">
+                <div class="celestial-content" id="bookContent"></div>
+            </div>
+        </div>
+        
+        <div class="book-controls">
+            <button class="book-btn" id="prevBtn">Previous</button>
+            <span class="book-indicator" id="bookIndicator">Page 1 of 1</span>
+            <button class="book-btn" id="nextBtn">Next</button>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Book data
+            const books = [
+                {
+                    id: "alchemical-secrets",
+                    title: "Alchemical Secrets",
+                    category: "alchemy",
+                    image: "https://i.pinimg.com/736x/44/e1/e9/44e1e9952b45eec036b020fcc5101f55.jpg",
+                    pages: [
+                        {
+                            title: "The Philosopher's Stone",
+                            content: `
+                                <h2>The Philosopher's Stone</h2>
+                                <p>The legendary substance capable of turning base metals into gold and granting eternal life. This ancient text reveals:</p>
+                                <ul>
+                                    <li>The four stages of alchemical transformation</li>
+                                    <li>Secret symbols of the great alchemists</li>
+                                    <li>Rituals for harnessing celestial energies</li>
+                                </ul>
+                                <p>Written by the mysterious Hermes Trismegistus, this tome has been passed down through secret societies for centuries.</p>
+                            `,
+                            image: "https://i.pinimg.com/736x/39/ba/81/39ba8194d87d7ac65161064e99b96b5c.jpg"
+                        },
+                        {
+                            title: "Elixir of Life",
+                            content: `
+                                <h2>Elixir of Life</h2>
+                                <p>The ultimate alchemical achievement - a potion granting immortality. This chapter details:</p>
+                                <ol>
+                                    <li>Rare ingredients from distant lands</li>
+                                    <li>Precise lunar cycles for preparation</li>
+                                    <li>Dangerous purification processes</li>
+                                </ol>
+                                <p>Warning: Many alchemists have perished attempting this formula. Proceed with extreme caution.</p>
+                            `,
+                            image: "https://i.pinimg.com/736x/06/24/a7/0624a7be2ccc841c2f4fd2483a252c59.jpg"
+                        }
+                    ]
+                },
+                {
+                    id: "celestial-atlas",
+                    title: "Celestial Atlas",
+                    category: "astrology",
+                    image: "https://i.pinimg.com/736x/d9/7f/d7/d97fd70d0a4908603c5814aefeb9dbc3.jpg",
+                    pages: [
+                        {
+                            title: "Planetary Alignments",
+                            content: `
+                                <h2>Planetary Alignments</h2>
+                                <p>This celestial atlas documents the movements and influences of the seven classical planets:</p>
+                                <ul>
+                                    <li>Sun - Vitality and leadership</li>
+                                    <li>Moon - Intuition and dreams</li>
+                                    <li>Mercury - Communication and intellect</li>
+                                </ul>
+                                <p>Compiled by Ptolemy the Astrologer in 150 AD, this work combines astronomy with mystical traditions.</p>
+                            `,
+                            image: "https://i.pinimg.com/736x/12/80/50/128050c7f8a69f91e6f4298678d13bd2.jpg"
+                        },
+                        {
+                            title: "Zodiac Constellations",
+                            content: `
+                                <h2>Zodiac Constellations</h2>
+                                <p>The complete zodiac with magical associations:</p>
+                                <ol>
+                                    <li>Aries - The Ram (Fire, Cardinal)</li>
+                                    <li>Taurus - The Bull (Earth, Fixed)</li>
+                                    <li>Gemini - The Twins (Air, Mutable)</li>
+                                </ol>
+                                <p>Each constellation entry includes detailed star charts and magical correspondences.</p>
+                            `,
+                            image: "https://i.pinimg.com/736x/c3/76/bb/c376bb4ba0fdb2611f19f08855f3e531.jpg"
+                        }
+                    ]
+                },
+                {
+                    id: "arcane-bestiary",
+                    title: "Arcane Bestiary",
+                    category: "magic",
+                    image: "https://i.pinimg.com/1200x/f6/1a/ec/f61aec7cf22a9ab14b657a3ad7b581e3.jpg",
+                    pages: [
+                        {
+                            title: "Magical Creatures",
+                            content: `
+                                <h2>Magical Creatures</h2>
+                                <p>This bestiary documents creatures both mundane and magical:</p>
+                                <ul>
+                                    <li>Phoenix - Feathers used in resurrection elixirs</li>
+                                    <li>Dragon - Scales provide potent protection charms</li>
+                                    <li>Unicorn - Horn purifies liquids and detects poison</li>
+                                </ul>
+                                <p>Compiled by the naturalist-mage Aldrovandus in 1599.</p>
+                            `,
+                            image: "https://i.pinimg.com/1200x/f0/7c/b5/f07cb5703c2952a00d42268fd90b91f0.jpg"
+                        },
+                        {
+                            title: "Alchemical Uses",
+                            content: `
+                                <h2>Alchemical Uses</h2>
+                                <p>Various parts of magical creatures and their uses:</p>
+                                <ol>
+                                    <li>Basilisk eyes - Turn objects to stone when powdered</li>
+                                    <li>Mermaid scales - Ground into love potions</li>
+                                    <li>Werewolf fur - Reveals hidden things when burned</li>
+                                </ol>
+                                <p>Warning: Many preparations require exacting conditions.</p>
+                            `,
+                            image: "https://i.pinimg.com/1200x/26/7a/5a/267a5ad4be81c2cfd319b79be7e95e87.jpg"
+                        }
+                    ]
+                },
+                {
+                    id: "atlantean-artifacts",
+                    title: "Atlantean Artifacts",
+                    category: "history",
+                    image: "https://i.pinimg.com/736x/8a/1b/d3/8a1bd3c5a2b4afe3a07f50c4623aa640.jpg",
+                    pages: [
+                        {
+                            title: "Lost Technology",
+                            content: `
+                                <h2>Lost Technology</h2>
+                                <p>This volume documents artifacts from Atlantis:</p>
+                                <ul>
+                                    <li>Crystal power orbs - Still functional after millennia</li>
+                                    <li>Metal tablets with unknown script</li>
+                                    <li>Mechanical devices of unknown purpose</li>
+                                </ul>
+                                <p>Discovered in 1674 by explorer-mage Heinrich van der Meer.</p>
+                            `,
+                            image: "https://i.pinimg.com/736x/da/c0/c0/dac0c0fb9b4a576dc78b9a834f2cb5b7.jpg"
+                        },
+                        {
+                            title: "Theories and Speculations",
+                            content: `
+                                <h2>Theories About Atlantis</h2>
+                                <ol>
+                                    <li>They harnessed earth energies through crystals</li>
+                                    <li>Their writing encodes magical formulas</li>
+                                    <li>Some survivors escaped to underground cities</li>
+                                </ol>
+                                <p>Includes detailed drawings of artifacts and theories.</p>
+                            `,
+                            image: "https://i.pinimg.com/736x/9f/86/3e/9f863ede51050ba14b1cc846e173b6b9.jpg"
+                        }
+                    ]
+                }
+            ];
+
+            // DOM Elements
+            const bookGallery = document.getElementById('bookGallery');
+            const categoryFilter = document.getElementById('categoryFilter');
+            const bookViewer = document.getElementById('bookViewer');
+            const viewerTitle = document.getElementById('viewerTitle');
+            const readerImage = document.getElementById('readerImage');
+            const bookContent = document.getElementById('bookContent');
+            const closeViewer = document.getElementById('closeViewer');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const bookIndicator = document.getElementById('bookIndicator');
+            
+            // State
+            let currentBook = null;
+            let currentPage = 0;
+            let currentCategory = 'all';
+
+            // Initialize Gallery
+            function initGallery() {
+                bookGallery.innerHTML = '';
+                const filteredBooks = currentCategory === 'all' 
+                    ? books 
+                    : books.filter(book => book.category === currentCategory);
+                
+                filteredBooks.forEach(book => {
+                    const bookElement = document.createElement('div');
+                    bookElement.className = 'celestial-book';
+                    bookElement.setAttribute('data-book', book.id);
+                    
+                    bookElement.innerHTML = `
+                        <div class="celestial-glow"></div>
+                        <div class="book-cover">
+                            <img src="${book.image}" alt="${book.title}" class="book-image">
+                            <div class="book-title">${book.title}</div>
+                            <div class="book-category">${book.category.charAt(0).toUpperCase() + book.category.slice(1)}</div>
+                        </div>
+                    `;
+                    
+                    bookElement.addEventListener('click', () => openBook(book.id));
+                    bookElement.style.animation = `float 6s ease-in-out ${Math.random() * 5}s infinite`;
+                    bookGallery.appendChild(bookElement);
+                });
+            }
+
+            // Open Book
+            function openBook(bookId) {
+                currentBook = books.find(book => book.id === bookId);
+                currentPage = 0;
+                
+                viewerTitle.textContent = currentBook.title;
+                bookViewer.style.display = 'flex';
+                setTimeout(() => bookViewer.style.opacity = '1', 10);
+                
+                loadPage();
+                createMagicEffect();
+            }
+
+            // Close Book
+            function closeBook() {
+                bookViewer.style.opacity = '0';
+                setTimeout(() => bookViewer.style.display = 'none', 500);
+            }
+
+            // Load Page
+            function loadPage() {
+                const page = currentBook.pages[currentPage];
+                readerImage.src = page.image;
+                bookContent.innerHTML = page.content;
+                bookIndicator.textContent = `Page ${currentPage + 1} of ${currentBook.pages.length}`;
+                
+                prevBtn.disabled = currentPage === 0;
+                nextBtn.disabled = currentPage === currentBook.pages.length - 1;
+                
+                createPageEffect();
+            }
+
+            // Navigate Pages
+            function navigatePage(direction) {
+                const newPage = currentPage + direction;
+                if (newPage >= 0 && newPage < currentBook.pages.length) {
+                    currentPage = newPage;
+                    loadPage();
+                }
+            }
+
+            // Magic Effects
+            function createMagicEffect() {
+                for (let i = 0; i < 20; i++) {
+                    setTimeout(() => {
+                        const spark = document.createElement('div');
+                        spark.className = 'magic-particle';
+                        spark.style.left = Math.random() * window.innerWidth + 'px';
+                        spark.style.top = Math.random() * window.innerHeight + 'px';
+                        spark.style.background = Math.random() > 0.5 ? 'var(--magic-blue)' : 'var(--magic-purple)';
+                        spark.style.animation = 'sparkle 1s ease-out';
+                        document.body.appendChild(spark);
+                        
+                        setTimeout(() => document.body.removeChild(spark), 1000);
+                    }, i * 100);
+                }
+            }
+
+            function createPageEffect() {
+                for (let i = 0; i < 15; i++) {
+                    setTimeout(() => {
+                        const spark = document.createElement('div');
+                        spark.className = 'magic-particle';
+                        spark.style.left = (Math.random() * 200 + window.innerWidth/2 - 100) + 'px';
+                        spark.style.top = (Math.random() * 200 + 200) + 'px';
+                        spark.style.animation = 'sparkle 0.8s ease-out';
+                        document.body.appendChild(spark);
+                        
+                        setTimeout(() => document.body.removeChild(spark), 800);
+                    }, i * 50);
+                }
+            }
+
+            // Event Listeners
+            closeViewer.addEventListener('click', closeBook);
+            prevBtn.addEventListener('click', () => navigatePage(-1));
+            nextBtn.addEventListener('click', () => navigatePage(1));
+
+            // Category Filter
+            categoryFilter.querySelectorAll('.category-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    categoryFilter.querySelector('.active').classList.remove('active');
+                    this.classList.add('active');
+                    currentCategory = this.getAttribute('data-category');
+                    initGallery();
+                });
+            });
+
+            // Keyboard Navigation
+            document.addEventListener('keydown', (e) => {
+                if (bookViewer.style.display === 'flex') {
+                    if (e.key === 'ArrowLeft') navigatePage(-1);
+                    else if (e.key === 'ArrowRight') navigatePage(1);
+                    else if (e.key === 'Escape') closeBook();
+                }
+            });
+
+            // Initialize
+            initGallery();
+        });
+    </script>
+</body>
+</html>

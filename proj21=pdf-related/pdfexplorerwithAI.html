@@ -1,0 +1,408 @@
+<!--
+no not AI unless you put the api-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Explorer with AI Explanations</title>
+    <style>
+        :root {
+            --primary-color: #6e48aa;
+            --secondary-color: #9d50bb;
+            --text-color: #333;
+            --bg-color: #fff;
+            --container-bg: #f5f5f5;
+            --border-color: #ddd;
+            --ai-bubble: #e3f2fd;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--container-bg);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 25px 0;
+            text-align: center;
+            margin-bottom: 30px;
+            border-radius: 0 0 15px 15px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 2.4rem;
+        }
+
+        .upload-section {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .file-input-label {
+            display: inline-block;
+            padding: 12px 24px;
+            background: var(--primary-color);
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .file-input-label:hover {
+            background: #5d3a99;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .content-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 20px;
+        }
+
+        .pdf-content {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .ai-explanations {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .pdf-page {
+            margin-bottom: 40px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+            background-color: var(--bg-color);
+        }
+
+        .page-number {
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 0 0 0 8px;
+            font-size: 0.9rem;
+            position: absolute;
+            top: 0;
+            right: 0;
+        }
+
+        .page-content {
+            padding: 20px;
+            position: relative;
+        }
+
+        .extracted-text {
+            white-space: pre-wrap;
+            margin-bottom: 15px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 6px;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .ai-explanation {
+            background: var(--ai-bubble);
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            position: relative;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .ai-explanation:before {
+            content: "DeepSeek AI";
+            display: block;
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 8px;
+        }
+
+        #status {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 6px;
+            text-align: center;
+            display: none;
+        }
+
+        .status-loading {
+            background-color: #e3f2fd;
+            color: #0d47a1;
+        }
+
+        .status-success {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .status-error {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+            justify-content: center;
+        }
+
+        button {
+            padding: 10px 20px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            background: #5d3a99;
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 768px) {
+            .content-columns {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>PDF Explorer with AI Insights</h1>
+            <p>Upload a PDF to extract content with DeepSeek AI explanations</p>
+        </div>
+    </header>
+
+    <div class="container">
+        <section class="upload-section">
+            <h2>Upload Your PDF Document</h2>
+            <input type="file" id="pdfInput" accept=".pdf" style="display: none;">
+            <label for="pdfInput" class="file-input-label">Choose PDF File</label>
+            <div id="status"></div>
+            
+            <div class="controls">
+                <button id="analyzeBtn" disabled>Analyze with AI</button>
+                <button id="resetBtn">Reset</button>
+            </div>
+        </section>
+
+        <div class="content-columns">
+            <div class="pdf-content" id="pdfContent">
+                <h2>Extracted PDF Content</h2>
+                <p>PDF content will appear here after upload</p>
+            </div>
+            
+            <div class="ai-explanations" id="aiExplanations">
+                <h2>AI Explanations</h2>
+                <p>DeepSeek AI explanations will appear here after analysis</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <script>
+        // Initialize PDF.js
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+
+        // DOM elements
+        const pdfInput = document.getElementById('pdfInput');
+        const pdfContent = document.getElementById('pdfContent');
+        const aiExplanations = document.getElementById('aiExplanations');
+        const statusElement = document.getElementById('status');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const resetBtn = document.getElementById('resetBtn');
+
+        // Store extracted pages
+        let extractedPages = [];
+        
+        // Handle PDF file selection
+        pdfInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            showStatus(`Loading ${file.name}...`, 'status-loading');
+            analyzeBtn.disabled = true;
+
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const typedArray = new Uint8Array(arrayBuffer);
+
+                // Load the PDF
+                const pdf = await pdfjsLib.getDocument(typedArray).promise;
+                showStatus(`Processing ${pdf.numPages} pages...`, 'status-loading');
+
+                // Clear previous content
+                pdfContent.innerHTML = '<h2>Extracted PDF Content</h2>';
+                extractedPages = [];
+
+                // Process each page
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    showStatus(`Processing page ${i} of ${pdf.numPages}`, 'status-loading');
+
+                    // Extract text content
+                    const textContent = await page.getTextContent();
+                    const pageText = textContent.items.map(item => item.str).join(' ');
+                    
+                    // Store extracted page
+                    extractedPages.push({
+                        pageNumber: i,
+                        content: pageText
+                    });
+
+                    // Display extracted content
+                    const pageContainer = document.createElement('div');
+                    pageContainer.className = 'pdf-page';
+                    
+                    const pageNumber = document.createElement('div');
+                    pageNumber.className = 'page-number';
+                    pageNumber.textContent = `Page ${i}`;
+                    
+                    const contentDiv = document.createElement('div');
+                    contentDiv.className = 'page-content';
+                    contentDiv.appendChild(pageNumber);
+                    
+                    const textDiv = document.createElement('div');
+                    textDiv.className = 'extracted-text';
+                    textDiv.textContent = pageText;
+                    contentDiv.appendChild(textDiv);
+                    
+                    pageContainer.appendChild(contentDiv);
+                    pdfContent.appendChild(pageContainer);
+                }
+
+                showStatus('PDF processing complete! Click "Analyze with AI" for explanations', 'status-success');
+                analyzeBtn.disabled = false;
+
+            } catch (error) {
+                showStatus(`Error processing PDF: ${error.message}`, 'status-error');
+                console.error(error);
+            }
+        });
+
+        // Analyze with AI
+        analyzeBtn.addEventListener('click', async () => {
+            if (extractedPages.length === 0) {
+                showStatus('No PDF content to analyze', 'status-error');
+                return;
+            }
+
+            showStatus('Generating AI explanations...', 'status-loading');
+            aiExplanations.innerHTML = '<h2>AI Explanations</h2>';
+
+            // Process each page with simulated AI (in a real app, you'd call an API)
+            for (const page of extractedPages) {
+                try {
+                    // Simulate API call delay
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    
+                    // Generate AI explanation (simulated)
+                    const aiExplanation = await generateAIExplanation(page.content);
+                    
+                    // Display AI explanation
+                    const explanationDiv = document.createElement('div');
+                    explanationDiv.className = 'ai-explanation';
+                    
+                    const pageHeader = document.createElement('h3');
+                    pageHeader.textContent = `Page ${page.pageNumber}`;
+                    
+                    const explanationText = document.createElement('div');
+                    explanationText.textContent = aiExplanation;
+                    
+                    explanationDiv.appendChild(pageHeader);
+                    explanationDiv.appendChild(explanationText);
+                    aiExplanations.appendChild(explanationDiv);
+                    
+                    showStatus(`Generated explanation for page ${page.pageNumber} of ${extractedPages.length}`, 'status-loading');
+                    
+                } catch (error) {
+                    console.error(`Error generating explanation for page ${page.pageNumber}:`, error);
+                }
+            }
+
+            showStatus('AI analysis complete!', 'status-success');
+        });
+
+        // Reset everything
+        resetBtn.addEventListener('click', () => {
+            pdfInput.value = '';
+            pdfContent.innerHTML = '<h2>Extracted PDF Content</h2><p>PDF content will appear here after upload</p>';
+            aiExplanations.innerHTML = '<h2>AI Explanations</h2><p>DeepSeek AI explanations will appear here after analysis</p>';
+            extractedPages = [];
+            analyzeBtn.disabled = true;
+            statusElement.style.display = 'none';
+        });
+
+        // Simulated AI explanation generator
+        async function generateAIExplanation(text) {
+            // In a real implementation, this would call the DeepSeek API
+            // This is a simulation that creates simple summaries
+            
+            // Extract first few sentences as summary
+            const sentences = text.match(/[^\.!\?]+[\.!\?]+/g) || [];
+            const summary = sentences.slice(0, 3).join(' ');
+            
+            // Identify key topics
+            const words = text.toLowerCase().split(/\s+/);
+            const wordCount = {};
+            words.forEach(word => {
+                if (word.length > 4) { // Ignore short words
+                    wordCount[word] = (wordCount[word] || 0) + 1;
+                }
+            });
+            
+            // Get top 3 words
+            const topWords = Object.entries(wordCount)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 3)
+                .map(([word]) => word);
+            
+            // Generate simulated explanation
+            return `This page discusses ${topWords.join(', ')}. The main content includes: ${summary}... ` +
+                   `The text appears to focus on these key concepts. For deeper analysis, consider ` +
+                   `reviewing the specific details in the original document.`;
+        }
+
+        // Show status message
+        function showStatus(message, className) {
+            statusElement.textContent = message;
+            statusElement.className = className;
+            statusElement.style.display = 'block';
+        }
+    </script>
+</body>
+</html>

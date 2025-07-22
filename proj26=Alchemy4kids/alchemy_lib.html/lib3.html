@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arcane Alchemy Library</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Old+Standard+TT:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.4/gsap.min.js"></script>
+    <style>
+        :root {
+            --parchment: #f5e8c9;
+            --gold: #d4af37;
+            --deep-blue: #0a0a12;
+            --ink: #1a1a1a;
+        }
+        
+        body {
+            background-color: var(--deep-blue);
+            color: var(--parchment);
+            font-family: 'Old Standard TT', serif;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+        
+        header {
+            background: linear-gradient(to right, #0a0a12, #1a1a2e, #0a0a12);
+            padding: 1rem;
+            text-align: center;
+            border-bottom: 1px solid var(--gold);
+        }
+        
+        h1 {
+            font-family: 'Cinzel Decorative', serif;
+            color: var(--gold);
+            text-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
+            margin: 0;
+        }
+        
+        .book-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 2rem;
+            padding: 2rem;
+        }
+        
+        .book-cover {
+            position: relative;
+            height: 350px;
+            border-radius: 5px;
+            box-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            overflow: hidden;
+            perspective: 1000px;
+            border: 2px solid var(--gold);
+        }
+        
+        .book-cover img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s;
+        }
+        
+        .book-cover:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(212, 175, 55, 0.6);
+        }
+        
+        .book-cover:hover img {
+            transform: scale(1.05);
+        }
+        
+        .book-cover::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(to bottom, rgba(10, 10, 18, 0.1), rgba(10, 10, 18, 0.7));
+            z-index: 1;
+        }
+        
+        .cover-title {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-family: 'Cinzel Decorative', serif;
+            font-size: 1.5rem;
+            color: var(--gold);
+            text-shadow: 0 0 5px var(--deep-blue);
+            z-index: 2;
+            padding: 0 1rem;
+        }
+        
+        .book-viewer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 10, 18, 0.98);
+            display: none;
+            flex-direction: column;
+            z-index: 100;
+            overflow: hidden;
+        }
+        
+        .viewer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: rgba(26, 26, 46, 0.8);
+            border-bottom: 1px solid var(--gold);
+            z-index: 10;
+        }
+        
+        .viewer-title {
+            font-family: 'Cinzel Decorative', serif;
+            color: var(--gold);
+            margin: 0;
+        }
+        
+        .close-viewer {
+            background: none;
+            border: 1px solid var(--gold);
+            color: var(--gold);
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .close-viewer:hover {
+            background: rgba(212, 175, 55, 0.2);
+        }
+        
+        .book-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            perspective: 2000px;
+        }
+        
+        /* Physical Book Style */
+        .physical-book {
+            width: 800px;
+            height: 600px;
+            position: relative;
+            transform-style: preserve-3d;
+            transform: rotateY(0deg);
+            transition: transform 1s;
+        }
+        
+        .book-cover-left, .book-cover-right {
+            position: absolute;
+            width: 50%;
+            height: 100%;
+            background-color: #2a1e10;
+            border: 1px solid var(--gold);
+            box-sizing: border-box;
+            backface-visibility: hidden;
+            transform-origin: left center;
+        }
+        
+        .book-cover-left {
+            left: 0;
+            background-image: url('https://i.pinimg.com/736x/44/e1/e9/44e1e9952b45eec036b020fcc5101f55.jpg');
+            background-size: cover;
+            background-position: center;
+            transform: rotateY(0deg);
+            z-index: 2;
+        }
+        
+        .book-cover-right {
+            right: 0;
+            background-image: url('https://i.pinimg.com/736x/d1/e9/91/d1e991cd2be70a2e049c7390400c9d6f.jpg');
+            background-size: cover;
+            background-position: center;
+            transform: rotateY(180deg);
+            z-index: 1;
+        }
+        
+        .book-page {
+            position: absolute;
+            width: 50%;
+            height: 100%;
+            background-color: var(--parchment);
+            left: 50%;
+            transform-origin: left center;
+            box-sizing: border-box;
+            padding: 2rem;
+            overflow: auto;
+            display: none;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.2);
+        }
+        
+        .book-page::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="none" stroke="%231a1a1a" stroke-width="0.2" opacity="0.1"/></svg>');
+            pointer-events: none;
+        }
+        
+        .book-page.active {
+            display: block;
+        }
+        
+        .book-page h2 {
+            color: var(--ink);
+            border-bottom: 1px solid var(--ink);
+            padding-bottom: 0.5rem;
+            margin-top: 0;
+        }
+        
+        .book-page p {
+            color: var(--ink);
+            line-height: 1.6;
+        }
+        
+        /* Flashcard Style */
+        .flashcard-container {
+            width: 600px;
+            height: 400px;
+            position: relative;
+        }
+        
+        .flashcard {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-color: var(--parchment);
+            border: 2px solid var(--gold);
+            border-radius: 5px;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            opacity: 0;
+            transform: translateX(100px);
+            transition: all 0.5s ease;
+            z-index: 1;
+        }
+        
+        .flashcard.active {
+            opacity: 1;
+            transform: translateX(0);
+            z-index: 2;
+        }
+        
+        .flashcard h2 {
+            color: var(--gold);
+            text-align: center;
+            margin-top: 0;
+        }
+        
+        .flashcard-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            color: var(--ink);
+        }
+        
+        .flashcard img {
+            max-width: 100%;
+            max-height: 200px;
+            margin-bottom: 1rem;
+            border: 1px solid var(--gold);
+        }
+        
+        /* Navigation Controls */
+        .nav-controls {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            padding: 1rem;
+            z-index: 10;
+        }
+        
+        .nav-btn {
+            background: rgba(26, 26, 46, 0.8);
+            border: 1px solid var(--gold);
+            color: var(--gold);
+            padding: 0.5rem 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .nav-btn:hover {
+            background: rgba(212, 175, 55, 0.2);
+        }
+        
+        .nav-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .page-indicator {
+            color: var(--gold);
+            padding: 0.5rem 1rem;
+        }
+        
+        @media (max-width: 900px) {
+            .physical-book {
+                width: 95vw;
+                height: 70vh;
+            }
+            
+            .book-page {
+                padding: 1rem;
+            }
+            
+            .flashcard-container {
+                width: 90vw;
+                height: 60vh;
+            }
+        }
+        
+        @media (max-width: 600px) {
+            .book-gallery {
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            }
+            
+            .cover-title {
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Arcane Alchemy Library</h1>
+    </header>
+    
+    <main class="book-gallery">
+        <div class="book-cover" data-book="spectrum-1" data-type="physical">
+            <img src="https://i.pinimg.com/736x/44/e1/e9/44e1e9952b45eec036b020fcc5101f55.jpg" alt="Spectrum 1.0 Book Cover">
+            <div class="cover-title">Spectrum 1.0</div>
+        </div>
+        
+        <div class="book-cover" data-book="multi-relationship" data-type="flashcards">
+            <img src="https://i.pinimg.com/736x/d1/e9/91/d1e991cd2be70a2e049c7390400c9d6f.jpg" alt="Technology Multi-Relationship Book Cover">
+            <div class="cover-title">TECHNOLOGY MULTI-RELATIONSHIP</div>
+        </div>
+    </main>
+    
+    <div class="book-viewer" id="bookViewer">
+        <div class="viewer-header">
+            <h2 class="viewer-title" id="viewerTitle">Book Title</h2>
+            <button class="close-viewer" id="closeViewer">Close</button>
+        </div>
+        
+        <div class="book-container">
+            <!-- Physical Book Structure -->
+            <div class="physical-book" id="physicalBook">
+                <div class="book-cover-left"></div>
+                <div class="book-cover-right"></div>
+                
+                <div class="book-page" id="page1">
+                    <h2>Introduction</h2>
+                    <p>Alchemy is an ancient branch of natural philosophy, a philosophical and protoscientific tradition that was historically practiced in China, India, the Muslim world, and Europe.</p>
+                    <p>In its Western form, alchemy is first attested in a number of pseudepigraphical texts written in Greco-Roman Egypt during the first few centuries AD.</p>
+                </div>
+                
+                <div class="book-page" id="page2">
+                    <h2>The Four Elements</h2>
+                    <p>Western alchemy makes use of the Hellenic elements. The symbols used for these are:</p>
+                    <ul>
+                        <li>Air (🜁)</li>
+                        <li>Earth (🜃)</li>
+                        <li>Fire (🜂)</li>
+                        <li>Water (🜄)</li>
+                    </ul>
+                </div>
+                
+                <div class="book-page" id="page3">
+                    <h2>The Three Primes</h2>
+                    <p>The three primes of alchemy are fundamental to the practice:</p>
+                    <ul>
+                        <li>Salt (🜔) - representing the body and matter</li>
+                        <li>Sulfur (🜍) - representing the soul and combustion</li>
+                        <li>Mercury (🜓) - representing the spirit and volatility</li>
+                    </ul>
+                </div>
+                
+                <div class="book-page" id="page4">
+                    <h2>The Magnum Opus</h2>
+                    <p>The Great Work of alchemy is often described as a series of four stages represented by colors:</p>
+                    <ol>
+                        <li>Nigredo (blackening)</li>
+                        <li>Albedo (whitening)</li>
+                        <li>Citrinitas (yellowing)</li>
+                        <li>Rubedo (reddening)</li>
+                    </ol>
+                </div>
+            </div>
+            
+            <!-- Flashcard Structure -->
+            <div class="flashcard-container" id="flashcardContainer">
+                <div class="flashcard active" id="card1">
+                    <h2>Element: Air</h2>
+                    <div class="flashcard-content">
+                        <img src="https://i.pinimg.com/736x/44/e1/e9/44e1e9952b45eec036b020fcc5101f55.jpg" alt="Air Symbol">
+                        <p>Symbol: 🜁</p>
+                        <p>Represents the mind, intellect, and communication in alchemical traditions.</p>
+                    </div>
+                </div>
+                
+                <div class="flashcard" id="card2">
+                    <h2>Element: Earth</h2>
+                    <div class="flashcard-content">
+                        <img src="https://i.pinimg.com/736x/d1/e9/91/d1e991cd2be70a2e049c7390400c9d6f.jpg" alt="Earth Symbol">
+                        <p>Symbol: 🜃</p>
+                        <p>Represents the physical body, stability, and material wealth.</p>
+                    </div>
+                </div>
+                
+                <div class="flashcard" id="card3">
+                    <h2>Element: Fire</h2>
+                    <div class="flashcard-content">
+                        <p>Symbol: 🜂</p>
+                        <p>Represents energy, transformation, and the spiritual will.</p>
+                    </div>
+                </div>
+                
+                <div class="flashcard" id="card4">
+                    <h2>Element: Water</h2>
+                    <div class="flashcard-content">
+                        <p>Symbol: 🜄</p>
+                        <p>Represents emotion, intuition, and the subconscious.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="nav-controls">
+            <button class="nav-btn" id="prevBtn">Previous</button>
+            <span class="page-indicator" id="pageIndicator">Page 1 of 4</span>
+            <button class="nav-btn" id="nextBtn">Next</button>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Book viewer elements
+            const bookViewer = document.getElementById('bookViewer');
+            const closeViewer = document.getElementById('closeViewer');
+            const viewerTitle = document.getElementById('viewerTitle');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const pageIndicator = document.getElementById('pageIndicator');
+            
+            // Book types
+            const physicalBook = document.getElementById('physicalBook');
+            const flashcardContainer = document.getElementById('flashcardContainer');
+            
+            // Physical book elements
+            const bookCoverLeft = document.querySelector('.book-cover-left');
+            const bookCoverRight = document.querySelector('.book-cover-right');
+            const pages = document.querySelectorAll('.book-page');
+            
+            // Flashcard elements
+            const flashcards = document.querySelectorAll('.flashcard');
+            
+            // State variables
+            let currentView = ''; // 'physical' or 'flashcards'
+            let currentPage = 0;
+            let totalPages = 0;
+            let isBookOpen = false;
+            
+            // Open book viewer when a cover is clicked
+            document.querySelectorAll('.book-cover').forEach(cover => {
+                cover.addEventListener('click', function() {
+                    const bookTitle = this.querySelector('.cover-title').textContent;
+                    const bookType = this.getAttribute('data-type');
+                    
+                    viewerTitle.textContent = bookTitle;
+                    bookViewer.style.display = 'flex';
+                    document.body.style.overflow = 'hidden';
+                    
+                    // Set the current view type
+                    currentView = bookType;
+                    
+                    if (bookType === 'physical') {
+                        physicalBook.style.display = 'block';
+                        flashcardContainer.style.display = 'none';
+                        totalPages = pages.length;
+                        
+                        // Reset to first page
+                        currentPage = 0;
+                        updatePages();
+                        
+                        // Open the book animation
+                        if (!isBookOpen) {
+                            gsap.to(bookCoverLeft, {
+                                duration: 1,
+                                rotationY: -160,
+                                ease: "power2.inOut",
+                                onComplete: () => {
+                                    isBookOpen = true;
+                                }
+                            });
+                            
+                            gsap.to(bookCoverRight, {
+                                duration: 1,
+                                rotationY: -180,
+                                ease: "power2.inOut"
+                            });
+                        }
+                    } else if (bookType === 'flashcards') {
+                        physicalBook.style.display = 'none';
+                        flashcardContainer.style.display = 'block';
+                        totalPages = flashcards.length;
+                        
+                        // Reset to first card
+                        currentPage = 0;
+                        updateFlashcards();
+                    }
+                    
+                    updateNavigation();
+                });
+            });
+            
+            // Close book viewer
+            closeViewer.addEventListener('click', function() {
+                // Close the book animation if it's a physical book
+                if (currentView === 'physical' && isBookOpen) {
+                    gsap.to(bookCoverLeft, {
+                        duration: 1,
+                        rotationY: 0,
+                        ease: "power2.inOut",
+                        onComplete: () => {
+                            isBookOpen = false;
+                            bookViewer.style.display = 'none';
+                            document.body.style.overflow = 'auto';
+                        }
+                    });
+                    
+                    gsap.to(bookCoverRight, {
+                        duration: 1,
+                        rotationY: 180,
+                        ease: "power2.inOut"
+                    });
+                } else {
+                    bookViewer.style.display = 'none';
+                    document.body.style.overflow = 'auto';
+                }
+            });
+            
+            // Navigation controls
+            prevBtn.addEventListener('click', function() {
+                if (currentPage > 0) {
+                    currentPage--;
+                    if (currentView === 'physical') {
+                        updatePages();
+                    } else {
+                        updateFlashcards();
+                    }
+                    updateNavigation();
+                }
+            });
+            
+            nextBtn.addEventListener('click', function() {
+                if (currentPage < totalPages - 1) {
+                    currentPage++;
+                    if (currentView === 'physical') {
+                        updatePages();
+                    } else {
+                        updateFlashcards();
+                    }
+                    updateNavigation();
+                }
+            });
+            
+            // Update physical book pages
+            function updatePages() {
+                pages.forEach((page, index) => {
+                    if (index === currentPage) {
+                        page.classList.add('active');
+                    } else {
+                        page.classList.remove('active');
+                    }
+                });
+            }
+            
+            // Update flashcards
+            function updateFlashcards() {
+                flashcards.forEach((card, index) => {
+                    if (index === currentPage) {
+                        card.classList.add('active');
+                    } else {
+                        card.classList.remove('active');
+                    }
+                });
+            }
+            
+            // Update navigation buttons and indicator
+            function updateNavigation() {
+                prevBtn.disabled = currentPage === 0;
+                nextBtn.disabled = currentPage === totalPages - 1;
+                pageIndicator.textContent = `Page ${currentPage + 1} of ${totalPages}`;
+            }
+            
+            // Add keyboard navigation
+            document.addEventListener('keydown', function(e) {
+                if (bookViewer.style.display === 'flex') {
+                    if (e.key === 'ArrowLeft' && currentPage > 0) {
+                        currentPage--;
+                        if (currentView === 'physical') {
+                            updatePages();
+                        } else {
+                            updateFlashcards();
+                        }
+                        updateNavigation();
+                    } else if (e.key === 'ArrowRight' && currentPage < totalPages - 1) {
+                        currentPage++;
+                        if (currentView === 'physical') {
+                            updatePages();
+                        } else {
+                            updateFlashcards();
+                        }
+                        updateNavigation();
+                    } else if (e.key === 'Escape') {
+                        closeViewer.click();
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

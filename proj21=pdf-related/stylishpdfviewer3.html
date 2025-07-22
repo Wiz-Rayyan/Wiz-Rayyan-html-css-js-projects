@@ -1,0 +1,287 @@
+<!--
+the pdf pages not clearly visible, they are stacked horiznantly when it should be scrollable from top to ottom. why so bcause ittries to apply css on canvas itself
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Styler</title>
+    <style>
+        /* Base Styles */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #6e48aa, #9d50bb);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .pdf-container {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+        
+        canvas {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            margin-bottom: 20px;
+            max-width: 100%;
+            height: auto !important;
+        }
+        
+        /* Style Controls */
+        .style-presets {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .style-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .style-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .style-btn.active {
+            box-shadow: 0 0 0 3px rgba(110, 72, 170, 0.3);
+        }
+        
+        /* Customization controls */
+        .custom-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        
+        .control-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+        }
+        
+        /* Status messages */
+        #status {
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 4px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>PDF Styler</h1>
+        <p>Apply custom styles to your PDF documents</p>
+    </div>
+    
+    <div class="controls">
+        <input type="file" id="pdfInput" accept=".pdf">
+        
+        <div id="status"></div>
+        
+        <h3>Style Presets</h3>
+        <div class="style-presets">
+            <button class="style-btn active" data-style="default">Default</button>
+            <button class="style-btn" data-style="sepia">Sepia</button>
+            <button class="style-btn" data-style="dark">Dark Mode</button>
+            <button class="style-btn" data-style="blue-light">Blue Light</button>
+            <button class="style-btn" data-style="high-contrast">High Contrast</button>
+        </div>
+        
+        <h3>Custom Styling</h3>
+        <div class="custom-controls">
+            <div class="control-group">
+                <label for="brightness">Brightness</label>
+                <input type="range" id="brightness" min="50" max="150" value="100">
+            </div>
+            
+            <div class="control-group">
+                <label for="contrast">Contrast</label>
+                <input type="range" id="contrast" min="50" max="150" value="100">
+            </div>
+            
+            <div class="control-group">
+                <label for="saturation">Saturation</label>
+                <input type="range" id="saturation" min="0" max="200" value="100">
+            </div>
+            
+            <div class="control-group">
+                <label for="hue">Hue Rotation</label>
+                <input type="range" id="hue" min="0" max="360" value="0">
+            </div>
+        </div>
+    </div>
+    
+    <div class="pdf-container" id="pdfContainer"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <script>
+        // Initialize PDF.js
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+        
+        // DOM elements
+        const pdfInput = document.getElementById('pdfInput');
+        const pdfContainer = document.getElementById('pdfContainer');
+        const statusElement = document.getElementById('status');
+        const styleBtns = document.querySelectorAll('.style-btn');
+        
+        // Style controls
+        const brightnessControl = document.getElementById('brightness');
+        const contrastControl = document.getElementById('contrast');
+        const saturationControl = document.getElementById('saturation');
+        const hueControl = document.getElementById('hue');
+        
+        // Current PDF state
+        let currentPdf = null;
+        let currentCanvases = [];
+        let currentStyle = 'default';
+        
+        // PDF file input handler
+        pdfInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            showStatus(`Loading ${file.name}...`, 'loading');
+            
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const typedArray = new Uint8Array(arrayBuffer);
+                
+                // Load the PDF
+                currentPdf = await pdfjsLib.getDocument(typedArray).promise;
+                
+                // Clear previous content
+                pdfContainer.innerHTML = '';
+                currentCanvases = [];
+                
+                // Render each page
+                for (let i = 1; i <= currentPdf.numPages; i++) {
+                    const page = await currentPdf.getPage(i);
+                    
+                    // Set up canvas for rendering
+                    const viewport = page.getViewport({ scale: 1.5 });
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
+                    
+                    // Render PDF page to canvas
+                    await page.render({
+                        canvasContext: context,
+                        viewport: viewport
+                    }).promise;
+                    
+                    // Store reference to canvas
+                    currentCanvases.push(canvas);
+                    
+                    // Add to container
+                    const wrapper = document.createElement('div');
+                    wrapper.appendChild(canvas);
+                    pdfContainer.appendChild(wrapper);
+                    
+                    showStatus(`Rendered page ${i} of ${currentPdf.numPages}`, 'loading');
+                }
+                
+                showStatus('PDF loaded successfully!', 'success');
+                applyCurrentStyle();
+                
+            } catch (error) {
+                showStatus(`Error loading PDF: ${error.message}`, 'error');
+                console.error(error);
+            }
+        });
+        
+        // Style preset buttons
+        styleBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                styleBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentStyle = btn.dataset.style;
+                applyCurrentStyle();
+            });
+        });
+        
+        // Style controls
+        brightnessControl.addEventListener('input', applyCurrentStyle);
+        contrastControl.addEventListener('input', applyCurrentStyle);
+        saturationControl.addEventListener('input', applyCurrentStyle);
+        hueControl.addEventListener('input', applyCurrentStyle);
+        
+        // Apply current style to all canvases
+        function applyCurrentStyle() {
+            if (currentCanvases.length === 0) return;
+            
+            // Get current control values
+            const brightness = brightnessControl.value;
+            const contrast = contrastControl.value;
+            const saturation = saturationControl.value;
+            const hue = hueControl.value;
+            
+            // Base filter for all styles
+            let filter = `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%) hue-rotate(${hue}deg)`;
+            
+            // Add style-specific filters
+            switch(currentStyle) {
+                case 'sepia':
+                    filter += ' sepia(80%)';
+                    break;
+                case 'dark':
+                    filter += ' invert(1) hue-rotate(180deg) brightness(85%) contrast(110%)';
+                    break;
+                case 'blue-light':
+                    filter += ' sepia(30%) hue-rotate(180deg) brightness(110%)';
+                    break;
+                case 'high-contrast':
+                    filter += ' contrast(200%) brightness(90%)';
+                    break;
+                // default: no additional filters
+            }
+            
+            // Apply to all canvases
+            currentCanvases.forEach(canvas => {
+                canvas.style.filter = filter;
+            });
+        }
+        
+        // Show status message
+        function showStatus(message, type) {
+            statusElement.textContent = message;
+            statusElement.style.display = 'block';
+            statusElement.className = type;
+        }
+    </script>
+</body>
+</html>

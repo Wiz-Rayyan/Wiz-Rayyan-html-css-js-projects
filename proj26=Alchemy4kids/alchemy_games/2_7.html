@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emoji Alchemy</title>
+    <style>
+        :root {
+            --bg-dark: #121212;
+            --neon-blue: #0af;
+            --neon-pink: #f0a;
+            --gold: #fc0;
+        }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: var(--bg-dark);
+            color: white;
+            margin: 0;
+            padding: 20px;
+        }
+        .game-container {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .panel {
+            background: rgba(30, 30, 50, 0.7);
+            border-radius: 16px;
+            padding: 20px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 15px;
+            padding: 15px;
+        }
+        .element {
+            background: rgba(255,255,255,0.08);
+            border-radius: 12px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: grab;
+            user-select: none;
+            transition: all 0.2s;
+        }
+        .element:hover {
+            background: rgba(255,255,255,0.15);
+            transform: scale(1.05);
+        }
+        .element-emoji {
+            font-size: 40px;
+            margin-bottom: 5px;
+        }
+        .element-name {
+            font-size: 12px;
+            color: var(--neon-blue);
+            text-align: center;
+        }
+        #equation-display {
+            background: rgba(0,0,0,0.3);
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px;
+            font-family: monospace;
+        }
+        .tabs {
+            display: flex;
+            margin-bottom: 15px;
+        }
+        .tab {
+            padding: 8px 15px;
+            background: rgba(0,0,0,0.3);
+            cursor: pointer;
+            border-radius: 8px 8px 0 0;
+            margin-right: 5px;
+        }
+        .tab.active {
+            background: rgba(0,0,0,0.5);
+            color: var(--gold);
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <h1>✨ Emoji Alchemy ✨</h1>
+    
+    <div class="game-container">
+        <div class="panel">
+            <div class="tabs">
+                <div class="tab active" data-tab="elements">Elements</div>
+                <div class="tab" data-tab="encyclopedia">Encyclopedia</div>
+            </div>
+            
+            <div class="tab-content active" id="elements-tab">
+                <h3>Basic Elements</h3>
+                <div class="grid" id="basic-elements"></div>
+                
+                <h3>Discovered</h3>
+                <div class="grid" id="discovered-elements"></div>
+            </div>
+            
+            <div class="tab-content" id="encyclopedia-tab">
+                <h3>Alchemy Recipes</h3>
+                <div class="grid" id="encyclopedia"></div>
+            </div>
+        </div>
+        
+        <div class="panel">
+            <h2>Workspace</h2>
+            <div id="equation-display">Drag 2 emojis here to combine</div>
+            <div class="grid" id="workspace-elements"></div>
+        </div>
+    </div>
+
+    <script>
+        // Emoji data - 20 base emojis
+        const emojiData = [
+            { emoji: '🔥', name: "Fire", value: 2 },
+            { emoji: '💧', name: "Water", value: 3 },
+            { emoji: '🌍', name: "Earth", value: 5 },
+            { emoji: '💨', name: "Air", value: 7 },
+            { emoji: '⚡', name: "Lightning", value: 11 },
+            { emoji: '❤️', name: "Heart", value: 13 },
+            { emoji: '🌟', name: "Star", value: 17 },
+            { emoji: '🌱', name: "Plant", value: 19 },
+            { emoji: '🍎', name: "Apple", value: 23 },
+            { emoji: '🧠', name: "Brain", value: 29 }
+        ];
+
+        // Game state
+        const game = {
+            discovered: ['🔥', '💧', '🌍', '💨'],
+            workspace: [],
+            recipes: []
+        };
+
+        // Initialize the game
+        function init() {
+            renderElements();
+            setupDragAndDrop();
+            setupTabs();
+            generateRecipes();
+        }
+
+        // Render all elements
+        function renderElements() {
+            renderBasicElements();
+            renderDiscoveredElements();
+            renderWorkspace();
+        }
+
+        function renderBasicElements() {
+            const container = document.getElementById('basic-elements');
+            container.innerHTML = '';
+            
+            ['🔥', '💧', '🌍', '💨'].forEach(emoji => {
+                const data = emojiData.find(e => e.emoji === emoji);
+                container.appendChild(createElement(data, false));
+            });
+        }
+
+        function renderDiscoveredElements() {
+            const container = document.getElementById('discovered-elements');
+            container.innerHTML = '';
+            
+            game.discovered.forEach(emoji => {
+                if (!['🔥', '💧', '🌍', '💨'].includes(emoji)) {
+                    const data = emojiData.find(e => e.emoji === emoji);
+                    if (data) container.appendChild(createElement(data, false));
+                }
+            });
+        }
+
+        function renderWorkspace() {
+            const container = document.getElementById('workspace-elements');
+            container.innerHTML = '';
+            
+            game.workspace.forEach(emoji => {
+                const data = emojiData.find(e => e.emoji === emoji);
+                if (data) container.appendChild(createElement(data, true));
+            });
+        }
+
+        // Create an element div
+        function createElement(data, inWorkspace) {
+            const element = document.createElement('div');
+            element.className = 'element';
+            element.draggable = true;
+            element.dataset.emoji = data.emoji;
+            element.innerHTML = `
+                <div class="element-emoji">${data.emoji}</div>
+                <div class="element-name">${data.name}</div>
+            `;
+            
+            if (inWorkspace) {
+                element.addEventListener('click', () => {
+                    // Remove from workspace
+                    game.workspace = game.workspace.filter(e => e !== data.emoji);
+                    renderWorkspace();
+                });
+            }
+            
+            return element;
+        }
+
+        // Setup drag and drop
+        function setupDragAndDrop() {
+            // Make all elements draggable
+            document.querySelectorAll('#basic-elements .element, #discovered-elements .element').forEach(el => {
+                el.addEventListener('dragstart', e => {
+                    e.dataTransfer.setData('text/plain', e.target.dataset.emoji);
+                });
+            });
+            
+            // Workspace drop zone
+            const workspace = document.getElementById('workspace-elements');
+            workspace.addEventListener('dragover', e => {
+                e.preventDefault();
+            });
+            
+            workspace.addEventListener('drop', e => {
+                e.preventDefault();
+                const emoji = e.dataTransfer.getData('text/plain');
+                
+                // Add to workspace if not already there
+                if (!game.workspace.includes(emoji) {
+                    game.workspace.push(emoji);
+                    renderWorkspace();
+                    checkCombinations();
+                }
+            });
+        }
+
+        // Setup tabs
+        function setupTabs() {
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    
+                    tab.classList.add('active');
+                    document.getElementById(`${tab.dataset.tab}-tab`).classList.add('active');
+                });
+            });
+        }
+
+        // Generate recipes
+        function generateRecipes() {
+            game.recipes = [];
+            
+            // Generate all possible combinations
+            for (let i = 0; i < emojiData.length; i++) {
+                for (let j = i + 1; j < emojiData.length; j++) {
+                    const a = emojiData[i];
+                    const b = emojiData[j];
+                    
+                    // Your equation: (a × b) + (a + b)
+                    const resultValue = (a.value * b.value) + (a.value + b.value);
+                    
+                    // Find closest emoji by value
+                    let closestEmoji = '❓';
+                    let smallestDiff = Infinity;
+                    
+                    emojiData.forEach(item => {
+                        const diff = Math.abs(item.value - resultValue);
+                        if (diff < smallestDiff) {
+                            smallestDiff = diff;
+                            closestEmoji = item.emoji;
+                        }
+                    });
+                    
+                    game.recipes.push({
+                        ingredients: [a.emoji, b.emoji],
+                        result: closestEmoji,
+                        formula: `${a.emoji} + ${b.emoji} = (${a.value}×${b.value}) + (${a.value}+${b.value}) = ${resultValue} → ${closestEmoji}`
+                    });
+                }
+            }
+            
+            renderEncyclopedia();
+        }
+
+        // Render encyclopedia
+        function renderEncyclopedia() {
+            const container = document.getElementById('encyclopedia');
+            container.innerHTML = '';
+            
+            game.recipes.forEach(recipe => {
+                const element = document.createElement('div');
+                element.className = 'element';
+                element.innerHTML = `
+                    <div style="font-size:12px; color:var(--neon-blue); margin-bottom:5px;">${recipe.formula}</div>
+                    <div class="element-emoji">${recipe.result}</div>
+                    <div class="element-name">${emojiData.find(e => e.emoji === recipe.result)?.name || 'Unknown'}</div>
+                `;
+                container.appendChild(element);
+            });
+        }
+
+        // Check for combinations when 2 emojis are in workspace
+        function checkCombinations() {
+            if (game.workspace.length === 2) {
+                const [emoji1, emoji2] = game.workspace;
+                const data1 = emojiData.find(e => e.emoji === emoji1);
+                const data2 = emojiData.find(e => e.emoji === emoji2);
+                
+                if (data1 && data2) {
+                    // Your equation: (a × b) + (a + b)
+                    const resultValue = (data1.value * data2.value) + (data1.value + data2.value);
+                    
+                    // Find closest emoji by value
+                    let closestEmoji = '❓';
+                    let smallestDiff = Infinity;
+                    
+                    emojiData.forEach(item => {
+                        const diff = Math.abs(item.value - resultValue);
+                        if (diff < smallestDiff) {
+                            smallestDiff = diff;
+                            closestEmoji = item.emoji;
+                        }
+                    });
+                    
+                    // Show equation
+                    document.getElementById('equation-display').textContent = 
+                        `${emoji1} + ${emoji2} = (${data1.value}×${data2.value}) + (${data1.value}+${data2.value}) = ${resultValue} → ${closestEmoji}`;
+                    
+                    // Add to discovered if new
+                    if (!game.discovered.includes(closestEmoji)) {
+                        game.discovered.push(closestEmoji);
+                        renderDiscoveredElements();
+                    }
+                    
+                    // Reset workspace after delay
+                    setTimeout(() => {
+                        game.workspace = [];
+                        renderWorkspace();
+                    }, 1000);
+                }
+            }
+        }
+
+        // Start the game
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

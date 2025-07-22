@@ -1,0 +1,850 @@
+<!--
+Codex Alchemy Library
+ it's a mystical and interactive library showcasing various alchemical books with a 3d design for books.
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Codex Alchemy Library</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Cormorant+Garamond:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --parchment: #f8f3e6;
+            --parchment-dark: #e8d9b5;
+            --ink: #2a2118;
+            --gold: #c9a227;
+            --ruby: #a83232;
+            --emerald: #2d6a4f;
+            --leather: #4a3a27;
+            --shadow: rgba(0, 0, 0, 0.4);
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            background-color: #1a120b;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%231a120b" /><path d="M0,20 L100,20 M0,40 L100,40 M0,60 L100,60 M0,80 L100,80" stroke="%2322180f" stroke-width="1" /></svg>');
+            color: var(--ink);
+            font-family: 'Cormorant Garamond', serif;
+            line-height: 1.6;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+        
+        /* Header Styles */
+        header {
+            background: linear-gradient(
+                to right, 
+                rgba(26, 18, 11, 0.9), 
+                rgba(42, 30, 15, 0.8), 
+                rgba(26, 18, 11, 0.9)
+            );
+            padding: 2rem;
+            text-align: center;
+            border-bottom: 3px solid var(--gold);
+            position: relative;
+            z-index: 10;
+            box-shadow: 0 5px 30px var(--shadow);
+        }
+        
+        h1 {
+            font-family: 'Cinzel Decorative', serif;
+            color: var(--gold);
+            text-shadow: 3px 3px 6px var(--shadow);
+            margin: 0;
+            letter-spacing: 3px;
+            font-size: 3rem;
+            position: relative;
+            display: inline-block;
+        }
+        
+        h1::before, h1::after {
+            content: '✧';
+            color: var(--gold);
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.5rem;
+            opacity: 0.7;
+        }
+        
+        h1::before {
+            left: -2rem;
+        }
+        
+        h1::after {
+            right: -2rem;
+        }
+        
+        /* Codex Gallery */
+        .codex-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 3rem;
+            padding: 3rem;
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+        
+        .codex-cover {
+            position: relative;
+            height: 450px;
+            perspective: 1000px;
+            cursor: pointer;
+        }
+        
+        .codex {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-color: var(--leather);
+            border-radius: 5px 15px 15px 5px;
+            box-shadow: 
+                0 10px 30px var(--shadow),
+                inset -10px 0 30px rgba(0, 0, 0, 0.5);
+            transform-style: preserve-3d;
+            transition: all 0.6s ease;
+            overflow: hidden;
+            z-index: 1;
+        }
+        
+        .codex::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(
+                135deg, 
+                transparent 60%,
+                rgba(0, 0, 0, 0.4) 100%
+            );
+            z-index: 2;
+        }
+        
+        .codex-spine {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 30px;
+            background: linear-gradient(
+                to right,
+                #2a2118,
+                #3a2e1e,
+                #2a2118
+            );
+            z-index: 3;
+            box-shadow: 
+                inset -5px 0 10px rgba(0, 0, 0, 0.5),
+                2px 0 5px var(--shadow);
+        }
+        
+        .codex-cover-image {
+            position: absolute;
+            top: 0;
+            left: 30px;
+            right: 0;
+            bottom: 0;
+            background-size: cover;
+            background-position: center;
+            filter: sepia(30%) contrast(110%);
+            transition: all 0.6s ease;
+        }
+        
+        .codex-title {
+            position: absolute;
+            bottom: 40px;
+            left: 40px;
+            right: 20px;
+            font-family: 'Cinzel Decorative', serif;
+            font-size: 2rem;
+            color: white;
+            text-shadow: 
+                2px 2px 5px var(--shadow),
+                0 0 15px rgba(0, 0, 0, 0.7);
+            z-index: 3;
+            transform: translateZ(20px);
+        }
+        
+        .codex-subtitle {
+            position: absolute;
+            bottom: 15px;
+            left: 40px;
+            right: 20px;
+            font-size: 1.1rem;
+            color: rgba(255, 255, 255, 0.9);
+            text-shadow: 1px 1px 3px var(--shadow);
+            z-index: 3;
+            opacity: 0.9;
+        }
+        
+        .codex-decoration {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background-color: var(--gold);
+            border-radius: 50%;
+            z-index: 4;
+            box-shadow: 
+                0 0 10px var(--gold),
+                inset 0 0 10px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Cinzel Decorative', serif;
+            color: var(--leather);
+            font-weight: bold;
+        }
+        
+        .codex-cover:hover .codex {
+            transform: rotateY(15deg) translateY(-20px);
+            box-shadow: 
+                0 20px 50px var(--shadow),
+                inset -15px 0 40px rgba(0, 0, 0, 0.6);
+        }
+        
+        .codex-cover:hover .codex-cover-image {
+            filter: sepia(20%) contrast(120%);
+        }
+        
+        /* Codex Viewer */
+        .codex-viewer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 7, 4, 0.97);
+            display: none;
+            flex-direction: column;
+            z-index: 100;
+            overflow: hidden;
+        }
+        
+        .viewer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem 2rem;
+            background: linear-gradient(
+                to right, 
+                rgba(26, 18, 11, 0.9), 
+                rgba(42, 30, 15, 0.8), 
+                rgba(26, 18, 11, 0.9)
+            );
+            border-bottom: 3px solid var(--gold);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            box-shadow: 0 5px 30px var(--shadow);
+        }
+        
+        .viewer-title {
+            font-family: 'Cinzel Decorative', serif;
+            color: var(--gold);
+            margin: 0;
+            text-shadow: 2px 2px 5px var(--shadow);
+            font-size: 2rem;
+            letter-spacing: 1px;
+        }
+        
+        .close-viewer {
+            background: none;
+            border: 2px solid var(--gold);
+            color: var(--gold);
+            padding: 0.7rem 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Cinzel Decorative', serif;
+            text-shadow: 1px 1px 3px var(--shadow);
+            border-radius: 4px;
+        }
+        
+        .close-viewer:hover {
+            background: rgba(201, 162, 39, 0.2);
+            box-shadow: 
+                0 0 15px var(--gold),
+                inset 0 0 10px rgba(201, 162, 39, 0.2);
+        }
+        
+        /* Codex Content */
+        .codex-content-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            padding: 2rem;
+            overflow: auto;
+        }
+        
+        .illuminated-codex {
+            width: 90%;
+            max-width: 1200px;
+            min-height: 70vh;
+            background-color: var(--parchment);
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="none" stroke="%232a2118" stroke-width="0.2" opacity="0.1"/></svg>');
+            box-shadow: 
+                inset 0 0 100px rgba(0, 0, 0, 0.1),
+                0 10px 50px var(--shadow);
+            padding: 3rem;
+            position: relative;
+            border: 15px solid var(--leather);
+            border-radius: 5px;
+        }
+        
+        .illuminated-codex::before {
+            content: '';
+            position: absolute;
+            top: -5px;
+            left: -5px;
+            right: -5px;
+            bottom: -5px;
+            border: 2px solid var(--gold);
+            border-radius: 8px;
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        .codex-content {
+            max-width: 800px;
+            margin: 0 auto;
+            position: relative;
+        }
+        
+        .illuminated-header {
+            text-align: center;
+            margin-bottom: 3rem;
+            position: relative;
+        }
+        
+        .illuminated-header h2 {
+            color: var(--ruby);
+            font-family: 'Cinzel Decorative', serif;
+            font-size: 2.5rem;
+            letter-spacing: 1px;
+            margin-bottom: 1rem;
+            position: relative;
+            display: inline-block;
+        }
+        
+        .illuminated-header h2::before,
+        .illuminated-header h2::after {
+            content: '❖';
+            color: var(--gold);
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.5rem;
+            opacity: 0.7;
+        }
+        
+        .illuminated-header h2::before {
+            left: -2rem;
+        }
+        
+        .illuminated-header h2::after {
+            right: -2rem;
+        }
+        
+        .illuminated-header .chapter-number {
+            color: var(--gold);
+            font-family: 'Cinzel Decorative', serif;
+            font-size: 1.2rem;
+            letter-spacing: 2px;
+        }
+        
+        .illuminated-initial {
+            float: left;
+            font-family: 'Cinzel Decorative', serif;
+            font-size: 5rem;
+            line-height: 0.8;
+            color: var(--ruby);
+            margin-right: 1rem;
+            margin-bottom: 0.5rem;
+            text-shadow: 2px 2px 3px rgba(0, 0, 0, 0.2);
+        }
+        
+        .codex-text {
+            color: var(--ink);
+            margin-bottom: 2rem;
+            font-size: 1.2rem;
+            text-align: justify;
+            hyphens: auto;
+        }
+        
+        .codex-text p {
+            margin-bottom: 1.5rem;
+            text-indent: 2rem;
+        }
+        
+        .alchemy-symbol {
+            font-size: 1.5rem;
+            margin: 0 0.3rem;
+            color: var(--emerald);
+            vertical-align: middle;
+        }
+        
+        .illuminated-border {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background-color: var(--gold);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Cinzel Decorative', serif;
+            color: var(--leather);
+            font-weight: bold;
+            opacity: 0.2;
+        }
+        
+        /* Page Controls */
+        .codex-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 2rem;
+            padding: 1.5rem;
+            background: linear-gradient(
+                to right, 
+                rgba(26, 18, 11, 0.9), 
+                rgba(42, 30, 15, 0.8), 
+                rgba(26, 18, 11, 0.9)
+            );
+            border-top: 3px solid var(--gold);
+            position: sticky;
+            bottom: 0;
+            z-index: 10;
+            box-shadow: 0 -5px 30px var(--shadow);
+        }
+        
+        .codex-btn {
+            background: none;
+            border: 2px solid var(--gold);
+            color: var(--gold);
+            padding: 0.8rem 2rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Cinzel Decorative', serif;
+            font-size: 1.1rem;
+            text-shadow: 1px 1px 3px var(--shadow);
+            border-radius: 4px;
+            min-width: 120px;
+            text-align: center;
+        }
+        
+        .codex-btn:hover {
+            background: rgba(201, 162, 39, 0.2);
+            box-shadow: 
+                0 0 15px var(--gold),
+                inset 0 0 10px rgba(201, 162, 39, 0.2);
+        }
+        
+        .codex-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        
+        .codex-indicator {
+            color: var(--gold);
+            padding: 0 2rem;
+            text-shadow: 1px 1px 3px var(--shadow);
+            font-family: 'Cinzel Decorative', serif;
+            font-size: 1.2rem;
+            min-width: 150px;
+            text-align: center;
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .codex-gallery {
+                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            }
+        }
+        
+        @media (max-width: 900px) {
+            .illuminated-codex {
+                padding: 2rem;
+            }
+            
+            .illuminated-header h2 {
+                font-size: 2rem;
+            }
+            
+            .codex-controls {
+                gap: 1rem;
+            }
+            
+            .codex-btn {
+                padding: 0.7rem 1.5rem;
+                min-width: 110px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2.5rem;
+            }
+            
+            h1::before,
+            h1::after {
+                display: none;
+            }
+            
+            .codex-gallery {
+                grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+                padding: 2rem;
+                gap: 2rem;
+            }
+            
+            .codex-cover {
+                height: 400px;
+            }
+            
+            .codex-title {
+                font-size: 1.8rem;
+                bottom: 35px;
+                left: 35px;
+            }
+            
+            .illuminated-codex {
+                padding: 1.5rem;
+                border-width: 10px;
+            }
+            
+            .codex-text {
+                font-size: 1.1rem;
+            }
+            
+            .codex-controls {
+                flex-wrap: wrap;
+                padding: 1rem;
+            }
+            
+            .codex-indicator {
+                order: -1;
+                width: 100%;
+                padding-bottom: 1rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .codex-gallery {
+                grid-template-columns: 1fr;
+                padding: 1.5rem;
+                gap: 1.5rem;
+            }
+            
+            .codex-cover {
+                height: 350px;
+            }
+            
+            .codex-title {
+                font-size: 1.6rem;
+            }
+            
+            .illuminated-header h2 {
+                font-size: 1.8rem;
+            }
+            
+            .illuminated-initial {
+                font-size: 4rem;
+            }
+            
+            .codex-btn {
+                padding: 0.6rem 1.2rem;
+                font-size: 1rem;
+                min-width: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Codex Alchemy Library</h1>
+    </header>
+    
+    <main class="codex-gallery">
+        <!-- Codex 1 -->
+        <div class="codex-cover" data-codex="spectrum-1">
+            <div class="codex">
+                <div class="codex-spine"></div>
+                <div class="codex-cover-image" style="background-image: url('https://i.pinimg.com/736x/44/e1/e9/44e1e9952b45eec036b020fcc5101f55.jpg')"></div>
+                <div class="codex-title">Spectrum 1.0</div>
+                <div class="codex-subtitle">Scotland and open</div>
+                <div class="codex-decoration" style="top: 20px; right: 20px;">Ⅰ</div>
+            </div>
+        </div>
+        
+        <!-- Codex 2 -->
+        <div class="codex-cover" data-codex="multi-relationship">
+            <div class="codex">
+                <div class="codex-spine"></div>
+                <div class="codex-cover-image" style="background-image: url('https://i.pinimg.com/736x/d1/e9/91/d1e991cd2be70a2e049c7390400c9d6f.jpg')"></div>
+                <div class="codex-title">TECHNOLOGY</div>
+                <div class="codex-subtitle">MULTI-RELATIONSHIP</div>
+                <div class="codex-decoration" style="top: 20px; right: 20px;">Ⅱ</div>
+            </div>
+        </div>
+        
+        <!-- Codex 3 -->
+        <div class="codex-cover" data-codex="hermetic-principles">
+            <div class="codex">
+                <div class="codex-spine"></div>
+                <div class="codex-cover-image" style="background-image: url('https://i.pinimg.com/736x/39/ba/81/39ba8194d87d7ac65161064e99b96b5c.jpg')"></div>
+                <div class="codex-title">Hermetic Principles</div>
+                <div class="codex-subtitle">Emerald Tablet</div>
+                <div class="codex-decoration" style="top: 20px; right: 20px;">Ⅲ</div>
+            </div>
+        </div>
+        
+        <!-- Additional codices would continue here -->
+    </main>
+    
+    <div class="codex-viewer" id="codexViewer">
+        <div class="viewer-header">
+            <h2 class="viewer-title" id="viewerTitle">Codex Title</h2>
+            <button class="close-viewer" id="closeViewer">Close</button>
+        </div>
+        
+        <div class="codex-content-container">
+            <div class="illuminated-codex">
+                <div class="codex-content" id="codexContent">
+                    <!-- Content will be loaded here dynamically -->
+                </div>
+            </div>
+        </div>
+        
+        <div class="codex-controls">
+            <button class="codex-btn" id="prevBtn">Previous</button>
+            <span class="codex-indicator" id="codexIndicator">Folio 1 of 1</span>
+            <button class="codex-btn" id="nextBtn">Next</button>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Codex data with complete content
+            const codices = {
+                "spectrum-1": {
+                    title: "Spectrum 1.0",
+                    pages: [
+                        {
+                            title: "The Alchemical Spectrum",
+                            chapter: "Liber Primus",
+                            content: `
+                                <div class="illuminated-initial">I</div>
+                                <div class="codex-text">
+                                    <p>n the beginning of our Great Work, we must understand the Spectrum of Transformation, which flows continuously from the darkest matter to the purest spirit. This spectrum reveals itself in seven distinct phases, each with its own color and properties.</p>
+                                    <p>The first phase, <span class="alchemy-symbol">🜃</span> Nigredo, appears as blackness and represents the primal matter in its unrefined state. The alchemist must work diligently through the subsequent colors:</p>
+                                    <ul>
+                                        <li><span class="alchemy-symbol">◈</span> Red - The fiery stage of purification</li>
+                                        <li><span class="alchemy-symbol">◈</span> Orange - The blending of elements</li>
+                                        <li><span class="alchemy-symbol">◈</span> Yellow - The dawn of enlightenment</li>
+                                        <li><span class="alchemy-symbol">◈</span> Green - The growth of new forms</li>
+                                        <li><span class="alchemy-symbol">◈</span> Blue - The celestial connection</li>
+                                        <li><span class="alchemy-symbol">◈</span> Indigo - The hidden mysteries</li>
+                                        <li><span class="alchemy-symbol">◈</span> Violet - The royal culmination</li>
+                                    </ul>
+                                    <p>This codex, discovered in the highlands of Scotland, contains the most complete description of the spectral work yet known to our order.</p>
+                                </div>
+                            `
+                        },
+                        {
+                            title: "Scottish Alchemical Traditions",
+                            chapter: "Liber Secundus",
+                            content: `
+                                <div class="illuminated-initial">T</div>
+                                <div class="codex-text">
+                                    <p>he Scottish masters developed unique methods for harnessing the spectral energies, using the pure waters of their highland lochs and the crystalline structures found in their ancient mountains.</p>
+                                    <p>The process involves three sacred tools:</p>
+                                    <ol>
+                                        <li>The Prism of Decomposition <span class="alchemy-symbol">🜄</span></li>
+                                        <li>The Lens of Concentration <span class="alchemy-symbol">🜂</span></li>
+                                        <li>The Chalice of Recomposition <span class="alchemy-symbol">🜁</span></li>
+                                    </ol>
+                                    <p>When used in harmony during the solstice alignments, these tools can separate and recombine matter at its most fundamental level. The codex warns that improper use may cause the "sundering of essence from form," a condition from which few alchemists recover.</p>
+                                </div>
+                            `
+                        }
+                    ]
+                },
+                "multi-relationship": {
+                    title: "TECHNOLOGY MULTI-RELATIONSHIP",
+                    pages: [
+                        {
+                            title: "The Mechanical Arts",
+                            chapter: "Tractatus Primus",
+                            content: `
+                                <div class="illuminated-initial">W</div>
+                                <div class="codex-text">
+                                    <p>hereas the ancients worked with matter directly, the modern alchemist must understand the relationships between mechanical principles and elemental transformations. This codex reveals the hidden connections between:</p>
+                                    <ul>
+                                        <li>The gears of movement and the flow of mercury <span class="alchemy-symbol">🜔</span></li>
+                                        <li>The pulleys of elevation and the ascent of vapors <span class="alchemy-symbol">🜁</span></li>
+                                        <li>The levers of force and the power of sulfur <span class="alchemy-symbol">🜍</span></li>
+                                    </ul>
+                                    <p>The illustrations in this manuscript show intricate devices that combine clockwork mechanisms with alchemical apparatus. The text suggests these machines can amplify an alchemist's power a hundredfold, but warns that "the unworthy hand that turns these wheels turns also the wheel of its own destruction."</p>
+                                </div>
+                            `
+                        }
+                    ]
+                },
+                "hermetic-principles": {
+                    title: "Hermetic Principles",
+                    pages: [
+                        {
+                            title: "The Emerald Tablet",
+                            chapter: "Tabula Smaragdina",
+                            content: `
+                                <div class="illuminated-initial">V</div>
+                                <div class="codex-text">
+                                    <p>erum, sine mendacio, certum et verissimum: Quod est inferius est sicut quod est superius, et quod est superius est sicut quod est inferius, ad perpetranda miracula rei unius.</p>
+                                    <p>True, without falsehood, certain and most true: That which is below is like that which is above, and that which is above is like that which is below, to accomplish the miracles of the one thing.</p>
+                                    <p>This illuminated copy of the Emerald Tablet contains marginalia from twelve different masters across eight centuries. The golden annotations reveal layers of interpretation that have been kept secret within our order since the time of Hermes himself.</p>
+                                    <p>The central diagram shows the sevenfold path of transformation, with each step corresponding to one of the sacred planets and their associated metals. The text emphasizes that "the work must proceed according to the celestial harmonies, or it will surely fail."</p>
+                                </div>
+                            `
+                        }
+                    ]
+                }
+                // Additional codices would follow the same pattern
+            };
+
+            // Viewer elements
+            const codexViewer = document.getElementById('codexViewer');
+            const viewerTitle = document.getElementById('viewerTitle');
+            const codexContent = document.getElementById('codexContent');
+            const closeViewer = document.getElementById('closeViewer');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const codexIndicator = document.getElementById('codexIndicator');
+            
+            // State management
+            let currentCodex = null;
+            let currentPage = 0;
+            let totalPages = 0;
+            
+            // Open codex viewer
+            document.querySelectorAll('.codex-cover').forEach(cover => {
+                cover.addEventListener('click', function() {
+                    const codexId = this.getAttribute('data-codex');
+                    currentCodex = codices[codexId];
+                    currentPage = 0;
+                    totalPages = currentCodex.pages.length;
+                    
+                    viewerTitle.textContent = currentCodex.title;
+                    updateContent();
+                    codexViewer.style.display = 'flex';
+                    document.body.style.overflow = 'hidden';
+                    
+                    // Add decorative borders
+                    addIlluminatedBorders();
+                });
+            });
+            
+            // Close viewer
+            closeViewer.addEventListener('click', function() {
+                codexViewer.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            });
+            
+            // Navigation controls
+            prevBtn.addEventListener('click', function() {
+                if (currentPage > 0) {
+                    currentPage--;
+                    updateContent();
+                }
+            });
+            
+            nextBtn.addEventListener('click', function() {
+                if (currentPage < totalPages - 1) {
+                    currentPage++;
+                    updateContent();
+                }
+            });
+            
+            // Update content display
+            function updateContent() {
+                if (!currentCodex) return;
+                
+                const page = currentCodex.pages[currentPage];
+                codexContent.innerHTML = `
+                    <div class="illuminated-header">
+                        <div class="chapter-number">${page.chapter}</div>
+                        <h2>${page.title}</h2>
+                    </div>
+                    ${page.content}
+                `;
+                
+                codexIndicator.textContent = `Folio ${currentPage + 1} of ${totalPages}`;
+                prevBtn.disabled = currentPage === 0;
+                nextBtn.disabled = currentPage === totalPages - 1;
+                
+                // Add alchemy symbols
+                document.querySelectorAll('.alchemy-symbol').forEach(symbol => {
+                    symbol.style.fontWeight = 'bold';
+                });
+            }
+            
+            // Add decorative illuminated borders
+            function addIlluminatedBorders() {
+                const codex = document.querySelector('.illuminated-codex');
+                
+                // Clear existing borders
+                document.querySelectorAll('.illuminated-border').forEach(border => border.remove());
+                
+                // Add corner decorations
+                const positions = [
+                    { top: '20px', left: '20px' },
+                    { top: '20px', right: '20px' },
+                    { bottom: '20px', left: '20px' },
+                    { bottom: '20px', right: '20px' }
+                ];
+                
+                const symbols = ['✧', '❖', '♔', '☉'];
+                
+                positions.forEach((pos, index) => {
+                    const border = document.createElement('div');
+                    border.className = 'illuminated-border';
+                    border.textContent = symbols[index];
+                    Object.assign(border.style, pos);
+                    codex.appendChild(border);
+                });
+            }
+            
+            // Keyboard navigation
+            document.addEventListener('keydown', function(e) {
+                if (codexViewer.style.display === 'flex') {
+                    if (e.key === 'ArrowLeft' && currentPage > 0) {
+                        currentPage--;
+                        updateContent();
+                    } else if (e.key === 'ArrowRight' && currentPage < totalPages - 1) {
+                        currentPage++;
+                        updateContent();
+                    } else if (e.key === 'Escape') {
+                        codexViewer.style.display = 'none';
+                        document.body.style.overflow = 'auto';
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

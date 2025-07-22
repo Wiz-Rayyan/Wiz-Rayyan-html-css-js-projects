@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Rank Evolution Chart - Step Bends with Info</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #1e1e2f;
+      color: white;
+      padding: 20px;
+    }
+    .input-area {
+      margin-bottom: 20px;
+    }
+    textarea {
+      width: 100%;
+      height: 100px;
+      font-family: monospace;
+      margin-bottom: 10px;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      background: #3498db;
+      color: white;
+      border: none;
+      border-radius: 5px;
+    }
+    .chart {
+      position: relative;
+      width: 1000px;
+      height: 400px;
+      border-left: 2px solid #aaa;
+      border-bottom: 2px solid #aaa;
+      margin-top: 40px;
+    }
+    .object-label {
+      position: absolute;
+      left: -40px;
+      transform: translateY(-50%);
+      width: 30px;
+      text-align: right;
+    }
+    svg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      overflow: visible;
+    }
+    .line {
+      fill: none;
+      stroke-width: 3;
+      transition: all 0.8s ease;
+    }
+    .info-button {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      background-color: #3498db;
+      color: white;
+      font-size: 12px;
+      text-align: center;
+      line-height: 20px;
+      border-radius: 50%;
+      cursor: pointer;
+      transform: translate(-50%, -50%);
+    }
+    .info-button:hover::after {
+      content: attr(data-info);
+      position: absolute;
+      left: 30px;
+      top: -5px;
+      background: #333;
+      color: #fff;
+      padding: 4px 8px;
+      border-radius: 4px;
+      white-space: nowrap;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <h2>Rank Evolution Chart with Step Bends & Info</h2>
+
+  <div class="input-area">
+    <label>Enter years (comma-separated):</label>
+    <textarea id="yearsInput">2016,2017,2018</textarea>
+
+    <label>Enter rank data per year (e.g. 2016:A,B,C,D,E,F):</label>
+    <textarea id="rankInput">2016:A,B,C,D,E,F
+2017:A,B,C,E,F,D
+2018:B,A,E,D,F,C</textarea>
+
+    <label>Optional: Enter explanations per point (e.g. A@2017:Big Drop in Sales)</label>
+    <textarea id="infoInput">D@2017:Lost market share
+F@2017:Viral trend boost</textarea>
+
+    <button onclick="renderChart()">Render Chart</button>
+  </div>
+
+  <div class="chart" id="chart">
+    <svg width="1000" height="400"></svg>
+  </div>
+
+  <script>
+    const chart = document.getElementById("chart");
+    const svg = chart.querySelector("svg");
+
+    const chartHeight = chart.clientHeight;
+    const chartWidth = chart.clientWidth;
+    const colors = ['#ff4b5c', '#ffb400', '#2ecc71', '#3498db', '#9b59b6', '#1abc9c'];
+
+    function renderChart() {
+      svg.innerHTML = '';
+      [...document.querySelectorAll(".object-label, .info-button")].forEach(e => e.remove());
+
+      const years = document.getElementById("yearsInput").value.split(',').map(s => s.trim());
+      const rankLines = document.getElementById("rankInput").value.trim().split('\n');
+      const infoLines = document.getElementById("infoInput").value.trim().split('\n');
+
+      const ranks = {};
+      rankLines.forEach(line => {
+        const [year, list] = line.split(':');
+        ranks[year.trim()] = list.split(',').map(s => s.trim());
+      });
+
+      const infoMap = {};
+      infoLines.forEach(line => {
+        const [key, note] = line.split(':');
+        if (key && note) infoMap[key.trim()] = note.trim();
+      });
+
+      const objects = Array.from(new Set(Object.values(ranks).flat()));
+      const objectCount = objects.length;
+      const spacingY = chartHeight / objectCount;
+      const spacingX = chartWidth / (years.length - 1);
+
+      // Add vertical object labels
+      objects.forEach((obj, index) => {
+        const label = document.createElement("div");
+        label.className = "object-label";
+        label.style.top = `${(index + 0.5) * spacingY}px`;
+        label.textContent = obj;
+        chart.appendChild(label);
+      });
+
+      objects.forEach((obj, objIdx) => {
+        const points = [];
+        years.forEach((year, i) => {
+          const yList = ranks[year];
+          const y = (yList.indexOf(obj) + 0.5) * spacingY;
+          const x = i * spacingX;
+          points.push([x, y, year]);
+        });
+
+        // Draw step lines
+        for (let i = 0; i < points.length - 1; i++) {
+          const [x1, y1] = points[i];
+          const [x2, y2] = points[i + 1];
+
+          const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          const d = `M ${x1},${y1} L ${x2},${y1} L ${x2},${y2}`;
+          path.setAttribute("d", d);
+          path.setAttribute("class", "line");
+          path.setAttribute("stroke", colors[objIdx % colors.length]);
+          svg.appendChild(path);
+
+          // Info point
+          const key = `${obj}@${points[i + 1][2]}`;
+          if (infoMap[key]) {
+            const infoBtn = document.createElement("div");
+            infoBtn.className = "info-button";
+            infoBtn.style.left = `${x2}px`;
+            infoBtn.style.top = `${y2}px`;
+            infoBtn.textContent = 'i';
+            infoBtn.setAttribute('data-info', infoMap[key]);
+            chart.appendChild(infoBtn);
+          }
+        }
+      });
+    }
+
+    renderChart();
+  </script>
+</body>
+</html>

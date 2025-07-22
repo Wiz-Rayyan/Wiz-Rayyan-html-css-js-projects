@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Random Image Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .search-container {
+            display: flex;
+            margin-bottom: 20px;
+            gap: 10px;
+        }
+        #imageSearch {
+            flex: 1;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        #searchButton {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        #searchButton:hover {
+            background-color: #45a049;
+        }
+        .images-wrapper {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .images-wrapper img {
+            width: 100%;
+            height: 300px;
+            object-fit: cover;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s;
+        }
+        .images-wrapper img:hover {
+            transform: scale(1.03);
+        }
+        .load-more-images {
+            display: block;
+            margin: 0 auto;
+            padding: 12px 24px;
+            background-color: #008CBA;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .load-more-images:hover {
+            background-color: #0077A3;
+        }
+        .image-info {
+            text-align: center;
+            margin-top: 5px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <h1>Random Image Generator</h1>
+    <div class="search-container">
+        <input type="number" id="imageSearch" placeholder="Enter image ID (e.g., 123)">
+        <button id="searchButton">Find Image</button>
+    </div>
+    <div class="images-wrapper"></div>
+    <button class="load-more-images">Load Next 5 Images</button>
+
+    <script>
+        const imagesWrapper = document.querySelector(".images-wrapper");
+        const loadMoreImagesBtn = document.querySelector(".load-more-images");
+        const imageSearch = document.getElementById("imageSearch");
+        const searchButton = document.getElementById("searchButton");
+        let count = 1;
+
+        function fetchRandomImages(getCount) {
+            for (let i = getCount; i <= getCount + 4; i++) {
+                createImageElement(i);
+            }
+        }
+
+        function createImageElement(id) {
+            let imgContainer = document.createElement("div");
+            let imgElement = document.createElement("img");
+            imgElement.src = `https://picsum.photos/id/${id}/300`;
+            imgElement.alt = `Random Image ${id}`;
+            
+            let infoElement = document.createElement("div");
+            infoElement.className = "image-info";
+            infoElement.textContent = `Image ID: ${id}`;
+            
+            imgContainer.appendChild(imgElement);
+            imgContainer.appendChild(infoElement);
+            imagesWrapper.appendChild(imgContainer);
+        }
+
+        function findImageById(id) {
+            // Clear existing images
+            imagesWrapper.innerHTML = "";
+            
+            if (id && !isNaN(id)) {
+                createImageElement(id);
+                count = parseInt(id) + 1; // Set next count after the searched image
+            } else {
+                alert("Please enter a valid numeric image ID");
+                // Restore the previous images if search fails
+                fetchRandomImages(count - 5);
+            }
+        }
+
+        // Initial load
+        fetchRandomImages(count);
+
+        // Event listeners
+        loadMoreImagesBtn.addEventListener("click", () => {
+            fetchRandomImages((count += 5));
+        });
+
+        searchButton.addEventListener("click", () => {
+            findImageById(imageSearch.value);
+        });
+
+        imageSearch.addEventListener("keypress", (e) => {
+            if (e.key === "Enter") {
+                findImageById(imageSearch.value);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alchemy Circle Flashcards</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Georgia', serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: #d4af37;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 20px;
+        }
+
+        .header h1 {
+            font-size: 3em;
+            color: #d4af37;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            color: #c4b5a0;
+            font-style: italic;
+        }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .card-container {
+            perspective: 1000px;
+            height: 400px;
+        }
+
+        .card {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s cubic-bezier(0.4, 0.0, 0.2, 1);
+            cursor: pointer;
+        }
+
+        .card.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            border: 2px solid #d4af37;
+            background: linear-gradient(145deg, #2a2a3e 0%, #1e1e32 100%);
+        }
+
+        .card-back {
+            transform: rotateY(180deg);
+            background: linear-gradient(145deg, #3a2a1e 0%, #2a1e14 100%);
+            border-color: #c4914d;
+        }
+
+        .alchemy-circle {
+            width: 200px;
+            height: 200px;
+            margin: 0 auto 20px auto;
+            border: 3px solid #d4af37;
+            border-radius: 50%;
+            position: relative;
+            background: radial-gradient(circle, rgba(212,175,55,0.1) 0%, transparent 70%);
+            transition: all 0.3s ease;
+        }
+
+        .alchemy-circle:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 30px rgba(212,175,55,0.5);
+        }
+
+        .circle-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2em;
+            color: #d4af37;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .card-title {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-align: center;
+            color: #d4af37;
+        }
+
+        .card-description {
+            font-size: 1em;
+            line-height: 1.6;
+            text-align: center;
+            color: #c4b5a0;
+        }
+
+        .flip-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(212,175,55,0.2);
+            border: 1px solid #d4af37;
+            color: #d4af37;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1.2em;
+        }
+
+        .flip-button:hover {
+            background: rgba(212,175,55,0.4);
+            transform: scale(1.1);
+        }
+
+        .detailed-view {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 100%);
+            z-index: 1000;
+            display: none;
+            overflow-y: auto;
+        }
+
+        .detailed-view.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .detailed-content {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .close-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(212,175,55,0.2);
+            border: 2px solid #d4af37;
+            color: #d4af37;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1.5em;
+            transition: all 0.3s ease;
+            z-index: 1001;
+        }
+
+        .close-button:hover {
+            background: rgba(212,175,55,0.4);
+            transform: scale(1.1);
+        }
+
+        .large-circle {
+            width: 400px;
+            height: 400px;
+            margin: 0 auto 40px auto;
+            border: 4px solid #d4af37;
+            border-radius: 50%;
+            position: relative;
+            background: radial-gradient(circle, rgba(212,175,55,0.1) 0%, transparent 70%);
+            box-shadow: 0 0 50px rgba(212,175,55,0.3);
+        }
+
+        .large-circle .circle-content {
+            font-size: 3em;
+        }
+
+        .detailed-info {
+            text-align: center;
+            color: #c4b5a0;
+        }
+
+        .detailed-info h2 {
+            font-size: 2.5em;
+            color: #d4af37;
+            margin-bottom: 20px;
+        }
+
+        .detailed-info p {
+            font-size: 1.2em;
+            line-height: 1.8;
+            margin-bottom: 20px;
+        }
+
+        .sigil-meaning {
+            background: rgba(212,175,55,0.1);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #d4af37;
+            margin-top: 20px;
+        }
+
+        .sigil-meaning h3 {
+            color: #d4af37;
+            margin-bottom: 10px;
+        }
+
+        .back-to-cards {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(145deg, #d4af37, #b8941f);
+            color: #1a1a2e;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            z-index: 1001;
+        }
+
+        .back-to-cards:hover {
+            transform: translateX(-50%) scale(1.05);
+            box-shadow: 0 5px 20px rgba(212,175,55,0.4);
+        }
+
+        @media (max-width: 768px) {
+            .cards-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .large-circle {
+                width: 300px;
+                height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Alchemy Circle Flashcards</h1>
+            <p>Explore the mystical transmutation circles from Fullmetal Alchemist</p>
+        </div>
+        
+        <div class="cards-grid" id="cardsGrid">
+            <!-- Cards will be generated by JavaScript -->
+        </div>
+    </div>
+
+    <div class="detailed-view" id="detailedView">
+        <div class="close-button" onclick="closeDetailedView()">×</div>
+        <div class="detailed-content" id="detailedContent">
+            <!-- Detailed content will be inserted here -->
+        </div>
+        <button class="back-to-cards" onclick="closeDetailedView()">Back to Cards</button>
+    </div>
+
+    <script>
+        const alchemyCircles = [
+            {
+                id: 1,
+                name: "Human Transmutation",
+                symbol: "⚛",
+                description: "The forbidden art of creating or reviving human life",
+                meaning: "Represents the ultimate taboo in alchemy - the attempt to create or resurrect human life. This circle requires enormous energy and understanding of the human soul.",
+                detailedInfo: "Human transmutation is considered the greatest taboo in alchemy. It requires a deep understanding of the human soul and an enormous amount of energy. The circle contains complex geometric patterns representing the structure of the human body and soul. Those who attempt it often pay a terrible price, as equivalent exchange demands something of equal value to a human life."
+            },
+            {
+                id: 2,
+                name: "Flame Alchemy",
+                symbol: "🔥",
+                description: "Roy Mustang's signature fire-based transmutation",
+                meaning: "Manipulates oxygen density to create sparks and combustion. The circle focuses on separating oxygen molecules and creating ignition points.",
+                detailedInfo: "Roy Mustang's flame alchemy works by manipulating the oxygen concentration in the air. The transmutation circle contains symbols representing fire, oxygen, and combustion. By adjusting oxygen density and creating ignition points with his gloves, Mustang can create devastating flame attacks. The circle's design incorporates salamander symbols, traditionally associated with fire elementals."
+            },
+            {
+                id: 3,
+                name: "Earth Alchemy",
+                symbol: "🌍",
+                description: "Manipulation of earth and stone materials",
+                meaning: "Allows the transmutation and manipulation of earthen materials, rocks, and minerals through understanding their molecular structure.",
+                detailedInfo: "Earth alchemy focuses on the manipulation of solid materials, particularly stone, metal, and earth. The transmutation circle contains geometric patterns representing the crystalline structures of minerals. Alchemists like the Elric brothers often use this for creating weapons, walls, or altering terrain. The circle incorporates symbols for stability, strength, and the earth element."
+            },
+            {
+                id: 4,
+                name: "Medical Alchemy",
+                symbol: "⚕",
+                description: "Healing and biological transmutation",
+                meaning: "Used for healing injuries and understanding biological processes. Requires extensive knowledge of anatomy and physiology.",
+                detailedInfo: "Medical alchemy involves the understanding and manipulation of biological processes for healing. The circle contains symbols representing the human body, life force, and regeneration. Practitioners must have extensive knowledge of anatomy, physiology, and the life sciences. This form of alchemy can accelerate healing but cannot truly resurrect the dead."
+            },
+            {
+                id: 5,
+                name: "Ice Alchemy",
+                symbol: "❄",
+                description: "Freezing and crystallization transmutation",
+                meaning: "Manipulates temperature and molecular motion to create ice and frost. The circle channels thermal energy manipulation.",
+                detailedInfo: "Ice alchemy works by manipulating the kinetic energy of water molecules, slowing them down to create ice and frost. The transmutation circle contains symbols representing cold, crystallization, and molecular bonds. This form of alchemy can create ice weapons, freeze opponents, or create protective barriers. The circle often incorporates snowflake patterns and symbols of winter."
+            },
+            {
+                id: 6,
+                name: "Light Alchemy",
+                symbol: "☀",
+                description: "Manipulation of light and photons",
+                meaning: "Controls light particles and electromagnetic radiation. The circle focuses on photon manipulation and optical illusions.",
+                detailedInfo: "Light alchemy involves the manipulation of photons and electromagnetic radiation. The transmutation circle contains symbols representing light, reflection, and optical properties. This rare form of alchemy can create illusions, bend light around objects for invisibility, or focus light into devastating beams. The circle often features sun symbols and ray patterns."
+            },
+            {
+                id: 7,
+                name: "Metal Alchemy",
+                symbol: "⚔",
+                description: "Transmutation of metallic elements",
+                meaning: "Allows the manipulation and transformation of metallic elements and their properties, including hardness and conductivity.",
+                detailedInfo: "Metal alchemy focuses on the transmutation of metallic elements and their properties. The circle contains symbols representing different metals, their atomic structures, and bonding characteristics. Alchemists can change the hardness, conductivity, and other properties of metals. This is commonly used for creating weapons, tools, and armor. The circle incorporates metallurgical symbols and geometric patterns."
+            },
+            {
+                id: 8,
+                name: "Philosopher's Stone",
+                symbol: "💎",
+                description: "The legendary amplification circle",
+                meaning: "The ultimate alchemical achievement - a stone that amplifies alchemical power and bypasses equivalent exchange limitations.",
+                detailedInfo: "The Philosopher's Stone is the ultimate goal of alchemy, capable of amplifying alchemical power exponentially and seemingly bypassing the law of equivalent exchange. The transmutation circle is incredibly complex, containing layers of meaning and power. In truth, the stone is created from human souls, making it a dark and terrible creation despite its incredible power."
+            }
+        ];
+
+        function generateCards() {
+            const grid = document.getElementById('cardsGrid');
+            
+            alchemyCircles.forEach(circle => {
+                const cardContainer = document.createElement('div');
+                cardContainer.className = 'card-container';
+                
+                cardContainer.innerHTML = `
+                    <div class="card" id="card-${circle.id}">
+                        <div class="card-face card-front">
+                            <div class="flip-button" onclick="flipCard(event, ${circle.id})">⟲</div>
+                            <div class="alchemy-circle" onclick="showDetailedView(event, ${circle.id})">
+                                <div class="circle-content">${circle.symbol}</div>
+                            </div>
+                            <h3 class="card-title">${circle.name}</h3>
+                            <p class="card-description">${circle.description}</p>
+                        </div>
+                        <div class="card-face card-back">
+                            <div class="flip-button" onclick="flipCard(event, ${circle.id})">⟲</div>
+                            <h3 class="card-title">Sigil Meaning</h3>
+                            <p class="card-description">${circle.meaning}</p>
+                        </div>
+                    </div>
+                `;
+                
+                grid.appendChild(cardContainer);
+            });
+        }
+
+        function flipCard(event, cardId) {
+            event.stopPropagation();
+            const card = document.getElementById(`card-${cardId}`);
+            card.classList.toggle('flipped');
+        }
+
+        function showDetailedView(event, cardId) {
+            event.stopPropagation();
+            const circle = alchemyCircles.find(c => c.id === cardId);
+            const detailedView = document.getElementById('detailedView');
+            const detailedContent = document.getElementById('detailedContent');
+            
+            detailedContent.innerHTML = `
+                <div class="large-circle">
+                    <div class="circle-content">${circle.symbol}</div>
+                </div>
+                <div class="detailed-info">
+                    <h2>${circle.name}</h2>
+                    <p>${circle.detailedInfo}</p>
+                    <div class="sigil-meaning">
+                        <h3>Sigil Meaning</h3>
+                        <p>${circle.meaning}</p>
+                    </div>
+                </div>
+            `;
+            
+            detailedView.classList.add('active');
+        }
+
+        function closeDetailedView() {
+            const detailedView = document.getElementById('detailedView');
+            detailedView.classList.remove('active');
+        }
+
+        // Initialize the cards when the page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            generateCards();
+        });
+
+        // Close detailed view when clicking outside
+        document.getElementById('detailedView').addEventListener('click', function(event) {
+            if (event.target === this) {
+                closeDetailedView();
+            }
+        });
+
+        // Add keyboard navigation
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeDetailedView();
+            }
+        });
+    </script>
+</body>
+</html>

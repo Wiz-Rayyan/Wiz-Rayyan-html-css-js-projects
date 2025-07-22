@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Styled PDF Viewer</title>
+    <style>
+        /* Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            background-color: #f5f5f5;
+        }
+
+        /* Header Styles */
+        .top-section {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: linear-gradient(135deg, #6e48aa, #9d50bb);
+            color: white;
+            padding: 15px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+
+        .top-section h1 {
+            text-align: center;
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+        }
+
+        .progress-container {
+            width: 100%;
+            height: 8px;
+            background-color: rgba(255,255,255,0.2);
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #ff8a00, #e52e71);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        /* Controls Section */
+        .controls-section {
+            margin-top: 100px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .file-input-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .style-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .style-option {
+            padding: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .style-option:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .style-option.active {
+            border-color: #6e48aa;
+            box-shadow: 0 0 0 3px rgba(110, 72, 170, 0.3);
+        }
+
+        /* PDF Content Styles */
+        .pdf-content-container {
+            margin: 20px auto;
+            max-width: 1200px;
+        }
+
+        .pdf-page-wrapper {
+            margin-bottom: 40px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            position: relative;
+        }
+
+        .page-number {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            z-index: 10;
+        }
+
+        .pdf-canvas {
+            width: 100%;
+            display: block;
+            background: white;
+        }
+
+        .pdf-text-layer {
+            position: absolute;
+            left: 0;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            overflow: hidden;
+            opacity: 0.2;
+            line-height: 1;
+        }
+
+        .pdf-text-layer > span {
+            color: transparent;
+            position: absolute;
+            white-space: pre;
+            cursor: text;
+            transform-origin: 0% 0%;
+        }
+
+        /* Style Presets */
+        .style-newspaper {
+            background-color: #f9f7f0;
+            border: 1px solid #ddd;
+            font-family: 'Times New Roman', Times, serif;
+        }
+        .style-newspaper .pdf-canvas {
+            background-color: #f9f7f0;
+        }
+
+        .style-modern {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border: none;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+        }
+        .style-modern .pdf-canvas {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        }
+
+        .style-dark {
+            background-color: #2d3436;
+            color: #dfe6e9;
+            border: 1px solid #636e72;
+        }
+        .style-dark .pdf-canvas {
+            background-color: #2d3436;
+            filter: invert(1) hue-rotate(180deg);
+        }
+
+        .style-vintage {
+            background-color: #f3e9d2;
+            border: 1px solid #d4b483;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        .style-vintage .pdf-canvas {
+            background-color: #f3e9d2;
+            filter: sepia(0.3);
+        }
+
+        /* Customization Controls */
+        .customization-panel {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+        }
+
+        .custom-control {
+            margin-bottom: 15px;
+        }
+
+        .custom-control label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .custom-control input, .custom-control select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        /* Status Messages */
+        #status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .status-loading {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .status-success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status-error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="top-section">
+        <h1>Advanced Styled PDF Viewer</h1>
+        <div class="progress-container">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+    </div>
+
+    <div class="controls-section">
+        <div class="file-input-container">
+            <input type="file" id="pdfInput" accept=".pdf">
+            <div id="status" class="status-loading">Select a PDF file to begin</div>
+        </div>
+
+        <h3>Style Presets</h3>
+        <div class="style-controls">
+            <div class="style-option active" data-style="default">
+                <h4>Default</h4>
+                <p>Clean white background</p>
+            </div>
+            <div class="style-option" data-style="newspaper">
+                <h4>Newspaper</h4>
+                <p>Classic print look</p>
+            </div>
+            <div class="style-option" data-style="modern">
+                <h4>Modern</h4>
+                <p>Sleek gradient background</p>
+            </div>
+            <div class="style-option" data-style="dark">
+                <h4>Dark Mode</h4>
+                <p>Easy on the eyes</p>
+            </div>
+            <div class="style-option" data-style="vintage">
+                <h4>Vintage</h4>
+                <p>Old paper effect</p>
+            </div>
+        </div>
+
+        <div class="customization-panel">
+            <h3>Customize Style</h3>
+            <div class="custom-control">
+                <label for="fontFamily">Font Family</label>
+                <select id="fontFamily">
+                    <option value="Arial, sans-serif">Arial</option>
+                    <option value="'Times New Roman', serif">Times New Roman</option>
+                    <option value="'Courier New', monospace">Courier New</option>
+                    <option value="Georgia, serif">Georgia</option>
+                    <option value="'Palatino Linotype', serif">Palatino</option>
+                </select>
+            </div>
+            <div class="custom-control">
+                <label for="fontSize">Base Font Size</label>
+                <input type="range" id="fontSize" min="12" max="24" value="16">
+            </div>
+            <div class="custom-control">
+                <label for="bgColor">Background Color</label>
+                <input type="color" id="bgColor" value="#ffffff">
+            </div>
+            <div class="custom-control">
+                <label for="textColor">Text Color</label>
+                <input type="color" id="textColor" value="#000000">
+            </div>
+        </div>
+    </div>
+
+    <div class="pdf-content-container" id="pdfContent"></div>
+
+    <!-- PDF.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <script>
+        // Initialize PDF.js
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+        
+        // DOM Elements
+        const pdfInput = document.getElementById('pdfInput');
+        const pdfContent = document.getElementById('pdfContent');
+        const progressBar = document.getElementById('progressBar');
+        const statusElement = document.getElementById('status');
+        const styleOptions = document.querySelectorAll('.style-option');
+        
+        // Customization controls
+        const fontFamilySelect = document.getElementById('fontFamily');
+        const fontSizeSlider = document.getElementById('fontSize');
+        const bgColorPicker = document.getElementById('bgColor');
+        const textColorPicker = document.getElementById('textColor');
+        
+        // Current styling state
+        let currentStyle = 'default';
+        
+        // Handle PDF file selection
+        pdfInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            statusElement.textContent = `Loading ${file.name}...`;
+            statusElement.className = 'status-loading';
+            
+            const fileReader = new FileReader();
+            
+            fileReader.onload = async function() {
+                try {
+                    const typedArray = new Uint8Array(this.result);
+                    
+                    // Show loading progress
+                    progressBar.style.width = '5%';
+                    
+                    const loadingTask = pdfjsLib.getDocument(typedArray);
+                    
+                    loadingTask.onProgress = function(progress) {
+                        const percent = Math.round((progress.loaded / progress.total) * 100);
+                        progressBar.style.width = `${percent}%`;
+                        statusElement.textContent = `Loading PDF: ${percent}%`;
+                    };
+                    
+                    const pdf = await loadingTask.promise;
+                    statusElement.textContent = `Rendering ${pdf.numPages} pages...`;
+                    
+                    // Clear previous content
+                    pdfContent.innerHTML = '';
+                    
+                    // Set up dimensions for rendering
+                    const viewportWidth = Math.min(1200, window.innerWidth - 40);
+                    
+                    // Load each page
+                    for (let i = 1; i <= pdf.numPages; i++) {
+                        try {
+                            const page = await pdf.getPage(i);
+                            const viewport = page.getViewport({ scale: 1.0 });
+                            const scale = viewportWidth / viewport.width;
+                            const scaledViewport = page.getViewport({ scale });
+                            
+                            // Create page container
+                            const pageWrapper = document.createElement('div');
+                            pageWrapper.className = `pdf-page-wrapper style-${currentStyle}`;
+                            
+                            // Add page number
+                            const pageNumber = document.createElement('div');
+                            pageNumber.className = 'page-number';
+                            pageNumber.textContent = `Page ${i}`;
+                            pageWrapper.appendChild(pageNumber);
+                            
+                            // Create canvas for rendering
+                            const canvas = document.createElement('canvas');
+                            canvas.className = 'pdf-canvas';
+                            const context = canvas.getContext('2d');
+                            
+                            // Set canvas dimensions
+                            canvas.height = scaledViewport.height;
+                            canvas.width = scaledViewport.width;
+                            
+                            // Render PDF page to canvas
+                            await page.render({
+                                canvasContext: context,
+                                viewport: scaledViewport
+                            }).promise;
+                            
+                            // Add text layer for selectable text
+                            const textLayer = document.createElement('div');
+                            textLayer.className = 'pdf-text-layer';
+                            
+                            // Render text layer
+                            await page.getTextContent().then(function(textContent) {
+                                pdfjsLib.renderTextLayer({
+                                    textContent: textContent,
+                                    container: textLayer,
+                                    viewport: scaledViewport,
+                                    textDivs: []
+                                });
+                            });
+                            
+                            // Append elements to page wrapper
+                            pageWrapper.appendChild(canvas);
+                            pageWrapper.appendChild(textLayer);
+                            
+                            // Add to document
+                            pdfContent.appendChild(pageWrapper);
+                            
+                            // Update progress
+                            const percent = Math.round((i / pdf.numPages) * 100);
+                            progressBar.style.width = `${percent}%`;
+                            statusElement.textContent = `Rendered page ${i} of ${pdf.numPages}`;
+                            
+                        } catch (pageError) {
+                            console.error(`Error processing page ${i}:`, pageError);
+                        }
+                    }
+                    
+                    statusElement.textContent = `Successfully loaded ${pdf.numPages} pages`;
+                    statusElement.className = 'status-success';
+                    progressBar.style.backgroundColor = '#28a745';
+                    
+                    // Apply current style to all pages
+                    applyStyleToAllPages(currentStyle);
+                    
+                } catch (error) {
+                    statusElement.textContent = `Error loading PDF: ${error.message}`;
+                    statusElement.className = 'status-error';
+                    progressBar.style.backgroundColor = '#dc3545';
+                    console.error('Error loading PDF:', error);
+                }
+            };
+            
+            fileReader.onerror = function() {
+                statusElement.textContent = 'Error reading file';
+                statusElement.className = 'status-error';
+            };
+            
+            fileReader.readAsArrayBuffer(file);
+        });
+        
+        // Style selection
+        styleOptions.forEach(option => {
+            option.addEventListener('click', function() {
+                // Update active state
+                styleOptions.forEach(opt => opt.classList.remove('active'));
+                this.classList.add('active');
+                
+                // Get selected style
+                currentStyle = this.dataset.style;
+                
+                // Apply to all pages
+                applyStyleToAllPages(currentStyle);
+                
+                statusElement.textContent = `Applied ${currentStyle} style`;
+                statusElement.className = 'status-success';
+                setTimeout(() => {
+                    statusElement.textContent = '';
+                    statusElement.className = '';
+                }, 2000);
+            });
+        });
+        
+        // Customization controls
+        fontFamilySelect.addEventListener('change', updateCustomStyles);
+        fontSizeSlider.addEventListener('input', updateCustomStyles);
+        bgColorPicker.addEventListener('input', updateCustomStyles);
+        textColorPicker.addEventListener('input', updateCustomStyles);
+        
+        // Apply style to all pages
+        function applyStyleToAllPages(style) {
+            const pageWrappers = document.querySelectorAll('.pdf-page-wrapper');
+            
+            pageWrappers.forEach(wrapper => {
+                // Remove all style classes
+                wrapper.className = 'pdf-page-wrapper';
+                
+                // Add selected style class
+                wrapper.classList.add(`style-${style}`);
+                
+                // Apply custom styles
+                updateCustomStyles();
+            });
+        }
+        
+        // Update custom styles
+        function updateCustomStyles() {
+            const fontFamily = fontFamilySelect.value;
+            const fontSize = `${fontSizeSlider.value}px`;
+            const bgColor = bgColorPicker.value;
+            const textColor = textColorPicker.value;
+            
+            document.querySelectorAll('.pdf-page-wrapper').forEach(wrapper => {
+                wrapper.style.fontFamily = fontFamily;
+                wrapper.style.fontSize = fontSize;
+                wrapper.style.color = textColor;
+                wrapper.querySelector('.pdf-canvas').style.backgroundColor = bgColor;
+            });
+        }
+        
+        // Scroll progress indicator
+        window.addEventListener('scroll', () => {
+            const { scrollTop, scrollHeight, clientHeight } = document.documentElement;
+            const scrollPercent = (scrollTop / (scrollHeight - clientHeight)) * 100;
+            progressBar.style.width = `${scrollPercent}%`;
+        });
+    </script>
+</body>
+</html>

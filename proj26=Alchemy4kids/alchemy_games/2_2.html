@@ -1,0 +1,438 @@
+
+<!--
+drag and drop emojis to mix them and discover new elements!
+but it doesn't work in this version.
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>✨ Emoji Alchemy Lab ✨</title>
+    <style>
+        :root {
+            --bg-dark: #1a1a2e;
+            --bg-purple: #4a2c82;
+            --neon-blue: #00f5ff;
+            --neon-pink: #ff00aa;
+            --gold: #ffd700;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, var(--bg-dark), var(--bg-purple));
+            color: white;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+
+        .game-container {
+            display: flex;
+            height: 100vh;
+            padding: 20px;
+            gap: 20px;
+        }
+
+        /* 🔥 Workspace (Where Magic Happens) */
+        .workspace {
+            flex: 3;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            border: 2px solid var(--neon-blue);
+            box-shadow: 0 0 20px var(--neon-blue);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 📚 Sidebar (Elements & Encyclopedia) */
+        .sidebar {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            border: 2px solid var(--neon-pink);
+            box-shadow: 0 0 20px var(--neon-pink);
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        /* 🧪 Elements (Draggable Emoji Icons) */
+        .element {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 15px;
+            margin: 10px 0;
+            cursor: grab;
+            text-align: center;
+            transition: all 0.3s;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .element:hover {
+            transform: scale(1.1);
+            background: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 0 15px var(--gold);
+        }
+
+        .element-emoji {
+            font-size: 40px;
+            margin-bottom: 5px;
+        }
+
+        .element-name {
+            font-size: 14px;
+            color: var(--neon-blue);
+        }
+
+        /* ⚗️ Energy Bar (Alchemy Power) */
+        .energy-container {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid var(--neon-pink);
+        }
+
+        .energy-bar {
+            height: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 10px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+
+        .energy-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--neon-pink), var(--neon-blue));
+            width: 100%;
+            transition: width 0.5s;
+            border-radius: 10px;
+        }
+
+        /* 📖 Encyclopedia (Massive Alchemy Guide) */
+        .encyclopedia {
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .recipe-card {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 10px;
+            margin: 10px 0;
+            border-left: 4px solid var(--gold);
+        }
+
+        .recipe-formula {
+            font-family: monospace;
+            color: var(--neon-blue);
+        }
+
+        /* ✨ Animations */
+        @keyframes glow {
+            0% { opacity: 0.7; }
+            50% { opacity: 1; }
+            100% { opacity: 0.7; }
+        }
+
+        .glow {
+            animation: glow 2s infinite;
+        }
+
+        /* 🎮 UI Enhancements */
+        h1, h2, h3 {
+            color: var(--gold);
+            text-shadow: 0 0 10px var(--gold);
+        }
+
+        button {
+            background: linear-gradient(45deg, var(--neon-pink), var(--neon-blue));
+            border: none;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px var(--neon-blue);
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <!-- 🧙‍♂️ Workspace (Drag & Drop Here) -->
+        <div class="workspace" id="workspace">
+            <h2 style="text-align: center; margin-top: 20px;">✨ Alchemy Lab ✨</h2>
+            <p style="text-align: center;">Drag emojis here to mix them!</p>
+        </div>
+
+        <!-- 📚 Sidebar (Elements & Encyclopedia) -->
+        <div class="sidebar">
+            <h2>⚗️ Elements Library</h2>
+            
+            <!-- 🔋 Energy System -->
+            <div class="energy-container">
+                <div>Alchemy Energy: <span id="energy-value">100</span>/100</div>
+                <div class="energy-bar">
+                    <div class="energy-fill" id="energy-fill"></div>
+                </div>
+            </div>
+
+            <!-- 🔥 Basic Elements -->
+            <h3>🔥 Basic Elements</h3>
+            <div id="basic-elements">
+                <!-- Elements will be added by JavaScript -->
+            </div>
+
+            <!-- 📜 Discovered Elements -->
+            <h3>📜 Discovered Elements</h3>
+            <div id="discovered-elements">
+                <!-- New elements appear here -->
+            </div>
+
+            <!-- 📖 Alchemy Encyclopedia -->
+            <h3>📖 Encyclopedia</h3>
+            <div class="encyclopedia" id="encyclopedia">
+                <!-- Recipes will appear here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 🌟 GAME STATE
+        const gameState = {
+            energy: 100,
+            maxEnergy: 100,
+            discoveredElements: ['🔥', '💧', '🌍', '💨'],
+            unlockedCategories: ['basic'],
+            elements: {
+                // Basic Elements
+                '🔥': { name: 'Fire', emoji: '🔥', category: 'basic' },
+                '💧': { name: 'Water', emoji: '💧', category: 'basic' },
+                '🌍': { name: 'Earth', emoji: '🌍', category: 'basic' },
+                '💨': { name: 'Air', emoji: '💨', category: 'basic' },
+                // Advanced Elements (discovered via mixing)
+                '🌊': { name: 'Wave', emoji: '🌊', category: 'water' },
+                '☁️': { name: 'Cloud', emoji: '☁️', category: 'air' },
+                '🌱': { name: 'Plant', emoji: '🌱', category: 'life' },
+                '⚡': { name: 'Lightning', emoji: '⚡', category: 'energy' },
+                '🍞': { name: 'Bread', emoji: '🍞', category: 'food' },
+                '👻': { name: 'Ghost', emoji: '👻', category: 'mystic' },
+                '🦄': { name: 'Unicorn', emoji: '🦄', category: 'magic' },
+                '🧪': { name: 'Potion', emoji: '🧪', category: 'alchemy' },
+                '🔮': { name: 'Crystal Ball', emoji: '🔮', category: 'magic' },
+                '🧙‍♂️': { name: 'Wizard', emoji: '🧙‍♂️', category: 'human' },
+            },
+            recipes: {
+                // Basic Alchemy
+                '🔥+💧': { result: '🌊', energy: 10, name: "Fire + Water = Wave" },
+                '💧+🌍': { result: '🌱', energy: 15, name: "Water + Earth = Plant" },
+                '💨+🔥': { result: '⚡', energy: 20, name: "Air + Fire = Lightning" },
+                '🌍+🔥': { result: '🌋', energy: 25, name: "Earth + Fire = Volcano" },
+                
+                // Advanced Alchemy
+                '🌱+💧': { result: '🌻', energy: 30, name: "Plant + Water = Flower" },
+                '⚡+🌍': { result: '🧲', energy: 35, name: "Lightning + Earth = Magnet" },
+                '🌊+💨': { result: '🌪️', energy: 40, name: "Wave + Air = Tornado" },
+                
+                // Magical Alchemy
+                '🧪+🔮': { result: '🧙‍♂️', energy: 50, name: "Potion + Crystal Ball = Wizard" },
+                '🦄+⚡': { result: '🌈', energy: 60, name: "Unicorn + Lightning = Rainbow" },
+                '👻+🔥': { result: '🎃', energy: 45, name: "Ghost + Fire = Pumpkin" },
+            }
+        };
+
+        // 🎮 DOM ELEMENTS
+        const workspace = document.getElementById('workspace');
+        const basicElementsContainer = document.getElementById('basic-elements');
+        const discoveredElementsContainer = document.getElementById('discovered-elements');
+        const encyclopediaContainer = document.getElementById('encyclopedia');
+        const energyValue = document.getElementById('energy-value');
+        const energyFill = document.getElementById('energy-fill');
+
+        // 🚀 INITIALIZE GAME
+        function initGame() {
+            renderBasicElements();
+            updateEnergyDisplay();
+            renderDiscoveredElements();
+            renderEncyclopedia();
+            setupDragAndDrop();
+        }
+
+        // 🔥 RENDER BASIC ELEMENTS
+        function renderBasicElements() {
+            basicElementsContainer.innerHTML = '';
+            gameState.discoveredElements.forEach(emoji => {
+                if (gameState.elements[emoji].category === 'basic') {
+                    const el = createElementDiv(emoji);
+                    basicElementsContainer.appendChild(el);
+                }
+            });
+        }
+
+        // 🌟 RENDER DISCOVERED ELEMENTS
+        function renderDiscoveredElements() {
+            discoveredElementsContainer.innerHTML = '';
+            gameState.discoveredElements.forEach(emoji => {
+                if (gameState.elements[emoji].category !== 'basic') {
+                    const el = createElementDiv(emoji);
+                    discoveredElementsContainer.appendChild(el);
+                }
+            });
+        }
+
+        // 📖 RENDER ENCYCLOPEDIA
+        function renderEncyclopedia() {
+            encyclopediaContainer.innerHTML = '';
+            for (const [combo, recipe] of Object.entries(gameState.recipes)) {
+                const card = document.createElement('div');
+                card.className = 'recipe-card glow';
+                card.innerHTML = `
+                    <div class="recipe-formula">${recipe.name}</div>
+                    <div style="font-size: 24px; text-align: center;">${gameState.elements[recipe.result].emoji} ${gameState.elements[recipe.result].name}</div>
+                `;
+                encyclopediaContainer.appendChild(card);
+            }
+        }
+
+        // ⚡ CREATE ELEMENT DIV (DRAGGABLE)
+        function createElementDiv(emoji) {
+            const el = document.createElement('div');
+            el.className = 'element';
+            el.draggable = true;
+            el.dataset.emoji = emoji;
+            el.innerHTML = `
+                <div class="element-emoji">${emoji}</div>
+                <div class="element-name">${gameState.elements[emoji].name}</div>
+            `;
+            return el;
+        }
+
+        // 🔄 UPDATE ENERGY DISPLAY
+        function updateEnergyDisplay() {
+            energyValue.textContent = gameState.energy;
+            energyFill.style.width = `${(gameState.energy / gameState.maxEnergy) * 100}%`;
+        }
+
+        // 🎯 SETUP DRAG & DROP
+        function setupDragAndDrop() {
+            const elements = document.querySelectorAll('.element[draggable="true"]');
+            
+            elements.forEach(element => {
+                element.addEventListener('dragstart', dragStart);
+            });
+            
+            workspace.addEventListener('dragover', dragOver);
+            workspace.addEventListener('drop', drop);
+        }
+
+        // 🖱️ DRAG & DROP FUNCTIONS
+        function dragStart(e) {
+            e.dataTransfer.setData('text/plain', e.target.dataset.emoji);
+        }
+
+        function dragOver(e) {
+            e.preventDefault();
+        }
+
+        function drop(e) {
+            e.preventDefault();
+            const emoji = e.dataTransfer.getData('text/plain');
+            createElementInWorkspace(emoji, e.clientX, e.clientY);
+        }
+
+        // 🏗️ CREATE ELEMENT IN WORKSPACE
+        function createElementInWorkspace(emoji, x, y) {
+            const rect = workspace.getBoundingClientRect();
+            const newElement = document.createElement('div');
+            newElement.className = 'element draggable';
+            newElement.style.position = 'absolute';
+            newElement.style.left = `${x - rect.left - 30}px`;
+            newElement.style.top = `${y - rect.top - 30}px`;
+            newElement.dataset.emoji = emoji;
+            newElement.innerHTML = `
+                <div class="element-emoji">${emoji}</div>
+                <div class="element-name">${gameState.elements[emoji].name}</div>
+            `;
+            workspace.appendChild(newElement);
+            newElement.addEventListener('dragstart', dragStart);
+            checkCombinations(newElement);
+        }
+
+        // 🧪 CHECK FOR COMBINATIONS
+        function checkCombinations(newElement) {
+            const elementsInWorkspace = document.querySelectorAll('.workspace .element');
+            
+            if (elementsInWorkspace.length >= 2) {
+                elementsInWorkspace.forEach(existingElement => {
+                    if (existingElement !== newElement) {
+                        attemptCombination(
+                            newElement.dataset.emoji,
+                            existingElement.dataset.emoji,
+                            newElement,
+                            existingElement
+                        );
+                    }
+                });
+            }
+        }
+
+        // ⚗️ ATTEMPT COMBINATION
+        function attemptCombination(emoji1, emoji2, element1, element2) {
+            const combo1 = `${emoji1}+${emoji2}`;
+            const combo2 = `${emoji2}+${emoji1}`;
+            const recipe = gameState.recipes[combo1] || gameState.recipes[combo2];
+            
+            if (recipe && gameState.energy >= recipe.energy) {
+                gameState.energy -= recipe.energy;
+                updateEnergyDisplay();
+                
+                // Remove old elements
+                element1.remove();
+                element2.remove();
+                
+                // Create explosion effect
+                const explosion = document.createElement('div');
+                explosion.style.position = 'absolute';
+                explosion.style.left = element1.style.left;
+                explosion.style.top = element1.style.top;
+                explosion.style.fontSize = '50px';
+                explosion.style.transition = 'all 0.5s';
+                explosion.innerHTML = '✨';
+                workspace.appendChild(explosion);
+                
+                setTimeout(() => {
+                    explosion.style.transform = 'scale(3)';
+                    explosion.style.opacity = '0';
+                    setTimeout(() => explosion.remove(), 500);
+                }, 50);
+                
+                // Add new element
+                setTimeout(() => {
+                    if (!gameState.discoveredElements.includes(recipe.result)) {
+                        gameState.discoveredElements.push(recipe.result);
+                        renderDiscoveredElements();
+                        renderEncyclopedia();
+                        alert(`✨ You discovered ${gameState.elements[recipe.result].name}! ✨`);
+                    }
+                    createElementInWorkspace(
+                        recipe.result,
+                        parseInt(element1.style.left) + 30,
+                        parseInt(element1.style.top) + 30
+                    );
+                }, 600);
+            }
+        }
+
+        // 🚀 START THE GAME
+        window.addEventListener('DOMContentLoaded', initGame);
+    </script>
+</body>
+</html>

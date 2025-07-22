@@ -1,0 +1,274 @@
+
+<!--
+awesome but only takes text from pdfs-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Styled PDF Viewer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            padding: 0px 25px;
+            font-family: Arial, sans-serif;
+        }
+
+        .top-section {
+            position: fixed;
+            top: 0px;
+            z-index: 1;
+            width: 100%;
+            background-color: rgb(248, 228, 184);
+            padding: 10px 0px;
+        }
+
+        .top-section h1 {
+            text-align: center;
+        }
+
+        .progress-container {
+            width: 100%;
+            height: 10px;
+            background-color: rgb(0, 9, 6);
+        }
+
+        .progress-bar {
+            height: 10px;
+            background-color: yellow;
+            width: 0%;
+        }
+
+        .pdf-content-container {
+            margin: 100px auto 0px auto; /* Increased top margin */
+            padding-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .pdf-page-wrapper {
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            border: 2px solid black;
+            color: #fff;
+            background: linear-gradient(90deg, rgb(32, 59, 19), rgb(255, 0, 119));
+            margin-bottom: 20px;
+        }
+
+        .file-input-container {
+            margin: 70px 0 20px; /* Added more top margin */
+            text-align: center;
+            padding: 20px;
+            background: #f0f0f0;
+            border-radius: 8px;
+        }
+
+        .style-selector {
+            margin: 10px 0;
+            padding: 8px;
+            border-radius: 4px;
+        }
+
+        #status {
+            text-align: center;
+            margin: 10px;
+            color: #666;
+        }
+
+        .debug-info {
+            background: #f8f8f8;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 20px;
+            font-family: monospace;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="top-section">
+        <h1>Styled PDF Viewer</h1>
+        <div class="progress-container">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+    </div>
+
+    <div class="file-input-container">
+        <h3>Upload a PDF file</h3>
+        <input type="file" id="pdfInput" accept=".pdf">
+        <div>
+            <label for="styleSelector">Select style: </label>
+            <select class="style-selector" id="styleSelector">
+                <option value="gradient">Gradient Style</option>
+                <option value="dark">Dark Mode</option>
+                <option value="light">Light Mode</option>
+            </select>
+        </div>
+        <div id="status">Waiting for PDF upload...</div>
+    </div>
+
+    <div class="pdf-content-container" id="pdfContent"></div>
+
+    <div class="debug-info" id="debugInfo"></div>
+
+    <!-- Using a more recent version of PDF.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <script>
+        // Set the path to the PDF.js worker
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+        
+        const pdfInput = document.getElementById('pdfInput');
+        const pdfContent = document.getElementById('pdfContent');
+        const progressBar = document.getElementById('progressBar');
+        const styleSelector = document.getElementById('styleSelector');
+        const statusElement = document.getElementById('status');
+        const debugInfo = document.getElementById('debugInfo');
+        
+        // For debugging: uncomment to show debug info
+        // debugInfo.style.display = 'block';
+        
+        pdfInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            statusElement.textContent = `Loading ${file.name}...`;
+            debugInfo.textContent = `File selected: ${file.name}\nSize: ${(file.size/1024).toFixed(2)} KB`;
+            
+            const fileReader = new FileReader();
+            
+            fileReader.onload = async function() {
+                try {
+                    const typedArray = new Uint8Array(this.result);
+                    debugInfo.textContent += '\n\nStarting PDF parsing...';
+                    
+                    // Show loading progress
+                    progressBar.style.width = '5%';
+                    
+                    const loadingTask = pdfjsLib.getDocument(typedArray);
+                    loadingTask.onProgress = function(progress) {
+                        const percent = Math.round((progress.loaded / progress.total) * 100);
+                        progressBar.style.width = `${percent}%`;
+                        statusElement.textContent = `Loading PDF: ${percent}%`;
+                    };
+                    
+                    const pdf = await loadingTask.promise;
+                    debugInfo.textContent += `\nPDF loaded with ${pdf.numPages} pages`;
+                    
+                    // Clear previous content
+                    pdfContent.innerHTML = '';
+                    statusElement.textContent = `Rendering ${pdf.numPages} pages...`;
+                    
+                    // Load each page
+                    for (let i = 1; i <= pdf.numPages; i++) {
+                        try {
+                            const page = await pdf.getPage(i);
+                            const textContent = await page.getTextContent();
+                            const text = textContent.items.map(item => item.str).join(' ');
+                            debugInfo.textContent += `\n\nPage ${i}:\n${text.substring(0, 100)}...`;
+                            
+                            // Create a styled container for this page's content
+                            const pageWrapper = document.createElement('div');
+                            pageWrapper.className = 'pdf-page-wrapper';
+                            pageWrapper.id = `page-${i}`;
+                            
+                            // Add page number indicator
+                            const pageHeader = document.createElement('h3');
+                            pageHeader.textContent = `Page ${i}`;
+                            pageWrapper.appendChild(pageHeader);
+                            
+                            // Add the text content
+                            const contentParagraph = document.createElement('div');
+                            contentParagraph.textContent = text;
+                            contentParagraph.style.whiteSpace = 'pre-wrap'; // Preserve formatting
+                            pageWrapper.appendChild(contentParagraph);
+                            
+                            // Apply selected style
+                            applyStyle(pageWrapper, styleSelector.value);
+                            
+                            pdfContent.appendChild(pageWrapper);
+                            
+                            // Update progress
+                            const percent = Math.round((i / pdf.numPages) * 100);
+                            progressBar.style.width = `${percent}%`;
+                            statusElement.textContent = `Rendered page ${i} of ${pdf.numPages}`;
+                            
+                        } catch (pageError) {
+                            debugInfo.textContent += `\nError processing page ${i}: ${pageError.message}`;
+                            console.error(`Error processing page ${i}:`, pageError);
+                        }
+                    }
+                    
+                    statusElement.textContent = `Done rendering ${pdf.numPages} pages`;
+                    progressBar.style.backgroundColor = 'green';
+                    
+                } catch (error) {
+                    statusElement.textContent = 'Error loading PDF';
+                    progressBar.style.backgroundColor = 'red';
+                    debugInfo.textContent += `\n\nError: ${error.message}`;
+                    console.error('Error loading PDF:', error);
+                }
+            };
+            
+            fileReader.onerror = function() {
+                statusElement.textContent = 'Error reading file';
+                debugInfo.textContent += '\nFileReader error';
+            };
+            
+            fileReader.readAsArrayBuffer(file);
+        });
+        
+        // Style selector change handler
+        styleSelector.addEventListener('change', (e) => {
+            const style = e.target.value;
+            const pageWrappers = document.querySelectorAll('.pdf-page-wrapper');
+            
+            pageWrappers.forEach(wrapper => {
+                applyStyle(wrapper, style);
+            });
+            
+            statusElement.textContent = `Applied ${style} style to all pages`;
+        });
+        
+        function applyStyle(element, styleName) {
+            // Reset to base styles first
+            element.style.background = '';
+            element.style.color = '';
+            element.style.border = '';
+            element.style.fontFamily = '';
+            
+            switch(styleName) {
+                case 'gradient':
+                    element.style.background = 'linear-gradient(90deg, rgb(32, 59, 19), rgb(255, 0, 119))';
+                    element.style.color = '#fff';
+                    element.style.border = '2px solid black';
+                    break;
+                case 'dark':
+                    element.style.background = 'linear-gradient(90deg, #121212, #333)';
+                    element.style.color = '#fff';
+                    element.style.border = '1px solid #444';
+                    break;
+                case 'light':
+                    element.style.background = '#ffffff';
+                    element.style.color = '#000000';
+                    element.style.border = '1px solid #dddddd';
+                    break;
+            }
+        }
+        
+        // Scroll progress indicator
+        window.addEventListener('scroll', () => {
+            const { scrollTop, scrollHeight, clientHeight } = document.documentElement;
+            const scrollPercent = (scrollTop / (scrollHeight - clientHeight)) * 100;
+            progressBar.style.width = `${scrollPercent}%`;
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arcane Alchemy Library</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Old+Standard+TT:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.4/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/turn.js/4.1.1/turn.min.js"></script>
+    <style>
+        :root {
+            --parchment: #f5e8c9;
+            --gold: #d4af37;
+            --deep-blue: #0a0a12;
+            --ink: #1a1a1a;
+            --leather: #3a2a1a;
+        }
+        
+        body {
+            background-color: var(--deep-blue);
+            color: var(--parchment);
+            font-family: 'Old Standard TT', serif;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+        
+        header {
+            background: linear-gradient(to right, #0a0a12, #1a1a2e, #0a0a12);
+            padding: 1rem;
+            text-align: center;
+            border-bottom: 1px solid var(--gold);
+            position: relative;
+            z-index: 10;
+        }
+        
+        h1 {
+            font-family: 'Cinzel Decorative', serif;
+            color: var(--gold);
+            text-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
+            margin: 0;
+        }
+        
+        .library-controls {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: rgba(26, 26, 46, 0.8);
+        }
+        
+        .view-toggle {
+            background: none;
+            border: 1px solid var(--gold);
+            color: var(--gold);
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .view-toggle:hover {
+            background: rgba(212, 175, 55, 0.2);
+        }
+        
+        .view-toggle.active {
+            background: rgba(212, 175, 55, 0.4);
+        }
+        
+        .book-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 2rem;
+            padding: 2rem;
+            min-height: calc(100vh - 150px);
+        }
+        
+        .book-cover {
+            position: relative;
+            height: 350px;
+            border-radius: 5px;
+            box-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            overflow: hidden;
+            perspective: 1000px;
+            border: 2px solid var(--gold);
+        }
+        
+        .book-cover img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s;
+        }
+        
+        .book-cover:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(212, 175, 55, 0.6);
+        }
+        
+        .book-cover:hover img {
+            transform: scale(1.05);
+        }
+        
+        .book-cover::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(to bottom, rgba(10, 10, 18, 0.1), rgba(10, 10, 18, 0.7));
+            z-index: 1;
+        }
+        
+        .cover-title {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-family: 'Cinzel Decorative', serif;
+            font-size: 1.5rem;
+            color: var(--gold);
+            text-shadow: 0 0 5px var(--deep-blue);
+            z-index: 2;
+            padding: 0 1rem;
+        }
+        
+        .book-viewer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 10, 18, 0.98);
+            display: none;
+            flex-direction: column;
+            z-index: 100;
+            overflow: auto;
+        }
+        
+        .viewer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: rgba(26, 26, 46, 0.8);
+            border-bottom: 1px solid var(--gold);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        .viewer-title {
+            font-family: 'Cinzel Decorative', serif;
+            color: var(--gold);
+            margin: 0;
+        }
+        
+        .close-viewer {
+            background: none;
+            border: 1px solid var(--gold);
+            color: var(--gold);
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .close-viewer:hover {
+            background: rgba(212, 175, 55, 0.2);
+        }
+        
+        .book-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            perspective: 2000px;
+            padding: 2rem;
+            min-height: calc(100vh - 120px);
+        }
+        
+        /* Style 1: Physical Book */
+        .physical-book {
+            width: 800px;
+            height: 600px;
+            position: relative;
+            transform-style: preserve-3d;
+            transform: rotateY(0deg);
+            transition: transform 1s;
+        }
+        
+        .book-cover-left, .book-cover-right {
+            position: absolute;
+            width: 50%;
+            height: 100%;
+            background-color: var(--leather);
+            border: 1px solid var(--gold);
+            box-sizing: border-box;
+            backface-visibility: hidden;
+            transform-origin: left center;
+            background-size: cover;
+            background-position: center;
+        }
+        
+        .book-cover-left {
+            left: 0;
+            transform: rotateY(0deg);
+            z-index: 2;
+        }
+        
+        .book-cover-right {
+            right: 0;
+            transform: rotateY(180deg);
+            z-index: 1;
+        }
+        
+        .book-page {
+            position: absolute;
+            width: 50%;
+            height: 100%;
+            background-color: var(--parchment);
+            left: 50%;
+            transform-origin: left center;
+            box-sizing: border-box;
+            padding: 2rem;
+            overflow: auto;
+            display: none;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.2);
+        }
+        
+        .book-page::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="none" stroke="%231a1a1a" stroke-width="0.2" opacity="0.1"/></svg>');
+            pointer-events: none;
+        }
+        
+        .book-page.active {
+            display: block;
+        }
+        
+        /* Style 2: Flipbook */
+        .flipbook {
+            width: 800px;
+            height: 600px;
+            background-color: var(--parchment);
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.8);
+        }
+        
+        .flipbook-page {
+            background-color: var(--parchment);
+            color: var(--ink);
+            padding: 2rem;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .flipbook-page::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="none" stroke="%231a1a1a" stroke-width="0.2" opacity="0.1"/></svg>');
+            pointer-events: none;
+        }
+        
+        /* Style 3: Scroll */
+        .scroll-book {
+            width: 700px;
+            height: 90vh;
+            background: var(--parchment);
+            border: 2px solid var(--gold);
+            box-shadow: 0 0 30px rgba(0,0,0,0.7);
+            padding: 2rem;
+            overflow-y: auto;
+            color: var(--ink);
+            position: relative;
+        }
+        
+        .scroll-book::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="none" stroke="%231a1a1a" stroke-width="0.2" opacity="0.1"/></svg>');
+            pointer-events: none;
+        }
+        
+        .scroll-handles {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 60px;
+            display: flex;
+            justify-content: space-between;
+            transform: translateY(-50%);
+            pointer-events: none;
+            z-index: 2;
+        }
+        
+        .scroll-handle {
+            width: 40px;
+            height: 100%;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M20,20 L50,50 L20,80" fill="none" stroke="%23d4af37" stroke-width="8" stroke-linecap="round"/></svg>') center/contain no-repeat;
+            opacity: 0.7;
+        }
+        
+        .scroll-handle.right {
+            transform: rotate(180deg);
+        }
+        
+        /* Style 4: Flashcard */
+        .flashcard-container {
+            width: 600px;
+            height: 400px;
+            position: relative;
+        }
+        
+        .flashcard {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-color: var(--parchment);
+            border: 2px solid var(--gold);
+            border-radius: 5px;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            opacity: 0;
+            transform: translateX(100px);
+            transition: all 0.5s ease;
+            z-index: 1;
+        }
+        
+        .flashcard.active {
+            opacity: 1;
+            transform: translateX(0);
+            z-index: 2;
+        }
+        
+        /* Style 5: Codex */
+        .codex-container {
+            width: 800px;
+            height: 600px;
+            display: flex;
+            position: relative;
+        }
+        
+        .codex-page {
+            width: 50%;
+            height: 100%;
+            background-color: var(--parchment);
+            padding: 2rem;
+            overflow-y: auto;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        
+        .codex-page.left {
+            border-right: 1px solid var(--gold);
+        }
+        
+        .codex-page.right {
+            border-left: 1px solid var(--gold);
+        }
+        
+        /* Style 6: Tome */
+        .tome-container {
+            width: 800px;
+            height: 600px;
+            background-color: var(--parchment);
+            box-shadow: 0 0 30px rgba(0,0,0,0.8);
+            display: flex;
+            flex-direction: column;
+            padding: 2rem;
+            overflow-y: auto;
+            position: relative;
+        }
+        
+        .tome-header {
+            border-bottom: 2px solid var(--gold);
+            padding-bottom: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        /* Common content styles */
+        .page h2 {
+            color: var(--ink);
+            border-bottom: 1px solid var(--ink);
+            padding-bottom: 0.5rem;
+            margin-top: 0;
+        }
+        
+        .page p {
+            color: var(--ink);
+            line-height: 1.6;
+        }
+        
+        .page-number {
+            position: absolute;
+            bottom: 10px;
+            right: 20px;
+            font-size: 0.8rem;
+            color: var(--ink);
+            opacity: 0.6;
+        }
+        
+        .alchemy-symbol {
+            font-size: 2rem;
+            margin: 0.5rem;
+        }
+        
+        /* Navigation Controls */
+        .nav-controls {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: rgba(26, 26, 46, 0.8);
+            position: sticky;
+            bottom: 0;
+            z-index: 10;
+        }
+        
+        .nav-btn {
+            background: rgba(26, 26, 46, 0.8);
+            border: 1px solid var(--gold);
+            color: var(--gold);
+            padding: 0.5rem 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .nav-btn:hover {
+            background: rgba(212, 175, 55, 0.2);
+        }
+        
+        .nav-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .page-indicator {
+            color: var(--gold);
+            padding: 0.5rem 1rem;
+            display: flex;
+            align-items: center;
+        }
+        
+        /* Gallery View Toggle */
+        .gallery-view {
+            display: none;
+        }
+        
+        .gallery-view.active {
+            display: grid;
+        }
+        
+        @media (max-width: 900px) {
+            .physical-book, .flipbook, .codex-container, .tome-container {
+                width: 95vw;
+                height: 70vh;
+            }
+            
+            .book-page, .flipbook-page, .codex-page {
+                padding: 1rem;
+            }
+            
+            .flashcard-container {
+                width: 90vw;
+                height: 60vh;
+            }
+            
+            .scroll-book {
+                width: 90vw;
+            }
+        }
+        
+        @media (max-width: 600px) {
+            .book-gallery {
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            }
+            
+            .cover-title {
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Arcane Alchemy Library</h1>
+    </header>
+    
+    <div class="library-controls">
+        <button class="view-toggle active" data-view="all">All Tomes</button>
+        <button class="view-toggle" data-view="physical">Physical Books</button>
+        <button class="view-toggle" data-view="digital">Digital Codices</button>
+        <button class="view-toggle" data-view="ancient">Ancient Scrolls</button>
+    </div>
+    
+    <main class="book-gallery gallery-view active" id="allView">
+        <!-- Book covers will be inserted here by JavaScript -->
+    </main>
+    
+    <main class="book-gallery gallery-view" id="physicalView">
+        <!-- Physical books will be inserted here -->
+    </main>
+    
+    <main class="book-gallery gallery-view" id="digitalView">
+        <!-- Digital books will be inserted here -->
+    </main>
+    
+    <main class="book-gallery gallery-view" id="ancientView">
+        <!-- Ancient scrolls will be inserted here -->
+    </main>
+    
+    <div class="book-viewer" id="bookViewer">
+        <div class="viewer-header">
+            <h2 class="viewer-title" id="viewerTitle">Book Title</h2>
+            <button class="close-viewer" id="closeViewer">Close</button>
+        </div>
+        
+        <div class="book-container">
+            <!-- Style 1: Physical Book -->
+            <div class="physical-book" id="physicalBook">
+                <div class="book-cover-left"></div>
+                <div class="book-cover-right"></div>
+                
+                <div class="book-page" id="page1">
+                    <h2>Introduction</h2>
+                    <p>Alchemy is an ancient branch of natural philosophy, a philosophical and protoscientific tradition that was historically practiced in China, India, the Muslim world, and Europe.</p>
+                    <p>In its Western form, alchemy is first attested in a number of pseudepigraphical texts written in Greco-Roman Egypt during the first few centuries AD.</p>
+                    <div class="page-number">1</div>
+                </div>
+                
+                <div class="book-page" id="page2">
+                    <h2>The Four Elements</h2>
+                    <p>Western alchemy makes use of the Hellenic elements. The symbols used for these are:</p>
+                    <ul>
+                        <li>Air <span class="alchemy-symbol">🜁</span></li>
+                        <li>Earth <span class="alchemy-symbol">🜃</span></li>
+                        <li>Fire <span class="alchemy-symbol">🜂</span></li>
+                        <li>Water <span class="alchemy-symbol">🜄</span></li>
+                    </ul>
+                    <div class="page-number">2</div>
+                </div>
+            </div>
+            
+            <!-- Style 2: Flipbook -->
+            <div class="flipbook" id="flipbook">
+                <div class="flipbook-page">
+                    <h2>Alchemical Principles</h2>
+                    <p>The three primes of alchemy are fundamental to the practice:</p>
+                    <ul>
+                        <li>Salt <span class="alchemy-symbol">🜔</span> - representing the body and matter</li>
+                        <li>Sulfur <span class="alchemy-symbol">🜍</span> - representing the soul and combustion</li>
+                        <li>Mercury <span class="alchemy-symbol">🜓</span> - representing the spirit and volatility</li>
+                    </ul>
+                </div>
+                <div class="flipbook-page">
+                    <h2>The Magnum Opus</h2>
+                    <p>The Great Work of alchemy is often described as a series of four stages represented by colors:</p>
+                    <ol>
+                        <li>Nigredo (blackening)</li>
+                        <li>Albedo (whitening)</li>
+                        <li>Citrinitas (yellowing)</li>
+                        <li>Rubedo (reddening)</li>
+                    </ol>
+                </div>
+            </div>
+            
+            <!-- Style 3: Scroll -->
+            <div class="scroll-book" id="scrollBook">
+                <div class="scroll-handles">
+                    <div class="scroll-handle left"></div>
+                    <div class="scroll-handle right"></div>
+                </div>
+                <h2>Ancient Alchemical Scroll</h2>
+                <p>This scroll contains secret knowledge passed down through generations of alchemists...</p>
+                <!-- More scroll content would be here -->
+            </div>
+            
+            <!-- Style 4: Flashcard -->
+            <div class="flashcard-container" id="flashcardContainer">
+                <div class="flashcard active" id="card1">
+                    <h2>Element: Air</h2>
+                    <div class="flashcard-content">
+                        <p>Symbol: <span class="alchemy-symbol">🜁</span></p>
+                        <p>Represents the mind, intellect, and communication in alchemical traditions.</p>
+                    </div>
+                </div>
+                
+                <div class="flashcard" id="card2">
+                    <h2>Element: Earth</h2>
+                    <div class="flashcard-content">
+                        <p>Symbol: <span class="alchemy-symbol">🜃</span></p>
+                        <p>Represents the physical body, stability, and material wealth.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Style 5: Codex -->
+            <div class="codex-container" id="codexContainer">
+                <div class="codex-page left">
+                    <h2>Left Page</h2>
+                    <p>This is the left page of the codex...</p>
+                </div>
+                <div class="codex-page right">
+                    <h2>Right Page</h2>
+                    <p>This is the right page of the codex...</p>
+                </div>
+            </div>
+            
+            <!-- Style 6: Tome -->
+            <div class="tome-container" id="tomeContainer">
+                <div class="tome-header">
+                    <h2>Ancient Tome of Alchemy</h2>
+                </div>
+                <p>This massive tome contains centuries of accumulated alchemical knowledge...</p>
+                <!-- More tome content would be here -->
+            </div>
+        </div>
+        
+        <div class="nav-controls">
+            <button class="nav-btn" id="prevBtn">Previous</button>
+            <span class="page-indicator" id="pageIndicator">Page 1 of 6</span>
+            <button class="nav-btn" id="nextBtn">Next</button>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Book data with different viewing styles
+            const books = [
+                {
+                    title: "Spectrum 1.0",
+                    subtitle: "Scotland and open",
+                    cover: "https://i.pinimg.com/736x/44/e1/e9/44e1e9952b45eec036b020fcc5101f55.jpg",
+                    style: "physical",
+                    category: "physical"
+                },
+                {
+                    title: "TECHNOLOGY",
+                    subtitle: "MULTI-RELATIONSHIP",
+                    cover: "https://i.pinimg.com/736x/d1/e9/91/d1e991cd2be70a2e049c7390400c9d6f.jpg",
+                    style: "flashcards",
+                    category: "digital"
+                },
+                {
+                    title: "Alchemical Manuscript",
+                    subtitle: "16th Century",
+                    cover: "https://i.pinimg.com/736x/06/24/a7/0624a7be2ccc841c2f4fd2483a252c59.jpg",
+                    style: "scroll",
+                    category: "ancient"
+                },
+                {
+                    title: "Hermetic Principles",
+                    subtitle: "Emerald Tablet",
+                    cover: "https://i.pinimg.com/736x/39/ba/81/39ba8194d87d7ac65161064e99b96b5c.jpg",
+                    style: "codex",
+                    category: "ancient"
+                },
+                {
+                    title: "The Golden Treatise",
+                    subtitle: "Of Hermes Trismegistus",
+                    cover: "https://i.pinimg.com/736x/ee/80/82/ee808210d68e9ea16c665cff4d495030.jpg",
+                    style: "tome",
+                    category: "ancient"
+                },
+                {
+                    title: "Transmutations",
+                    subtitle: "Metallic Transformations",
+                    cover: "https://i.pinimg.com/736x/e3/55/cd/e355cd72af8751a77d27f66e80571010.jpg",
+                    style: "flipbook",
+                    category: "digital"
+                },
+                {
+                    title: "The Philosopher's Stone",
+                    subtitle: "Secrets of Immortality",
+                    cover: "https://i.pinimg.com/736x/d9/7f/d7/d97fd70d0a4908603c5814aefeb9dbc3.jpg",
+                    style: "physical",
+                    category: "physical"
+                },
+                {
+                    title: "Alchemical Symbols",
+                    subtitle: "Complete Compendium",
+                    cover: "https://i.pinimg.com/736x/12/80/50/128050c7f8a69f91e6f4298678d13bd2.jpg",
+                    style: "flashcards",
+                    category: "digital"
+                },
+                {
+                    title: "The Red Dragon",
+                    subtitle: "Great Work Revealed",
+                    cover: "https://i.pinimg.com/736x/c3/76/bb/c376bb4ba0fdb2611f19f08855f3e531.jpg",
+                    style: "tome",
+                    category: "ancient"
+                },
+                {
+                    title: "Aurora Consurgens",
+                    subtitle: "Rising Dawn",
+                    cover: "https://i.pinimg.com/1200x/f6/1a/ec/f61aec7cf22a9ab14b657a3ad7b581e3.jpg",
+                    style: "codex",
+                    category: "ancient"
+                },
+                {
+                    title: "The Book of Lambspring",
+                    subtitle: "Fugitive Philosophers",
+                    cover: "https://i.pinimg.com/1200x/f0/7c/b5/f07cb5703c2952a00d42268fd90b91f0.jpg",
+                    style: "physical",
+                    category: "physical"
+                },
+                {
+                    title: "The Twelve Keys",
+                    subtitle: "Of Basil Valentine",
+                    cover: "https://i.pinimg.com/1200x/26/7a/5a/267a5ad4be81c2cfd319b79be7e95e87.jpg",
+                    style: "flipbook",
+                    category: "digital"
+                },
+                {
+                    title: "The Black Sun",
+                    subtitle: "Nigredo Phase",
+                    cover: "https://i.pinimg.com/736x/8a/1b/d3/8a1bd3c5a2b4afe3a07f50c4623aa640.jpg",
+                    style: "flashcards",
+                    category: "digital"
+                },
+                {
+                    title: "The White Queen",
+                    subtitle: "Albedo Phase",
+                    cover: "https://i.pinimg.com/736x/da/c0/c0/dac0c0fb9b4a576dc78b9a834f2cb5b7.jpg",
+                    style: "physical",
+                    category: "physical"
+                },
+                {
+                    title: "The Yellow King",
+                    subtitle: "Citrinitas Phase",
+                    cover: "https://i.pinimg.com/736x/9f/86/3e/9f863ede51050ba14b1cc846e173b6b9.jpg",
+                    style: "scroll",
+                    category: "ancient"
+                },
+                {
+                    title: "The Red King",
+                    subtitle: "Rubedo Phase",
+                    cover: "https://i.pinimg.com/736x/cd/1d/47/cd1d474410aa93f13a9258b6f3f26a65.jpg",
+                    style: "tome",
+                    category: "ancient"
+                },
+                {
+                    title: "The Green Lion",
+                    subtitle: "Prima Materia",
+                    cover: "https://i.pinimg.com/736x/74/b7/09/74b709c2cfaf47bd580e78ad6ba6ccab.jpg",
+                    style: "codex",
+                    category: "ancient"
+                },
+                {
+                    title: "The Ouroboros",
+                    subtitle: "Eternal Return",
+                    cover: "https://i.pinimg.com/736x/27/0e/9d/270e9dc01a1a8b9a1a48e41818a40118.jpg",
+                    style: "flashcards",
+                    category: "digital"
+                },
+                {
+                    title: "The Caduceus",
+                    subtitle: "Mercurial Staff",
+                    cover: "https://i.pinimg.com/736x/7c/1d/73/7c1d73ea5ea20de9fc9240385c45316f.jpg",
+                    style: "physical",
+                    category: "physical"
+                },
+                {
+                    title: "The Azoth",
+                    subtitle: "Universal Solvent",
+                    cover: "https://i.pinimg.com/736x/dc/c1/32/dcc132449d43c4bb0c8714cde723a845.jpg",
+                    style: "flipbook",
+                    category: "digital"
+                },
+                {
+                    title: "The Vitriol",
+                    subtitle: "Divine Sulfur",
+                    cover: "https://i.pinimg.com/1200x/e8/d3/82/e8d382ad7f44b2c3ad1f3c818fe1e1fe.jpg",
+                    style: "tome",
+                    category: "ancient"
+                },
+                {
+                    title: "The Quintessence",
+                    subtitle: "Fifth Element",
+                    cover: "https://i.pinimg.com/736x/60/2f/12/602f12b8d6ebd2285ceae27d183d5c84.jpg",
+                    style: "scroll",
+                    category: "ancient"
+                },
+                {
+                    title: "The Sun and Moon",
+                    subtitle: "Solar and Lunar",
+                    cover: "https://i.pinimg.com/736x/2e/02/53/2e02531a7dd8052508e0dffba7de9bde.jpg",
+                    style: "codex",
+                    category: "ancient"
+                },
+                {
+                    title: "The Rebis",
+                    subtitle: "Divine Androgyne",
+                    cover: "https://i.pinimg.com/1200x/21/1f/c0/211fc0f268530c27866ad033e442d9eb.jpg",
+                    style: "physical",
+                    category: "physical"
+                },
+                {
+                    title: "The Pelican",
+                    subtitle: "Self-Sacrifice",
+                    cover: "https://i.pinimg.com/1200x/be/f2/2d/bef22db6cf1a98f14dcdd76644aaa9ed.jpg",
+                    style: "flashcards",
+                    category: "digital"
+                },
+                {
+                    title: "The Phoenix",
+                    subtitle: "Rebirth from Ashes",
+                    cover: "https://i.pinimg.com/736x/ac/5c/1e/ac5c1e2b2618cb98faadcd30e352b86e.jpg",
+                    style: "tome",
+                    category: "ancient"
+                },
+                {
+                    title: "The Unicorn",
+                    subtitle: "Pure Spirit",
+                    cover: "https://i.pinimg.com/736x/bf/6a/8a/bf6a8a4fa2c4989937a805ba71d4c637.jpg",
+                    style: "scroll",
+                    category: "ancient"
+                },
+                {
+                    title: "The Dragon",
+                    subtitle: "Chaos and Order",
+                    cover: "https://i.pinimg.com/736x/34/08/d1/3408d13559b4dbf39b6fac4d860ad20a.jpg",
+                    style: "codex",
+                    category: "ancient"
+                },
+                {
+                    title: "The Labyrinth",
+                    subtitle: "Path to Wisdom",
+                    cover: "https://i.pinimg.com/736x/05/7d/34/057d3439fde6f750dc8c6a0784d652c2.jpg",
+                    style: "flipbook",
+                    category: "digital"
+                }
+            ];
+
+            // Populate gallery views
+            const allView = document.getElementById('allView');
+            const physicalView = document.getElementById('physicalView');
+            const digitalView = document.getElementById('digitalView');
+            const ancientView = document.getElementById('ancientView');
+
+            books.forEach(book => {
+                const bookElement = createBookElement(book);
+                allView.appendChild(bookElement.cloneNode(true));
+                
+                if (book.category === "physical") {
+                    physicalView.appendChild(bookElement.cloneNode(true));
+                } else if (book.category === "digital") {
+                    digitalView.appendChild(bookElement.cloneNode(true));
+                } else if (book.category === "ancient") {
+                    ancientView.appendChild(bookElement.cloneNode(true));
+                }
+            });
+
+            function createBookElement(book) {
+                const bookCover = document.createElement('div');
+                bookCover.className = 'book-cover';
+                bookCover.dataset.book = book.title.toLowerCase().replace(/\s+/g, '-');
+                bookCover.dataset.style = book.style;
+                
+                const img = document.createElement('img');
+                img.src = book.cover;
+                img.alt = `${book.title} Cover`;
+                
+                const title = document.createElement('div');
+                title.className = 'cover-title';
+                title.textContent = book.title;
+                
+                const subtitle = document.createElement('div');
+                subtitle.className = 'cover-subtitle';
+                subtitle.textContent = book.subtitle;
+                
+                bookCover.appendChild(img);
+                bookCover.appendChild(title);
+                bookCover.appendChild(subtitle);
+                
+                return bookCover;
+            }
+
+            // Book viewer functionality
+            const bookViewer = document.getElementById('bookViewer');
+            const closeViewer = document.getElementById('closeViewer');
+            const viewerTitle = document.getElementById('viewerTitle');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const pageIndicator = document.getElementById('pageIndicator');
+            
+            // Book style containers
+            const physicalBook = document.getElementById('physicalBook');
+            const flipbook = $('#flipbook');
+            const scrollBook = document.getElementById('scrollBook');
+            const flashcardContainer = document.getElementById('flashcardContainer');
+            const codexContainer = document.getElementById('codexContainer');
+            const tomeContainer = document.getElementById('tomeContainer');
+            
+            // State variables
+            let currentView = '';
+            let currentPage = 0;
+            let totalPages = 0;
+            let isBookOpen = false;
+            
+            // Initialize flipbook
+            flipbook.turn({
+                width: 800,
+                height: 600,
+                autoCenter: true,
+                duration: 1000,
+                acceleration: true
+            });
+            
+            // Open book viewer when a cover is clicked
+            document.querySelectorAll('.book-cover').forEach(cover => {
+                cover.addEventListener('click', function() {
+                    const bookTitle = this.querySelector('.cover-title').textContent;
+                    const bookSubtitle = this.querySelector('.cover-subtitle').textContent;
+                    const bookStyle = this.getAttribute('data-style');
+                    const bookCover = this.querySelector('img').src;
+                    
+                    viewerTitle.textContent = `${bookTitle}: ${bookSubtitle}`;
+                    bookViewer.style.display = 'flex';
+                    document.body.style.overflow = 'hidden';
+                    
+                    // Hide all book styles first
+                    physicalBook.style.display = 'none';
+                    flipbook.css('display', 'none');
+                    scrollBook.style.display = 'none';
+                    flashcardContainer.style.display = 'none';
+                    codexContainer.style.display = 'none';
+                    tomeContainer.style.display = 'none';
+                    
+                    // Show the appropriate book style
+                    currentView = bookStyle;
+                    
+                    if (bookStyle === 'physical') {
+                        physicalBook.style.display = 'block';
+                        totalPages = document.querySelectorAll('.book-page').length;
+                        
+                        // Set the book covers
+                        document.querySelector('.book-cover-left').style.backgroundImage = `url('${bookCover}')`;
+                        document.querySelector('.book-cover-right').style.backgroundImage = `url('${bookCover}')`;
+                        
+                        // Open the book animation if not already open
+                        if (!isBookOpen) {
+                            gsap.to('.book-cover-left', {
+                                duration: 1,
+                                rotationY: -160,
+                                ease: "power2.inOut",
+                                onComplete: () => {
+                                    isBookOpen = true;
+                                    currentPage = 0;
+                                    updatePages();
+                                    updateNavigation();
+                                }
+                            });
+                            
+                            gsap.to('.book-cover-right', {
+                                duration: 1,
+                                rotationY: -180,
+                                ease: "power2.inOut"
+                            });
+                        } else {
+                            currentPage = 0;
+                            updatePages();
+                            updateNavigation();
+                        }
+                    } 
+                    else if (bookStyle === 'flipbook') {
+                        flipbook.css('display', 'block');
+                        totalPages = flipbook.turn('pages');
+                        flipbook.turn('page', 1);
+                        updateNavigation();
+                    } 
+                    else if (bookStyle === 'scroll') {
+                        scrollBook.style.display = 'block';
+                        totalPages = 10; // Example page count
+                        currentPage = 0;
+                        updateNavigation();
+                    } 
+                    else if (bookStyle === 'flashcards') {
+                        flashcardContainer.style.display = 'block';
+                        totalPages = document.querySelectorAll('.flashcard').length;
+                        currentPage = 0;
+                        updateFlashcards();
+                        updateNavigation();
+                    } 
+                    else if (bookStyle === 'codex') {
+                        codexContainer.style.display = 'flex';
+                        totalPages = 10; // Example page count
+                        currentPage = 0;
+                        updateNavigation();
+                    } 
+                    else if (bookStyle === 'tome') {
+                        tomeContainer.style.display = 'block';
+                        totalPages = 10; // Example page count
+                        currentPage = 0;
+                        updateNavigation();
+                    }
+                });
+            });
+            
+            // Close book viewer
+            closeViewer.addEventListener('click', function() {
+                if (currentView === 'physical' && isBookOpen) {
+                    gsap.to('.book-cover-left', {
+                        duration: 1,
+                        rotationY: 0,
+                        ease: "power2.inOut",
+                        onComplete: () => {
+                            isBookOpen = false;
+                            bookViewer.style.display = 'none';
+                            document.body.style.overflow = 'auto';
+                        }
+                    });
+                    
+                    gsap.to('.book-cover-right', {
+                        duration: 1,
+                        rotationY: 180,
+                        ease: "power2.inOut"
+                    });
+                } else {
+                    bookViewer.style.display = 'none';
+                    document.body.style.overflow = 'auto';
+                }
+            });
+            
+            // Navigation controls
+            prevBtn.addEventListener('click', function() {
+                if (currentPage > 0) {
+                    currentPage--;
+                    
+                    if (currentView === 'physical') {
+                        updatePages();
+                    } 
+                    else if (currentView === 'flipbook') {
+                        flipbook.turn('previous');
+                    } 
+                    else if (currentView === 'flashcards') {
+                        updateFlashcards();
+                    }
+                    
+                    updateNavigation();
+                }
+            });
+            
+            nextBtn.addEventListener('click', function() {
+                if (currentPage < totalPages - 1) {
+                    currentPage++;
+                    
+                    if (currentView === 'physical') {
+                        updatePages();
+                    } 
+                    else if (currentView === 'flipbook') {
+                        flipbook.turn('next');
+                    } 
+                    else if (currentView === 'flashcards') {
+                        updateFlashcards();
+                    }
+                    
+                    updateNavigation();
+                }
+            });
+            
+            // Update physical book pages
+            function updatePages() {
+                document.querySelectorAll('.book-page').forEach((page, index) => {
+                    if (index === currentPage) {
+                        page.classList.add('active');
+                    } else {
+                        page.classList.remove('active');
+                    }
+                });
+            }
+            
+            // Update flashcards
+            function updateFlashcards() {
+                document.querySelectorAll('.flashcard').forEach((card, index) => {
+                    if (index === currentPage) {
+                        card.classList.add('active');
+                    } else {
+                        card.classList.remove('active');
+                    }
+                });
+            }
+            
+            // Update navigation buttons and indicator
+            function updateNavigation() {
+                prevBtn.disabled = currentPage === 0;
+                nextBtn.disabled = currentPage === totalPages - 1;
+                pageIndicator.textContent = `Page ${currentPage + 1} of ${totalPages}`;
+            }
+            
+            // Flipbook page change event
+            flipbook.bind('turning', function(event, page, view) {
+                currentPage = page - 1;
+                updateNavigation();
+            });
+            
+            // Add keyboard navigation
+            document.addEventListener('keydown', function(e) {
+                if (bookViewer.style.display === 'flex') {
+                    if (e.key === 'ArrowLeft' && currentPage > 0) {
+                        prevBtn.click();
+                    } else if (e.key === 'ArrowRight' && currentPage < totalPages - 1) {
+                        nextBtn.click();
+                    } else if (e.key === 'Escape') {
+                        closeViewer.click();
+                    }
+                }
+            });
+            
+            // Gallery view toggles
+            document.querySelectorAll('.view-toggle').forEach(toggle => {
+                toggle.addEventListener('click', function() {
+                    document.querySelectorAll('.view-toggle').forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    const view = this.getAttribute('data-view');
+                    document.querySelectorAll('.gallery-view').forEach(v => v.classList.remove('active'));
+                    document.getElementById(`${view}View`).classList.add('active');
+                });
+            });
+            
+            // Handle window resize
+            window.addEventListener('resize', function() {
+                if (window.innerWidth <= 900) {
+                    flipbook.turn('size', '95vw', '70vh');
+                } else {
+                    flipbook.turn('size', 800, 600);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

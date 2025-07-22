@@ -1,0 +1,479 @@
+<!--
+This uses PDF's embedded text layer rather than optical recognition.
+Works only with PDFs that have text layers (not scanned documents).
+currently it does not extract well either
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Visual Extractor with Styling</title>
+    <style>
+        /* Base Styles */
+        :root {
+            --text-color: #333;
+            --bg-color: #fff;
+            --font-family: 'Arial', sans-serif;
+            --font-size: 16px;
+            --container-bg: #f5f5f5;
+            --border-color: #ddd;
+        }
+
+        body {
+            font-family: var(--font-family);
+            font-size: var(--font-size);
+            color: var(--text-color);
+            background-color: var(--container-bg);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: linear-gradient(135deg, #6e48aa, #9d50bb);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        /* Upload Section */
+        .upload-section {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .file-input-label {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #6e48aa;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .file-input-label:hover {
+            background: #5d3a99;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        /* Style Controls */
+        .style-controls {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .style-presets {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .style-preset {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        .style-preset:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .style-preset.active {
+            box-shadow: 0 0 0 3px rgba(110, 72, 170, 0.3);
+        }
+
+        .custom-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        /* Content Display */
+        .content-display {
+            background: var(--bg-color);
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .pdf-page {
+            margin-bottom: 40px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            position: relative;
+        }
+
+        .page-number {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            z-index: 10;
+        }
+
+        .page-content {
+            padding: 20px;
+        }
+
+        .extracted-image {
+            max-width: 100%;
+            height: auto;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: block;
+        }
+
+        .text-block {
+            margin-bottom: 15px;
+            padding: 15px;
+            background: rgba(0,0,0,0.03);
+            border-radius: 4px;
+            border-left: 4px solid #6e48aa;
+            color: var(--text-color);
+            font-family: var(--font-family);
+            font-size: var(--font-size);
+        }
+
+        /* Status Messages */
+        #status {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+            text-align: center;
+            display: none;
+        }
+
+        .status-loading {
+            background-color: #e3f2fd;
+            color: #0d47a1;
+        }
+
+        .status-success {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .status-error {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>PDF Visual Extractor</h1>
+            <p>Extract and style all PDF content including images</p>
+        </header>
+
+        <section class="upload-section">
+            <h2>Upload PDF File</h2>
+            <input type="file" id="pdfInput" accept=".pdf" style="display: none;">
+            <label for="pdfInput" class="file-input-label">Choose PDF File</label>
+            <div id="status"></div>
+        </section>
+
+        <section class="style-controls">
+            <h2>Style Customization</h2>
+            <div class="style-presets">
+                <button class="style-preset active" data-style="default">Default</button>
+                <button class="style-preset" data-style="newspaper">Newspaper</button>
+                <button class="style-preset" data-style="dark">Dark Mode</button>
+                <button class="style-preset" data-style="modern">Modern</button>
+                <button class="style-preset" data-style="vintage">Vintage</button>
+            </div>
+
+            <div class="custom-controls">
+                <div class="control-group">
+                    <label for="textColor">Text Color</label>
+                    <input type="color" id="textColor" value="#333333">
+                </div>
+                <div class="control-group">
+                    <label for="bgColor">Background Color</label>
+                    <input type="color" id="bgColor" value="#ffffff">
+                </div>
+                <div class="control-group">
+                    <label for="containerBg">Container Background</label>
+                    <input type="color" id="containerBg" value="#f5f5f5">
+                </div>
+                <div class="control-group">
+                    <label for="fontFamily">Font Family</label>
+                    <select id="fontFamily">
+                        <option value="Arial, sans-serif">Arial</option>
+                        <option value="Georgia, serif">Georgia</option>
+                        <option value="'Courier New', monospace">Courier New</option>
+                        <option value="'Times New Roman', serif">Times New Roman</option>
+                        <option value="'Palatino Linotype', serif">Palatino</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="fontSize">Font Size (px)</label>
+                    <input type="range" id="fontSize" min="12" max="24" value="16">
+                </div>
+            </div>
+        </section>
+
+        <section class="content-display" id="contentDisplay">
+            <p>Upload a PDF to view extracted content</p>
+        </section>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <script>
+        // Initialize PDF.js
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+
+        // DOM elements
+        const pdfInput = document.getElementById('pdfInput');
+        const contentDisplay = document.getElementById('contentDisplay');
+        const statusElement = document.getElementById('status');
+        const stylePresets = document.querySelectorAll('.style-preset');
+        
+        // Style controls
+        const textColor = document.getElementById('textColor');
+        const bgColor = document.getElementById('bgColor');
+        const containerBg = document.getElementById('containerBg');
+        const fontFamily = document.getElementById('fontFamily');
+        const fontSize = document.getElementById('fontSize');
+
+        // Handle PDF file selection
+        pdfInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            showStatus(`Loading ${file.name}...`, 'status-loading');
+
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const typedArray = new Uint8Array(arrayBuffer);
+
+                // Load the PDF
+                const pdf = await pdfjsLib.getDocument(typedArray).promise;
+                showStatus(`Processing ${pdf.numPages} pages...`, 'status-loading');
+
+                // Clear previous content
+                contentDisplay.innerHTML = '';
+
+                // Process each page
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    showStatus(`Processing page ${i} of ${pdf.numPages}`, 'status-loading');
+
+                    // Create page container
+                    const pageContainer = document.createElement('div');
+                    pageContainer.className = 'pdf-page';
+                    
+                    // Add page number
+                    const pageNumber = document.createElement('div');
+                    pageNumber.className = 'page-number';
+                    pageNumber.textContent = `Page ${i}`;
+                    pageContainer.appendChild(pageNumber);
+
+                    // Create content container
+                    const contentContainer = document.createElement('div');
+                    contentContainer.className = 'page-content';
+
+                    // Render page to canvas for visual elements
+                    const viewport = page.getViewport({ scale: 1.5 });
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
+
+                    await page.render({
+                        canvasContext: context,
+                        viewport: viewport
+                    }).promise;
+
+                    // Add rendered page as image
+                    const img = document.createElement('img');
+                    img.className = 'extracted-image';
+                    img.src = canvas.toDataURL('image/png');
+                    contentContainer.appendChild(img);
+
+                    // Extract text content (OCR-like simulation)
+                    const textContent = await page.getTextContent();
+                    const textItems = textContent.items;
+                    
+                    // Group text items by their y-position to simulate lines/paragraphs
+                    const textBlocks = groupTextItems(textItems);
+                    
+                    // Add text blocks to content
+                    textBlocks.forEach(block => {
+                        const textElement = document.createElement('div');
+                        textElement.className = 'text-block';
+                        textElement.textContent = block.text;
+                        contentContainer.appendChild(textElement);
+                    });
+
+                    // Add to page container
+                    pageContainer.appendChild(contentContainer);
+                    contentDisplay.appendChild(pageContainer);
+                }
+
+                showStatus('PDF processing complete!', 'status-success');
+                applyStyles(); // Apply initial styles
+
+            } catch (error) {
+                showStatus(`Error processing PDF: ${error.message}`, 'status-error');
+                console.error(error);
+            }
+        });
+
+        // Group text items by their y-position to simulate paragraphs/lines
+        function groupTextItems(textItems) {
+            if (textItems.length === 0) return [];
+            
+            // Sort by y-position (top to bottom)
+            textItems.sort((a, b) => a.transform[5] - b.transform[5]);
+            
+            const blocks = [];
+            let currentBlock = { text: textItems[0].str, y: textItems[0].transform[5] };
+            const LINE_THRESHOLD = 5; // pixels
+            
+            for (let i = 1; i < textItems.length; i++) {
+                const item = textItems[i];
+                const yDiff = Math.abs(item.transform[5] - currentBlock.y);
+                
+                if (yDiff < LINE_THRESHOLD) {
+                    // Same line
+                    currentBlock.text += ' ' + item.str;
+                } else {
+                    // New line/paragraph
+                    blocks.push(currentBlock);
+                    currentBlock = { text: item.str, y: item.transform[5] };
+                }
+            }
+            
+            // Add the last block
+            blocks.push(currentBlock);
+            
+            return blocks;
+        }
+
+        // Style preset selection
+        stylePresets.forEach(preset => {
+            preset.addEventListener('click', () => {
+                // Update active state
+                stylePresets.forEach(p => p.classList.remove('active'));
+                preset.classList.add('active');
+                
+                // Apply preset styles
+                switch(preset.dataset.style) {
+                    case 'newspaper':
+                        textColor.value = '#333333';
+                        bgColor.value = '#f0e6cc';
+                        containerBg.value = '#e6d9b8';
+                        fontFamily.value = 'Georgia, serif';
+                        break;
+                    case 'dark':
+                        textColor.value = '#ffffff';
+                        bgColor.value = '#222222';
+                        containerBg.value = '#333333';
+                        fontFamily.value = 'Arial, sans-serif';
+                        break;
+                    case 'modern':
+                        textColor.value = '#2d3748';
+                        bgColor.value = '#ffffff';
+                        containerBg.value = '#f5f7fa';
+                        fontFamily.value = 'Arial, sans-serif';
+                        break;
+                    case 'vintage':
+                        textColor.value = '#5c3a21';
+                        bgColor.value = '#f3e9d2';
+                        containerBg.value = '#e6d9b8';
+                        fontFamily.value = "'Times New Roman', serif";
+                        break;
+                    default: // Default
+                        textColor.value = '#333333';
+                        bgColor.value = '#ffffff';
+                        containerBg.value = '#f5f5f5';
+                        fontFamily.value = 'Arial, sans-serif';
+                }
+                
+                applyStyles();
+            });
+        });
+
+        // Custom style controls
+        textColor.addEventListener('input', applyStyles);
+        bgColor.addEventListener('input', applyStyles);
+        containerBg.addEventListener('input', applyStyles);
+        fontFamily.addEventListener('change', applyStyles);
+        fontSize.addEventListener('input', applyStyles);
+
+        // Apply styles to all elements
+        function applyStyles() {
+            // Update CSS variables
+            document.documentElement.style.setProperty('--text-color', textColor.value);
+            document.documentElement.style.setProperty('--bg-color', bgColor.value);
+            document.documentElement.style.setProperty('--container-bg', containerBg.value);
+            document.documentElement.style.setProperty('--font-family', fontFamily.value);
+            document.documentElement.style.setProperty('--font-size', `${fontSize.value}px`);
+            
+            // Apply to all text blocks
+            document.querySelectorAll('.text-block').forEach(block => {
+                block.style.color = textColor.value;
+                block.style.fontFamily = fontFamily.value;
+                block.style.fontSize = `${fontSize.value}px`;
+            });
+            
+            // Apply to all page containers
+            document.querySelectorAll('.pdf-page').forEach(page => {
+                page.style.backgroundColor = bgColor.value;
+            });
+            
+            // Apply to content display
+            document.querySelector('.content-display').style.backgroundColor = containerBg.value;
+        }
+
+        // Show status message
+        function showStatus(message, className) {
+            statusElement.textContent = message;
+            statusElement.className = className;
+            statusElement.style.display = 'block';
+        }
+    </script>
+</body>
+</html>

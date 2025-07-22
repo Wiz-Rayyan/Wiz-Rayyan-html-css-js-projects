@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interactive Ranking Timeline</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    #timeline {
+      width: 800px;
+      height: 500px;
+      margin: 0 auto;
+      position: relative;
+      border-left: 2px solid #333;
+      border-bottom: 2px solid #333;
+    }
+    .year-label {
+      position: absolute;
+      bottom: -30px;
+      transform: translateX(-50%);
+    }
+    .rank-label {
+      position: absolute;
+      left: -30px;
+      transform: translateY(-50%);
+      font-weight: bold;
+    }
+    .rank-line {
+      position: absolute;
+      height: 2px;
+      background: #333;
+      left: 0;
+      transition: all 1s ease;
+    }
+    .rank-dot {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background: #333;
+      border-radius: 50%;
+      transform: translate(-5px, -5px);
+      transition: all 1s ease;
+    }
+    .object-label {
+      position: absolute;
+      font-size: 12px;
+      transform: translateY(-50%);
+      transition: all 1s ease;
+    }
+    #controls {
+      text-align: center;
+      margin: 20px;
+    }
+    button {
+      padding: 8px 16px;
+      font-size: 16px;
+    }
+    #year-display {
+      font-size: 24px;
+      font-weight: bold;
+      margin: 0 20px;
+    }
+    #data-input {
+      margin: 20px auto;
+      width: 800px;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+    textarea {
+      width: 100%;
+      height: 100px;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div id="data-input">
+    <h3>Enter Your Data (JSON Format)</h3>
+    <textarea id="json-input">{
+  "2016": { "A": 1, "B": 2, "C": 3, "D": 4, "E": 5, "F": 6 },
+  "2017": { "A": 1, "B": 2, "C": 3, "E": 4, "F": 5, "D": 6 },
+  "2018": { "A": 1, "B": 2, "C": 3, "F": 4, "D": 5, "E": 6 },
+  "2019": { "A": 2, "B": 1, "C": 3, "F": 4, "E": 5, "D": 6 },
+  "2020": { "A": 3, "B": 1, "C": 2, "F": 4, "D": 5, "E": 6 }
+}</textarea>
+    <button id="load-data">Load Data</button>
+  </div>
+
+  <div id="timeline"></div>
+  <div id="controls">
+    <button id="prev-year">Previous Year</button>
+    <span id="year-display">2016</span>
+    <button id="next-year">Next Year</button>
+  </div>
+
+  <script>
+    // Default data (can be overwritten by user input)
+    let rankData = {
+      2016: { A: 1, B: 2, C: 3, D: 4, E: 5, F: 6 },
+      2017: { A: 1, B: 2, C: 3, E: 4, F: 5, D: 6 },
+      2018: { A: 1, B: 2, C: 3, F: 4, D: 5, E: 6 },
+      2019: { A: 2, B: 1, C: 3, F: 4, E: 5, D: 6 },
+      2020: { A: 3, B: 1, C: 2, F: 4, D: 5, E: 6 }
+    };
+
+    let years = Object.keys(rankData).map(Number).sort();
+    let currentYearIndex = 0;
+    let objects = Object.keys(rankData[years[0]]);
+
+    const timeline = document.getElementById('timeline');
+    const yearDisplay = document.getElementById('year-display');
+    const prevButton = document.getElementById('prev-year');
+    const nextButton = document.getElementById('next-year');
+    const loadButton = document.getElementById('load-data');
+    const jsonInput = document.getElementById('json-input');
+
+    // Color palette for objects
+    const colors = {
+      A: '#FF6384', B: '#36A2EB', C: '#FFCE56',
+      D: '#4BC0C0', E: '#9966FF', F: '#FF9F40'
+    };
+
+    // Initialize timeline
+    function initTimeline() {
+      timeline.innerHTML = ''; // Clear previous elements
+
+      // Add year labels
+      years.forEach(year => {
+        const yearLabel = document.createElement('div');
+        yearLabel.className = 'year-label';
+        yearLabel.textContent = year;
+        yearLabel.style.left = `${getXPosition(year)}px`;
+        timeline.appendChild(yearLabel);
+      });
+
+      // Add rank labels (1-6 on Y-axis)
+      for (let rank = 1; rank <= 6; rank++) {
+        const rankLabel = document.createElement('div');
+        rankLabel.className = 'rank-label';
+        rankLabel.textContent = rank;
+        rankLabel.style.top = `${getYPosition(rank)}px`;
+        timeline.appendChild(rankLabel);
+      }
+
+      // Create lines, dots, and object labels
+      objects.forEach(obj => {
+        // Line
+        const line = document.createElement('div');
+        line.className = 'rank-line';
+        line.id = `line-${obj}`;
+        line.style.backgroundColor = colors[obj] || '#333';
+        timeline.appendChild(line);
+
+        // Dot
+        const dot = document.createElement('div');
+        dot.className = 'rank-dot';
+        dot.id = `dot-${obj}`;
+        dot.style.backgroundColor = colors[obj] || '#333';
+        timeline.appendChild(dot);
+
+        // Object label (on the line)
+        const objLabel = document.createElement('div');
+        objLabel.className = 'object-label';
+        objLabel.id = `label-${obj}`;
+        objLabel.textContent = obj;
+        objLabel.style.color = colors[obj] || '#333';
+        timeline.appendChild(objLabel);
+      });
+
+      updateYearDisplay();
+    }
+
+    // Update visualization for current year
+    function updateTimeline() {
+      const currentYear = years[currentYearIndex];
+      const currentRanks = rankData[currentYear];
+
+      objects.forEach(obj => {
+        const rank = currentRanks[obj];
+        const line = document.getElementById(`line-${obj}`);
+        const dot = document.getElementById(`dot-${obj}`);
+        const label = document.getElementById(`label-${obj}`);
+
+        // Update positions
+        line.style.width = `${getXPosition(currentYear)}px`;
+        line.style.top = `${getYPosition(rank)}px`;
+        dot.style.left = `${getXPosition(currentYear)}px`;
+        dot.style.top = `${getYPosition(rank)}px`;
+        label.style.left = `${getXPosition(currentYear) + 10}px`;
+        label.style.top = `${getYPosition(rank)}px`;
+      });
+    }
+
+    // Helper: Get X position for a year
+    function getXPosition(year) {
+      const minYear = Math.min(...years);
+      const maxYear = Math.max(...years);
+      const yearRange = maxYear - minYear;
+      return ((year - minYear) / yearRange) * 700;
+    }
+
+    // Helper: Get Y position for a rank (1-6)
+    function getYPosition(rank) {
+      const rankHeight = 400 / 6; // 6 ranks, 400px height
+      return 20 + (rank - 0.5) * rankHeight;
+    }
+
+    // Update year display
+    function updateYearDisplay() {
+      yearDisplay.textContent = years[currentYearIndex];
+      updateTimeline();
+    }
+
+    // Load user-provided data
+    function loadUserData() {
+      try {
+        const newData = JSON.parse(jsonInput.value);
+        rankData = newData;
+        years = Object.keys(rankData).map(Number).sort();
+        objects = Object.keys(rankData[years[0]]);
+        currentYearIndex = 0;
+        initTimeline();
+      } catch (e) {
+        alert("Invalid JSON! Please check your input.");
+      }
+    }
+
+    // Event listeners
+    prevButton.addEventListener('click', () => {
+      if (currentYearIndex > 0) {
+        currentYearIndex--;
+        updateYearDisplay();
+      }
+    });
+
+    nextButton.addEventListener('click', () => {
+      if (currentYearIndex < years.length - 1) {
+        currentYearIndex++;
+        updateYearDisplay();
+      }
+    });
+
+    loadButton.addEventListener('click', loadUserData);
+
+    // Initialize
+    initTimeline();
+  </script>
+</body>
+</html>

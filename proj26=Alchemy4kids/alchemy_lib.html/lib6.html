@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Holographic Alchemy Library</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Old+Standard+TT:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --parchment: #f5e8c9;
+            --gold: #d4af37;
+            --deep-blue: #0a0a12;
+            --ink: #1a1a1a;
+            --hologram-blue: rgba(0, 255, 255, 0.7);
+            --hologram-pink: rgba(255, 0, 255, 0.5);
+        }
+        
+        body {
+            background-color: var(--deep-blue);
+            color: var(--parchment);
+            font-family: 'Old Standard TT', serif;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+        
+        header {
+            background: linear-gradient(to right, 
+                rgba(10, 10, 18, 0.9), 
+                rgba(26, 26, 46, 0.7), 
+                rgba(10, 10, 18, 0.9));
+            padding: 1rem;
+            text-align: center;
+            border-bottom: 1px solid var(--hologram-blue);
+            position: relative;
+            z-index: 10;
+        }
+        
+        h1 {
+            font-family: 'Cinzel Decorative', serif;
+            color: var(--hologram-blue);
+            text-shadow: 0 0 10px var(--hologram-blue);
+            margin: 0;
+            letter-spacing: 2px;
+        }
+        
+        .book-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 2rem;
+            padding: 2rem;
+        }
+        
+        .book-cover {
+            position: relative;
+            height: 350px;
+            border-radius: 5px;
+            border: 1px solid var(--hologram-blue);
+            box-shadow: 
+                0 0 20px var(--hologram-blue),
+                inset 0 0 20px rgba(0, 255, 255, 0.3);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            overflow: hidden;
+            background: 
+                linear-gradient(135deg, 
+                    rgba(0, 255, 255, 0.1) 0%, 
+                    rgba(0, 255, 255, 0.2) 50%, 
+                    transparent 100%);
+        }
+        
+        .book-cover::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--hologram-blue);
+            animation: scan 4s linear infinite;
+            opacity: 0;
+        }
+        
+        .book-cover:hover::before {
+            opacity: 1;
+        }
+        
+        .book-cover img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            mix-blend-mode: luminosity;
+            opacity: 0.8;
+            transition: all 0.3s;
+        }
+        
+        .book-cover:hover img {
+            opacity: 1;
+            mix-blend-mode: normal;
+        }
+        
+        .book-cover:hover {
+            box-shadow: 
+                0 0 30px var(--hologram-pink),
+                inset 0 0 30px rgba(255, 0, 255, 0.3);
+            transform: translateY(-5px);
+        }
+        
+        .cover-title {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-family: 'Cinzel Decorative', serif;
+            font-size: 1.5rem;
+            color: white;
+            text-shadow: 
+                0 0 10px var(--hologram-blue),
+                0 0 20px var(--hologram-pink);
+            z-index: 2;
+            padding: 0 1rem;
+        }
+        
+        .book-viewer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 10, 18, 0.95);
+            display: none;
+            flex-direction: column;
+            z-index: 100;
+            overflow: hidden;
+        }
+        
+        .viewer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: rgba(26, 26, 46, 0.7);
+            border-bottom: 1px solid var(--hologram-blue);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        .viewer-title {
+            font-family: 'Cinzel Decorative', serif;
+            color: var(--hologram-blue);
+            margin: 0;
+            text-shadow: 0 0 10px var(--hologram-blue);
+        }
+        
+        .close-viewer {
+            background: none;
+            border: 1px solid var(--hologram-blue);
+            color: var(--hologram-blue);
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .close-viewer:hover {
+            background: rgba(0, 255, 255, 0.2);
+            text-shadow: 0 0 10px var(--hologram-blue);
+        }
+        
+        .hologram-viewer {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+        
+        .hologram-book {
+            width: 80%;
+            max-width: 800px;
+            height: 80vh;
+            background: 
+                linear-gradient(135deg, 
+                    rgba(0, 255, 255, 0.1) 0%, 
+                    rgba(0, 255, 255, 0.2) 50%, 
+                    transparent 100%);
+            border: 1px solid var(--hologram-blue);
+            box-shadow: 
+                0 0 40px var(--hologram-blue),
+                inset 0 0 30px rgba(0, 255, 255, 0.2);
+            padding: 2rem;
+            overflow: auto;
+            position: relative;
+        }
+        
+        .hologram-book::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--hologram-blue);
+            animation: scan 4s linear infinite;
+        }
+        
+        .hologram-book::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                linear-gradient(transparent 95%, rgba(0, 255, 255, 0.1)),
+                url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="none" stroke="%2300ffff" stroke-width="0.5" opacity="0.2"/></svg>');
+            pointer-events: none;
+        }
+        
+        .hologram-content h2 {
+            color: var(--hologram-blue);
+            border-bottom: 1px solid var(--hologram-blue);
+            padding-bottom: 0.5rem;
+            text-shadow: 0 0 5px var(--hologram-blue);
+        }
+        
+        .hologram-content p {
+            color: white;
+            line-height: 1.6;
+        }
+        
+        .page-controls {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: rgba(26, 26, 46, 0.7);
+            position: sticky;
+            bottom: 0;
+            z-index: 10;
+        }
+        
+        .page-btn {
+            background: none;
+            border: 1px solid var(--hologram-blue);
+            color: var(--hologram-blue);
+            padding: 0.5rem 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .page-btn:hover {
+            background: rgba(0, 255, 255, 0.2);
+            text-shadow: 0 0 10px var(--hologram-blue);
+        }
+        
+        .page-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+        
+        .page-indicator {
+            color: var(--hologram-blue);
+            padding: 0.5rem 1rem;
+            text-shadow: 0 0 5px var(--hologram-blue);
+        }
+        
+        @keyframes scan {
+            0% { top: 0; opacity: 0; }
+            5% { opacity: 1; }
+            95% { opacity: 1; }
+            100% { top: 100%; opacity: 0; }
+        }
+        
+        @media (max-width: 768px) {
+            .hologram-book {
+                width: 95%;
+                height: 70vh;
+                padding: 1rem;
+            }
+            
+            .book-gallery {
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Holographic Alchemy Library</h1>
+    </header>
+    
+    <main class="book-gallery">
+        <div class="book-cover" data-book="spectrum-1">
+            <img src="https://i.pinimg.com/736x/44/e1/e9/44e1e9952b45eec036b020fcc5101f55.jpg" alt="Spectrum 1.0">
+            <div class="cover-title">Spectrum 1.0</div>
+        </div>
+        
+        <div class="book-cover" data-book="multi-relationship">
+            <img src="https://i.pinimg.com/736x/d1/e9/91/d1e991cd2be70a2e049c7390400c9d6f.jpg" alt="Technology Multi-Relationship">
+            <div class="cover-title">TECHNOLOGY MULTI-RELATIONSHIP</div>
+        </div>
+        
+        <div class="book-cover" data-book="hermetic-principles">
+            <img src="https://i.pinimg.com/736x/39/ba/81/39ba8194d87d7ac65161064e99b96b5c.jpg" alt="Hermetic Principles">
+            <div class="cover-title">Hermetic Principles</div>
+        </div>
+        
+        <div class="book-cover" data-book="golden-treatise">
+            <img src="https://i.pinimg.com/736x/ee/80/82/ee808210d68e9ea16c665cff4d495030.jpg" alt="Golden Treatise">
+            <div class="cover-title">Golden Treatise</div>
+        </div>
+        
+        <div class="book-cover" data-book="philosophers-stone">
+            <img src="https://i.pinimg.com/736x/d9/7f/d7/d97fd70d0a4908603c5814aefeb9dbc3.jpg" alt="Philosopher's Stone">
+            <div class="cover-title">Philosopher's Stone</div>
+        </div>
+    </main>
+    
+    <div class="book-viewer" id="bookViewer">
+        <div class="viewer-header">
+            <h2 class="viewer-title" id="viewerTitle">Book Title</h2>
+            <button class="close-viewer" id="closeViewer">Close</button>
+        </div>
+        <div class="book-container">
+            <!-- Style 1: Physical Book -->
+            <div class="physical-book" id="physicalBook" style="display:none">
+                <div class="book-cover-left"></div>
+                <div class="book-cover-right"></div>
+                <div class="book-page" id="page1"></div>
+                <div class="book-page" id="page2"></div>
+            </div>
+            <!-- Style 2: Flipbook -->
+            <div class="flipbook" id="flipbook" style="display:none"></div>
+            <!-- Style 3: Scroll -->
+            <div class="scroll-book" id="scrollBook" style="display:none"></div>
+            <!-- Style 4: Flashcard -->
+            <div class="flashcard-container" id="flashcardContainer" style="display:none"></div>
+            <!-- Style 5: Codex -->
+            <div class="codex-container" id="codexContainer" style="display:none"></div>
+            <!-- Style 6: Tome -->
+            <div class="tome-container" id="tomeContainer" style="display:none"></div>
+            <!-- Custom Styles (3D, Burning, Hologram, etc.) will be created dynamically -->
+        </div>
+        <div class="page-controls nav-controls">
+            <button class="page-btn nav-btn" id="prevBtn">Previous</button>
+            <span class="page-indicator" id="pageIndicator">Page 1 of 1</span>
+            <button class="page-btn nav-btn" id="nextBtn">Next</button>
+        </div>
+    </div>
+    
+    <script>
+    // --- Multi-style Alchemy Book Library (from lib5/lib4/lib3 patterns) ---
+    document.addEventListener('DOMContentLoaded', function() {
+        // Book data (extend as needed)
+        const books = {
+            "spectrum-1": {
+                title: "Spectrum 1.0",
+                style: "hologram-book",
+                pages: [
+                    { title: "Spectral Analysis", content: "<p>This tome reveals the hidden spectra within all matter. The colors represent different alchemical states:</p><ul><li>Red - Base matter</li><li>Yellow - Purification</li><li>Blue - Transcendence</li></ul>" },
+                    { title: "Scottish Alchemy", content: "<p>Ancient Scottish alchemists discovered this spectrum through prismatic distillation of Highland waters.</p>" }
+                ]
+            },
+            "multi-relationship": {
+                title: "TECHNOLOGY MULTI-RELATIONSHIP",
+                style: "hologram-book",
+                pages: [
+                    { title: "Mechanical Alchemy", content: "<p>The fusion of technology and alchemy creates new possibilities for transformation.</p>" },
+                    { title: "Quantum Transmutation", content: "<p>At the subatomic level, all elements are connected through alchemical bonds.</p>" }
+                ]
+            },
+            // Add more books and styles as needed
+        };
+
+        // Viewer elements
+        const bookViewer = document.getElementById('bookViewer');
+        const viewerTitle = document.getElementById('viewerTitle');
+        const closeViewer = document.getElementById('closeViewer');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const pageIndicator = document.getElementById('pageIndicator');
+        // Book style containers
+        const physicalBook = document.getElementById('physicalBook');
+        const flipbook = document.getElementById('flipbook');
+        const scrollBook = document.getElementById('scrollBook');
+        const flashcardContainer = document.getElementById('flashcardContainer');
+        const codexContainer = document.getElementById('codexContainer');
+        const tomeContainer = document.getElementById('tomeContainer');
+
+        // State
+        let currentBook = null;
+        let currentPage = 0;
+        let currentStyle = '';
+
+        // --- Robust custom style container management ---
+        const customStyles = [
+            { id: "style1", cleanup: () => {
+                const grimoire3d = document.getElementById("style1");
+                if (grimoire3d) {
+                    const threejs = document.getElementById("threejs-container");
+                    if (window.book3DAnimCleanup) window.book3DAnimCleanup();
+                    if (threejs) threejs.innerHTML = "";
+                }
+            }},
+            { id: "style2", cleanup: () => {
+                const burningBook = document.getElementById("style2");
+                if (burningBook) Array.from(burningBook.querySelectorAll('.flame-particle')).forEach(e=>e.remove());
+            }},
+            { id: "style3", cleanup: () => {
+                const hologramBook = document.getElementById("style3");
+                if (hologramBook) Array.from(hologramBook.querySelectorAll('.hologram-grid')).forEach(e=>e.remove());
+            }}
+        ];
+        function hideAndCleanupAllCustomStyles() {
+            customStyles.forEach(({id, cleanup}) => {
+                let el = document.getElementById(id);
+                if (el) {
+                    el.style.display = "none";
+                    cleanup();
+                    // Remove from DOM if not the current style
+                    if (currentStyle !== "grimoire-3d" && id === "style1") el.remove();
+                    if (currentStyle !== "burning-book" && id === "style2") el.remove();
+                    if (currentStyle !== "hologram-book" && id === "style3") el.remove();
+                }
+            });
+        }
+        function ensureCustomContainer(id, className, innerHTML) {
+            let el = document.getElementById(id);
+            if (!el) {
+                el = document.createElement("div");
+                el.id = id;
+                el.className = `view-style ${className}`;
+                if (innerHTML) el.innerHTML = innerHTML;
+                // Insert into .book-container before nav-controls
+                const container = document.querySelector(".book-container");
+                const nav = document.querySelector(".nav-controls");
+                container.insertBefore(el, nav || null);
+            }
+            return el;
+        }
+
+        // --- Book cover click handler ---
+        document.querySelectorAll('.book-cover').forEach(cover => {
+            cover.addEventListener('click', function() {
+                const bookId = this.getAttribute('data-book');
+                currentBook = books[bookId];
+                currentPage = 0;
+                currentStyle = currentBook && currentBook.style ? currentBook.style : 'hologram-book';
+
+                viewerTitle.textContent = currentBook.title;
+                bookViewer.style.display = 'flex';
+                document.body.style.overflow = 'hidden';
+
+                // Hide all built-in book styles
+                physicalBook.style.display = "none";
+                flipbook.style.display = "none";
+                scrollBook.style.display = "none";
+                flashcardContainer.style.display = "none";
+                codexContainer.style.display = "none";
+                tomeContainer.style.display = "none";
+                // Hide and cleanup all custom styles
+                hideAndCleanupAllCustomStyles();
+
+                // --- Custom style logic ---
+                if (currentStyle === "grimoire-3d") {
+                    const grimoire3d = ensureCustomContainer("style1", "grimoire-3d");
+                    grimoire3d.style.display = "block";
+                    let threejsContainer = document.getElementById("threejs-container");
+                    if (!threejsContainer) {
+                        threejsContainer = document.createElement("div");
+                        threejsContainer.id = "threejs-container";
+                        grimoire3d.appendChild(threejsContainer);
+                    }
+                    threejsContainer.innerHTML = "";
+                    if (window.book3DAnimCleanup) window.book3DAnimCleanup();
+                    // bookStyles.init3DGrimoire(); // Add 3D logic if needed
+                } else if (currentStyle === "burning-book") {
+                    const burningBook = ensureCustomContainer("style2", "burning-book");
+                    burningBook.style.display = "block";
+                    Array.from(burningBook.querySelectorAll('.flame-particle')).forEach(e=>e.remove());
+                    // bookStyles.initBurningBook(); // Add burning logic if needed
+                } else if (currentStyle === "hologram-book") {
+                    const hologramBook = ensureCustomContainer("style3", "hologram-book");
+                    hologramBook.style.display = "block";
+                    // Remove old grid
+                    Array.from(hologramBook.querySelectorAll('.hologram-grid')).forEach(e=>e.remove());
+                    // Fill content
+                    hologramBook.innerHTML = `<div class='hologram-content' id='bookContent'></div>`;
+                    updateContent();
+                }
+                // --- Built-in styles ---
+                else if (currentStyle === "physical") {
+                    physicalBook.style.display = "block";
+                    // Fill pages
+                    const pages = currentBook.pages || [];
+                    const pageEls = physicalBook.querySelectorAll('.book-page');
+                    pageEls[0].innerHTML = `<h2>${pages[0]?.title || ''}</h2>${pages[0]?.content || ''}`;
+                    pageEls[1].innerHTML = `<h2>${pages[1]?.title || ''}</h2>${pages[1]?.content || ''}`;
+                    updateContent();
+                } else if (currentStyle === "flipbook") {
+                    flipbook.style.display = "block";
+                    // Fill flipbook pages
+                    flipbook.innerHTML = (currentBook.pages||[]).map(p=>`<div class='flipbook-page'><h2>${p.title}</h2>${p.content}</div>`).join('');
+                    updateContent();
+                } else if (currentStyle === "scroll") {
+                    scrollBook.style.display = "block";
+                    scrollBook.innerHTML = `<h2>${currentBook.pages[0]?.title||''}</h2>${currentBook.pages[0]?.content||''}`;
+                    updateContent();
+                } else if (currentStyle === "flashcards") {
+                    flashcardContainer.style.display = "block";
+                    flashcardContainer.innerHTML = (currentBook.pages||[]).map((p,i)=>`<div class='flashcard${i===0?' active':''}'><h2>${p.title}</h2>${p.content}</div>`).join('');
+                    updateContent();
+                } else if (currentStyle === "codex") {
+                    codexContainer.style.display = "flex";
+                    codexContainer.innerHTML = `<div class='codex-page left'><h2>${currentBook.pages[0]?.title||''}</h2>${currentBook.pages[0]?.content||''}</div><div class='codex-page right'><h2>${currentBook.pages[1]?.title||''}</h2>${currentBook.pages[1]?.content||''}</div>`;
+                    updateContent();
+                } else if (currentStyle === "tome") {
+                    tomeContainer.style.display = "block";
+                    tomeContainer.innerHTML = `<div class='tome-header'><h2>${currentBook.title}</h2></div>${currentBook.pages[0]?.content||''}`;
+                    updateContent();
+                }
+            });
+        });
+
+        // Close viewer
+        closeViewer.addEventListener('click', function() {
+            bookViewer.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        });
+
+        // Navigation
+        prevBtn.addEventListener('click', function() {
+            if (!currentBook) return;
+            if (currentPage > 0) {
+                currentPage--;
+                updateContent();
+            }
+        });
+        nextBtn.addEventListener('click', function() {
+            if (!currentBook) return;
+            if (currentPage < (currentBook.pages?.length||1) - 1) {
+                currentPage++;
+                updateContent();
+            }
+        });
+
+        // Update content for all styles
+        function updateContent() {
+            if (!currentBook) return;
+            const pages = currentBook.pages || [];
+            // Update for hologram-book
+            if (currentStyle === "hologram-book") {
+                const bookContent = document.getElementById('bookContent');
+                if (bookContent && pages[currentPage]) {
+                    bookContent.innerHTML = `<h2>${pages[currentPage].title}</h2>${pages[currentPage].content}`;
+                }
+            }
+            // Update for physical
+            if (currentStyle === "physical") {
+                const pageEls = physicalBook.querySelectorAll('.book-page');
+                pageEls.forEach((el, i) => {
+                    el.classList.toggle('active', i === currentPage);
+                });
+            }
+            // Update for flipbook
+            if (currentStyle === "flipbook") {
+                const flipPages = flipbook.querySelectorAll('.flipbook-page');
+                flipPages.forEach((el, i) => {
+                    el.style.display = (i === currentPage) ? 'block' : 'none';
+                });
+            }
+            // Update for flashcards
+            if (currentStyle === "flashcards") {
+                const cards = flashcardContainer.querySelectorAll('.flashcard');
+                cards.forEach((el, i) => {
+                    el.classList.toggle('active', i === currentPage);
+                });
+            }
+            // Update for scroll
+            if (currentStyle === "scroll") {
+                scrollBook.innerHTML = `<h2>${pages[currentPage]?.title||''}</h2>${pages[currentPage]?.content||''}`;
+            }
+            // Update for codex
+            if (currentStyle === "codex") {
+                codexContainer.innerHTML = `<div class='codex-page left'><h2>${pages[currentPage]?.title||''}</h2>${pages[currentPage]?.content||''}</div><div class='codex-page right'><h2>${pages[currentPage+1]?.title||''}</h2>${pages[currentPage+1]?.content||''}</div>`;
+            }
+            // Update for tome
+            if (currentStyle === "tome") {
+                tomeContainer.innerHTML = `<div class='tome-header'><h2>${currentBook.title}</h2></div>${pages[currentPage]?.content||''}`;
+            }
+            // Update nav
+            pageIndicator.textContent = `Page ${currentPage + 1} of ${pages.length}`;
+            prevBtn.disabled = currentPage === 0;
+            nextBtn.disabled = currentPage === pages.length - 1;
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            if (bookViewer.style.display === 'flex') {
+                if (e.key === 'ArrowLeft' && currentPage > 0) {
+                    currentPage--;
+                    updateContent();
+                } else if (e.key === 'ArrowRight' && currentPage < (currentBook.pages?.length||1) - 1) {
+                    currentPage++;
+                    updateContent();
+                } else if (e.key === 'Escape') {
+                    bookViewer.style.display = 'none';
+                    document.body.style.overflow = 'auto';
+                }
+            }
+        });
+    });
+    </script>
+</body>
+</html>
