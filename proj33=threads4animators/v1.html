@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevShare - Creative Coding Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 100%);
+            color: #ffffff;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            -webkit-background-clip: text;
+            background-clip: text;  
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .create-post {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #b0b0b0;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.2);
+            color: white;
+            font-family: inherit;
+        }
+
+        .form-group textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        .code-editor {
+            font-family: 'Monaco', 'Menlo', monospace;
+            background: #1e1e1e;
+            min-height: 200px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .feed {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .post {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .post:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .post-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .post-author {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .author-info h4 {
+            color: white;
+            margin-bottom: 0.25rem;
+        }
+
+        .author-info span {
+            color: #b0b0b0;
+            font-size: 0.875rem;
+        }
+
+        .post-title {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: white;
+            margin-bottom: 0.5rem;
+        }
+
+        .post-description {
+            color: #b0b0b0;
+            line-height: 1.6;
+        }
+
+        .post-content {
+            position: relative;
+        }
+
+        .demo-area {
+            padding: 2rem;
+            background: rgba(0, 0, 0, 0.2);
+            min-height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .post-actions {
+            padding: 1rem 1.5rem;
+            display: flex;
+            gap: 1rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .action-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 20px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.875rem;
+        }
+
+        .action-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .action-btn.active {
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+        }
+
+        .code-view,
+        .markdown-view {
+            padding: 1.5rem;
+            background: #1e1e1e;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.875rem;
+            line-height: 1.6;
+            overflow-x: auto;
+            display: none;
+        }
+
+        .code-view.active,
+        .markdown-view.active {
+            display: block;
+        }
+
+        .markdown-view {
+            font-family: inherit;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .stats {
+            display: flex;
+            gap: 1rem;
+            margin-left: auto;
+        }
+
+        .stat {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            color: #b0b0b0;
+            font-size: 0.875rem;
+        }
+
+        /* Animation examples */
+        .bounce-animation {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            border-radius: 50%;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-30px); }
+            60% { transform: translateY(-15px); }
+        }
+
+        .glow-text {
+            font-size: 2rem;
+            font-weight: bold;
+            text-align: center;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1);
+            -webkit-background-clip: text;
+            background-clip: text ;
+            -webkit-text-fill-color: transparent;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from { filter: drop-shadow(0 0 20px rgba(255, 107, 107, 0.5)); }
+            to { filter: drop-shadow(0 0 40px rgba(78, 205, 196, 0.8)); }
+        }
+
+        .morphing-shape {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(45deg, #4ecdc4, #45b7d1);
+            animation: morph 4s ease-in-out infinite;
+        }
+
+        @keyframes morph {
+            0% { border-radius: 0; transform: rotate(0deg); }
+            25% { border-radius: 50%; transform: rotate(90deg); }
+            50% { border-radius: 20px; transform: rotate(180deg); }
+            75% { border-radius: 50%; transform: rotate(270deg); }
+            100% { border-radius: 0; transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">DevShare</div>
+            <nav class="nav-buttons">
+                <button class="btn btn-secondary" onclick="toggleCreatePost()">Create Post</button>
+                <button class="btn btn-primary">Sign In</button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="create-post" id="createPost" style="display: none;">
+            <h2 style="margin-bottom: 1.5rem; color: white;">Create New Post</h2>
+            <form onsubmit="createPost(event)">
+                <div class="form-group">
+                    <label for="title">Title</label>
+                    <input type="text" id="title" placeholder="Give your creation a catchy title..." required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="description">Description</label>
+                    <textarea id="description" placeholder="Describe your animation or design..."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="code">Code (HTML/CSS/JavaScript)</label>
+                    <textarea id="code" class="code-editor" placeholder="Paste your HTML, CSS, and JavaScript here..." required></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="explanation">Explanation (Markdown)</label>
+                    <textarea id="explanation" placeholder="Explain how it works, techniques used, etc. (Markdown supported)"></textarea>
+                </div>
+                
+                <div class="checkbox-group">
+                    <input type="checkbox" id="showCode" checked>
+                    <label for="showCode">Allow code viewing</label>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">Share Creation</button>
+            </form>
+        </div>
+
+        <div class="feed" id="feed">
+            <!-- Sample Posts -->
+            <article class="post">
+                <div class="post-header">
+                    <div class="post-author">
+                        <div class="avatar">JD</div>
+                        <div class="author-info">
+                            <h4>Jane Developer</h4>
+                            <span>@janedev • 2h ago</span>
+                        </div>
+                    </div>
+                    <h3 class="post-title">Bouncing Ball Animation</h3>
+                    <p class="post-description">A simple CSS animation showcasing physics-based bouncing with easing functions.</p>
+                </div>
+                
+                <div class="post-content">
+                    <div class="demo-area">
+                        <div class="bounce-animation"></div>
+                    </div>
+                    
+                    <div class="code-view" id="code-1">
+&lt;div class="bounce-animation"&gt;&lt;/div&gt;
+
+&lt;style&gt;
+.bounce-animation {
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+    border-radius: 50%;
+    animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% { 
+        transform: translateY(0); 
+    }
+    40% { 
+        transform: translateY(-30px); 
+    }
+    60% { 
+        transform: translateY(-15px); 
+    }
+}
+&lt;/style&gt;
+                    </div>
+                    
+                    <div class="markdown-view" id="markdown-1">
+                        <h4>How it works:</h4>
+                        <p>This animation uses CSS keyframes to create a realistic bouncing effect:</p>
+                        <ul>
+                            <li><strong>Easing:</strong> The percentages (0%, 20%, 50%, etc.) create natural timing</li>
+                            <li><strong>Transform:</strong> translateY() moves the ball vertically</li>
+                            <li><strong>Infinite loop:</strong> The animation repeats continuously</li>
+                        </ul>
+                        <p>The gradient background adds visual appeal while keeping the code minimal.</p>
+                    </div>
+                </div>
+                
+                <div class="post-actions">
+                    <button class="action-btn active" onclick="showDemo(1)">Θ Demo</button>
+                    <button class="action-btn" onclick="showCode(1)">&lt;/&gt; Code</button>
+                    <button class="action-btn" onclick="showMarkdown(1)">📝 Explanation</button>
+                    <div class="stats">
+                        <div class="stat">❤️ 124</div>
+                        <div class="stat">🔄 32</div>
+                        <div class="stat">💬 18</div>
+                    </div>
+                </div>
+            </article>
+
+            <article class="post">
+                <div class="post-header">
+                    <div class="post-author">
+                        <div class="avatar">MK</div>
+                        <div class="author-info">
+                            <h4>Mike Designer</h4>
+                            <span>@mikeui • 4h ago</span>
+                        </div>
+                    </div>
+                    <h3 class="post-title">Glowing Text Effect</h3>
+                    <p class="post-description">Animated gradient text with dynamic glow effect using CSS animations.</p>
+                </div>
+                
+                <div class="post-content">
+                    <div class="demo-area">
+                        <div class="glow-text">DevShare</div>
+                    </div>
+                    
+                    <div class="code-view" id="code-2">
+&lt;div class="glow-text"&gt;DevShare&lt;/div&gt;
+
+&lt;style&gt;
+.glow-text {
+    font-size: 2rem;
+    font-weight: bold;
+    text-align: center;
+    background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+    from { 
+        filter: drop-shadow(0 0 20px rgba(255, 107, 107, 0.5)); 
+    }
+    to { 
+        filter: drop-shadow(0 0 40px rgba(78, 205, 196, 0.8)); 
+    }
+}
+&lt;/style&gt;
+                    </div>
+                    
+                    <div class="markdown-view" id="markdown-2">
+                        <h4>Technique Breakdown:</h4>
+                        <p>This effect combines several modern CSS features:</p>
+                        <ul>
+                            <li><strong>Gradient Text:</strong> background-clip: text makes gradients visible only on text</li>
+                            <li><strong>Drop Shadow Filter:</strong> Creates the glowing effect around the text</li>
+                            <li><strong>Alternating Animation:</strong> Goes back and forth instead of looping</li>
+                        </ul>
+                        <p><em>Browser Support:</em> Works in all modern browsers, fallback to solid color for older ones.</p>
+                    </div>
+                </div>
+                
+                <div class="post-actions">
+                    <button class="action-btn active" onclick="showDemo(2)">Θ Demo</button>
+                    <button class="action-btn" onclick="showCode(2)">&lt;/&gt; Code</button>
+                    <button class="action-btn" onclick="showMarkdown(2)">📝 Explanation</button>
+                    <div class="stats">
+                        <div class="stat">❤️ 89</div>
+                        <div class="stat">🔄 15</div>
+                        <div class="stat">💬 7</div>
+                    </div>
+                </div>
+            </article>
+
+            <article class="post">
+                <div class="post-header">
+                    <div class="post-author">
+                        <div class="avatar">SC</div>
+                        <div class="author-info">
+                            <h4>Sarah Creative</h4>
+                            <span>@sarahcodes • 6h ago</span>
+                        </div>
+                    </div>
+                    <h3 class="post-title">Morphing Shape Animation</h3>
+                    <p class="post-description">Complex shape transformation with rotation and border-radius animation.</p>
+                </div>
+                
+                <div class="post-content">
+                    <div class="demo-area">
+                        <div class="morphing-shape"></div>
+                    </div>
+                    
+                    <div class="code-view" id="code-3">
+&lt;div class="morphing-shape"&gt;&lt;/div&gt;
+
+&lt;style&gt;
+.morphing-shape {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(45deg, #4ecdc4, #45b7d1);
+    animation: morph 4s ease-in-out infinite;
+}
+
+@keyframes morph {
+    0% { 
+        border-radius: 0; 
+        transform: rotate(0deg); 
+    }
+    25% { 
+        border-radius: 50%; 
+        transform: rotate(90deg); 
+    }
+    50% { 
+        border-radius: 20px; 
+        transform: rotate(180deg); 
+    }
+    75% { 
+        border-radius: 50%; 
+        transform: rotate(270deg); 
+    }
+    100% { 
+        border-radius: 0; 
+        transform: rotate(360deg); 
+    }
+}
+&lt;/style&gt;
+                    </div>
+                    
+                    <div class="markdown-view" id="markdown-3">
+                        <h4>Animation Principles:</h4>
+                        <p>This demonstrates advanced CSS animation combining multiple properties:</p>
+                        <ul>
+                            <li><strong>Border-radius:</strong> Morphs from square → circle → rounded → circle → square</li>
+                            <li><strong>Transform rotation:</strong> Full 360° rotation synchronized with morphing</li>
+                            <li><strong>Timing function:</strong> ease-in-out creates natural acceleration/deceleration</li>
+                        </ul>
+                        <p><strong>Pro tip:</strong> Combining transform properties is more performant than animating individual CSS properties.</p>
+                    </div>
+                </div>
+                
+                <div class="post-actions">
+                    <button class="action-btn active" onclick="showDemo(3)">Θ Demo</button>
+                    <button class="action-btn" onclick="showCode(3)">&lt;/&gt; Code</button>
+                    <button class="action-btn" onclick="showMarkdown(3)">📝 Explanation</button>
+                    <div class="stats">
+                        <div class="stat">❤️ 156</div>
+                        <div class="stat">🔄 28</div>
+                        <div class="stat">💬 12</div>
+                    </div>
+                </div>
+            </article>
+        </div>
+    </main>
+
+    <script>
+        let postCounter = 3;
+
+        function toggleCreatePost() {
+            const createPost = document.getElementById('createPost');
+            createPost.style.display = createPost.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function createPost(event) {
+            event.preventDefault();
+            
+            const title = document.getElementById('title').value;
+            const description = document.getElementById('description').value;
+            const code = document.getElementById('code').value;
+            const explanation = document.getElementById('explanation').value;
+            const showCode = document.getElementById('showCode').checked;
+            
+            postCounter++;
+            
+            const post = document.createElement('article');
+            post.className = 'post';
+            post.innerHTML = `
+                <div class="post-header">
+                    <div class="post-author">
+                        <div class="avatar">YU</div>
+                        <div class="author-info">
+                            <h4>You</h4>
+                            <span>@you • just now</span>
+                        </div>
+                    </div>
+                    <h3 class="post-title">${title}</h3>
+                    <p class="post-description">${description}</p>
+                </div>
+                
+                <div class="post-content">
+                    <div class="demo-area" id="demo-${postCounter}">
+                        <!-- User's code will be rendered here -->
+                    </div>
+                    
+                    <div class="code-view" id="code-${postCounter}">
+${code.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
+                    </div>
+                    
+                    <div class="markdown-view" id="markdown-${postCounter}">
+                        ${explanation}
+                    </div>
+                </div>
+                
+                <div class="post-actions">
+                    <button class="action-btn active" onclick="showDemo(${postCounter})">Θ Demo</button>
+                    ${showCode ? `<button class="action-btn" onclick="showCode(${postCounter})">&lt;/&gt; Code</button>` : ''}
+                    <button class="action-btn" onclick="showMarkdown(${postCounter})">📝 Explanation</button>
+                    <div class="stats">
+                        <div class="stat">❤️ 0</div>
+                        <div class="stat">🔄 0</div>
+                        <div class="stat">💬 0</div>
+                    </div>
+                </div>
+            `;
+            
+            // Insert the user's code into the demo area
+            const demoArea = post.querySelector(`#demo-${postCounter}`);
+            demoArea.innerHTML = code;
+            
+            // Add the post to the top of the feed
+            const feed = document.getElementById('feed');
+            feed.insertBefore(post, feed.firstChild);
+            
+            // Reset form and hide create post
+            document.querySelector('#createPost form').reset();
+            document.getElementById('createPost').style.display = 'none';
+        }
+
+
+        function showDemo(postId) {
+            const post = document.querySelector(`#demo-${postId}`).closest('.post');
+            resetViewsAndButtons(post);
+            post.querySelector(`#demo-${postId}`).parentElement.style.display = 'block';
+            setActiveButton(post, 0);
+        }
+
+        function showCode(postId) {
+            const post = document.querySelector(`#code-${postId}`).closest('.post');
+            resetViewsAndButtons(post);
+            document.getElementById(`code-${postId}`).classList.add('active');
+            setActiveButton(post, 1);
+        }
+
+        function showMarkdown(postId) {
+            const post = document.querySelector(`#markdown-${postId}`).closest('.post');
+            resetViewsAndButtons(post);
+            document.getElementById(`markdown-${postId}`).classList.add('active');
+            setActiveButton(post, 2);
+        }
+
+        function resetViewsAndButtons(post) {
+            // Hide all views
+            const demoArea = post.querySelector('.demo-area').parentElement;
+            const codeView = post.querySelector('.code-view');
+            const markdownView = post.querySelector('.markdown-view');
+            demoArea.style.display = 'none';
+            codeView.classList.remove('active');
+            markdownView.classList.remove('active');
+            // Remove .active from all action-btns
+            const buttons = post.querySelectorAll('.action-btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+        }
+
+        function setActiveButton(post, index) {
+            const buttons = post.querySelectorAll('.action-btn');
+            if (buttons[index]) {
+                buttons[index].classList.add('active');
+            }
+        }
+
+        // Initialize demo view for all posts
+        document.addEventListener('DOMContentLoaded', function() {
+            for (let i = 1; i <= 3; i++) {
+                showDemo(i);
+            }
+        });
+    </script>
+</body>
+</html>

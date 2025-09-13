@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Obsidian Markdown Viewer</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #4a4e69;
+            --secondary: #9a8c98;
+            --accent: #c9ada7;
+            --light: #f2e9e4;
+            --dark: #22223b;
+            --success: #38b000;
+            --warning: #f77f00;
+            --error: #d00000;
+            --sidebar-width: 280px;
+            --header-height: 70px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e6e6e6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            max-width: 1800px;
+            margin: 0 auto;
+            width: 100%;
+            background: rgba(26, 26, 46, 0.9);
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.4);
+        }
+
+        header {
+            background: var(--dark);
+            padding: 0 30px;
+            height: var(--header-height);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-weight: 700;
+            font-size: 1.8rem;
+            color: white;
+        }
+
+        .logo i {
+            color: var(--accent);
+            font-size: 2.2rem;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 15px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 6px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a5e8d;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #46d400;
+            transform: translateY(-2px);
+        }
+
+        .btn-warning {
+            background: var(--warning);
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #ff9a40;
+            transform: translateY(-2px);
+        }
+
+        .main-content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--dark);
+            padding: 25px 0;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-section {
+            padding: 0 25px 25px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 25px;
+        }
+
+        .sidebar-section h3 {
+            font-size: 1.1rem;
+            margin-bottom: 18px;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sidebar-section h3 i {
+            font-size: 1.2rem;
+        }
+
+        .file-list {
+            list-style: none;
+        }
+
+        .file-list li {
+            padding: 12px 15px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .file-list li:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .file-list li.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .file-list li i {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .content-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .tabs {
+            display: flex;
+            background: rgba(34, 34, 59, 0.7);
+            padding: 0 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .tab {
+            padding: 15px 25px;
+            background: rgba(74, 78, 105, 0.4);
+            color: #ccc;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+            margin-right: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .tab.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .tab-close {
+            margin-left: 10px;
+            opacity: 0.7;
+            transition: opacity 0.3s ease;
+        }
+
+        .tab-close:hover {
+            opacity: 1;
+        }
+
+        .editor-preview {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .editor-container, .preview-container {
+            flex: 1;
+            overflow: auto;
+            padding: 25px;
+        }
+
+        .editor-container {
+            background: rgba(26, 26, 46, 0.7);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        #editor {
+            width: 100%;
+            height: 100%;
+            border: none;
+            outline: none;
+            resize: none;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 15px;
+            line-height: 1.6;
+            background: rgba(34, 34, 59, 0.5);
+            color: #e6e6e6;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .preview-container {
+            background: rgba(26, 26, 46, 0.5);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .preview-header h2 {
+            font-size: 1.4rem;
+            color: var(--accent);
+        }
+
+        .preview-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        #preview {
+            flex: 1;
+            overflow: auto;
+            background: rgba(34, 34, 59, 0.3);
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .button-bar {
+            padding: 20px;
+            background: var(--dark);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .mode-toggle {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .toggle-label {
+            font-weight: 600;
+            color: #ccc;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 30px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--success);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(30px);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+        }
+
+        .read-mode .editor-container {
+            display: none;
+        }
+
+        .read-mode .preview-container {
+            flex: 1;
+        }
+
+        .read-mode .tabs, .read-mode .button-bar {
+            display: none;
+        }
+
+        /* Preview content styling */
+        #preview h1, #preview h2, #preview h3 {
+            margin-top: 1.5em;
+            margin-bottom: 0.5em;
+            color: var(--accent);
+        }
+
+        #preview p {
+            margin-bottom: 1em;
+            line-height: 1.6;
+            color: #e6e6e6;
+        }
+
+        #preview code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+            color: #ff9d5c;
+        }
+
+        #preview pre {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 5px;
+            overflow: auto;
+            margin-bottom: 1em;
+        }
+
+        #preview pre code {
+            background: none;
+            padding: 0;
+            color: #e6e6e6;
+        }
+
+        #preview blockquote {
+            border-left: 4px solid var(--accent);
+            padding-left: 15px;
+            margin-left: 0;
+            color: #ccc;
+        }
+
+        #preview table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 1em;
+        }
+
+        #preview table, #preview th, #preview td {
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        #preview th, #preview td {
+            padding: 10px;
+            text-align: left;
+        }
+
+        #preview th {
+            background-color: rgba(0, 0, 0, 0.2);
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            text-align: center;
+            color: var(--secondary);
+        }
+
+        .empty-state i {
+            font-size: 3.5rem;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent);
+        }
+
+        /* Responsive design */
+        @media (max-width: 1200px) {
+            .editor-preview {
+                flex-direction: column;
+            }
+            
+            .editor-container, .preview-container {
+                flex: none;
+                height: 50%;
+            }
+            
+            .editor-container {
+                border-right: none;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            
+            .sidebar {
+                width: 220px;
+            }
+        }
+
+        @media (max-width: 900px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                height: auto;
+                border-right: none;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            
+            .sidebar-section {
+                padding: 15px;
+            }
+            
+            .file-list {
+                display: flex;
+                overflow-x: auto;
+                gap: 10px;
+                padding-bottom: 10px;
+            }
+            
+            .file-list li {
+                white-space: nowrap;
+                margin-bottom: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <div class="logo">
+                <i class="fas fa-gem"></i>
+                <span>Obsidian Markdown</span>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-primary">
+                    <i class="fas fa-plus"></i> New File
+                </button>
+                <button class="btn btn-success">
+                    <i class="fas fa-save"></i> Save
+                </button>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <div class="sidebar">
+                <div class="sidebar-section">
+                    <h3><i class="fas fa-folder"></i> Files</h3>
+                    <ul class="file-list">
+                        <li class="active"><i class="fas fa-file-alt"></i> Kant Example.md</li>
+                        <li><i class="fas fa-file-alt"></i> Welcome Guide.md</li>
+                        <li><i class="fas fa-file-alt"></i> Project Notes.md</li>
+                        <li><i class="fas fa-file-alt"></i> Research Paper.md</li>
+                    </ul>
+                </div>
+                
+                <div class="sidebar-section">
+                    <h3><i class="fas fa-history"></i> Recent Files</h3>
+                    <ul class="file-list">
+                        <li><i class="fas fa-file-alt"></i> Meeting Notes.md</li>
+                        <li><i class="fas fa-file-alt"></i> Ideas Journal.md</li>
+                        <li><i class="fas fa-file-alt"></i> Code Snippets.md</li>
+                    </ul>
+                </div>
+                
+                <div class="sidebar-section">
+                    <h3><i class="fas fa-tags"></i> Tags</h3>
+                    <ul class="file-list">
+                        <li><i class="fas fa-tag"></i> philosophy</li>
+                        <li><i class="fas fa-tag"></i> javascript</li>
+                        <li><i class="fas fa-tag"></i> research</li>
+                        <li><i class="fas fa-tag"></i> important</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="content-area">
+                <div class="tabs">
+                    <div class="tab active">
+                        <i class="fas fa-file-alt"></i> Kant Example.md
+                        <span class="tab-close"><i class="fas fa-times"></i></span>
+                    </div>
+                    <div class="tab">
+                        <i class="fas fa-file-alt"></i> Welcome Guide.md
+                        <span class="tab-close"><i class="fas fa-times"></i></span>
+                    </div>
+                </div>
+                
+                <div class="editor-preview">
+                    <div class="editor-container">
+                        <textarea id="editor"><div class="philosopher-card" style="background: linear-gradient(to right, #667eea, #764ba2); padding: 20px; border-radius: 10px; margin: 25px 0; color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
+  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/Immanuel_Kant_%28painted_portrait%29.jpg/200px-Immanuel_Kant_%28painted_portrait%29.jpg" alt="Immanuel Kant" style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; display: block; margin: 0 auto; border: 3px solid white;">
+  <h2 style="text-align: center; margin: 15px 0; color: white; font-family: 'Georgia', serif;">Immanuel Kant</h2>
+  <h3 style="text-align: center; margin: 10px 0; color: #ffd700; font-style: italic;">Categorical Imperative</h3>
+  
+  <label for="kant-toggle" style="display: inline-block; padding: 8px 15px; background: #ffd700; color: #333; border-radius: 4px; cursor: pointer; margin: 10px 0; font-weight: bold;">Toggle Details</label>
+  <input id="kant-toggle" type="checkbox" style="display: none;">
+  
+  <div>
+    <blockquote style="font-style: italic; text-align: center; border-left: 3px solid #ffd700; padding: 10px; margin: 15px 0; background: rgba(255, 215, 0, 0.1);">"Act only according to that maxim whereby you can at the same time will that it should become a universal law."</blockquote>
+    <img src="https://i.pinimg.com/736x/3a/3b/6a/3a3b6a6a6a6a6a6a6a6a6a6a6a6a6a6a.jpg" alt="Categorical Imperative" style="width: 100%; border-radius: 8px; margin: 15px 0;">
+    <p style="text-align: justify; line-height: 1.6;">Kant revolutionized ethics with his concept of the categorical imperative - a universal moral law that applies to all rational beings. He argued that moral actions must be guided by principles that could apply universally, and that we should treat humanity always as an end in itself, never merely as a means.</p>
+  </div>
+</div>
+
+<!-- JavaScript to handle the toggle functionality -->
+<script>
+// Wait for the content to be fully loaded
+document.addEventListener('DOMContentLoaded', function() {
+    const toggle = document.getElementById('kant-toggle');
+    const details = document.querySelector('.philosopher-card div:last-child');
+    const label = document.querySelector('label[for="kant-toggle"]');
+    
+    if (toggle && details && label) {
+        // Initialize the details state
+        details.style.maxHeight = '0';
+        details.style.overflow = 'hidden';
+        details.style.transition = 'max-height 0.5s ease';
+        
+        // Add click event to the label
+        label.addEventListener('click', function() {
+            toggle.checked = !toggle.checked;
+            
+            if (toggle.checked) {
+                details.style.maxHeight = details.scrollHeight + 'px';
+            } else {
+                details.style.maxHeight = '0';
+            }
+        });
+    }
+});
+</script></textarea>
+                    </div>
+                    <div class="preview-container">
+                        <div class="preview-header">
+                            <h2>Preview</h2>
+                            <div class="preview-actions">
+                                <button class="btn btn-warning" id="refresh-btn">
+                                    <i class="fas fa-sync-alt"></i> Refresh
+                                </button>
+                            </div>
+                        </div>
+                        <div id="preview"></div>
+                    </div>
+                </div>
+
+                <div class="button-bar">
+                    <div class="mode-toggle">
+                        <span class="toggle-label">Edit Mode</span>
+                        <label class="switch">
+                            <input type="checkbox" id="read-mode-toggle">
+                            <span class="slider"></span>
+                        </label>
+                        <span class="toggle-label">Read Mode</span>
+                    </div>
+                    <div class="action-buttons">
+                        <button class="btn btn-primary" id="render-btn">
+                            <i class="fas fa-code"></i> Render
+                        </button>
+                        <button class="btn btn-success" id="execute-js-btn">
+                            <i class="fas fa-play"></i> Execute JS
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const editor = document.getElementById('editor');
+            const preview = document.getElementById('preview');
+            const readModeToggle = document.getElementById('read-mode-toggle');
+            const renderBtn = document.getElementById('render-btn');
+            const executeJsBtn = document.getElementById('execute-js-btn');
+            const refreshBtn = document.getElementById('refresh-btn');
+            
+            // Configure marked to not sanitize HTML
+            marked.setOptions({
+                breaks: true,
+                gfm: true,
+                // Don't sanitize HTML to allow full functionality
+                sanitize: false
+            });
+            
+            // Function to update preview
+            function updatePreview() {
+                const markdownText = editor.value;
+                const htmlContent = marked.parse(markdownText);
+                
+                // Render the HTML content
+                preview.innerHTML = htmlContent;
+                
+                // Extract and execute any script tags
+                executeScriptsFromPreview();
+            }
+            
+            // Function to execute scripts from the preview
+            function executeScriptsFromPreview() {
+                const scripts = preview.getElementsByTagName('script');
+                for (let i = 0; i < scripts.length; i++) {
+                    try {
+                        // Create a new script element and add it to the document
+                        const newScript = document.createElement('script');
+                        newScript.text = scripts[i].innerHTML;
+                        document.body.appendChild(newScript).parentNode.removeChild(newScript);
+                    } catch (error) {
+                        console.error('Error executing script:', error);
+                    }
+                }
+            }
+            
+            // Function to manually execute JavaScript
+            function executeJavaScript() {
+                // First, re-render the content to ensure we have the latest HTML
+                updatePreview();
+                
+                // Then execute any scripts
+                executeScriptsFromPreview();
+                
+                // Show a success message
+                const notification = document.createElement('div');
+                notification.textContent = 'JavaScript executed successfully!';
+                notification.style.position = 'fixed';
+                notification.style.bottom = '20px';
+                notification.style.right = '20px';
+                notification.style.backgroundColor = 'var(--success)';
+                notification.style.color = 'white';
+                notification.style.padding = '10px 20px';
+                notification.style.borderRadius = '5px';
+                notification.style.zIndex = '1000';
+                notification.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
+                
+                document.body.appendChild(notification);
+                
+                // Remove the notification after 3 seconds
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 3000);
+            }
+            
+            // Initial preview update
+            updatePreview();
+            
+            // Update preview on editor input with debouncing
+            let updateTimeout;
+            editor.addEventListener('input', function() {
+                clearTimeout(updateTimeout);
+                updateTimeout = setTimeout(updatePreview, 500);
+            });
+            
+            // Toggle read mode
+            readModeToggle.addEventListener('change', function() {
+                document.body.classList.toggle('read-mode', this.checked);
+            });
+            
+            // Render button
+            renderBtn.addEventListener('click', updatePreview);
+            
+            // Execute JS button
+            executeJsBtn.addEventListener('click', executeJavaScript);
+            
+            // Refresh button
+            refreshBtn.addEventListener('click', function() {
+                updatePreview();
+                executeScriptsFromPreview();
+            });
+            
+            // Handle tab clicks
+            document.querySelectorAll('.file-list li').forEach(item => {
+                item.addEventListener('click', function() {
+                    // Remove active class from all items
+                    document.querySelectorAll('.file-list li').forEach(li => {
+                        li.classList.remove('active');
+                    });
+                    // Add active class to clicked item
+                    this.classList.add('active');
+                    
+                    // In a real app, this would load the selected file
+                    alert('Loading ' + this.textContent + ' (In a real app, this would load the file content)');
+                });
+            });
+            
+            // Handle tab close buttons
+            document.querySelectorAll('.tab-close').forEach(closeBtn => {
+                closeBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const tab = this.parentElement;
+                    tab.parentElement.removeChild(tab);
+                });
+            });
+            
+            // Add animation to buttons
+            document.querySelectorAll('.btn').forEach(btn => {
+                btn.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-2px)';
+                });
+                
+                btn.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0)';
+                });
+            });
+        });
+    </script>
+</body>
+</html>

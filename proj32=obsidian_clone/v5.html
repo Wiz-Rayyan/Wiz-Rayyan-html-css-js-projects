@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown Viewer with JS Execution</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            color: #333;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 1400px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        
+        header {
+            background: #4a4e69;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .panels {
+            display: flex;
+            flex-direction: column;
+            height: 600px;
+        }
+        
+        .editor-panel, .js-panel {
+            display: flex;
+            height: 50%;
+            border-top: 1px solid #eee;
+        }
+        
+        .editor, .preview, .js-editor, .js-preview {
+            flex: 1;
+            padding: 15px;
+            overflow: auto;
+        }
+        
+        .editor, .js-editor {
+            background: #f9f9f9;
+            border-right: 1px solid #eee;
+        }
+        
+        textarea {
+            width: 100%;
+            height: 100%;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            resize: none;
+        }
+        
+        .preview, .js-preview {
+            background: white;
+        }
+        
+        .panel-label {
+            background: #5a5e79;
+            color: white;
+            padding: 8px 15px;
+            font-weight: bold;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px 20px;
+            background: #f5f5f5;
+            border-top: 1px solid #eee;
+        }
+        
+        button {
+            background: #4a4e69;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s;
+            margin: 0 5px;
+        }
+        
+        button:hover {
+            background: #5a5e79;
+        }
+        
+        .info-box {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            max-width: 1400px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .info-box h2 {
+            color: #4a4e69;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #4a4e69;
+            padding-bottom: 10px;
+        }
+        
+        .info-content {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        
+        .info-section {
+            flex: 1;
+            min-width: 300px;
+        }
+        
+        .info-section h3 {
+            color: #4a4e69;
+            margin-bottom: 10px;
+        }
+        
+        .info-section ul {
+            padding-left: 20px;
+        }
+        
+        .info-section li {
+            margin-bottom: 8px;
+        }
+        
+        code {
+            background: #f5f5f5;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+        
+        pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 5px;
+            overflow: auto;
+            margin: 15px 0;
+        }
+        
+        pre code {
+            background: none;
+            padding: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Markdown Viewer with JavaScript Execution</h1>
+            <p>A tool that renders Markdown, HTML, CSS, and executes JavaScript</p>
+        </header>
+        
+        <div class="panels">
+            <div class="editor-panel">
+                <div class="editor">
+                    <div class="panel-label">Markdown/HTML Editor</div>
+                    <textarea id="editor"><div class="philosopher-card" style="background: linear-gradient(to right, #667eea, #764ba2); padding: 20px; border-radius: 10px; margin: 25px 0; color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
+  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/Immanuel_Kant_%28painted_portrait%29.jpg/200px-Immanuel_Kant_%28painted_portrait%29.jpg" alt="Immanuel Kant" style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; display: block; margin: 0 auto; border: 3px solid white;">
+  <h2 style="text-align: center; margin: 15px 0; color: white; font-family: 'Georgia', serif;">Immanuel Kant</h2>
+  <h3 style="text-align: center; margin: 10px 0; color: #ffd700; font-style: italic;">Categorical Imperative</h3>
+  
+  <label for="kant-toggle" style="display: inline-block; padding: 8px 15px; background: #ffd700; color: #333; border-radius: 4px; cursor: pointer; margin: 10px 0; font-weight: bold;">Toggle Details</label>
+  <input id="kant-toggle" type="checkbox" style="display: none;">
+  
+  <div>
+    <blockquote style="font-style: italic; text-align: center; border-left: 3px solid #ffd700; padding: 10px; margin: 15px 0; background: rgba(255, 215, 0, 0.1);">"Act only according to that maxim whereby you can at the same time will that it should become a universal law."</blockquote>
+    <img src="https://i.pinimg.com/736x/3a/3b/6a/3a3b6a6a6a6a6a6a6a6a6a6a6a6a6a6a.jpg" alt="Categorical Imperative" style="width: 100%; border-radius: 8px; margin: 15px 0;">
+    <p style="text-align: justify; line-height: 1.6;">Kant revolutionized ethics with his concept of the categorical imperative - a universal moral law that applies to all rational beings. He argued that moral actions must be guided by principles that could apply universally, and that we should treat humanity always as an end in itself, never merely as a means.</p>
+  </div>
+</div></textarea>
+                </div>
+                <div class="preview" id="preview">
+                    <div class="panel-label">HTML Preview</div>
+                    <!-- Preview will be rendered here -->
+                </div>
+            </div>
+            
+            <div class="js-panel">
+                <div class="js-editor">
+                    <div class="panel-label">JavaScript Editor</div>
+                    <textarea id="js-editor">// JavaScript to handle the toggle functionality
+function initKantToggle() {
+    const toggle = document.getElementById('kant-toggle');
+    const details = document.querySelector('.philosopher-card div:last-child');
+    const label = document.querySelector('label[for="kant-toggle"]');
+    
+    if (toggle && details && label) {
+        // Initialize the details state
+        details.style.maxHeight = '0';
+        details.style.overflow = 'hidden';
+        details.style.transition = 'max-height 0.5s ease';
+        
+        // Add click event to the label
+        label.addEventListener('click', function() {
+            toggle.checked = !toggle.checked;
+            
+            if (toggle.checked) {
+                details.style.maxHeight = details.scrollHeight + 'px';
+            } else {
+                details.style.maxHeight = '0';
+            }
+        });
+    }
+}
+
+// Run when the content is loaded
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initKantToggle);
+} else {
+    initKantToggle();
+}</textarea>
+                </div>
+                <div class="js-preview">
+                    <div class="panel-label">JavaScript Console</div>
+                    <div id="console-output" style="height: 100%; overflow: auto; background: #2d2d2d; color: #f8f8f2; padding: 10px; border-radius: 5px; font-family: monospace;"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <div>
+                <button id="render-btn">Render Content</button>
+                <button id="execute-js-btn">Execute JavaScript</button>
+            </div>
+            <div>
+                <button id="clear-btn">Clear All</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="info-box">
+        <h2>JavaScript Execution Challenge & Solutions</h2>
+        <div class="info-content">
+            <div class="info-section">
+                <h3>The Problem</h3>
+                <p>Browsers block execution of JavaScript in dynamically added content for security reasons:</p>
+                <ul>
+                    <li>Scripts added via innerHTML are not executed</li>
+                    <li>This is a security feature to prevent XSS attacks</li>
+                    <li>JavaScript execution context is isolated</li>
+                </ul>
+            </div>
+            <div class="info-section">
+                <h3>This Solution</h3>
+                <p>This implementation uses a separate JavaScript panel that:</p>
+                <ul>
+                    <li>Allows you to write JavaScript separately from Markdown/HTML</li>
+                    <li>Executes the JavaScript in the context of the rendered HTML</li>
+                    <li>Provides a console for output and errors</li>
+                    <li>Gives you full control over execution timing</li>
+                </ul>
+            </div>
+            <div class="info-section">
+                <h3>Next Steps</h3>
+                <p>For a more seamless experience, consider:</p>
+                <ul>
+                    <li>Building a desktop app with Electron</li>
+                    <li>Using a web-based IDE with enhanced capabilities</li>
+                    <li>Implementing a browser extension with additional permissions</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const editor = document.getElementById('editor');
+            const jsEditor = document.getElementById('js-editor');
+            const preview = document.getElementById('preview');
+            const consoleOutput = document.getElementById('console-output');
+            const renderBtn = document.getElementById('render-btn');
+            const executeJsBtn = document.getElementById('execute-js-btn');
+            const clearBtn = document.getElementById('clear-btn');
+            
+            // Configure marked to not sanitize HTML
+            marked.setOptions({
+                breaks: true,
+                gfm: true,
+                sanitize: false  // This allows HTML tags to pass through
+            });
+            
+            // Custom console to capture output
+            const originalConsoleLog = console.log;
+            const originalConsoleError = console.error;
+            
+            function captureConsole() {
+                console.log = function() {
+                    originalConsoleLog.apply(console, arguments);
+                    const message = Array.from(arguments).join(' ');
+                    consoleOutput.innerHTML += `<div style="color: #f8f8f2;">${message}</div>`;
+                    consoleOutput.scrollTop = consoleOutput.scrollHeight;
+                };
+                
+                console.error = function() {
+                    originalConsoleError.apply(console, arguments);
+                    const message = Array.from(arguments).join(' ');
+                    consoleOutput.innerHTML += `<div style="color: #ff6b6b;">${message}</div>`;
+                    consoleOutput.scrollTop = consoleOutput.scrollHeight;
+                };
+            }
+            
+            // Restore original console
+            function restoreConsole() {
+                console.log = originalConsoleLog;
+                console.error = originalConsoleError;
+            }
+            
+            // Function to render Markdown/HTML
+            function renderContent() {
+                const markdownText = editor.value;
+                const htmlContent = marked.parse(markdownText);
+                
+                // Render the HTML content
+                preview.innerHTML = htmlContent;
+                
+                // Clear console
+                consoleOutput.innerHTML = '';
+                
+                // Capture console output
+                captureConsole();
+                
+                console.log('Content rendered successfully');
+            }
+            
+            // Function to execute JavaScript
+            function executeJavaScript() {
+                const jsCode = jsEditor.value;
+                
+                try {
+                    // Execute the JavaScript code
+                    const execute = new Function(jsCode);
+                    execute();
+                    console.log('JavaScript executed successfully');
+                } catch (error) {
+                    console.error('Error executing JavaScript:', error.message);
+                }
+            }
+            
+            // Initial render
+            renderContent();
+            
+            // Event listeners
+            renderBtn.addEventListener('click', renderContent);
+            
+            executeJsBtn.addEventListener('click', function() {
+                renderContent(); // Ensure latest content is rendered
+                executeJavaScript();
+            });
+            
+            clearBtn.addEventListener('click', function() {
+                editor.value = '';
+                jsEditor.value = '';
+                preview.innerHTML = '';
+                consoleOutput.innerHTML = '';
+                console.log('Cleared all content');
+            });
+            
+            // Auto-render when content changes (with debouncing)
+            let renderTimeout;
+            editor.addEventListener('input', function() {
+                clearTimeout(renderTimeout);
+                renderTimeout = setTimeout(renderContent, 500);
+            });
+        });
+    </script>
+</body>
+</html>

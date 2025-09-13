@@ -1,0 +1,1282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ObsidianWeb - Knowledge Management</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.2/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: #0d1117;
+            color: #c9d1d9;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .app-container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Auth Modal */
+        .auth-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .auth-form {
+            background: #161b22;
+            padding: 2rem;
+            border-radius: 12px;
+            border: 1px solid #30363d;
+            width: 400px;
+            max-width: 90vw;
+        }
+
+        .auth-form h2 {
+            margin-bottom: 1.5rem;
+            color: #f0f6fc;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #f0f6fc;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #c9d1d9;
+            font-size: 1rem;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #58a6ff;
+            box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.1);
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            background: #238636;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.2s;
+            width: 100%;
+            margin-bottom: 1rem;
+        }
+
+        .btn:hover {
+            background: #2ea043;
+        }
+
+        .btn-secondary {
+            background: #21262d;
+            border: 1px solid #30363d;
+        }
+
+        .btn-secondary:hover {
+            background: #30363d;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 300px;
+            background: #0d1117;
+            border-right: 1px solid #21262d;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            padding: 1rem;
+            border-bottom: 1px solid #21262d;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #58a6ff;
+        }
+
+        .user-menu {
+            position: relative;
+        }
+
+        .user-button {
+            background: none;
+            border: none;
+            color: #c9d1d9;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+
+        .user-button:hover {
+            background: #21262d;
+        }
+
+        .user-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 0.5rem 0;
+            min-width: 150px;
+            z-index: 100;
+        }
+
+        .user-dropdown button {
+            width: 100%;
+            padding: 0.5rem 1rem;
+            background: none;
+            border: none;
+            color: #c9d1d9;
+            text-align: left;
+            cursor: pointer;
+        }
+
+        .user-dropdown button:hover {
+            background: #21262d;
+        }
+
+        .search-box {
+            margin: 1rem;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 0.75rem;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #c9d1d9;
+        }
+
+        .notes-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0 1rem;
+        }
+
+        .note-item {
+            padding: 0.75rem;
+            cursor: pointer;
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .note-item:hover {
+            background: #161b22;
+            border-color: #30363d;
+        }
+
+        .note-item.active {
+            background: #1c2128;
+            border-color: #58a6ff;
+        }
+
+        .note-title {
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+        }
+
+        .note-preview {
+            font-size: 0.85rem;
+            color: #8b949e;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .toolbar {
+            padding: 1rem;
+            border-bottom: 1px solid #21262d;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .toolbar button {
+            padding: 0.5rem 1rem;
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #c9d1d9;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .toolbar button:hover {
+            background: #30363d;
+        }
+
+        .toolbar button.active {
+            background: #58a6ff;
+            border-color: #58a6ff;
+            color: white;
+        }
+
+        .editor-container {
+            flex: 1;
+            display: flex;
+        }
+
+        .editor, .preview {
+            flex: 1;
+            height: 100%;
+            border: none;
+            outline: none;
+            padding: 2rem;
+            font-family: 'JetBrains Mono', Monaco, 'Cascadia Code', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            resize: none;
+            background: #0d1117;
+            color: #c9d1d9;
+        }
+
+        .editor {
+            border-right: 1px solid #21262d;
+        }
+
+        .preview {
+            background: #0d1117;
+            overflow-y: auto;
+            padding: 2rem;
+        }
+
+        .preview h1, .preview h2, .preview h3, .preview h4, .preview h5, .preview h6 {
+            color: #f0f6fc;
+            margin: 1.5rem 0 1rem 0;
+        }
+
+        .preview p {
+            margin-bottom: 1rem;
+            line-height: 1.6;
+        }
+
+        .preview code {
+            background: #161b22;
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+
+        .preview pre {
+            background: #161b22;
+            padding: 1rem;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+
+        .preview blockquote {
+            border-left: 4px solid #58a6ff;
+            padding-left: 1rem;
+            margin: 1rem 0;
+            color: #8b949e;
+        }
+
+        .preview ul, .preview ol {
+            margin: 1rem 0;
+            padding-left: 2rem;
+        }
+
+        .preview li {
+            margin-bottom: 0.5rem;
+        }
+
+        .preview a {
+            color: #58a6ff;
+            text-decoration: none;
+        }
+
+        .preview a:hover {
+            text-decoration: underline;
+        }
+
+        .wiki-link {
+            color: #58a6ff;
+            background: rgba(88, 166, 255, 0.1);
+            padding: 0.1rem 0.3rem;
+            border-radius: 3px;
+            text-decoration: none;
+            border: 1px solid rgba(88, 166, 255, 0.3);
+        }
+
+        .wiki-link:hover {
+            background: rgba(88, 166, 255, 0.2);
+        }
+
+        .wiki-link.missing {
+            color: #f85149;
+            border-color: rgba(248, 81, 73, 0.3);
+            background: rgba(248, 81, 73, 0.1);
+        }
+
+        /* Graph View */
+        .graph-container {
+            width: 100%;
+            height: 100%;
+            background: #0d1117;
+            position: relative;
+        }
+
+        .graph-controls {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            z-index: 10;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .graph-controls button {
+            padding: 0.5rem;
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #c9d1d9;
+            cursor: pointer;
+        }
+
+        /* Database Panel */
+        .db-panel {
+            background: #0d1117;
+            padding: 2rem;
+            height: 100%;
+            overflow-y: auto;
+        }
+
+        .db-connection {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .db-query {
+            width: 100%;
+            min-height: 150px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 1rem;
+            color: #c9d1d9;
+            font-family: monospace;
+            resize: vertical;
+        }
+
+        .db-results {
+            margin-top: 1rem;
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 1rem;
+        }
+
+        .db-results table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .db-results th, .db-results td {
+            padding: 0.5rem;
+            border: 1px solid #30363d;
+            text-align: left;
+        }
+
+        .db-results th {
+            background: #21262d;
+            font-weight: 500;
+        }
+
+        /* Utility Classes */
+        .hidden {
+            display: none !important;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .mt-1 { margin-top: 0.5rem; }
+        .mb-1 { margin-bottom: 0.5rem; }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: absolute;
+                left: -300px;
+                z-index: 100;
+                height: 100%;
+                transition: left 0.3s;
+            }
+
+            .sidebar.open {
+                left: 0;
+            }
+
+            .editor-container {
+                flex-direction: column;
+            }
+
+            .editor, .preview {
+                height: 50vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- Auth Modal -->
+        <div id="authModal" class="auth-modal">
+            <div class="auth-form">
+                <h2 id="authTitle">Sign In</h2>
+                <form id="authForm">
+                    <div class="form-group" id="usernameGroup" style="display: none;">
+                        <label for="username">Username</label>
+                        <input type="text" id="username" name="username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" name="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" required>
+                    </div>
+                    <button type="submit" class="btn" id="authSubmit">Sign In</button>
+                    <button type="button" class="btn btn-secondary" id="authToggle">Don't have an account? Sign Up</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Main App -->
+        <div class="app-container hidden" id="mainApp">
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <div class="sidebar-header">
+                    <div class="logo">ObsidianWeb</div>
+                    <div class="user-menu">
+                        <button class="user-button" id="userMenuBtn">
+                            <span id="currentUser">User</span> ▼
+                        </button>
+                        <div class="user-dropdown hidden" id="userDropdown">
+                            <button onclick="togglePublicProfile()">Toggle Public Profile</button>
+                            <button onclick="showDatabasePanel()">Database Settings</button>
+                            <button onclick="logout()">Logout</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="search-box">
+                    <input type="text" placeholder="Search notes..." id="searchInput">
+                </div>
+                
+                <div class="notes-list" id="notesList">
+                    <!-- Notes will be populated here -->
+                </div>
+                
+                <div style="padding: 1rem;">
+                    <button class="btn" onclick="createNewNote()">+ New Note</button>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="main-content">
+                <div class="toolbar">
+                    <button id="editBtn" class="active" onclick="showEditor()">Edit</button>
+                    <button id="previewBtn" onclick="showPreview()">Preview</button>
+                    <button id="graphBtn" onclick="showGraph()">Graph</button>
+                    <button onclick="exportNote()">Export</button>
+                    <button onclick="togglePrivacy()">
+                        <span id="privacyStatus">Private</span>
+                    </button>
+                </div>
+
+                <!-- Editor View -->
+                <div id="editorView" class="editor-container">
+                    <textarea class="editor" id="editor" placeholder="Start writing your note in markdown...
+
+# Welcome to ObsidianWeb!
+
+This is a powerful markdown editor with wiki-style linking.
+
+## Features:
+- [[Wiki Links]] - Link to other notes
+- **Bold** and *italic* text
+- `Code snippets`
+- Lists and todos
+- HTML and CSS support
+- Database connectivity
+- Graph visualization
+
+Try creating a link like [[My First Note]] and see the magic!
+
+```javascript
+// You can even run JavaScript!
+console.log('Hello, ObsidianWeb!');
+```
+
+<div style='background: linear-gradient(45deg, #ff6b6b, #4ecdc4); padding: 20px; border-radius: 10px; color: white; text-align: center; margin: 20px 0;'>
+    <h3>Custom HTML & CSS</h3>
+    <p>You can embed custom HTML and CSS directly in your notes!</p>
+</div>"></textarea>
+                    <div class="preview" id="preview"></div>
+                </div>
+
+                <!-- Graph View -->
+                <div id="graphView" class="hidden">
+                    <div class="graph-container">
+                        <div class="graph-controls">
+                            <button onclick="resetZoom()">Reset Zoom</button>
+                            <button onclick="centerGraph()">Center</button>
+                        </div>
+                        <svg id="graphSvg" width="100%" height="100%"></svg>
+                    </div>
+                </div>
+
+                <!-- Database Panel -->
+                <div id="databaseView" class="hidden">
+                    <div class="db-panel">
+                        <h2>Database Connection</h2>
+                        <div class="db-connection">
+                            <div class="form-group">
+                                <label>Connection String</label>
+                                <input type="text" id="dbConnection" placeholder="postgresql://user:pass@localhost:5432/db" style="width: 100%; padding: 0.5rem;">
+                            </div>
+                            <button class="btn" onclick="testConnection()">Test Connection</button>
+                        </div>
+                        
+                        <h3>SQL Query</h3>
+                        <textarea class="db-query" id="sqlQuery" placeholder="SELECT * FROM users LIMIT 10;"></textarea>
+                        <button class="btn" onclick="executeQuery()">Execute Query</button>
+                        
+                        <div id="queryResults" class="db-results" style="display: none;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let currentUser = null;
+        let notes = {};
+        let currentNoteId = null;
+        let isSignUp = false;
+        let dbConnection = null;
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+            setupEventListeners();
+        });
+
+        function initializeApp() {
+            // Check if user is logged in (simulate with localStorage)
+            const savedUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+            if (savedUser) {
+                currentUser = savedUser;
+                showMainApp();
+                loadNotes();
+            } else {
+                showAuthModal();
+            }
+        }
+
+        function setupEventListeners() {
+            // Auth form
+            document.getElementById('authForm').addEventListener('submit', handleAuth);
+            document.getElementById('authToggle').addEventListener('click', toggleAuthMode);
+            
+            // Editor
+            document.getElementById('editor').addEventListener('input', debounce(updatePreview, 300));
+            document.getElementById('searchInput').addEventListener('input', debounce(searchNotes, 300));
+            
+            // User menu
+            document.getElementById('userMenuBtn').addEventListener('click', toggleUserMenu);
+            
+            // Close dropdowns when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('.user-menu')) {
+                    document.getElementById('userDropdown').classList.add('hidden');
+                }
+            });
+        }
+
+        // Authentication
+        function handleAuth(e) {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const email = formData.get('email');
+            const password = formData.get('password');
+            const username = formData.get('username');
+
+            if (isSignUp) {
+                // Simulate sign up
+                currentUser = {
+                    id: Date.now(),
+                    email: email,
+                    username: username || email.split('@')[0],
+                    isPublic: false
+                };
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                showMainApp();
+                loadNotes();
+            } else {
+                // Simulate sign in
+                currentUser = {
+                    id: 1,
+                    email: email,
+                    username: email.split('@')[0],
+                    isPublic: false
+                };
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                showMainApp();
+                loadNotes();
+            }
+        }
+
+        function toggleAuthMode() {
+            isSignUp = !isSignUp;
+            const title = document.getElementById('authTitle');
+            const submit = document.getElementById('authSubmit');
+            const toggle = document.getElementById('authToggle');
+            const usernameGroup = document.getElementById('usernameGroup');
+
+            if (isSignUp) {
+                title.textContent = 'Sign Up';
+                submit.textContent = 'Sign Up';
+                toggle.textContent = 'Already have an account? Sign In';
+                usernameGroup.style.display = 'block';
+            } else {
+                title.textContent = 'Sign In';
+                submit.textContent = 'Sign In';
+                toggle.textContent = "Don't have an account? Sign Up";
+                usernameGroup.style.display = 'none';
+            }
+        }
+
+        function showAuthModal() {
+            document.getElementById('authModal').classList.remove('hidden');
+            document.getElementById('mainApp').classList.add('hidden');
+        }
+
+        function showMainApp() {
+            document.getElementById('authModal').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+            document.getElementById('currentUser').textContent = currentUser.username;
+            updatePrivacyStatus();
+        }
+
+        function logout() {
+            localStorage.removeItem('currentUser');
+            localStorage.removeItem('notes');
+            currentUser = null;
+            notes = {};
+            currentNoteId = null;
+            showAuthModal();
+        }
+
+        function toggleUserMenu() {
+            document.getElementById('userDropdown').classList.toggle('hidden');
+        }
+
+        // Notes Management
+        function loadNotes() {
+            const savedNotes = JSON.parse(localStorage.getItem('notes') || '{}');
+            notes = savedNotes;
+            
+            // Create default note if none exist
+            if (Object.keys(notes).length === 0) {
+                createNewNote();
+            } else {
+                renderNotesList();
+                const firstNoteId = Object.keys(notes)[0];
+                loadNote(firstNoteId);
+            }
+        }
+
+        function createNewNote() {
+            const noteId = 'note_' + Date.now();
+            const note = {
+                id: noteId,
+                title: 'Untitled Note',
+                content: '',
+                isPublic: false,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                userId: currentUser.id
+            };
+            
+            notes[noteId] = note;
+            saveNotes();
+            renderNotesList();
+            loadNote(noteId);
+        }
+
+        function saveNotes() {
+            localStorage.setItem('notes', JSON.stringify(notes));
+        }
+
+        function renderNotesList() {
+            const notesList = document.getElementById('notesList');
+            const userNotes = Object.values(notes).filter(note => note.userId === currentUser.id);
+            
+            notesList.innerHTML = userNotes.map(note => `
+                <div class="note-item ${currentNoteId === note.id ? 'active' : ''}" onclick="loadNote('${note.id}')">
+                    <div class="note-title">${note.title}</div>
+                    <div class="note-preview">${note.content.substring(0, 100)}...</div>
+                </div>
+            `).join('');
+        }
+
+        function loadNote(noteId) {
+            if (!notes[noteId]) return;
+            
+            currentNoteId = noteId;
+            const note = notes[noteId];
+            
+            document.getElementById('editor').value = note.content;
+            updatePreview();
+            renderNotesList();
+            updatePrivacyStatus();
+        }
+
+        function saveCurrentNote() {
+            if (!currentNoteId) return;
+            
+            const content = document.getElementById('editor').value;
+            const note = notes[currentNoteId];
+            
+            note.content = content;
+            note.title = extractTitle(content) || 'Untitled Note';
+            note.updatedAt = new Date().toISOString();
+            
+            saveNotes();
+            renderNotesList();
+        }
+
+        function extractTitle(content) {
+            const lines = content.split('\n');
+            for (let line of lines) {
+                line = line.trim();
+                if (line.startsWith('# ')) {
+                    return line.substring(2).trim();
+                }
+            }
+            return content.split('\n')[0].substring(0, 50) || 'Untitled Note';
+        }
+
+        // Markdown Processing
+        function updatePreview() {
+            saveCurrentNote();
+            const content = document.getElementById('editor').value;
+            const processedContent = processMarkdown(content);
+            document.getElementById('preview').innerHTML = processedContent;
+            
+            // Execute any JavaScript in the content
+            executeEmbeddedJS();
+        }
+
+        function processMarkdown(content) {
+            // Process wiki links first
+            content = content.replace(/\[\[([^\]]+)\]\]/g, (match, linkText) => {
+                const noteExists = Object.values(notes).some(note => 
+                    note.title.toLowerCase() === linkText.toLowerCase()
+                );
+                const className = noteExists ? 'wiki-link' : 'wiki-link missing';
+                return `<a href="#" class="${className}" onclick="openWikiLink('${linkText}')">${linkText}</a>`;
+            });
+
+            // Convert markdown to HTML
+            let html = marked.parse(content);
+            
+            // Highlight code blocks
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = html;
+            tempDiv.querySelectorAll('pre code').forEach(block => {
+                hljs.highlightElement(block);
+            });
+            
+            return tempDiv.innerHTML;
+        }
+
+        function openWikiLink(linkText) {
+            // Find existing note
+            let targetNote = Object.values(notes).find(note => 
+                note.title.toLowerCase() === linkText.toLowerCase()
+            );
+            
+            // Create note if it doesn't exist
+            if (!targetNote) {
+                const noteId = 'note_' + Date.now();
+                targetNote = {
+                    id: noteId,
+                    title: linkText,
+                    content: `# ${linkText}\n\nThis note was created from a wiki link.`,
+                    isPublic: false,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                    userId: currentUser.id
+                };
+                notes[noteId] = targetNote;
+                saveNotes();
+                renderNotesList();
+            }
+            
+            loadNote(targetNote.id);
+        }
+
+        function executeEmbeddedJS() {
+            // Find and execute script tags in the preview
+            const scripts = document.getElementById('preview').querySelectorAll('script');
+            scripts.forEach(script => {
+                try {
+                    eval(script.textContent);
+                } catch (e) {
+                    console.error('Error executing embedded JavaScript:', e);
+                }
+            });
+        }
+
+        // Views
+        function showEditor() {
+            document.getElementById('editorView').classList.remove('hidden');
+            document.getElementById('graphView').classList.add('hidden');
+            document.getElementById('databaseView').classList.add('hidden');
+            
+            document.getElementById('editBtn').classList.add('active');
+            document.getElementById('previewBtn').classList.remove('active');
+            document.getElementById('graphBtn').classList.remove('active');
+        }
+
+        function showPreview() {
+            // Toggle split view
+            const editor = document.getElementById('editor');
+            const preview = document.getElementById('preview');
+            
+            if (editor.style.display === 'none') {
+                editor.style.display = 'block';
+                preview.style.flex = '1';
+                document.getElementById('previewBtn').classList.remove('active');
+            } else {
+                editor.style.display = 'none';
+                preview.style.flex = '1';
+                document.getElementById('previewBtn').classList.add('active');
+            }
+        }
+
+        function showGraph() {
+            document.getElementById('editorView').classList.add('hidden');
+            document.getElementById('graphView').classList.remove('hidden');
+            document.getElementById('databaseView').classList.add('hidden');
+            
+            document.getElementById('editBtn').classList.remove('active');
+            document.getElementById('previewBtn').classList.remove('active');
+            document.getElementById('graphBtn').classList.add('active');
+            
+            renderGraph();
+        }
+
+        function showDatabasePanel() {
+            document.getElementById('editorView').classList.add('hidden');
+            document.getElementById('graphView').classList.add('hidden');
+            document.getElementById('databaseView').classList.remove('hidden');
+            
+            document.getElementById('userDropdown').classList.add('hidden');
+        }
+
+        // Graph Visualization
+        function renderGraph() {
+            const svg = d3.select('#graphSvg');
+            svg.selectAll('*').remove();
+            
+            const width = svg.node().clientWidth;
+            const height = svg.node().clientHeight;
+            
+            // Extract nodes and links
+            const userNotes = Object.values(notes).filter(note => note.userId === currentUser.id);
+            const nodes = userNotes.map(note => ({
+                id: note.id,
+                title: note.title,
+                content: note.content
+            }));
+            
+            const links = [];
+            userNotes.forEach(note => {
+                const wikiLinks = (note.content.match(/\[\[([^\]]+)\]\]/g) || []);
+                wikiLinks.forEach(link => {
+                    const linkText = link.slice(2, -2);
+                    const targetNote = userNotes.find(n => n.title.toLowerCase() === linkText.toLowerCase());
+                    if (targetNote) {
+                        links.push({
+                            source: note.id,
+                            target: targetNote.id
+                        });
+                    }
+                });
+            });
+            
+            // Create force simulation
+            const simulation = d3.forceSimulation(nodes)
+                .force('link', d3.forceLink(links).id(d => d.id).distance(100))
+                .force('charge', d3.forceManyBody().strength(-300))
+                .force('center', d3.forceCenter(width / 2, height / 2));
+            
+            // Create links
+            const link = svg.append('g')
+                .selectAll('line')
+                .data(links)
+                .enter().append('line')
+                .attr('stroke', '#30363d')
+                .attr('stroke-width', 2);
+            
+            // Create nodes
+            const node = svg.append('g')
+                .selectAll('circle')
+                .data(nodes)
+                .enter().append('circle')
+                .attr('r', d => Math.min(20 + d.content.length / 100, 40))
+                .attr('fill', d => d.id === currentNoteId ? '#58a6ff' : '#21262d')
+                .attr('stroke', '#58a6ff')
+                .attr('stroke-width', 2)
+                .call(d3.drag()
+                    .on('start', dragstarted)
+                    .on('drag', dragged)
+                    .on('end', dragended))
+                .on('click', function(event, d) {
+                    loadNote(d.id);
+                    showEditor();
+                });
+            
+            // Add labels
+            const label = svg.append('g')
+                .selectAll('text')
+                .data(nodes)
+                .enter().append('text')
+                .text(d => d.title)
+                .attr('font-size', 12)
+                .attr('fill', '#c9d1d9')
+                .attr('text-anchor', 'middle')
+                .attr('dy', 4);
+            
+            // Update positions on tick
+            simulation.on('tick', () => {
+                link
+                    .attr('x1', d => d.source.x)
+                    .attr('y1', d => d.source.y)
+                    .attr('x2', d => d.target.x)
+                    .attr('y2', d => d.target.y);
+                
+                node
+                    .attr('cx', d => d.x)
+                    .attr('cy', d => d.y);
+                
+                label
+                    .attr('x', d => d.x)
+                    .attr('y', d => d.y + 45);
+            });
+            
+            function dragstarted(event, d) {
+                if (!event.active) simulation.alphaTarget(0.3).restart();
+                d.fx = d.x;
+                d.fy = d.y;
+            }
+            
+            function dragged(event, d) {
+                d.fx = event.x;
+                d.fy = event.y;
+            }
+            
+            function dragended(event, d) {
+                if (!event.active) simulation.alphaTarget(0);
+                d.fx = null;
+                d.fy = null;
+            }
+        }
+
+        function resetZoom() {
+            const svg = d3.select('#graphSvg');
+            svg.transition().duration(750).call(
+                d3.zoom().transform,
+                d3.zoomIdentity
+            );
+        }
+
+        function centerGraph() {
+            renderGraph();
+        }
+
+        // Database Functions
+        function testConnection() {
+            const connectionString = document.getElementById('dbConnection').value;
+            if (!connectionString) {
+                alert('Please enter a connection string');
+                return;
+            }
+            
+            // Simulate connection test
+            setTimeout(() => {
+                alert('Connection test successful! (Simulated)');
+                dbConnection = connectionString;
+            }, 1000);
+        }
+
+        function executeQuery() {
+            const query = document.getElementById('sqlQuery').value;
+            if (!query.trim()) {
+                alert('Please enter a SQL query');
+                return;
+            }
+            
+            if (!dbConnection) {
+                alert('Please connect to a database first');
+                return;
+            }
+            
+            // Simulate query execution with mock data
+            const mockResults = [
+                { id: 1, name: 'John Doe', email: 'john@example.com', created_at: '2024-01-15' },
+                { id: 2, name: 'Jane Smith', email: 'jane@example.com', created_at: '2024-01-16' },
+                { id: 3, name: 'Bob Johnson', email: 'bob@example.com', created_at: '2024-01-17' }
+            ];
+            
+            displayQueryResults(mockResults);
+        }
+
+        function displayQueryResults(results) {
+            const resultsDiv = document.getElementById('queryResults');
+            
+            if (!results || results.length === 0) {
+                resultsDiv.innerHTML = '<p>No results found.</p>';
+                resultsDiv.style.display = 'block';
+                return;
+            }
+            
+            const columns = Object.keys(results[0]);
+            let html = '<table><thead><tr>';
+            columns.forEach(col => {
+                html += `<th>${col}</th>`;
+            });
+            html += '</tr></thead><tbody>';
+            
+            results.forEach(row => {
+                html += '<tr>';
+                columns.forEach(col => {
+                    html += `<td>${row[col] || ''}</td>`;
+                });
+                html += '</tr>';
+            });
+            
+            html += '</tbody></table>';
+            resultsDiv.innerHTML = html;
+            resultsDiv.style.display = 'block';
+        }
+
+        // Privacy and Export Functions
+        function togglePrivacy() {
+            if (!currentNoteId) return;
+            
+            notes[currentNoteId].isPublic = !notes[currentNoteId].isPublic;
+            saveNotes();
+            updatePrivacyStatus();
+        }
+
+        function updatePrivacyStatus() {
+            if (!currentNoteId) return;
+            
+            const isPublic = notes[currentNoteId].isPublic;
+            document.getElementById('privacyStatus').textContent = isPublic ? 'Public' : 'Private';
+        }
+
+        function togglePublicProfile() {
+            currentUser.isPublic = !currentUser.isPublic;
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            
+            if (currentUser.isPublic) {
+                alert(`Your public profile is now available at: /user/${currentUser.username}`);
+            } else {
+                alert('Your profile is now private');
+            }
+            
+            document.getElementById('userDropdown').classList.add('hidden');
+        }
+
+        function exportNote() {
+            if (!currentNoteId) return;
+            
+            const note = notes[currentNoteId];
+            const content = `# ${note.title}\n\n${note.content}`;
+            
+            const blob = new Blob([content], { type: 'text/markdown' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${note.title}.md`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Search Function
+        function searchNotes() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const notesList = document.getElementById('notesList');
+            const userNotes = Object.values(notes).filter(note => note.userId === currentUser.id);
+            
+            const filteredNotes = userNotes.filter(note => 
+                note.title.toLowerCase().includes(query) || 
+                note.content.toLowerCase().includes(query)
+            );
+            
+            notesList.innerHTML = filteredNotes.map(note => `
+                <div class="note-item ${currentNoteId === note.id ? 'active' : ''}" onclick="loadNote('${note.id}')">
+                    <div class="note-title">${note.title}</div>
+                    <div class="note-preview">${note.content.substring(0, 100)}...</div>
+                </div>
+            `).join('');
+        }
+
+        // Utility Functions
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // Keyboard Shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Ctrl/Cmd + S to save
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                saveCurrentNote();
+                
+                // Show save indicator
+                const indicator = document.createElement('div');
+                indicator.textContent = 'Saved!';
+                indicator.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: #238636;
+                    color: white;
+                    padding: 0.5rem 1rem;
+                    border-radius: 6px;
+                    z-index: 1000;
+                    font-size: 0.9rem;
+                `;
+                document.body.appendChild(indicator);
+                setTimeout(() => indicator.remove(), 2000);
+            }
+            
+            // Ctrl/Cmd + N for new note
+            if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+                e.preventDefault();
+                createNewNote();
+            }
+            
+            // Ctrl/Cmd + P for preview toggle
+            if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+                e.preventDefault();
+                showPreview();
+            }
+        });
+
+        // Auto-save functionality
+        setInterval(() => {
+            if (currentNoteId && document.getElementById('editor').value !== notes[currentNoteId].content) {
+                saveCurrentNote();
+            }
+        }, 5000); // Auto-save every 5 seconds
+
+        // Initialize markdown processor
+        marked.setOptions({
+            highlight: function(code, lang) {
+                if (lang && hljs.getLanguage(lang)) {
+                    return hljs.highlight(code, { language: lang }).value;
+                }
+                return hljs.highlightAuto(code).value;
+            },
+            breaks: true,
+            gfm: true
+        });
+
+        // Public profile simulation (would be handled by backend in real app)
+        function viewPublicProfile(username) {
+            // This would normally be a separate page/route
+            const user = { username: username, isPublic: true };
+            const publicNotes = Object.values(notes).filter(note => 
+                note.userId === user.id && note.isPublic
+            );
+            
+            console.log(`Viewing public profile for ${username}:`, publicNotes);
+        }
+
+        // Theme switching (bonus feature)
+        function toggleTheme() {
+            document.body.classList.toggle('light-theme');
+            localStorage.setItem('theme', document.body.classList.contains('light-theme') ? 'light' : 'dark');
+        }
+
+        // Load saved theme
+        if (localStorage.getItem('theme') === 'light') {
+            document.body.classList.add('light-theme');
+        }
+    </script>
+</body>
+</html>

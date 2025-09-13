@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arguments of Eternity - Interactive Philosophy</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #667eea;
+            --secondary: #764ba2;
+            --accent: #f093fb;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #000;
+            color: #fff;
+            overflow-x: hidden;
+            scroll-behavior: smooth;
+        }
+
+        .scroll-container {
+            height: 100vh;
+            overflow-y: auto;
+            scroll-snap-type: y mandatory;
+        }
+
+        /* Dynamic Background System */
+        .background-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+            transition: all 2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .particles {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .particle {
+            position: absolute;
+            width: 3px;
+            height: 3px;
+            background: rgba(255,255,255,0.6);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        /* Hero Section */
+        .hero-section {
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            scroll-snap-align: start;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .hero-content {
+            text-align: center;
+            z-index: 10;
+            opacity: 0;
+            transform: translateY(50px);
+            animation: heroReveal 2s ease-out forwards;
+        }
+
+        @keyframes heroReveal {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .hero-title {
+            font-size: clamp(3rem, 8vw, 8rem);
+            font-weight: 900;
+            margin-bottom: 2rem;
+            background: linear-gradient(45deg, #fff, #f0f0f0, #fff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            background-size: 200% 200%;
+            animation: shimmer 3s ease-in-out infinite;
+            text-shadow: 0 0 60px rgba(255,255,255,0.5);
+        }
+
+        @keyframes shimmer {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .hero-subtitle {
+            font-size: clamp(1.2rem, 3vw, 2rem);
+            opacity: 0.9;
+            margin-bottom: 3rem;
+            font-weight: 300;
+        }
+
+        /* Argument Sections */
+        .argument-section {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            scroll-snap-align: start;
+            padding: 2rem;
+            transition: all 1s ease;
+        }
+
+        .argument-container {
+            max-width: 1200px;
+            width: 100%;
+            opacity: 0;
+            transform: translateY(100px);
+            transition: all 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .argument-container.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .philosopher-header {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+
+        .philosopher-name {
+            font-size: clamp(2.5rem, 6vw, 5rem);
+            font-weight: 800;
+            margin-bottom: 1rem;
+            background: linear-gradient(45deg, var(--primary), var(--secondary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            background-size: 300% 300%;
+            animation: philosopherGlow 4s ease-in-out infinite;
+        }
+
+        @keyframes philosopherGlow {
+            0%, 100% { 
+                background-position: 0% 50%;
+                filter: drop-shadow(0 0 30px rgba(102, 126, 234, 0.3));
+            }
+            50% { 
+                background-position: 100% 50%;
+                filter: drop-shadow(0 0 50px rgba(118, 75, 162, 0.5));
+            }
+        }
+
+        .philosopher-dates {
+            font-size: 1.5rem;
+            opacity: 0.7;
+            font-weight: 300;
+            letter-spacing: 2px;
+        }
+
+        .argument-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 3rem;
+            margin-top: 4rem;
+        }
+
+        .argument-card {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 25px;
+            padding: 3rem;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform: translateY(50px);
+            opacity: 0;
+        }
+
+        .argument-card.animate {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .argument-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            transition: left 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .argument-card:hover {
+            transform: translateY(-20px) rotateX(5deg);
+            box-shadow: 
+                0 30px 60px rgba(0, 0, 0, 0.4),
+                0 0 100px rgba(var(--primary-rgb), 0.2);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .argument-card:hover::before {
+            left: 100%;
+        }
+
+        .argument-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: var(--accent);
+            text-shadow: 0 0 20px rgba(240, 147, 251, 0.3);
+        }
+
+        .argument-text {
+            line-height: 1.8;
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+
+        .argument-impact {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 1.5rem;
+            border-left: 4px solid var(--accent);
+            font-style: italic;
+            font-size: 1rem;
+            opacity: 0.8;
+        }
+
+        /* Theme Transitions */
+        .theme-rationalism {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .theme-empiricism {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .theme-existentialism {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .theme-ethics {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        }
+
+        .theme-metaphysics {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+
+        .theme-epistemology {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+        }
+
+        .theme-political {
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+        }
+
+        /* Floating Elements */
+        .floating-symbols {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .symbol {
+            position: absolute;
+            font-size: 2rem;
+            opacity: 0.1;
+            animation: float 20s linear infinite;
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(100vh) rotate(0deg);
+                opacity: 0;
+            }
+            10%, 90% {
+                opacity: 0.3;
+            }
+            100% {
+                transform: translateY(-100px) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        /* Progress Indicator */
+        .scroll-progress {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            z-index: 1000;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--secondary), var(--accent));
+            transition: width 0.3s ease;
+            box-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
+        }
+
+        /* Morphing Background Shapes */
+        .morphing-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -2;
+            opacity: 0.1;
+        }
+
+        .morph-shape {
+            position: absolute;
+            background: linear-gradient(45deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+            border-radius: 50%;
+            animation: morph 15s ease-in-out infinite;
+        }
+
+        @keyframes morph {
+            0%, 100% {
+                transform: scale(1) rotate(0deg);
+                border-radius: 50%;
+            }
+            25% {
+                transform: scale(1.2) rotate(90deg);
+                border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+            }
+            50% {
+                transform: scale(0.8) rotate(180deg);
+                border-radius: 20% 80% 20% 80% / 20% 20% 80% 80%;
+            }
+            75% {
+                transform: scale(1.1) rotate(270deg);
+                border-radius: 70% 30% 30% 70% / 70% 70% 30% 30%;
+            }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .argument-grid {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+            
+            .argument-card {
+                padding: 2rem;
+            }
+            
+            .hero-title {
+                font-size: 3rem;
+            }
+        }
+
+        /* Section-specific themes */
+        .section-0 { --primary-rgb: 102, 126, 234; }
+        .section-1 { --primary-rgb: 240, 147, 251; }
+        .section-2 { --primary-rgb: 79, 172, 254; }
+        .section-3 { --primary-rgb: 67, 233, 123; }
+        .section-4 { --primary-rgb: 250, 112, 154; }
+        .section-5 { --primary-rgb: 168, 237, 234; }
+        .section-6 { --primary-rgb: 255, 154, 158; }
+
+        /* Glitch effect for impact */
+        .glitch {
+            animation: glitch 2s infinite;
+        }
+
+        @keyframes glitch {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-2px); }
+            40% { transform: translateX(2px); }
+            60% { transform: translateX(-1px); }
+            80% { transform: translateX(1px); }
+        }
+    </style>
+</head>
+<body>
+    <div class="scroll-progress">
+        <div class="progress-bar"></div>
+    </div>
+
+    <div class="background-canvas">
+        <div class="particles"></div>
+    </div>
+
+    <div class="floating-symbols"></div>
+    <div class="morphing-bg"></div>
+
+    <div class="scroll-container">
+        <!-- Hero Section -->
+        <section class="hero-section">
+            <div class="hero-content">
+                <h1 class="hero-title">Arguments of Eternity</h1>
+                <p class="hero-subtitle">Discover the most powerful philosophical arguments that shaped human thought</p>
+            </div>
+        </section>
+
+        <!-- Descartes - Rationalism -->
+        <section class="argument-section theme-rationalism section-0" data-theme="rationalism">
+            <div class="argument-container">
+                <div class="philosopher-header">
+                    <h2 class="philosopher-name">René Descartes</h2>
+                    <p class="philosopher-dates">1596 - 1650</p>
+                </div>
+                <div class="argument-grid">
+                    <div class="argument-card" data-delay="0">
+                        <h3 class="argument-title">The Cogito Argument</h3>
+                        <p class="argument-text">
+                            "I think, therefore I am" - Even if everything I believe is false, I cannot doubt that I exist as a thinking being. The very act of doubting proves my existence.
+                        </p>
+                        <div class="argument-impact">
+                            Impact: Established the foundation of modern philosophy and the primacy of consciousness.
+                        </div>
+                    </div>
+                    <div class="argument-card" data-delay="300">
+                        <h3 class="argument-title">Method of Systematic Doubt</h3>
+                        <p class="argument-text">
+                            To find absolute truth, we must doubt everything that can possibly be doubted. Only what survives this radical skepticism can be considered certain knowledge.
+                        </p>
+                        <div class="argument-impact">
+                            Impact: Created the scientific method and rational inquiry that drives modern research.
+                        </div>
+                    </div>
+                    <div class="argument-card" data-delay="600">
+                        <h3 class="argument-title">Mind-Body Dualism</h3>
+                        <p class="argument-text">
+                            The mind (thinking substance) and body (extended substance) are fundamentally different. The mind is indivisible and immortal, while the body is divisible and mortal.
+                        </p>
+                        <div class="argument-impact">
+                            Impact: Sparked centuries of debate about consciousness and the nature of human identity.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Hume - Empiricism -->
+        <section class="argument-section theme-empiricism section-1" data-theme="empiricism">
+            <div class="argument-container">
+                <div class="philosopher-header">
+                    <h2 class="philosopher-name">David Hume</h2>
+                    <p class="philosopher-dates">1711 - 1776</p>
+                </div>
+                <div class="argument-grid">
+                    <div class="argument-card" data-delay="0">
+                        <h3 class="argument-title">Problem of Induction</h3>
+                        <p class="argument-text">
+                            We cannot logically justify believing that future events will resemble past events. Our expectation that the sun will rise tomorrow is based on habit, not reason.
+                        </p>
+                        <div class="argument-impact">
+                            Impact: Challenged the foundation of scientific reasoning and empirical knowledge.
+                        </div>
+                    </div>
+                    <div class="argument-card" data-delay="300">
+                        <h3 class="argument-title">Is-Ought Problem</h3>
+                        <p class="argument-text">
+                            You cannot derive moral conclusions (what ought to be) from purely factual premises (what is). There's a logical gap between descriptive and prescriptive statements.
+                        </p>
+                        <div class="argument-impact">
+                            Impact: Revolutionized moral philosophy and the relationship between facts and values.
+                        </div>
+                    </div>
+                    <div class="argument-card" data-delay="600">
+                        <h3 class="argument-title">Bundle Theory of Self</h3>
+                        <p class="argument-text">
+                            There is no persistent "self" - only a bundle of perceptions, thoughts, and experiences. The idea of a continuous personal identity is an illusion.
+                        </p>
+                        <div class="argument-impact">
+                            Impact: Influenced psychology, neuroscience, and Eastern philosophical traditions.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Sartre - Existentialism -->
+        <section class="argument-section theme-existentialism section-2" data-theme="existentialism">
+            <div class="argument-container">
+                <div class="philosopher-header">
+                    <h2 class="philosopher-name">Jean-Paul Sartre</h2>
+                    <p class="philosopher-dates">1905 - 1980</p>
+                </div>
+                <div class="argument-grid">
+                    <div class="argument-card" data-delay="0">
+                        <h3 class="argument-title">Existence Precedes Essence</h3>
+                        <p class="argument-text">
+                            Humans first exist, then create their essence through choices and actions. Unlike objects designed for a purpose, humans must define their own meaning and identity.
+                        </p>
+                        <div class="argument-impact">
+                            Impact: Transformed understanding of human nature, freedom, and responsibility.
+                        </div>
+                    </div>
+                    <div class="argument-card" data-delay="300">
+                        <h3 class="argument-title">Radical Freedom</h3>
+                        <p class="argument-text">
+                            Humans are "condemned to be free" - we have absolute freedom to choose, and this freedom is both liberating and terrifying. We cannot escape the burden of choice.
+                        </p>
+                        <div class="argument-impact">
+                            Impact: Redefined personal responsibility and authentic living in modern culture.
+                        </div>
+                    </div>
+                    <div class="argument-card" data-delay="600">
+                        <h3 class="argument-title">Bad Faith</h3>
+                        <p class="argument-text">
+                            We often deny our freedom by pretending we have no choice, adopting roles that define us, or believing our identity is fixed. This self-deception is "bad faith."
+                        </p>
+                        <div class="argument-impact">
+                            Impact: Influenced psychology, therapy, and understanding of self-deception.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Kant - Ethics -->
+        <section class="argument-section theme-ethics section-3" data-theme="ethics">
+            <div class="argument-container">
+                <div class="philosopher-header">
+                    <h2 class="philosopher-name">Immanuel Kant</h2>
+                    <p class="philosopher-dates">1724 - 1804</p>
+                </div>
+                <div class="argument-grid">
+                    <div class="argument-card" data-delay="0">
+                        <h3 class="argument-title">Categorical Imperative</h3>
+                        <p class="argument-text">
+                            Act only according to principles you could will to be universal laws. If everyone following your maxim would create contradiction or impossibility, it's immoral.
+                        </p>
+                        <div class="argument-impact">
+                            Impact: Provided a rational foundation for universal moral principles.
+                        </div>
+                    </div>
+                    <div class="argument-card" data-delay="300">
+                        <h3 class="argument-title">Humanity as an End</h3>
+                        <p class="argument-text">
+                            Always treat humanity, whether in yourself or others, as an end in itself, never merely as a means. Human dignity is absolute and unconditional.
+                        </p>
+                        <div class="argument-impact">
+                            Impact: Became the basis for human rights and dignity in law and ethics.
+                        </div>
+                    </div>
+                    <div class="argument-card" data-delay="600">
+                        <h3 class="argument-title">Synthetic A Priori Knowledge</h3>
+                        <p class="argument-text">
+                            Some knowledge is both informative about the world and knowable independently of experience - like mathematics and the basic principles of science.
+                        </p>
+                        <div class="argument-impact">
+                            Impact: Resolved the rationalist-empiricist debate and grounded scientific knowledge.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Plato - Metaphysics -->
+        <section class="argument-section theme-metaphysics section-4" data-theme="metaphysics">
+            <div class="argument-container">
+                <div class="philosopher-header">
+                    <h2 class="philosopher-name">Plato</h2>
+                    <p class="philosopher-dates">428 - 348 BC</p>
+                </div>
+                <div class="argument-grid">
+                    <div class="argument-card" data-delay="0">
+                        <h3 class="argument-title">Theory of Forms</h3>
+                        <p class="argument-text">
+                            True reality consists of perfect, eternal Forms. The material world is merely a shadow or imperfect copy of these ideal Forms that exist in a higher realm.
+                        </p>
+                        <div class="argument-impact">
+                            Impact: Influenced mathematics, theology, and the concept of objective truth.
+                        </div>
+                    </div>
+                    <div class="argument-card" data-delay="300">
+                        <h3 class="argument-title">Allegory of the Cave</h3>
+                        <p class="argument-text">
+                            Most people live like prisoners chained in a cave, mistaking shadows on the wall for reality. Philosophy is the journey toward the light of true knowledge.
+                        </p>
+                        <div class="argument-impact">
+                            Impact: Became the archetypal metaphor for enlightenment and education.
+                        </div>
+                    </div>
+                    <div class="argument-card" data-delay="600">
+                        <h3 class="argument-title">Tripartite Soul</h3>
+                        <p class="argument-text">
+                            The soul has three parts: reason (rational), spirit (emotional), and appetite (desires). Justice occurs when reason rules over spirit and appetite in harmony.
+                        </p>
+                        <div class="argument-impact">
+                            Impact: Shaped psychology, political theory, and understanding of human nature.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- John Stuart Mill - Epistemology -->
+        <section class="argument-section theme-epistemology section-5" data-theme="epistemology">
+            <div class="argument-container">
+                <div class="philosopher-header">
+                    <h2 class="philosopher-name">John Stuart Mill</h2>
+                    <p class="philosopher-dates">1806 - 1873</p>
+                </div>
+                <div class="argument-grid">
+                    <div class="argument-card" data-delay="0">
+                        <h3 class="argument-title">Harm Principle</h3>
+                        <p class="argument-text">
+                            Society should only restrict individual liberty to prevent harm to others. Self-regarding actions, even if harmful to oneself, should remain free from interference.
+                        </p>
+                        <div class="argument-impact">
+                            Impact: Became the foundation of liberal democracy and civil liberties.
+                        </div>
+                    </div>
+                    <div class="argument-card" data-delay="300">
+                        <h3 class="argument-title">Marketplace of Ideas</h3>
+                        <p class="argument-text">
+                            Truth emerges through the free competition of ideas. Even false opinions should be heard because they help us understand and strengthen true beliefs.
+                        </p>
+                        <div class="argument-impact">
+                            Impact: Justified free speech and academic freedom in democratic societies.
+                        </div>
+                    </div>
+                    <div class="argument-card" data-delay="600">
+                        <h3 class="argument-title">Tyranny of the Majority</h3>
+                        <p class="argument-text">
+                            Democracy can oppress minorities through social pressure and conformity. Individual thought and expression need protection from majority opinion.
+                        </p>
+                        <div class="argument-impact">
+                            Impact: Influenced constitutional protections for minority rights and individual freedom.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Rawls - Political Philosophy -->
+        <section class="argument-section theme-political section-6" data-theme="political">
+            <div class="argument-container">
+                <div class="philosopher-header">
+                    <h2 class="philosopher-name">John Rawls</h2>
+                    <p class="philosopher-dates">1921 - 2002</p>
+                </div>
+                <div class="argument-grid">
+                    <div class="argument-card" data-delay="0">
+                        <h3 class="argument-title">Veil of Ignorance</h3>
+                        <p class="argument-text">
+                            To design a just society, imagine choosing principles without knowing your position - your race, gender, class, or abilities. This ensures fairness for all.
+                        </p>
+                        <div class="argument-impact">
+                            Impact: Revolutionized thinking about social justice and fair distribution of resources.
+                        </div>
+                    </div>
+                    <div class="argument-card" data-delay="300">
+                        <h3 class="argument-title">Difference Principle</h3>
+                        <p class="argument-text">
+                            Social and economic inequalities are justified only if they benefit the least advantaged members of society. Talent and effort don't create unlimited entitlement.
+                        </p>
+                        <div class="argument-impact">
+                            Impact: Influenced welfare policy, progressive taxation, and theories of distributive justice.
+                        </div>
+                    </div>
+                    <div class="argument-card" data-delay="600">
+                        <h3 class="argument-title">Justice as Fairness</h3>
+                        <p class="argument-text">
+                            A just society is one that free and equal persons would choose to live in. Justice is not about maximizing utility but ensuring fairness in basic structure.
+                        </p>
+                        <div class="argument-impact">
+                            Impact: Provided a framework for evaluating institutions and public policy.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // Enhanced scroll and animation system
+        class PhilosophyScroller {
+            constructor() {
+                this.currentSection = 0;
+                this.sections = document.querySelectorAll('.argument-section');
+                this.progressBar = document.querySelector('.progress-bar');
+                this.backgroundCanvas = document.querySelector('.background-canvas');
+                this.particles = [];
+                this.symbols = ['φ', 'ψ', 'Ω', '∞', '∴', '∃', '∀', '∈', '∅', '⊕'];
+                
+                this.init();
+            }
+
+            init() {
+                this.createParticles();
+                this.createMorphingShapes();
+                this.setupScrollListener();
+                this.startFloatingSymbols();
+                this.observeSections();
+            }
+
+            createParticles() {
+                const particleContainer = document.querySelector('.particles');
+                for (let i = 0; i < 100; i++) {
+                    const particle = document.createElement('div');
+                    particle.className = 'particle';
+                    particle.style.left = Math.random() * 100 + '%';
+                    particle.style.top = Math.random() * 100 + '%';
+                    particle.style.animationDelay = Math.random() * 20 + 's';
+                    particle.style.animationDuration = (Math.random() * 10 + 10) + 's';
+                    
+                    // Random movement animation
+                    particle.style.animation = `
+                        particleFloat ${10 + Math.random() * 20}s linear infinite,
+                        particleFade ${3 + Math.random() * 4}s ease-in-out infinite alternate
+                    `;
+                    
+                    particleContainer.appendChild(particle);
+                }
+
+                // Add particle animation styles
+                const style = document.createElement('style');
+                style.textContent = `
+                    @keyframes particleFloat {
+                        0% { transform: translate(0, 0) rotate(0deg); }
+                        25% { transform: translate(100px, -100px) rotate(90deg); }
+                        50% { transform: translate(-50px, -200px) rotate(180deg); }
+                        75% { transform: translate(-150px, -50px) rotate(270deg); }
+                        100% { transform: translate(0, 0) rotate(360deg); }
+                    }
+                    @keyframes particleFade {
+                        0% { opacity: 0.2; }
+                        100% { opacity: 0.8; }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+
+            createMorphingShapes() {
+                const morphingBg = document.querySelector('.morphing-bg');
+                
+                for (let i = 0; i < 8; i++) {
+                    const shape = document.createElement('div');
+                    shape.className = 'morph-shape';
+                    shape.style.width = (50 + Math.random() * 200) + 'px';
+                    shape.style.height = (50 + Math.random() * 200) + 'px';
+                    shape.style.left = Math.random() * 100 + '%';
+                    shape.style.top = Math.random() * 100 + '%';
+                    shape.style.animationDelay = (i * 2) + 's';
+                    shape.style.animationDuration = (15 + Math.random() * 10) + 's';
+                    morphingBg.appendChild(shape);
+                }
+            }
+
+            setupScrollListener() {
+                const scrollContainer = document.querySelector('.scroll-container');
+                let ticking = false;
+
+                scrollContainer.addEventListener('scroll', () => {
+                    if (!ticking) {
+                        requestAnimationFrame(() => {
+                            this.handleScroll();
+                            ticking = false;
+                        });
+                        ticking = true;
+                    }
+                });
+            }
+
+            handleScroll() {
+                const scrollContainer = document.querySelector('.scroll-container');
+                const scrollTop = scrollContainer.scrollTop;
+                const scrollHeight = scrollContainer.scrollHeight - scrollContainer.clientHeight;
+                const progress = scrollTop / scrollHeight;
+
+                // Update progress bar
+                this.progressBar.style.width = (progress * 100) + '%';
+
+                // Change background theme based on current section
+                const sectionHeight = window.innerHeight;
+                const newSection = Math.floor(scrollTop / sectionHeight);
+                
+                if (newSection !== this.currentSection && newSection < this.sections.length) {
+                    this.currentSection = newSection;
+                    this.changeTheme(newSection);
+                }
+
+                // Parallax effect for particles
+                const particles = document.querySelectorAll('.particle');
+                particles.forEach((particle, index) => {
+                    const speed = 0.5 + (index % 3) * 0.2;
+                    particle.style.transform = `translateY(${scrollTop * speed * -0.1}px) rotate(${scrollTop * 0.1}deg)`;
+                });
+            }
+
+            changeTheme(sectionIndex) {
+                const themes = [
+                    'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                    'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                    'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+                    'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+                    'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
+                    'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)'
+                ];
+
+                if (themes[sectionIndex]) {
+                    this.backgroundCanvas.style.background = themes[sectionIndex];
+                    
+                    // Add glitch effect during theme transitions
+                    this.backgroundCanvas.classList.add('glitch');
+                    setTimeout(() => {
+                        this.backgroundCanvas.classList.remove('glitch');
+                    }, 1000);
+                }
+            }
+
+            startFloatingSymbols() {
+                setInterval(() => {
+                    this.createFloatingSymbol();
+                }, 2000);
+            }
+
+            createFloatingSymbol() {
+                const symbolContainer = document.querySelector('.floating-symbols');
+                const symbol = document.createElement('div');
+                symbol.className = 'symbol';
+                symbol.textContent = this.symbols[Math.floor(Math.random() * this.symbols.length)];
+                symbol.style.left = Math.random() * 100 + '%';
+                symbol.style.animationDuration = (15 + Math.random() * 10) + 's';
+                symbol.style.fontSize = (1 + Math.random() * 2) + 'rem';
+                symbolContainer.appendChild(symbol);
+
+                setTimeout(() => symbol.remove(), 25000);
+            }
+
+            observeSections() {
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            const container = entry.target.querySelector('.argument-container');
+                            const cards = entry.target.querySelectorAll('.argument-card');
+                            
+                            // Animate container
+                            setTimeout(() => {
+                                container.classList.add('visible');
+                            }, 200);
+
+                            // Stagger card animations
+                            cards.forEach((card, index) => {
+                                const delay = parseInt(card.dataset.delay) || (index * 300);
+                                setTimeout(() => {
+                                    card.classList.add('animate');
+                                }, delay + 500);
+                            });
+                        }
+                    });
+                }, { 
+                    threshold: 0.3,
+                    rootMargin: '0px 0px -100px 0px'
+                });
+
+                this.sections.forEach(section => {
+                    observer.observe(section);
+                });
+            }
+        }
+
+        // Advanced hover effects for argument cards
+        class CardEffects {
+            constructor() {
+                this.init();
+            }
+
+            init() {
+                const cards = document.querySelectorAll('.argument-card');
+                cards.forEach(card => {
+                    card.addEventListener('mouseenter', (e) => this.onHover(e));
+                    card.addEventListener('mouseleave', (e) => this.onLeave(e));
+                    card.addEventListener('mousemove', (e) => this.onMove(e));
+                    card.addEventListener('click', (e) => this.onClick(e));
+                });
+            }
+
+            onHover(e) {
+                const card = e.target.closest('.argument-card');
+                
+                // Create ripple effect
+                const ripple = document.createElement('div');
+                ripple.style.position = 'absolute';
+                ripple.style.width = '20px';
+                ripple.style.height = '20px';
+                ripple.style.background = 'rgba(255, 255, 255, 0.3)';
+                ripple.style.borderRadius = '50%';
+                ripple.style.transform = 'scale(0)';
+                ripple.style.animation = 'ripple 0.8s ease-out';
+                ripple.style.pointerEvents = 'none';
+                
+                const rect = card.getBoundingClientRect();
+                ripple.style.left = (e.clientX - rect.left - 10) + 'px';
+                ripple.style.top = (e.clientY - rect.top - 10) + 'px';
+                
+                card.appendChild(ripple);
+                setTimeout(() => ripple.remove(), 800);
+
+                // Add glow effect to title
+                const title = card.querySelector('.argument-title');
+                title.style.textShadow = '0 0 30px rgba(240, 147, 251, 0.8)';
+            }
+
+            onLeave(e) {
+                const card = e.target.closest('.argument-card');
+                const title = card.querySelector('.argument-title');
+                title.style.textShadow = '0 0 20px rgba(240, 147, 251, 0.3)';
+            }
+
+            onMove(e) {
+                const card = e.target.closest('.argument-card');
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+                const rotateX = (y - centerY) / 20;
+                const rotateY = (centerX - x) / 20;
+
+                card.style.transform = `
+                    translateY(-20px) 
+                    rotateX(${rotateX}deg) 
+                    rotateY(${rotateY}deg)
+                    scale(1.02)
+                `;
+            }
+
+            onClick(e) {
+                const card = e.target.closest('.argument-card');
+                
+                // Create explosion effect
+                for (let i = 0; i < 12; i++) {
+                    const spark = document.createElement('div');
+                    spark.style.position = 'absolute';
+                    spark.style.width = '4px';
+                    spark.style.height = '4px';
+                    spark.style.background = 'rgba(240, 147, 251, 0.8)';
+                    spark.style.borderRadius = '50%';
+                    spark.style.pointerEvents = 'none';
+                    
+                    const angle = (i * 30) * Math.PI / 180;
+                    const distance = 50 + Math.random() * 50;
+                    
+                    spark.style.left = '50%';
+                    spark.style.top = '50%';
+                    spark.style.transform = 'translate(-50%, -50%)';
+                    spark.style.animation = `sparkFly 1s ease-out forwards`;
+                    
+                    // Custom animation for each spark
+                    spark.style.setProperty('--end-x', Math.cos(angle) * distance + 'px');
+                    spark.style.setProperty('--end-y', Math.sin(angle) * distance + 'px');
+                    
+                    card.appendChild(spark);
+                    setTimeout(() => spark.remove(), 1000);
+                }
+
+                // Pulse effect
+                card.style.animation = 'cardPulse 0.6s ease-out';
+                setTimeout(() => {
+                    card.style.animation = '';
+                }, 600);
+            }
+        }
+
+        // Sound effects (visual representation)
+        class VisualSoundEffects {
+            constructor() {
+                this.createSoundWaves();
+            }
+
+            createSoundWaves() {
+                const style = document.createElement('style');
+                style.textContent = `
+                    @keyframes ripple {
+                        0% { transform: scale(0); opacity: 1; }
+                        100% { transform: scale(4); opacity: 0; }
+                    }
+                    
+                    @keyframes sparkFly {
+                        0% { 
+                            transform: translate(-50%, -50%) scale(1); 
+                            opacity: 1; 
+                        }
+                        100% { 
+                            transform: translate(
+                                calc(-50% + var(--end-x)), 
+                                calc(-50% + var(--end-y))
+                            ) scale(0); 
+                            opacity: 0; 
+                        }
+                    }
+                    
+                    @keyframes cardPulse {
+                        0%, 100% { transform: translateY(-20px) scale(1.02); }
+                        50% { transform: translateY(-25px) scale(1.08); }
+                    }
+                    
+                    @keyframes textWave {
+                        0%, 100% { transform: translateY(0); }
+                        50% { transform: translateY(-5px); }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+        }
+
+        // Text animation effects
+        class TextAnimations {
+            constructor() {
+                this.animateText();
+            }
+
+            animateText() {
+                const titles = document.querySelectorAll('.argument-title');
+                titles.forEach((title, index) => {
+                    const text = title.textContent;
+                    title.innerHTML = '';
+                    
+                    [...text].forEach((char, i) => {
+                        const span = document.createElement('span');
+                        span.textContent = char === ' ' ? '\u00A0' : char;
+                        span.style.display = 'inline-block';
+                        span.style.animation = `textWave ${2 + Math.random()}s ease-in-out infinite`;
+                        span.style.animationDelay = (i * 0.1) + 's';
+                        title.appendChild(span);
+                    });
+                });
+            }
+        }
+
+        // Initialize all systems
+        document.addEventListener('DOMContentLoaded', () => {
+            new PhilosophyScroller();
+            new CardEffects();
+            new VisualSoundEffects();
+            new TextAnimations();
+
+            // Add loading animation
+            document.body.style.opacity = '0';
+            document.body.style.transform = 'scale(0.95)';
+            
+            setTimeout(() => {
+                document.body.style.transition = 'all 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+                document.body.style.opacity = '1';
+                document.body.style.transform = 'scale(1)';
+            }, 100);
+
+            // Easter egg: Konami code for special effect
+            let konamiCode = [];
+            const sequence = [38, 38, 40, 40, 37, 39, 37, 39, 66, 65]; // ↑↑↓↓←→←→BA
+            
+            document.addEventListener('keydown', (e) => {
+                konamiCode.push(e.keyCode);
+                if (konamiCode.length > sequence.length) {
+                    konamiCode.shift();
+                }
+                
+                if (konamiCode.join(',') === sequence.join(',')) {
+                    // Activate rainbow mode
+                    document.body.style.animation = 'rainbow 2s infinite';
+                    setTimeout(() => {
+                        document.body.style.animation = '';
+                    }, 10000);
+                }
+            });
+
+            // Add rainbow animation
+            const rainbowStyle = document.createElement('style');
+            rainbowStyle.textContent = `
+                @keyframes rainbow {
+                    0% { filter: hue-rotate(0deg); }
+                    100% { filter: hue-rotate(360deg); }
+                }
+            `;
+            document.head.appendChild(rainbowStyle);
+        });
+
+        // Smooth scroll enhancement
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                target.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            });
+        });
+
+        // Performance optimization
+        let resizeTimer;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+                // Reinitialize particles on resize
+                document.querySelector('.particles').innerHTML = '';
+                new PhilosophyScroller().createParticles();
+            }, 250);
+        });
+    </script>
+</body>
+</html>

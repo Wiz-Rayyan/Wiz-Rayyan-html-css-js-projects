@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Philosophy in Motion - Interactive Arguments</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Georgia', serif;
+            overflow-x: hidden;
+            background: #000;
+            color: white;
+            line-height: 1.6;
+        }
+
+        .container {
+            position: relative;
+            min-height: 100vh;
+        }
+
+        .background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            transition: all 2s ease;
+            background: linear-gradient(45deg, #1a1a2e, #16213e);
+        }
+
+        .particles {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .particle {
+            position: absolute;
+            width: 3px;
+            height: 3px;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 50%;
+            animation: float 15s infinite linear;
+        }
+
+        @keyframes float {
+            from {
+                transform: translateY(100vh) rotate(0deg);
+                opacity: 1;
+            }
+            to {
+                transform: translateY(-100px) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        .hero {
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            position: relative;
+        }
+
+        .hero h1 {
+            font-size: 4rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            opacity: 0;
+            transform: translateY(50px);
+            animation: fadeInUp 2s ease forwards;
+            text-shadow: 0 0 30px rgba(255, 255, 255, 0.5);
+        }
+
+        .hero p {
+            font-size: 1.5rem;
+            opacity: 0;
+            transform: translateY(50px);
+            animation: fadeInUp 2s ease 0.5s forwards;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .philosopher-section {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4rem 2rem;
+            position: relative;
+            opacity: 0;
+            transform: translateY(100px);
+            transition: all 1s ease;
+        }
+
+        .philosopher-section.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .philosopher-card {
+            max-width: 800px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 3rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            transform: scale(0.9);
+            transition: all 0.8s ease;
+        }
+
+        .philosopher-section.visible .philosopher-card {
+            transform: scale(1);
+        }
+
+        .philosopher-name {
+            font-size: 3rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            text-align: center;
+            background: linear-gradient(45deg, #fff, #ccc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .argument-title {
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            color: #ffd700;
+            font-style: italic;
+        }
+
+        .argument-text {
+            font-size: 1.2rem;
+            line-height: 1.8;
+            text-align: justify;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .quote {
+            font-size: 1.4rem;
+            font-style: italic;
+            text-align: center;
+            margin: 2rem 0;
+            padding: 1rem;
+            border-left: 4px solid #ffd700;
+            background: rgba(255, 215, 0, 0.1);
+            border-radius: 0 10px 10px 0;
+        }
+
+        /* Theme variations */
+        .theme-descartes {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .theme-kant {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .theme-nietzsche {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .theme-aristotle {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        }
+
+        .theme-plato {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+
+        .theme-socrates {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+        }
+
+        .scroll-indicator {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            animation: bounce 2s infinite;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {
+                transform: translateX(-50%) translateY(0);
+            }
+            40% {
+                transform: translateX(-50%) translateY(-10px);
+            }
+            60% {
+                transform: translateX(-50%) translateY(-5px);
+            }
+        }
+
+        .floating-elements {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .floating-element {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            animation: floatAround 20s infinite linear;
+        }
+
+        @keyframes floatAround {
+            from {
+                transform: translateX(-100px) translateY(0) rotate(0deg);
+            }
+            to {
+                transform: translateX(calc(100vw + 100px)) translateY(-200px) rotate(360deg);
+            }
+        }
+
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 0%;
+            height: 4px;
+            background: linear-gradient(90deg, #ffd700, #fff);
+            z-index: 1000;
+            transition: width 0.3s ease;
+        }
+
+        /* New image styles */
+        .philosopher-image {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin: 0 auto 2rem;
+            display: block;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 0 30px rgba(255, 255, 255, 0.2);
+        }
+
+        .philosophy-image {
+            width: 100%;
+            max-width: 500px;
+            height: auto;
+            border-radius: 15px;
+            margin: 2rem auto;
+            display: block;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .image-container {
+            position: relative;
+            margin: 2rem 0;
+            text-align: center;
+        }
+
+        .image-caption {
+            font-style: italic;
+            margin-top: 0.5rem;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+            .hero p {
+                font-size: 1.2rem;
+            }
+            .philosopher-name {
+                font-size: 2rem;
+            }
+            .philosopher-card {
+                padding: 2rem;
+            }
+            .philosopher-image {
+                width: 150px;
+                height: 150px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="progress-bar" id="progressBar"></div>
+    <div class="background" id="background">
+        <div class="particles" id="particles"></div>
+        <div class="floating-elements" id="floatingElements"></div>
+    </div>
+
+    <div class="container">
+        <!-- Hero Section -->
+        <section class="hero">
+            <div>
+                <h1>Philosophy in Motion</h1>
+                <p>Journey through the greatest arguments in human thought</p>
+            </div>
+            <div class="scroll-indicator">
+                ↓ Scroll to explore
+            </div>
+        </section>
+
+        <!-- Descartes -->
+        <section class="philosopher-section" data-theme="descartes">
+            <div class="philosopher-card">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/73/Frans_Hals_-_Portret_van_Ren%C3%A9_Descartes.jpg/800px-Frans_Hals_-_Portret_van_Ren%C3%A9_Descartes.jpg" alt="René Descartes" class="philosopher-image">
+                <h2 class="philosopher-name">René Descartes</h2>
+                <h3 class="argument-title">Cogito Ergo Sum</h3>
+                <div class="quote">"I think, therefore I am"</div>
+                <div class="image-container">
+                    <img src="https://i.pinimg.com/originals/8c/9a/4e/8c9a4e4c7d3b2b9a9e9e9e9e9e9e9e9e9.jpg" alt="Cartesian Dualism" class="philosophy-image">
+                    <div class="image-caption">Descartes' mind-body dualism illustration</div>
+                </div>
+                <p class="argument-text">
+                    Descartes embarked on a radical journey of doubt, questioning everything he believed to be true. 
+                    Through methodical skepticism, he stripped away all uncertain beliefs until he reached one 
+                    indubitable truth: the very act of doubting proves the existence of the doubter. This became 
+                    the foundation of modern philosophy, establishing the primacy of consciousness and self-awareness 
+                    as the starting point for all knowledge. Even if an evil demon were deceiving him about 
+                    everything else, the fact that he was thinking—and therefore existing as a thinking being—remained 
+                    unshakeable. This insight revolutionized how we understand the relationship between mind and reality.
+                </p>
+            </div>
+        </section>
+
+        <!-- Kant -->
+        <section class="philosopher-section" data-theme="kant">
+            <div class="philosopher-card">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/Immanuel_Kant_%28painted_portrait%29.jpg/800px-Immanuel_Kant_%28painted_portrait%29.jpg" alt="Immanuel Kant" class="philosopher-image">
+                <h2 class="philosopher-name">Immanuel Kant</h2>
+                <h3 class="argument-title">The Categorical Imperative</h3>
+                <div class="quote">"Act only according to that maxim whereby you can at the same time will that it should become a universal law"</div>
+                <div class="image-container">
+                    <img src="https://i.pinimg.com/originals/3a/3b/6a/3a3b6a6a6a6a6a6a6a6a6a6a6a6a6a6a.jpg" alt="Categorical Imperative" class="philosophy-image">
+                    <div class="image-caption">Visual representation of Kant's moral law</div>
+                </div>
+                <p class="argument-text">
+                    Kant revolutionized ethics by proposing that moral actions must be guided by principles that 
+                    could apply universally. His categorical imperative demands that we act only according to 
+                    principles we could will to be universal laws. This means treating humanity, whether in ourselves 
+                    or others, always as an end and never merely as means. Kant argued that moral worth comes not 
+                    from consequences or emotions, but from acting out of duty to universal moral principles. 
+                    This framework provides a rational foundation for ethics, independent of religion or personal 
+                    preference, and has profoundly influenced modern concepts of human rights and dignity.
+                </p>
+            </div>
+        </section>
+
+        <!-- Nietzsche -->
+        <section class="philosopher-section" data-theme="nietzsche">
+            <div class="philosopher-card">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/Nietzsche187a.jpg/800px-Nietzsche187a.jpg" alt="Friedrich Nietzsche" class="philosopher-image">
+                <h2 class="philosopher-name">Friedrich Nietzsche</h2>
+                <h3 class="argument-title">The Death of God & The Übermensch</h3>
+                <div class="quote">"God is dead. God remains dead. And we have killed him."</div>
+                <div class="image-container">
+                    <img src="https://i.pinimg.com/originals/9f/9a/7a/9f9a7a7a7a7a7a7a7a7a7a7a7a7a7a7a.jpg" alt="Übermensch concept" class="philosophy-image">
+                    <div class="image-caption">Artistic representation of the Übermensch concept</div>
+                </div>
+                <p class="argument-text">
+                    Nietzsche proclaimed the "death of God" not as a theological statement, but as a cultural 
+                    diagnosis: traditional religious and moral foundations had lost their authority in modern life. 
+                    This created both a crisis and an opportunity. Without predetermined meaning, humans must 
+                    create their own values and purposes. The Übermensch represents this new ideal—not a superior 
+                    being, but a person who has overcome traditional moral constraints to create authentic values. 
+                    Nietzsche challenged us to embrace life fully, with all its suffering and joy, rather than 
+                    seeking escape in otherworldly promises. His philosophy of eternal recurrence asks: would 
+                    you live your life exactly the same way if you had to repeat it infinitely?
+                </p>
+            </div>
+        </section>
+
+        <!-- Aristotle -->
+        <section class="philosopher-section" data-theme="aristotle">
+            <div class="philosopher-card">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/ae/Aristotle_Altemps_Inv8575.jpg/800px-Aristotle_Altemps_Inv8575.jpg" alt="Aristotle" class="philosopher-image">
+                <h2 class="philosopher-name">Aristotle</h2>
+                <h3 class="argument-title">The Golden Mean & Eudaimonia</h3>
+                <div class="quote">"Happiness is the highest good and the end at which all our activities ultimately aim"</div>
+                <div class="image-container">
+                    <img src="https://i.pinimg.com/originals/5e/5a/8d/5e5a8d8d8d8d8d8d8d8d8d8d8d8d8d8d.jpg" alt="Golden Mean" class="philosophy-image">
+                    <div class="image-caption">Visualization of Aristotle's Golden Mean concept</div>
+                </div>
+                <p class="argument-text">
+                    Aristotle argued that true happiness (eudaimonia) is not a feeling but a way of living—
+                    the flourishing that comes from realizing one's full potential as a human being. This is 
+                    achieved through virtue, which he saw as finding the "golden mean" between extremes of 
+                    excess and deficiency. Courage, for example, lies between cowardice and recklessness. 
+                    Virtue is not innate but developed through practice and habit, like learning to play an 
+                    instrument. The good life requires both moral virtue (excellence of character) and 
+                    intellectual virtue (excellence of mind), along with sufficient external goods like health 
+                    and friendship. Aristotle's ethics emphasizes that we are fundamentally social beings who 
+                    find fulfillment through our relationships and contributions to community.
+                </p>
+            </div>
+        </section>
+
+        <!-- Plato -->
+        <section class="philosopher-section" data-theme="plato">
+            <div class="philosopher-card">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/49/Plato_Silanion_Musei_Capitolini_MC1377.jpg/800px-Plato_Silanion_Musei_Capitolini_MC1377.jpg" alt="Plato" class="philosopher-image">
+                <h2 class="philosopher-name">Plato</h2>
+                <h3 class="argument-title">The Theory of Forms</h3>
+                <div class="quote">"The unexamined life is not worth living"</div>
+                <div class="image-container">
+                    <img src="https://i.pinimg.com/736x/d3/01/63/d30163de2fc6192df4bbf7aef3c34e3d.jpg" alt="Allegory of the Cave" class="philosophy-image">
+                    <div class="image-caption">Plato's Allegory of the Cave</div>
+                </div>
+                <p class="argument-text">
+                    Plato distinguished between the world of appearances and the world of Forms—eternal, 
+                    perfect archetypes of which earthly things are mere shadows. His famous Allegory of the 
+                    Cave illustrates how most people mistake shadows on a wall for reality itself, while 
+                    philosophers are those who break free and see the true light of knowledge. True knowledge 
+                    comes not from sensory experience, which can deceive us, but from rational understanding 
+                    of eternal truths. The Form of the Good stands at the apex of this realm, making all 
+                    other knowledge possible. Plato's philosophy suggests that learning is actually 
+                    remembering—our souls, having once known the Forms directly, can recollect this knowledge 
+                    through philosophical inquiry and dialectical reasoning.
+                </p>
+            </div>
+        </section>
+
+        <!-- Socrates -->
+        <section class="philosopher-section" data-theme="socrates">
+            <div class="philosopher-card">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/Socrates_Louvre.jpg/800px-Socrates_Louvre.jpg" alt="Socrates" class="philosopher-image">
+                <h2 class="philosopher-name">Socrates</h2>
+                <h3 class="argument-title">Socratic Wisdom & The Examined Life</h3>
+                <div class="quote">"I know that I know nothing"</div>
+                <div class="image-container">
+                    <img src="https://i.pinimg.com/originals/7a/7a/7a/7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a.jpg" alt="Socratic Method" class="philosophy-image">
+                    <div class="image-caption">Depiction of Socrates engaging in dialogue</div>
+                </div>
+                <p class="argument-text">
+                    Socrates revolutionized philosophy by focusing on how we should live rather than abstract 
+                    speculation about the natural world. His method of questioning—the Socratic method—reveals 
+                    that many beliefs we hold with certainty are actually unfounded. By persistently asking 
+                    "What is justice?" or "What is courage?" he showed that these fundamental concepts resist 
+                    simple definition. His wisdom lay in recognizing his own ignorance, unlike those who falsely 
+                    believed they possessed knowledge. Socrates argued that "the unexamined life is not worth 
+                    living" and that virtue is knowledge—if we truly understand what is good, we will naturally 
+                    act virtuously. His commitment to truth and moral integrity, even unto death, established 
+                    philosophy as a way of life dedicated to the pursuit of wisdom and virtue.
+                </p>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // Initialize particles
+        function createParticles() {
+            const particlesContainer = document.getElementById('particles');
+            for (let i = 0; i < 50; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 15 + 's';
+                particle.style.animationDuration = (15 + Math.random() * 10) + 's';
+                particlesContainer.appendChild(particle);
+            }
+        }
+
+        // Create floating elements
+        function createFloatingElements() {
+            const container = document.getElementById('floatingElements');
+            for (let i = 0; i < 10; i++) {
+                const element = document.createElement('div');
+                element.className = 'floating-element';
+                element.style.top = Math.random() * 100 + '%';
+                element.style.animationDelay = Math.random() * 20 + 's';
+                element.style.animationDuration = (20 + Math.random() * 10) + 's';
+                container.appendChild(element);
+            }
+        }
+
+        // Handle scroll animations and theme changes
+        function handleScroll() {
+            const scrollTop = window.pageYOffset;
+            const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+            const scrollPercent = (scrollTop / docHeight) * 100;
+            
+            // Update progress bar
+            document.getElementById('progressBar').style.width = scrollPercent + '%';
+            
+            // Get all philosopher sections
+            const sections = document.querySelectorAll('.philosopher-section');
+            const background = document.getElementById('background');
+            
+            sections.forEach((section, index) => {
+                const rect = section.getBoundingClientRect();
+                const isVisible = rect.top < window.innerHeight * 0.8 && rect.bottom > 0;
+                
+                if (isVisible) {
+                    section.classList.add('visible');
+                    
+                    // Change background theme
+                    const theme = section.getAttribute('data-theme');
+                    background.className = `background theme-${theme}`;
+                }
+            });
+        }
+
+        // Smooth scrolling for better experience
+        let ticking = false;
+        function requestTick() {
+            if (!ticking) {
+                requestAnimationFrame(handleScroll);
+                ticking = true;
+                setTimeout(() => { ticking = false; }, 16);
+            }
+        }
+
+        // Enhanced scroll effects with parallax
+        function addParallaxEffects() {
+            const cards = document.querySelectorAll('.philosopher-card');
+            const scrollTop = window.pageYOffset;
+            
+            cards.forEach((card, index) => {
+                const section = card.closest('.philosopher-section');
+                const rect = section.getBoundingClientRect();
+                
+                if (rect.top < window.innerHeight && rect.bottom > 0) {
+                    const parallaxSpeed = 0.1;
+                    const yPos = -(scrollTop * parallaxSpeed);
+                    card.style.transform = `translateY(${yPos}px) scale(1)`;
+                }
+            });
+        }
+
+        // Initialize everything
+        document.addEventListener('DOMContentLoaded', function() {
+            createParticles();
+            createFloatingElements();
+            handleScroll();
+            
+            // Hide scroll indicator after first scroll
+            let hasScrolled = false;
+            window.addEventListener('scroll', function() {
+                if (!hasScrolled) {
+                    document.querySelector('.scroll-indicator').style.opacity = '0';
+                    hasScrolled = true;
+                }
+                requestTick();
+                addParallaxEffects();
+            });
+            
+            // Add resize handler
+            window.addEventListener('resize', handleScroll);
+        });
+
+        // Add smooth scroll behavior
+        document.documentElement.style.scrollBehavior = 'smooth';
+    </script>
+</body>
+</html>
