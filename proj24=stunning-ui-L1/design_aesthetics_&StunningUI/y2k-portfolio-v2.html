@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>✦ NOVA.EXE — CREATIVE STUDIO ✦</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Orbitron:wght@400;700;900&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0A0A0A;
+  --pk: #FF1493;
+  --cy: #00E5FF;
+  --lm: #AAFF00;
+  --wh: #ffffff;
+  --sl: #c0c0c0;
+  --gy: #1a1a1a;
+}
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--wh);
+  font-family: 'Space Mono', monospace;
+  overflow-x: hidden;
+  cursor: none;
+}
+
+/* ─── CURSOR ─── */
+#cur, #cur2 {
+  position: fixed; border-radius: 50%;
+  pointer-events: none; z-index: 9999; mix-blend-mode: difference;
+  transition: transform .15s ease;
+}
+#cur  { width:12px; height:12px; background:var(--wh); top:0; left:0; transform:translate(-50%,-50%); }
+#cur2 { width:40px; height:40px; border:1px solid rgba(255,255,255,.4); top:0; left:0; transform:translate(-50%,-50%); transition:all .08s ease; }
+
+/* ─── LOADING SCREEN ─── */
+#loader {
+  position: fixed; inset: 0; z-index: 9000;
+  background: var(--bg);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 32px;
+}
+.loader-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 64px; letter-spacing: 16px;
+  background: linear-gradient(90deg, var(--pk), var(--cy), var(--lm));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  animation: lshift 1.5s linear infinite; background-size: 200%;
+}
+@keyframes lshift { 0%{background-position:0%} 100%{background-position:200%} }
+.loader-bar-wrap { width: 280px; height: 2px; background: rgba(255,255,255,.1); }
+.loader-bar { height: 100%; width: 0; background: linear-gradient(90deg, var(--pk), var(--cy)); animation: lbar 2.2s cubic-bezier(.4,0,.2,1) forwards; }
+@keyframes lbar { 0%{width:0} 60%{width:80%} 100%{width:100%} }
+.loader-text { font-size: 10px; letter-spacing: 6px; color: rgba(255,255,255,.3); font-family: 'Orbitron', monospace; }
+#loader.done { animation: fadeOut .6s .3s forwards; }
+@keyframes fadeOut { to { opacity:0; pointer-events:none; } }
+
+/* ─── NOISE OVERLAY ─── */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 1; pointer-events: none;
+  opacity: .03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 180px;
+}
+
+/* ─── SPARKLES CANVAS ─── */
+#sparks { position: fixed; inset:0; pointer-events:none; z-index:2; }
+
+/* ─── NAV ─── */
+nav {
+  position: fixed; top:0; left:0; right:0; z-index:800;
+  display:flex; justify-content:space-between; align-items:center;
+  padding: 0 48px; height: 72px;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+nav::before {
+  content:''; position:absolute; inset:0;
+  background: rgba(10,10,10,.7);
+  backdrop-filter: blur(20px) saturate(180%);
+  z-index:-1;
+}
+.nav-logo {
+  font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:6px;
+  background: linear-gradient(90deg, #888, #fff, #888);
+  background-size: 200%; animation: chrome 4s linear infinite;
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+  text-decoration:none;
+}
+@keyframes chrome { 0%{background-position:0%} 100%{background-position:200%} }
+.nav-links { display:flex; gap:40px; list-style:none; }
+.nav-links a {
+  font-family:'Space Mono',monospace; font-weight:700;
+  font-size:10px; letter-spacing:4px; text-transform:uppercase;
+  text-decoration:none; color:rgba(255,255,255,.5);
+  position:relative; padding-bottom:4px;
+  transition: color .2s;
+}
+.nav-links a::after {
+  content:''; position:absolute; bottom:0; left:0;
+  width:0; height:2px;
+  background: var(--cy); box-shadow: 0 0 10px var(--cy), 0 0 20px var(--cy);
+  transition: width .3s cubic-bezier(.4,0,.2,1);
+}
+.nav-links a:hover { color:var(--cy); }
+.nav-links a:hover::after { width:100%; }
+.nav-status {
+  font-family:'Orbitron',monospace; font-size:9px; letter-spacing:3px;
+  color:var(--lm); display:flex; align-items:center; gap:8px;
+}
+.status-dot { width:6px; height:6px; border-radius:50%; background:var(--lm); animation: blink 1.5s ease-in-out infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
+
+/* ─── GRADIENT DIVIDER ─── */
+.div-wrap { position:relative; z-index:3; }
+.grad-div {
+  height:2px; width:100%;
+  background: linear-gradient(90deg, transparent, var(--pk), var(--cy), var(--lm), var(--pk), transparent);
+  background-size:300%; animation: divslide 3s linear infinite;
+  position:relative;
+}
+.grad-div::before {
+  content:''; position:absolute; inset:-4px 0;
+  background: inherit; filter: blur(10px); opacity:.6;
+}
+@keyframes divslide { 0%{background-position:0%} 100%{background-position:300%} }
+
+/* ─── HERO ─── */
+#hero {
+  position:relative; min-height:100vh;
+  display:flex; flex-direction:column;
+  justify-content:center; align-items:center;
+  text-align:center; padding:120px 40px 80px;
+  overflow:hidden; z-index:3;
+}
+
+/* hero grid bg */
+#hero::after {
+  content:''; position:absolute; inset:0; pointer-events:none;
+  background-image:
+    linear-gradient(rgba(0,229,255,.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,229,255,.04) 1px, transparent 1px);
+  background-size: 60px 60px;
+  mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 100%);
+}
+
+/* radial glows */
+.hero-glow {
+  position:absolute; border-radius:50%;
+  filter: blur(100px); pointer-events:none; mix-blend-mode:screen;
+}
+.glow-pk { width:600px; height:600px; background:rgba(255,20,147,.18); top:-10%; left:-15%; animation:drift1 12s ease-in-out infinite alternate; }
+.glow-cy { width:500px; height:500px; background:rgba(0,229,255,.15); bottom:-10%; right:-10%; animation:drift2 10s ease-in-out infinite alternate; }
+.glow-lm { width:300px; height:300px; background:rgba(170,255,0,.1); top:40%; left:55%; animation:drift3 8s ease-in-out infinite alternate; }
+@keyframes drift1 { to{transform:translate(40px,-40px) scale(1.1)} }
+@keyframes drift2 { to{transform:translate(-30px,30px) scale(1.15)} }
+@keyframes drift3 { to{transform:translate(20px,-20px) scale(0.9)} }
+
+.hero-eyebrow {
+  font-family:'Orbitron',monospace; font-size:9px; letter-spacing:8px; text-transform:uppercase;
+  color:var(--lm); border:1px solid rgba(170,255,0,.4);
+  padding:7px 20px; margin-bottom:40px; display:inline-flex; align-items:center; gap:10px;
+  box-shadow: 0 0 20px rgba(170,255,0,.2), inset 0 0 20px rgba(170,255,0,.05);
+  animation: limeglow 2.5s ease-in-out infinite;
+}
+@keyframes limeglow {
+  0%,100% { box-shadow: 0 0 15px rgba(170,255,0,.2), inset 0 0 15px rgba(170,255,0,.05); }
+  50%      { box-shadow: 0 0 35px rgba(170,255,0,.5), inset 0 0 30px rgba(170,255,0,.1); }
+}
+
+/* CHROME HEADLINE */
+.hero-h1 {
+  font-family:'Bebas Neue',sans-serif;
+  font-size: clamp(90px, 16vw, 210px);
+  line-height:.88; letter-spacing:-2px;
+  background: linear-gradient(160deg,
+    #6a6a6a 0%, #b0b0b0 18%, #ffffff 30%,
+    #e8e8e8 42%, #ffffff 55%, #d0d0d0 68%,
+    #ffffff 80%, #9a9a9a 92%, #ffffff 100%);
+  background-size: 300% 300%;
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+  animation: chromePan 6s ease-in-out infinite alternate;
+  margin-bottom:0;
+}
+@keyframes chromePan { 0%{background-position:0% 0%} 100%{background-position:100% 100%} }
+
+.hero-h1-color {
+  font-family:'Bebas Neue',sans-serif;
+  font-size: clamp(90px, 16vw, 210px);
+  line-height:.88; letter-spacing:-2px;
+  background: linear-gradient(90deg, var(--pk) 0%, #ff69b4 30%, var(--cy) 65%, var(--lm) 100%);
+  background-size:200%;
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+  animation: colorShift 4s linear infinite;
+  display:block;
+}
+@keyframes colorShift { 0%{background-position:0%} 100%{background-position:200%} }
+
+.hero-subtitle {
+  font-size:11px; letter-spacing:5px; text-transform:uppercase;
+  color:rgba(255,255,255,.35); margin:36px 0 52px;
+  max-width:420px;
+}
+
+/* CTA BUTTONS */
+.hero-btns { display:flex; gap:20px; flex-wrap:wrap; justify-content:center; }
+.btn {
+  font-family:'Bebas Neue',sans-serif; font-size:16px; letter-spacing:4px;
+  padding:14px 48px; text-decoration:none; display:inline-block;
+  position:relative; overflow:hidden; cursor:none;
+  clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+  transition: transform .2s;
+}
+.btn:hover { transform: translateY(-3px); }
+.btn-fill {
+  background:var(--pk); color:#000;
+}
+.btn-fill::before {
+  content:''; position:absolute; inset:0;
+  background: linear-gradient(90deg, var(--pk), #ff69b4, var(--pk));
+  background-size:200%; animation:btnshine 2s linear infinite;
+}
+@keyframes btnshine { 0%{background-position:0%} 100%{background-position:200%} }
+.btn-fill span { position:relative; z-index:1; }
+.btn-fill:hover { box-shadow: 0 0 40px rgba(255,20,147,.8), 0 0 80px rgba(255,20,147,.4); }
+
+.btn-outline {
+  background:transparent; color:var(--cy);
+  border:2px solid var(--cy);
+}
+.btn-outline:hover {
+  background:var(--cy); color:#000;
+  box-shadow: 0 0 40px rgba(0,229,255,.7), 0 0 80px rgba(0,229,255,.4);
+}
+
+/* scroll arrow */
+.scroll-hint {
+  position:absolute; bottom:40px; left:50%; transform:translateX(-50%);
+  display:flex; flex-direction:column; align-items:center; gap:8px;
+  font-family:'Orbitron',monospace; font-size:8px; letter-spacing:4px;
+  color:rgba(255,255,255,.2); animation:scrollBob 2s ease-in-out infinite;
+}
+.scroll-arrow { font-size:20px; animation:scrollBob 1.5s ease-in-out infinite; }
+@keyframes scrollBob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(6px)} }
+
+/* ─── TICKER ─── */
+.ticker-outer { background:var(--pk); overflow:hidden; padding:12px 0; position:relative; z-index:3; }
+.ticker-inner { display:flex; animation:tick 20s linear infinite; white-space:nowrap; }
+.tick-item {
+  font-family:'Bebas Neue',sans-serif; font-size:14px; letter-spacing:5px;
+  color:#000; padding:0 40px; flex-shrink:0; display:flex; align-items:center; gap:12px;
+}
+.tick-item::before { content:'✦'; font-size:10px; }
+@keyframes tick { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+
+/* ─── SECTION BASE ─── */
+section { position:relative; z-index:3; padding:120px 60px; }
+.s-eyebrow {
+  font-family:'Orbitron',monospace; font-size:9px; letter-spacing:6px; text-transform:uppercase;
+  color:var(--lm); display:flex; align-items:center; gap:12px; margin-bottom:20px;
+}
+.s-eyebrow::before { content:'✦'; font-size:11px; }
+.s-title {
+  font-family:'Bebas Neue',sans-serif;
+  font-size: clamp(60px, 8vw, 110px);
+  line-height:.92; letter-spacing:2px; color:var(--wh);
+}
+
+/* ─── ABOUT ─── */
+#about { background: #080808; }
+#about .wrap { max-width:1200px; margin:0 auto; display:grid; grid-template-columns:1fr 1fr; gap:100px; align-items:center; }
+
+.about-frame-outer {
+  position:relative;
+  aspect-ratio:1; max-width:500px;
+}
+/* animated border rings */
+.ring {
+  position:absolute; border-radius:50%; border:1px solid;
+  top:50%; left:50%; transform:translate(-50%,-50%);
+  animation:spin var(--spd,12s) linear infinite;
+}
+.ring-1 { width:110%; height:110%; border-color:rgba(255,20,147,.25); --spd:14s; }
+.ring-2 { width:125%; height:125%; border-color:rgba(0,229,255,.15); --spd:20s; animation-direction:reverse; }
+.ring-3 { width:140%; height:140%; border-color:rgba(170,255,0,.1); --spd:28s; }
+@keyframes spin { to{transform:translate(-50%,-50%) rotate(360deg)} }
+
+.about-box {
+  position:relative; width:100%; aspect-ratio:1;
+  border:1px solid rgba(0,229,255,.3);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  overflow:hidden;
+  background: linear-gradient(135deg, rgba(255,20,147,.06), rgba(0,229,255,.04));
+}
+.about-box::before {
+  content:''; position:absolute; inset:0;
+  background-image:
+    linear-gradient(rgba(0,229,255,.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,229,255,.04) 1px, transparent 1px);
+  background-size:30px 30px;
+}
+.about-avatar {
+  width:200px; height:200px; border-radius:50%;
+  background: conic-gradient(var(--pk), var(--cy), var(--lm), var(--pk));
+  display:flex; align-items:center; justify-content:center;
+  position:relative; z-index:1;
+  animation:rotateGrad 4s linear infinite;
+}
+@keyframes rotateGrad { to{filter:hue-rotate(360deg)} }
+.about-avatar-inner {
+  width:calc(100% - 4px); height:calc(100% - 4px);
+  border-radius:50%; background:var(--bg);
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Bebas Neue',sans-serif; font-size:64px;
+  background: linear-gradient(135deg, #1a0a14, #0a1a1f);
+  color:var(--wh);
+}
+.about-corner { position:absolute; font-family:'Orbitron',monospace; font-size:8px; letter-spacing:2px; color:rgba(0,229,255,.5); }
+.about-corner.tl { top:16px; left:16px; }
+.about-corner.br { bottom:16px; right:16px; }
+.about-corner.tr { top:16px; right:16px; }
+.about-corner.bl { bottom:16px; left:16px; }
+
+.about-text .s-title { margin-bottom:32px; }
+.about-text p { font-size:13px; line-height:1.9; color:rgba(255,255,255,.5); margin-bottom:18px; }
+.about-text p em { color:var(--pk); font-style:normal; }
+
+.stats { display:flex; gap:40px; margin-top:48px; }
+.stat { position:relative; }
+.stat::before {
+  content:''; position:absolute; left:0; top:0; bottom:0; width:2px;
+  background: linear-gradient(180deg, var(--pk), var(--cy));
+  box-shadow: 0 0 10px var(--pk);
+}
+.stat { padding-left:20px; }
+.stat-n {
+  font-family:'Bebas Neue',sans-serif; font-size:52px; line-height:1;
+  background: linear-gradient(90deg, var(--wh), rgba(255,255,255,.5));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+}
+.stat-l { font-size:9px; letter-spacing:3px; text-transform:uppercase; color:rgba(255,255,255,.25); margin-top:4px; }
+
+/* ─── WORK ─── */
+#work .wrap { max-width:1300px; margin:0 auto; }
+.work-header { display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:60px; }
+.work-count { font-family:'Orbitron',monospace; font-size:48px; font-weight:900; color:rgba(255,255,255,.06); line-height:1; }
+
+.work-grid {
+  display:grid;
+  grid-template-columns:repeat(12,1fr);
+  grid-template-rows:auto;
+  gap:12px;
+}
+.wc { position:relative; overflow:hidden; cursor:none; background:#0d0d0d; border:1px solid rgba(255,255,255,.05); }
+.wc:nth-child(1) { grid-column:span 7; aspect-ratio:16/9; }
+.wc:nth-child(2) { grid-column:span 5; aspect-ratio:4/3; }
+.wc:nth-child(3) { grid-column:span 4; aspect-ratio:1; }
+.wc:nth-child(4) { grid-column:span 4; aspect-ratio:1; }
+.wc:nth-child(5) { grid-column:span 4; aspect-ratio:1; }
+
+.wc-bg {
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  transition:transform .6s cubic-bezier(.4,0,.2,1);
+}
+.wc:hover .wc-bg { transform:scale(1.06); }
+.wc:nth-child(1) .wc-bg { background:radial-gradient(ellipse at 40% 60%, rgba(255,20,147,.2), rgba(10,10,10,1) 70%); }
+.wc:nth-child(2) .wc-bg { background:radial-gradient(ellipse at 60% 40%, rgba(0,229,255,.2), rgba(10,10,10,1) 70%); }
+.wc:nth-child(3) .wc-bg { background:radial-gradient(ellipse at 50% 50%, rgba(170,255,0,.2), rgba(10,10,10,1) 70%); }
+.wc:nth-child(4) .wc-bg { background:radial-gradient(ellipse at 30% 70%, rgba(255,20,147,.15), rgba(10,10,10,1) 70%); }
+.wc:nth-child(5) .wc-bg { background:radial-gradient(ellipse at 70% 30%, rgba(0,229,255,.15), rgba(10,10,10,1) 70%); }
+
+.wc-glyph {
+  font-family:'Bebas Neue',sans-serif; font-size:120px;
+  opacity:.07; line-height:1; user-select:none;
+  transition: opacity .4s, transform .6s;
+}
+.wc:hover .wc-glyph { opacity:.15; transform:scale(1.1) rotate(-5deg); }
+.wc-bottom { position:absolute; bottom:0; left:0; right:0; padding:24px; z-index:2; }
+.wc-tag { font-family:'Orbitron',monospace; font-size:8px; letter-spacing:4px; text-transform:uppercase; color:var(--cy); margin-bottom:8px; }
+.wc-title { font-family:'Bebas Neue',sans-serif; font-size:26px; letter-spacing:1px; color:var(--wh); }
+
+/* hover reveal */
+.wc-hover {
+  position:absolute; inset:0; z-index:3;
+  display:flex; flex-direction:column; justify-content:flex-end;
+  padding:28px;
+  background: linear-gradient(transparent 30%, rgba(10,10,10,.95) 100%);
+  border-top:2px solid var(--pk);
+  opacity:0; transition:opacity .3s;
+}
+.wc:hover .wc-hover { opacity:1; }
+.wc-hover .wc-tag { color:var(--lm); }
+.wc-arrow {
+  font-family:'Bebas Neue',sans-serif; font-size:13px; letter-spacing:4px;
+  color:var(--pk); margin-top:12px; display:flex; align-items:center; gap:8px;
+}
+.wc-arrow::after { content:'→'; animation:arrowMove .8s ease-in-out infinite alternate; }
+@keyframes arrowMove { to{transform:translateX(6px)} }
+
+/* number overlay */
+.wc-num {
+  position:absolute; top:20px; right:24px;
+  font-family:'Orbitron',monospace; font-size:11px;
+  color:rgba(255,255,255,.12); letter-spacing:2px;
+}
+
+/* ─── MARQUEE ROW ─── */
+.marquee-row { overflow:hidden; border-top:1px solid rgba(255,255,255,.05); border-bottom:1px solid rgba(255,255,255,.05); padding:20px 0; }
+.marquee-inner { display:flex; gap:0; animation:tick 25s linear infinite; white-space:nowrap; }
+.marquee-item {
+  font-family:'Bebas Neue',sans-serif; font-size:48px; letter-spacing:4px;
+  color:rgba(255,255,255,.05); padding:0 48px; flex-shrink:0;
+  display:flex; align-items:center; gap:40px;
+}
+.marquee-item .hi { color:var(--pk); opacity:.5; }
+.marquee-item.rev { animation-direction:reverse; }
+
+/* ─── SKILLS ─── */
+#skills { background:#070707; }
+#skills .wrap { max-width:1200px; margin:0 auto; }
+
+.skills-layout { display:grid; grid-template-columns:1fr 1.4fr; gap:80px; align-items:start; }
+
+/* left: big text */
+.skills-left .s-title { margin-bottom:24px; }
+.skills-left p { font-size:13px; line-height:1.9; color:rgba(255,255,255,.4); }
+
+/* right: cells */
+.skills-right { display:flex; flex-direction:column; gap:0; border:1px solid rgba(255,255,255,.06); }
+.skill-row {
+  display:flex; align-items:center; gap:24px;
+  padding:20px 28px;
+  border-bottom:1px solid rgba(255,255,255,.04);
+  position:relative; overflow:hidden;
+  transition: background .2s;
+}
+.skill-row:last-child { border-bottom:none; }
+.skill-row:hover { background:rgba(255,255,255,.03); }
+.skill-row::before {
+  content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
+  background: var(--accent, var(--pk));
+  box-shadow: 0 0 12px var(--accent, var(--pk));
+  opacity:0; transition:opacity .2s;
+}
+.skill-row:hover::before { opacity:1; }
+.skill-icon { font-size:18px; width:28px; flex-shrink:0; text-align:center; }
+.skill-name { font-family:'Bebas Neue',sans-serif; font-size:20px; letter-spacing:2px; flex:1; }
+.skill-track { flex:2; height:2px; background:rgba(255,255,255,.07); position:relative; overflow:hidden; }
+.skill-fill { height:100%; transition:width 1.4s cubic-bezier(.4,0,.2,1); }
+.skill-pct { font-family:'Orbitron',monospace; font-size:10px; color:rgba(255,255,255,.25); letter-spacing:2px; min-width:36px; text-align:right; }
+
+/* ─── SERVICES ─── */
+#services .wrap { max-width:1100px; margin:0 auto; }
+.services-header { display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:80px; }
+
+.svc-list { display:flex; flex-direction:column; }
+.svc {
+  display:grid; grid-template-columns:60px 1fr auto auto;
+  align-items:center; gap:32px;
+  padding:36px 0; border-bottom:1px solid rgba(255,255,255,.06);
+  cursor:none; transition:padding-left .3s ease;
+}
+.svc:hover { padding-left:24px; }
+.svc:hover .svc-num { color:var(--pk); }
+.svc:hover .svc-n { color:var(--pk); }
+.svc:hover .svc-arrow { transform:translateX(10px); color:var(--pk); }
+.svc-num { font-family:'Orbitron',monospace; font-size:10px; letter-spacing:2px; color:rgba(255,255,255,.15); transition:color .2s; }
+.svc-n { font-family:'Bebas Neue',sans-serif; font-size:clamp(32px,4vw,56px); letter-spacing:2px; transition:color .2s; }
+.svc-tags { display:flex; gap:8px; flex-wrap:wrap; }
+.svc-tag {
+  font-size:9px; letter-spacing:3px; text-transform:uppercase;
+  border:1px solid rgba(255,255,255,.12); padding:4px 12px;
+  color:rgba(255,255,255,.3);
+}
+.svc-arrow { font-size:22px; color:rgba(255,255,255,.15); transition:all .2s; }
+
+/* ─── CONTACT ─── */
+#contact {
+  background:#080808; text-align:center; padding:140px 60px;
+  position:relative; overflow:hidden;
+}
+#contact::before {
+  content:''; position:absolute; inset:0;
+  background-image:
+    linear-gradient(rgba(255,20,147,.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,20,147,.04) 1px, transparent 1px);
+  background-size:40px 40px;
+}
+.contact-inner { position:relative; max-width:800px; margin:0 auto; }
+.contact-h {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(70px,12vw,150px); line-height:.9; letter-spacing:-2px;
+  background: linear-gradient(160deg, #888, #fff 30%, #ccc 60%, #fff 80%, #aaa);
+  background-size:200%; animation:chrome 5s linear infinite alternate;
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+  margin-bottom:48px;
+}
+.contact-email {
+  display:inline-block;
+  font-family:'Bebas Neue',sans-serif; font-size:clamp(22px,4vw,44px); letter-spacing:4px;
+  color:var(--cy); text-decoration:none; position:relative;
+  transition: color .2s;
+}
+.contact-email::after {
+  content:''; position:absolute; bottom:-4px; left:0; right:0; height:2px;
+  background: linear-gradient(90deg, var(--pk), var(--cy), var(--lm));
+  background-size:200%; animation:divslide 2s linear infinite;
+  box-shadow: 0 0 16px var(--cy);
+}
+.contact-email:hover { color:var(--lm); }
+.contact-sub { font-size:10px; letter-spacing:5px; text-transform:uppercase; color:rgba(255,255,255,.2); margin-top:16px; margin-bottom:64px; }
+.socials { display:flex; gap:40px; justify-content:center; flex-wrap:wrap; margin-top:80px; }
+.social {
+  font-family:'Space Mono',monospace; font-weight:700;
+  font-size:10px; letter-spacing:4px; text-transform:uppercase;
+  text-decoration:none; color:rgba(255,255,255,.25);
+  position:relative; padding-bottom:4px; transition:color .2s;
+}
+.social::after {
+  content:''; position:absolute; bottom:0; left:0;
+  width:0; height:1px; background:var(--lm);
+  box-shadow:0 0 8px var(--lm); transition:width .25s;
+}
+.social:hover { color:var(--lm); }
+.social:hover::after { width:100%; }
+
+/* big bkg text */
+.bkg-txt {
+  position:absolute; bottom:-30px; left:50%; transform:translateX(-50%);
+  font-family:'Bebas Neue',sans-serif; font-size:clamp(100px,15vw,200px);
+  color:rgba(255,255,255,.025); letter-spacing:10px; white-space:nowrap;
+  user-select:none; pointer-events:none;
+}
+
+/* ─── FOOTER ─── */
+footer {
+  background:var(--bg); padding:28px 60px;
+  display:flex; justify-content:space-between; align-items:center;
+  border-top:1px solid rgba(255,255,255,.05);
+  font-size:9px; letter-spacing:4px; text-transform:uppercase;
+  color:rgba(255,255,255,.15); flex-wrap:wrap; gap:12px;
+  position:relative; z-index:3;
+}
+footer span { font-family:'Orbitron',monospace; }
+
+/* ─── REVEAL ─── */
+.rv { opacity:0; transform:translateY(50px); transition:opacity .8s ease, transform .8s ease; }
+.rv.in { opacity:1; transform:translateY(0); }
+.rv-l { opacity:0; transform:translateX(-50px); transition:opacity .8s ease, transform .8s ease; }
+.rv-l.in { opacity:1; transform:translateX(0); }
+
+/* ─── MOBILE ─── */
+@media(max-width:900px){
+  nav { padding:0 24px; }
+  .nav-links { gap:20px; }
+  section { padding:80px 24px; }
+  #about .wrap, .skills-layout { grid-template-columns:1fr; gap:60px; }
+  .about-frame-outer { max-width:320px; margin:0 auto; }
+  .work-grid { grid-template-columns:1fr; }
+  .wc:nth-child(n) { grid-column:span 1; aspect-ratio:16/9; }
+  .svc { grid-template-columns:40px 1fr auto; }
+  .svc-tags { display:none; }
+  footer { flex-direction:column; text-align:center; }
+}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loader">
+  <div class="loader-title">NOVA.EXE</div>
+  <div class="loader-bar-wrap"><div class="loader-bar"></div></div>
+  <div class="loader-text">INITIALIZING CREATIVE SYSTEM...</div>
+</div>
+
+<!-- CUSTOM CURSOR -->
+<div id="cur"></div>
+<div id="cur2"></div>
+
+<!-- SPARKLE CANVAS -->
+<canvas id="sparks"></canvas>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-logo">NOVA.EXE</a>
+  <ul class="nav-links">
+    <li><a href="#about">About</a></li>
+    <li><a href="#work">Work</a></li>
+    <li><a href="#skills">Skills</a></li>
+    <li><a href="#services">Services</a></li>
+    <li><a href="#contact">Contact</a></li>
+  </ul>
+  <div class="nav-status"><div class="status-dot"></div>AVAILABLE FOR HIRE</div>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hero-glow glow-pk"></div>
+  <div class="hero-glow glow-cy"></div>
+  <div class="hero-glow glow-lm"></div>
+
+  <div class="hero-eyebrow">✦ CREATIVE STUDIO — EST. 2019 ✦</div>
+
+  <h1 class="hero-h1">DESIGN<br>BEYOND</h1>
+  <span class="hero-h1-color">LIMITS</span>
+
+  <p class="hero-subtitle">Brand identities · Digital experiences · Motion design · Creative direction</p>
+
+  <div class="hero-btns">
+    <a href="#work" class="btn btn-fill"><span>VIEW WORK</span></a>
+    <a href="#contact" class="btn btn-outline">LET'S TALK</a>
+  </div>
+
+  <div class="scroll-hint">
+    <span>SCROLL</span>
+    <span class="scroll-arrow">↓</span>
+  </div>
+</section>
+
+<!-- TICKER -->
+<div class="ticker-outer">
+  <div class="ticker-inner" id="tickerEl"></div>
+</div>
+
+<div class="div-wrap"><div class="grad-div"></div></div>
+
+<!-- ABOUT -->
+<section id="about">
+  <div class="wrap">
+    <div class="about-frame-outer rv-l">
+      <div class="ring ring-1"></div>
+      <div class="ring ring-2"></div>
+      <div class="ring ring-3"></div>
+      <div class="about-box">
+        <div class="about-corner tl">FILE_001</div>
+        <div class="about-corner tr">©2026</div>
+        <div class="about-corner bl">NOVA_ID</div>
+        <div class="about-corner br">VERIFIED</div>
+        <div class="about-avatar">
+          <div class="about-avatar-inner">N</div>
+        </div>
+      </div>
+    </div>
+    <div class="about-text rv">
+      <div class="s-eyebrow">Identity</div>
+      <h2 class="s-title">DIGITAL<br>ARCHITECT</h2>
+      <p>I create <em>visual systems</em> that live at the edge of memory and the future. My work refuses to fit neatly into any decade — it borrows the electric energy of Y2K and pushes it somewhere new.</p>
+      <p>Every project is a <em>small act of rebellion</em> against the boring, the beige, and the forgettable. If it doesn't make someone feel something, it's not done yet.</p>
+      <div class="stats">
+        <div class="stat"><div class="stat-n">7+</div><div class="stat-l">Years</div></div>
+        <div class="stat"><div class="stat-n">80+</div><div class="stat-l">Projects</div></div>
+        <div class="stat"><div class="stat-n">40+</div><div class="stat-l">Clients</div></div>
+        <div class="stat"><div class="stat-n">12</div><div class="stat-l">Awards</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="div-wrap"><div class="grad-div"></div></div>
+
+<!-- WORK -->
+<section id="work">
+  <div class="wrap">
+    <div class="work-header rv">
+      <div>
+        <div class="s-eyebrow">Portfolio</div>
+        <h2 class="s-title">SELECTED<br>WORK</h2>
+      </div>
+      <div class="work-count">06</div>
+    </div>
+    <div class="work-grid rv">
+      <div class="wc">
+        <div class="wc-num">01</div>
+        <div class="wc-bg"><div class="wc-glyph">✦</div></div>
+        <div class="wc-bottom"><div class="wc-tag">Branding · Web</div><div class="wc-title">NEON REBEL COLLECTIVE</div></div>
+        <div class="wc-hover">
+          <div class="wc-tag">Branding · Web Design · Motion</div>
+          <div class="wc-title">NEON REBEL COLLECTIVE</div>
+          <div class="wc-arrow">VIEW PROJECT</div>
+        </div>
+      </div>
+      <div class="wc">
+        <div class="wc-num">02</div>
+        <div class="wc-bg"><div class="wc-glyph">◈</div></div>
+        <div class="wc-bottom"><div class="wc-tag">UI Design</div><div class="wc-title">CYBER MAGAZINE</div></div>
+        <div class="wc-hover">
+          <div class="wc-tag">UI · UX · Prototyping</div>
+          <div class="wc-title">CYBER MAGAZINE</div>
+          <div class="wc-arrow">VIEW PROJECT</div>
+        </div>
+      </div>
+      <div class="wc">
+        <div class="wc-num">03</div>
+        <div class="wc-bg"><div class="wc-glyph">★</div></div>
+        <div class="wc-bottom"><div class="wc-tag">Packaging</div><div class="wc-title">ELECTRIC BEAUTY</div></div>
+        <div class="wc-hover">
+          <div class="wc-tag">Packaging · Identity</div>
+          <div class="wc-title">ELECTRIC BEAUTY</div>
+          <div class="wc-arrow">VIEW PROJECT</div>
+        </div>
+      </div>
+      <div class="wc">
+        <div class="wc-num">04</div>
+        <div class="wc-bg"><div class="wc-glyph">⬡</div></div>
+        <div class="wc-bottom"><div class="wc-tag">Web · Dev</div><div class="wc-title">CHROME DREAMS</div></div>
+        <div class="wc-hover">
+          <div class="wc-tag">Web Design · Development</div>
+          <div class="wc-title">CHROME DREAMS</div>
+          <div class="wc-arrow">VIEW PROJECT</div>
+        </div>
+      </div>
+      <div class="wc">
+        <div class="wc-num">05</div>
+        <div class="wc-bg"><div class="wc-glyph">✧</div></div>
+        <div class="wc-bottom"><div class="wc-tag">Brand Identity</div><div class="wc-title">FUTURE CLUB</div></div>
+        <div class="wc-hover">
+          <div class="wc-tag">Brand Identity · Strategy</div>
+          <div class="wc-title">FUTURE CLUB</div>
+          <div class="wc-arrow">VIEW PROJECT</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- BIG MARQUEE -->
+<div class="marquee-row">
+  <div class="marquee-inner" id="mq1"></div>
+</div>
+
+<div class="div-wrap"><div class="grad-div"></div></div>
+
+<!-- SKILLS -->
+<section id="skills">
+  <div class="wrap">
+    <div class="skills-layout">
+      <div class="skills-left rv-l">
+        <div class="s-eyebrow">Expertise</div>
+        <h2 class="s-title">SKILL<br>SET</h2>
+        <p>A decade building in the intersection of brand, screen, and motion. Every skill sharpened by real projects, real deadlines, real expectations.</p>
+      </div>
+      <div class="skills-right rv">
+        <div class="skill-row" style="--accent:var(--pk)">
+          <div class="skill-icon">✦</div>
+          <div class="skill-name">Brand Identity</div>
+          <div class="skill-track"><div class="skill-fill" style="width:0;background:var(--pk);box-shadow:0 0 10px var(--pk)" data-w="95"></div></div>
+          <div class="skill-pct">95%</div>
+        </div>
+        <div class="skill-row" style="--accent:var(--cy)">
+          <div class="skill-icon">◈</div>
+          <div class="skill-name">Web Design</div>
+          <div class="skill-track"><div class="skill-fill" style="width:0;background:var(--cy);box-shadow:0 0 10px var(--cy)" data-w="90"></div></div>
+          <div class="skill-pct">90%</div>
+        </div>
+        <div class="skill-row" style="--accent:var(--lm)">
+          <div class="skill-icon">★</div>
+          <div class="skill-name">Motion Design</div>
+          <div class="skill-track"><div class="skill-fill" style="width:0;background:var(--lm);box-shadow:0 0 10px var(--lm)" data-w="84"></div></div>
+          <div class="skill-pct">84%</div>
+        </div>
+        <div class="skill-row" style="--accent:var(--pk)">
+          <div class="skill-icon">Aa</div>
+          <div class="skill-name">Typography</div>
+          <div class="skill-track"><div class="skill-fill" style="width:0;background:var(--pk);box-shadow:0 0 10px var(--pk)" data-w="97"></div></div>
+          <div class="skill-pct">97%</div>
+        </div>
+        <div class="skill-row" style="--accent:var(--cy)">
+          <div class="skill-icon">⬡</div>
+          <div class="skill-name">UI / UX Design</div>
+          <div class="skill-track"><div class="skill-fill" style="width:0;background:var(--cy);box-shadow:0 0 10px var(--cy)" data-w="88"></div></div>
+          <div class="skill-pct">88%</div>
+        </div>
+        <div class="skill-row" style="--accent:var(--lm)">
+          <div class="skill-icon">◇</div>
+          <div class="skill-name">3D / Render</div>
+          <div class="skill-track"><div class="skill-fill" style="width:0;background:var(--lm);box-shadow:0 0 10px var(--lm)" data-w="75"></div></div>
+          <div class="skill-pct">75%</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="div-wrap"><div class="grad-div"></div></div>
+
+<!-- SERVICES -->
+<section id="services">
+  <div class="wrap">
+    <div class="services-header rv">
+      <div>
+        <div class="s-eyebrow">What I Do</div>
+        <h2 class="s-title">SERVICES</h2>
+      </div>
+    </div>
+    <div class="svc-list">
+      <div class="svc rv"><span class="svc-num">01</span><span class="svc-n">Brand Identity</span><div class="svc-tags"><span class="svc-tag">Logos</span><span class="svc-tag">Systems</span><span class="svc-tag">Guidelines</span></div><span class="svc-arrow">→</span></div>
+      <div class="svc rv"><span class="svc-num">02</span><span class="svc-n">Web Design</span><div class="svc-tags"><span class="svc-tag">Landing</span><span class="svc-tag">Portfolio</span><span class="svc-tag">Ecom</span></div><span class="svc-arrow">→</span></div>
+      <div class="svc rv"><span class="svc-num">03</span><span class="svc-n">Motion & Animation</span><div class="svc-tags"><span class="svc-tag">Reels</span><span class="svc-tag">Intros</span><span class="svc-tag">Loops</span></div><span class="svc-arrow">→</span></div>
+      <div class="svc rv"><span class="svc-num">04</span><span class="svc-n">Creative Direction</span><div class="svc-tags"><span class="svc-tag">Strategy</span><span class="svc-tag">Art Dir</span></div><span class="svc-arrow">→</span></div>
+      <div class="svc rv"><span class="svc-num">05</span><span class="svc-n">Packaging Design</span><div class="svc-tags"><span class="svc-tag">Print</span><span class="svc-tag">Labels</span><span class="svc-tag">Structural</span></div><span class="svc-arrow">→</span></div>
+    </div>
+  </div>
+</section>
+
+<div class="div-wrap"><div class="grad-div"></div></div>
+
+<!-- CONTACT -->
+<section id="contact">
+  <div class="contact-inner">
+    <div class="s-eyebrow rv" style="justify-content:center">Let's Build Something Insane</div>
+    <h2 class="contact-h rv">LET'S<br>TALK</h2>
+    <p class="contact-sub rv">Open for freelance & creative collaborations — 2026</p>
+    <a href="mailto:hello@nova.exe" class="contact-email rv">hello@nova.exe</a>
+    <div class="socials rv">
+      <a href="#" class="social">Instagram</a>
+      <a href="#" class="social">Dribbble</a>
+      <a href="#" class="social">Behance</a>
+      <a href="#" class="social">LinkedIn</a>
+      <a href="#" class="social">Read.cv</a>
+    </div>
+  </div>
+  <div class="bkg-txt">NOVA.EXE</div>
+</section>
+
+<footer>
+  <span>©2026 NOVA.EXE</span>
+  <span>✦ CRAFTED WITH OBSESSION ✦</span>
+  <span>MUMBAI · WORLDWIDE</span>
+</footer>
+
+<script>
+/* ─── LOADER ─── */
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    document.getElementById('loader').classList.add('done');
+  }, 2600);
+});
+
+/* ─── SPARKLE CANVAS ─── */
+const canvas = document.getElementById('sparks');
+const ctx = canvas.getContext('2d');
+const syms = ['✦','✧','★','✶','✸','◈','⬡','✺','◇'];
+const cols = ['#FF1493','#00E5FF','#AAFF00','#ffffff','#ff69b4'];
+let sparks = [];
+
+function resize() {
+  canvas.width = window.innerWidth;
+  canvas.height = document.body.scrollHeight;
+  initSparks();
+}
+
+function initSparks() {
+  sparks = Array.from({length: 80}, () => ({
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height,
+    sym: syms[Math.floor(Math.random()*syms.length)],
+    col: cols[Math.floor(Math.random()*cols.length)],
+    size: 8 + Math.random()*10,
+    alpha: 0,
+    targetAlpha: .1 + Math.random()*.5,
+    phase: Math.random()*Math.PI*2,
+    speed: .3 + Math.random()*1.2,
+  }));
+}
+
+let t = 0;
+function drawSparks() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  t += .016;
+  sparks.forEach(s => {
+    const a = s.targetAlpha * (.5 + .5 * Math.sin(t * s.speed + s.phase));
+    ctx.globalAlpha = a;
+    ctx.fillStyle = s.col;
+    ctx.font = `${s.size}px serif`;
+    ctx.textAlign = 'center';
+    ctx.fillText(s.sym, s.x, s.y);
+  });
+  requestAnimationFrame(drawSparks);
+}
+
+resize();
+window.addEventListener('resize', resize);
+drawSparks();
+
+/* ─── CURSOR ─── */
+const cur = document.getElementById('cur');
+const cur2 = document.getElementById('cur2');
+let mx=0, my=0, cx=0, cy2=0;
+document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; });
+function animCursor() {
+  cur.style.left = mx + 'px'; cur.style.top = my + 'px';
+  cx += (mx - cx) * .12; cy2 += (my - cy2) * .12;
+  cur2.style.left = cx + 'px'; cur2.style.top = cy2 + 'px';
+  requestAnimationFrame(animCursor);
+}
+animCursor();
+
+/* cursor reactions */
+document.querySelectorAll('a, .wc, .svc, .btn').forEach(el => {
+  el.addEventListener('mouseenter', () => { cur2.style.transform = 'translate(-50%,-50%) scale(2)'; cur2.style.borderColor = 'var(--pk)'; });
+  el.addEventListener('mouseleave', () => { cur2.style.transform = 'translate(-50%,-50%) scale(1)'; cur2.style.borderColor = 'rgba(255,255,255,.4)'; });
+});
+
+/* ─── TICKER ─── */
+const tickWords = ['Brand Identity','Web Design','Motion Design','Creative Direction','UI & UX','Packaging','Typography','Visual Strategy','Art Direction','Experimentation'];
+const tickEl = document.getElementById('tickerEl');
+[...tickWords,...tickWords,...tickWords].forEach(w => {
+  const s = document.createElement('span');
+  s.className = 'tick-item'; s.textContent = w;
+  tickEl.appendChild(s);
+});
+
+/* ─── MARQUEE ─── */
+const mqWords = ['NOVA','DESIGN','STUDIO','CREATIVE','FUTURE','ELECTRIC','NEON','CHROME','PIXEL','DIGITAL'];
+const mq1 = document.getElementById('mq1');
+[...mqWords,...mqWords,...mqWords].forEach((w,i) => {
+  const s = document.createElement('span');
+  s.className = 'marquee-item';
+  const isHi = i % 4 === 1;
+  s.innerHTML = isHi ? `<span class="hi">${w}</span>` : w;
+  mq1.appendChild(s);
+});
+
+/* ─── SCROLL REVEAL ─── */
+const io = new IntersectionObserver(entries => {
+  entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('in'); });
+}, {threshold:.1});
+document.querySelectorAll('.rv, .rv-l').forEach(el => io.observe(el));
+
+/* ─── SKILL BAR ANIMATION ─── */
+const skillIO = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if(e.isIntersecting) {
+      e.target.querySelectorAll('.skill-fill').forEach(bar => {
+        bar.style.width = bar.dataset.w + '%';
+      });
+    }
+  });
+}, {threshold:.3});
+document.querySelectorAll('.skills-right').forEach(el => skillIO.observe(el));
+</script>
+</body>
+</html>

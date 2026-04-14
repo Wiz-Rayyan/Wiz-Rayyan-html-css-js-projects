@@ -1,0 +1,258 @@
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+#pr{width:100%;height:600px;overflow-y:scroll;overflow-x:hidden;border-radius:16px;position:relative;cursor:grab;background:#03020d}
+#pr:active{cursor:grabbing}
+#sc{position:relative;height:2200px}
+
+.lyr{position:absolute;top:0;left:0;width:100%;height:600px;will-change:transform}
+#l0{z-index:1}
+#l1{z-index:2;pointer-events:none}
+#l2{z-index:3;pointer-events:none}
+#l3{z-index:4;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0}
+
+canvas{position:absolute;inset:0;width:100%;height:100%}
+
+.eyebrow{
+  font-family:var(--font-sans);
+  font-size:10px;letter-spacing:.28em;text-transform:uppercase;
+  color:rgba(180,160,255,.5);margin-bottom:18px;font-weight:500;
+}
+.headline{
+  font-family:var(--font-serif);
+  font-size:clamp(34px,6vw,64px);font-weight:400;
+  color:#fff;text-align:center;line-height:1.08;
+  max-width:620px;padding:0 24px;
+  text-shadow:0 0 80px rgba(120,80,255,.6),0 2px 40px rgba(0,0,0,.9);
+}
+.headline em{font-style:italic;color:#c4b5fd}
+.sub{
+  font-family:var(--font-sans);
+  font-size:15px;color:rgba(200,190,255,.55);
+  margin-top:20px;text-align:center;
+  max-width:380px;line-height:1.7;letter-spacing:.01em;
+}
+.ctas{margin-top:40px;display:flex;gap:14px;align-items:center}
+.btn-p{
+  background:rgba(255,255,255,.92);color:#1a0a3a;
+  border:none;border-radius:100px;
+  padding:14px 32px;font-size:14px;font-weight:500;
+  cursor:pointer;letter-spacing:.04em;
+  font-family:var(--font-sans);
+  transition:transform .18s,background .18s;
+}
+.btn-p:hover{transform:translateY(-3px) scale(1.03);background:#fff}
+.btn-s{
+  background:transparent;color:rgba(255,255,255,.7);
+  border:1px solid rgba(255,255,255,.18);border-radius:100px;
+  padding:14px 28px;font-size:14px;font-weight:400;
+  cursor:pointer;letter-spacing:.04em;
+  font-family:var(--font-sans);
+  transition:border-color .18s,color .18s;
+}
+.btn-s:hover{border-color:rgba(255,255,255,.4);color:#fff}
+
+.scroll-cue{
+  position:absolute;bottom:36px;left:50%;transform:translateX(-50%);
+  z-index:10;display:flex;flex-direction:column;align-items:center;gap:8px;
+  transition:opacity .5s;
+}
+.sc-text{font-family:var(--font-sans);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.25)}
+.sc-line{width:1px;height:40px;background:rgba(255,255,255,.12);position:relative;overflow:hidden}
+.sc-line::after{content:'';position:absolute;top:-100%;left:0;width:100%;height:50%;background:linear-gradient(transparent,rgba(180,140,255,.8),transparent);animation:fall 2s ease-in-out infinite}
+@keyframes fall{0%{top:-100%}100%{top:200%}}
+
+.depth-pill{
+  position:absolute;top:20px;left:20px;z-index:20;
+  background:rgba(10,5,30,.7);border:1px solid rgba(180,140,255,.2);
+  border-radius:100px;padding:8px 16px;
+  font-family:var(--font-sans);font-size:11px;color:rgba(200,180,255,.6);letter-spacing:.08em;
+}
+.depth-pill span{color:#c4b5fd;font-weight:500}
+</style>
+
+<div id="pr">
+  <div id="sc">
+    <div class="lyr" id="l0"><canvas id="c0"></canvas></div>
+    <div class="lyr" id="l1"><canvas id="c1"></canvas></div>
+    <div class="lyr" id="l2"><canvas id="c2"></canvas></div>
+    <div class="lyr" id="l3">
+      <p class="eyebrow">Beyond the known horizon</p>
+      <h1 class="headline">Where the <em>wilderness</em><br>touches infinity</h1>
+      <p class="sub">Three worlds in motion. Scroll and feel the gravity of each layer pulling at a different speed.</p>
+      <div class="ctas">
+        <button class="btn-p">Begin the ascent</button>
+        <button class="btn-s">Watch the story</button>
+      </div>
+    </div>
+    <div class="scroll-cue" id="scue">
+      <span class="sc-text">scroll</span>
+      <div class="sc-line"></div>
+    </div>
+  </div>
+  <div class="depth-pill">depth <span id="dpct">0%</span></div>
+</div>
+
+<script>
+const pr = document.getElementById('pr');
+const l0=document.getElementById('l0'),l1=document.getElementById('l1'),l2=document.getElementById('l2'),l3=document.getElementById('l3');
+const scue=document.getElementById('scue'),dpct=document.getElementById('dpct');
+
+/* ---------- BG CANVAS: sky + stars + aurora + moon ---------- */
+const c0=document.getElementById('c0');
+const x0=c0.getContext('2d');
+function sizeCanvas(c){c.width=c.parentElement.offsetWidth||700;c.height=600}
+[c0].forEach(sizeCanvas);
+
+function drawBg(){
+  const W=c0.width,H=c0.height;
+  const sk=x0.createLinearGradient(0,0,0,H);
+  sk.addColorStop(0,'#03020d');sk.addColorStop(.45,'#0e0625');sk.addColorStop(.8,'#180b3a');sk.addColorStop(1,'#0d0820');
+  x0.fillStyle=sk;x0.fillRect(0,0,W,H);
+
+  const rng=(s)=>{let x=Math.sin(s)*9999;return x-Math.floor(x)};
+  for(let i=0;i<220;i++){
+    const sx=rng(i*3.7)*W,sy=rng(i*5.1)*H*.62;
+    const sr=rng(i*2.3)*.9+.2,sa=rng(i*7.1)*.7+.15;
+    x0.beginPath();x0.arc(sx,sy,sr,0,Math.PI*2);
+    x0.fillStyle=`rgba(255,252,255,${sa})`;x0.fill();
+  }
+
+  const moon=x0.createRadialGradient(W*.72,H*.12,0,W*.72,H*.12,52);
+  moon.addColorStop(0,'rgba(245,235,255,1)');moon.addColorStop(.6,'rgba(200,170,255,.9)');moon.addColorStop(1,'rgba(120,80,200,0)');
+  x0.fillStyle=moon;x0.beginPath();x0.arc(W*.72,H*.12,52,0,Math.PI*2);x0.fill();
+  const mhalo=x0.createRadialGradient(W*.72,H*.12,40,W*.72,H*.12,120);
+  mhalo.addColorStop(0,'rgba(160,100,255,.12)');mhalo.addColorStop(1,'rgba(160,100,255,0)');
+  x0.fillStyle=mhalo;x0.beginPath();x0.arc(W*.72,H*.12,120,0,Math.PI*2);x0.fill();
+
+  for(let i=0;i<5;i++){
+    const ax=W*(.1+i*.18),ay=H*(.15+Math.sin(i*1.7)*.1);
+    const aura=x0.createRadialGradient(ax,ay,0,ax,ay,W*.22);
+    const cols=['rgba(80,40,200,.15)','rgba(120,60,255,.12)','rgba(40,160,180,.1)','rgba(100,50,220,.13)','rgba(60,180,160,.09)'];
+    aura.addColorStop(0,cols[i]);aura.addColorStop(1,'rgba(0,0,0,0)');
+    x0.save();x0.scale(2.5,.5);x0.translate(-ax*.6,ay*.5);
+    x0.fillStyle=aura;x0.beginPath();x0.arc(ax*.6,ay*.5,W*.22,0,Math.PI*2);x0.fill();
+    x0.restore();
+  }
+}
+drawBg();
+
+/* ---------- BLOB CANVAS: middle atmosphere ---------- */
+const c1=document.getElementById('c1');
+const x1=c1.getContext('2d');
+sizeCanvas(c1);
+
+let blobT=0;
+const blobs=[
+  {x:.15,y:.22,rx:110,ry:75,col:'rgba(120,60,255,',rot:-20},
+  {x:.8,y:.35,rx:85,ry:65,col:'rgba(60,200,200,',rot:25},
+  {x:.45,y:.12,rx:70,ry:52,col:'rgba(200,60,160,',rot:40},
+  {x:.08,y:.65,rx:90,ry:60,col:'rgba(80,100,255,',rot:-30},
+  {x:.88,y:.7,rx:75,ry:58,col:'rgba(255,90,120,',rot:15},
+  {x:.55,y:.52,rx:55,ry:42,col:'rgba(140,80,255,',rot:-12},
+  {x:.3,y:.78,rx:50,ry:38,col:'rgba(60,200,180,',rot:35},
+];
+const rings=[
+  {x:.25,y:.48,r:55},{x:.68,y:.2,r:40},{x:.42,y:.82,r:32},{x:.78,y:.6,r:28}
+];
+
+function drawBlobs(t){
+  const W=c1.width,H=c1.height;
+  x1.clearRect(0,0,W,H);
+  blobs.forEach((b,i)=>{
+    const px=b.x*W+(Math.cos(t*.7+i)*18);
+    const py=b.y*H+(Math.sin(t*.5+i*1.3)*14);
+    const rot=(b.rot+Math.sin(t*.3+i))*Math.PI/180;
+    x1.save();x1.translate(px,py);x1.rotate(rot);x1.scale(1+Math.sin(t*.4+i)*.06,1);
+    const g=x1.createRadialGradient(0,0,0,0,0,b.rx);
+    g.addColorStop(0,b.col+'.22)');g.addColorStop(.5,b.col+'.12)');g.addColorStop(1,b.col+'0)');
+    x1.fillStyle=g;
+    x1.beginPath();x1.ellipse(0,0,b.rx,b.ry,0,0,Math.PI*2);x1.fill();
+    x1.restore();
+  });
+  rings.forEach((r,i)=>{
+    const px=r.x*W+Math.cos(t*.4+i*2.1)*12;
+    const py=r.y*H+Math.sin(t*.6+i*1.8)*10;
+    x1.beginPath();x1.arc(px,py,r.r+Math.sin(t*.3+i)*6,0,Math.PI*2);
+    x1.strokeStyle=`rgba(180,130,255,${.12+Math.sin(t+i)*.06})`;
+    x1.lineWidth=1;x1.stroke();
+    x1.beginPath();x1.arc(px,py,(r.r*.55)+Math.cos(t*.4+i)*3,0,Math.PI*2);
+    x1.strokeStyle=`rgba(100,220,220,${.08+Math.sin(t*1.1+i)*.04})`;
+    x1.lineWidth=.7;x1.stroke();
+  });
+}
+
+/* ---------- MTN CANVAS: silhouette layers ---------- */
+const c2=document.getElementById('c2');
+const x2=c2.getContext('2d');
+sizeCanvas(c2);
+
+function drawMtns(){
+  const W=c2.width,H=c2.height;
+  x2.clearRect(0,0,W,H);
+
+  const layers=[
+    {pts:[0,.52,.1,.36,.22,.44,.35,.28,.5,.2,.62,.33,.72,.22,.82,.38,.92,.26,1,.4,1,1,0,1],col:'rgba(30,15,70,.7)',base:H*.38},
+    {pts:[0,.6,.08,.44,.18,.52,.3,.36,.44,.28,.56,.4,.65,.32,.76,.44,.86,.35,.94,.48,1,.38,1,1,0,1],col:'rgba(18,8,45,.85)',base:H*.45},
+    {pts:[0,.68,.07,.55,.17,.62,.27,.48,.4,.38,.52,.5,.62,.42,.72,.54,.83,.44,.92,.56,1,.48,1,1,0,1],col:'rgba(10,5,28,.95)',base:H*.52},
+    {pts:[0,.8,.06,.68,.14,.74,.24,.62,.36,.55,.46,.66,.56,.58,.66,.7,.76,.6,.86,.72,.96,.63,1,.7,1,1,0,1],col:'#080415',base:H*.6},
+  ];
+
+  layers.forEach(lay=>{
+    x2.beginPath();
+    for(let i=0;i<lay.pts.length;i+=2){
+      const px=lay.pts[i]*W,py=lay.pts[i+1]*H;
+      i===0?x2.moveTo(px,py):x2.lineTo(px,py);
+    }
+    x2.closePath();x2.fillStyle=lay.col;x2.fill();
+  });
+
+  x2.fillStyle='#040210';
+  x2.fillRect(0,H*.84,W,H*.16);
+
+  for(let i=0;i<38;i++){
+    const tx=i*(W/36),ty=H*.82-Math.random()*8;
+    const th=20+Math.random()*38;
+    const tw=Math.random()<.5?3:5;
+    x2.fillStyle='#040210';
+    x2.fillRect(tx-tw/2,ty-th,tw,th);
+    x2.beginPath();
+    x2.moveTo(tx-tw*2,ty-th);x2.lineTo(tx,ty-th-tw*3);x2.lineTo(tx+tw*2,ty-th);
+    x2.fillStyle='rgba(8,4,22,.95)';x2.fill();
+  }
+
+  const mist=x2.createLinearGradient(0,H*.55,0,H*.75);
+  mist.addColorStop(0,'rgba(50,20,100,0)');mist.addColorStop(.5,'rgba(30,10,60,.18)');mist.addColorStop(1,'rgba(0,0,0,0)');
+  x2.fillStyle=mist;x2.fillRect(0,H*.55,W,H*.2);
+}
+drawMtns();
+
+/* ---------- ANIMATION + SCROLL ---------- */
+let raf,ticking=false,sy=0;
+function loop(){
+  blobT+=.012;
+  drawBlobs(blobT);
+  raf=requestAnimationFrame(loop);
+}
+loop();
+
+function applyParallax(){
+  const progress=sy/((2200-600)||1);
+  l0.style.transform=`translateY(${sy*.30}px)`;
+  l1.style.transform=`translateY(${-sy*.40}px)`;
+  l2.style.transform=`translateY(${-sy*.15}px)`;
+  scue.style.opacity=sy>60?0:1;
+  dpct.textContent=Math.round(progress*100)+'%';
+  ticking=false;
+}
+
+pr.addEventListener('scroll',()=>{
+  sy=pr.scrollTop;
+  if(!ticking){requestAnimationFrame(applyParallax);ticking=true;}
+},{passive:true});
+
+window.addEventListener('resize',()=>{
+  [c0,c1,c2].forEach(sizeCanvas);
+  drawBg();drawMtns();
+});
+</script>

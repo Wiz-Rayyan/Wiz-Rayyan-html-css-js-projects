@@ -1,0 +1,369 @@
+
+<link href="https://api.fontshare.com/v2/css?f[]=clash-display@700&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=DM+Sans:wght@400;500&family=Syne:wght@700&family=Inter:wght@400;500&family=Nunito:wght@700&family=Source+Sans+3:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);}
+
+:root{
+  --ed-accent:#3C3489; --ed-light:#EEEDFE; --ed-mid:#7F77DD;
+  --st-accent:#0F6E56; --st-light:#E1F5EE; --st-mid:#1D9E75;
+  --tc-accent:#185FA5; --tc-light:#E6F1FB; --tc-mid:#378ADD;
+  --ex-accent:#993C1D; --ex-light:#FAECE7; --ex-mid:#D85A30;
+  --fr-accent:#854F0B; --fr-light:#FAEEDA; --fr-mid:#BA7517;
+}
+
+.studio{font-family:var(--font-sans);}
+
+.nav{
+  display:flex;gap:0;border-bottom:0.5px solid var(--color-border-tertiary);
+  margin-bottom:0;overflow-x:auto;
+}
+.nav-btn{
+  flex-shrink:0;padding:14px 20px;border:none;background:transparent;
+  font-family:var(--font-sans);font-size:13px;font-weight:500;
+  color:var(--color-text-secondary);cursor:pointer;border-bottom:2px solid transparent;
+  transition:all 0.15s;margin-bottom:-0.5px;white-space:nowrap;
+}
+.nav-btn:hover{color:var(--color-text-primary);}
+.nav-btn.on{color:var(--color-text-primary);border-bottom-color:var(--color-text-primary);}
+
+.workspace{display:grid;grid-template-columns:1fr 340px;min-height:520px;}
+
+.canvas{
+  padding:3rem 2.5rem;border-right:0.5px solid var(--color-border-tertiary);
+  display:flex;flex-direction:column;justify-content:center;
+  position:relative;overflow:hidden;
+}
+
+.canvas-inner{transition:opacity 0.2s;}
+
+.sidebar{padding:1.5rem;display:flex;flex-direction:column;gap:0;}
+
+.sidebar-section{padding:1rem 0;border-bottom:0.5px solid var(--color-border-tertiary);}
+.sidebar-section:last-child{border-bottom:none;}
+.sidebar-label{font-size:10px;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-text-tertiary);margin-bottom:10px;}
+
+.specimen-row{display:flex;flex-direction:column;gap:4px;margin-bottom:8px;}
+.spec-name{font-size:13px;color:var(--color-text-primary);}
+.spec-sub{font-size:11px;color:var(--color-text-tertiary);}
+
+.preview-toggle{display:flex;gap:4px;margin-bottom:1rem;}
+.ptoggle{
+  padding:5px 12px;border-radius:100px;font-size:12px;font-weight:500;
+  border:0.5px solid var(--color-border-secondary);background:transparent;
+  color:var(--color-text-secondary);cursor:pointer;font-family:var(--font-sans);
+  transition:all 0.15s;
+}
+.ptoggle.on{background:var(--color-text-primary);color:var(--color-background-primary);border-color:var(--color-text-primary);}
+
+.size-row{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+.size-label{font-size:12px;color:var(--color-text-secondary);min-width:32px;}
+input[type=range]{flex:1;height:3px;accent-color:var(--color-text-primary);}
+.size-val{font-size:12px;color:var(--color-text-secondary);min-width:28px;text-align:right;}
+
+.prompt-area{margin-top:auto;}
+.prompt-box{
+  background:var(--color-background-secondary);border-radius:var(--border-radius-md);
+  padding:10px 12px;font-family:var(--font-mono);font-size:11px;
+  color:var(--color-text-secondary);line-height:1.6;
+  white-space:pre-wrap;word-break:break-word;margin-bottom:8px;
+}
+.copy-btn{
+  width:100%;padding:8px;border-radius:var(--border-radius-md);
+  border:0.5px solid var(--color-border-secondary);background:transparent;
+  font-size:13px;font-weight:500;font-family:var(--font-sans);
+  color:var(--color-text-primary);cursor:pointer;transition:all 0.15s;
+}
+.copy-btn:hover{background:var(--color-background-secondary);}
+.copy-btn.done{color:var(--color-text-success);border-color:var(--color-border-success);}
+
+.accent-dot{
+  display:inline-block;width:8px;height:8px;border-radius:50%;
+  margin-right:6px;vertical-align:middle;flex-shrink:0;
+}
+
+.canvas-bg-dot{
+  position:absolute;width:200px;height:200px;border-radius:50%;
+  opacity:0.06;pointer-events:none;
+}
+
+.hero-word{display:block;transition:font-size 0.2s;}
+.sub-word{display:block;transition:font-size 0.2s;}
+
+.ui-strip{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:1.5rem;}
+.ui-pill{padding:8px 18px;border-radius:100px;font-size:13px;cursor:default;transition:opacity 0.2s;}
+.ui-pill-ghost{padding:8px 18px;border-radius:100px;font-size:13px;cursor:default;background:transparent;}
+.ui-stat{font-size:13px;color:var(--color-text-secondary);}
+
+.kicker{font-size:11px;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:12px;display:block;}
+
+</style>
+
+<h2 class="sr-only">Font pairing studio — select a style, adjust size, toggle preview modes, copy the AI prompt</h2>
+
+<div class="studio">
+  <nav class="nav" id="nav">
+    <button class="nav-btn on" data-id="editorial">Editorial</button>
+    <button class="nav-btn" data-id="startup">Startup</button>
+    <button class="nav-btn" data-id="tech">Tech / SaaS</button>
+    <button class="nav-btn" data-id="experimental">Experimental</button>
+    <button class="nav-btn" data-id="friendly">Friendly</button>
+  </nav>
+
+  <div class="workspace">
+    <div class="canvas" id="canvas">
+      <div class="canvas-bg-dot" id="bgdot" style="right:-60px;bottom:-60px;background:#7F77DD;"></div>
+      <div class="canvas-inner" id="canvas-inner"></div>
+    </div>
+
+    <div class="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-label">Preview mode</div>
+        <div class="preview-toggle">
+          <button class="ptoggle on" data-mode="hero">Hero</button>
+          <button class="ptoggle" data-mode="article">Article</button>
+          <button class="ptoggle" data-mode="ui">UI</button>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-label">Heading size</div>
+        <div class="size-row">
+          <span class="size-label">Size</span>
+          <input type="range" id="hsize" min="24" max="72" value="48" step="2">
+          <span class="size-val" id="hsize-out">48px</span>
+        </div>
+      </div>
+
+      <div class="sidebar-section" id="font-info">
+      </div>
+
+      <div class="sidebar-section prompt-area">
+        <div class="sidebar-label">AI prompt</div>
+        <div class="prompt-box" id="prompt-txt"></div>
+        <button class="copy-btn" id="copy-btn">Copy prompt</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const PAIRS = {
+  editorial:{
+    id:'editorial',label:'Editorial / Luxury',
+    headFont:"'Playfair Display',serif",bodyFont:"'DM Sans',sans-serif",
+    headWeight:700,bodyWeight:400,labelWeight:500,
+    headSpacing:'-0.01em',headLine:1.15,bodyLine:1.7,
+    accent:'#3C3489',accentLight:'#EEEDFE',accentMid:'#7F77DD',
+    bgDot:'#7F77DD',
+    headName:'Playfair Display',bodyName:'DM Sans',
+    headSrc:'Google Fonts',bodySrc:'Google Fonts',
+    hero:()=>`<span class="kicker" style="font-family:'DM Sans',sans-serif;font-weight:500;color:#534AB7;">New collection — Spring 2026</span>
+<span class="hero-word" id="hw" style="font-family:'Playfair Display',serif;font-weight:700;color:var(--color-text-primary);letter-spacing:-0.01em;line-height:1.1;">Designed with<br><em style="font-style:italic;font-weight:400;">intention.</em></span>
+<p style="font-family:'DM Sans',sans-serif;font-weight:400;font-size:16px;color:var(--color-text-secondary);line-height:1.7;margin-top:1rem;max-width:420px;">High editorial typography borrows its authority from print — warmth and rigour in one voice.</p>
+<div class="ui-strip">
+<span class="ui-pill" style="background:#3C3489;color:#EEEDFE;font-family:'DM Sans',sans-serif;font-weight:500;">Subscribe</span>
+<span class="ui-pill-ghost" style="border:1.5px solid #3C3489;color:#3C3489;font-family:'DM Sans',sans-serif;font-weight:500;">View collection</span>
+</div>`,
+    article:()=>`<p style="font-family:'DM Sans',sans-serif;font-size:11px;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:#534AB7;margin-bottom:8px;">Feature · Design</p>
+<div id="hw" style="font-family:'Playfair Display',serif;font-weight:700;letter-spacing:-0.01em;line-height:1.1;color:var(--color-text-primary);margin-bottom:16px;">The anatomy of a typeface.</div>
+<p style="font-family:'DM Sans',sans-serif;font-weight:400;font-size:15px;line-height:1.75;color:var(--color-text-secondary);margin-bottom:12px;">Every letterform carries centuries of intention. The serif that anchors a baseline, the bowl that holds a counter — none of it is arbitrary.</p>
+<p style="font-family:'DM Sans',sans-serif;font-weight:400;font-size:15px;line-height:1.75;color:var(--color-text-secondary);">Playfair Display was designed for high-resolution screens, taking cues from 18th-century transitional types that balanced thick and thin strokes with mathematical precision.</p>`,
+    ui:()=>`<p style="font-family:'DM Sans',sans-serif;font-size:11px;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:#534AB7;margin-bottom:10px;">Your dashboard</p>
+<div id="hw" style="font-family:'Playfair Display',serif;font-weight:700;letter-spacing:-0.01em;line-height:1.1;color:var(--color-text-primary);margin-bottom:20px;">Good morning,<br>Alexandra.</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;max-width:380px;">
+${['Revenue','Orders','Visitors','Conv. rate'].map((l,i)=>
+`<div style="background:var(--color-background-secondary);padding:12px 14px;border-radius:8px;"><p style="font-family:'DM Sans',sans-serif;font-size:11px;color:var(--color-text-tertiary);margin-bottom:4px;">${l}</p><p style="font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:var(--color-text-primary);">${['$24,190','1,284','8,930','3.2%'][i]}</p></div>`
+).join('')}
+</div>`,
+    prompt:`Import Playfair Display 700 + italic + DM Sans 400,500 from Google Fonts. h1,h2,h3: font-family:'Playfair Display' font-weight:700 letter-spacing:-0.01em line-height:1.15. body,p: 'DM Sans' weight:400 line-height:1.7. buttons,labels,nav: 'DM Sans' weight:500.`
+  },
+  startup:{
+    id:'startup',label:'Modern Startup',
+    headFont:"'Clash Display',sans-serif",bodyFont:"'Satoshi',sans-serif",
+    headWeight:700,bodyWeight:400,labelWeight:500,
+    headSpacing:'-0.03em',headLine:1.05,bodyLine:1.6,
+    accent:'#0F6E56',accentLight:'#E1F5EE',accentMid:'#1D9E75',
+    bgDot:'#1D9E75',
+    headName:'Clash Display',bodyName:'Satoshi',
+    headSrc:'Fontshare',bodySrc:'Fontshare',
+    hero:()=>`<span class="hero-word" id="hw" style="font-family:'Clash Display',sans-serif;font-weight:700;letter-spacing:-0.03em;line-height:1.0;color:var(--color-text-primary);">Build faster.<br>Ship smarter.</span>
+<p style="font-family:'Satoshi',sans-serif;font-weight:400;font-size:16px;color:var(--color-text-secondary);line-height:1.6;margin-top:1rem;max-width:400px;">The only platform your team will ever need. From idea to production in minutes, not months.</p>
+<div class="ui-strip">
+<span class="ui-pill" style="background:#1D9E75;color:#fff;font-family:'Satoshi',sans-serif;font-weight:500;">Get early access</span>
+<span class="ui-pill-ghost" style="border:1.5px solid #1D9E75;color:#1D9E75;font-family:'Satoshi',sans-serif;font-weight:500;">See the demo</span>
+<span class="ui-stat" style="font-family:'Satoshi',sans-serif;">4,000+ teams</span>
+</div>`,
+    article:()=>`<p style="font-family:'Satoshi',sans-serif;font-size:11px;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:#0F6E56;margin-bottom:8px;">Product update</p>
+<div id="hw" style="font-family:'Clash Display',sans-serif;font-weight:700;letter-spacing:-0.03em;line-height:1.05;color:var(--color-text-primary);margin-bottom:16px;">We rewrote the engine.</div>
+<p style="font-family:'Satoshi',sans-serif;font-weight:400;font-size:15px;line-height:1.65;color:var(--color-text-secondary);margin-bottom:12px;">Speed matters. Every millisecond of latency costs conversions. Our new architecture cuts cold-start times by 80% and scales to any load automatically.</p>
+<p style="font-family:'Satoshi',sans-serif;font-weight:400;font-size:15px;line-height:1.65;color:var(--color-text-secondary);">This ships today to all plans. No migration required, no config changes. Just faster.</p>`,
+    ui:()=>`<p style="font-family:'Satoshi',sans-serif;font-size:11px;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:#0F6E56;margin-bottom:10px;">Pipeline</p>
+<div id="hw" style="font-family:'Clash Display',sans-serif;font-weight:700;letter-spacing:-0.03em;line-height:1.0;color:var(--color-text-primary);margin-bottom:20px;">3 builds running</div>
+${[['main','Deploying','#1D9E75','#E1F5EE'],['feat/auth','Testing','#BA7517','#FAEEDA'],['fix/nav','Queued','#888780','#F1EFE8']].map(([branch,status,c,bg])=>
+`<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:0.5px solid var(--color-border-tertiary);">
+<div style="width:8px;height:8px;border-radius:50%;background:${c};flex-shrink:0;"></div>
+<span style="font-family:'Satoshi',sans-serif;font-weight:500;font-size:14px;color:var(--color-text-primary);flex:1;">${branch}</span>
+<span style="font-family:'Satoshi',sans-serif;font-size:12px;font-weight:500;padding:3px 10px;border-radius:100px;background:${bg};color:${c};">${status}</span>
+</div>`).join('')}`,
+    prompt:`Import Clash Display @700 from https://api.fontshare.com/v2/css?f[]=clash-display@700&display=swap and Satoshi @400,500 from https://api.fontshare.com/v2/css?f[]=satoshi@400,500&display=swap. h1,h2,h3: letter-spacing:-0.03em line-height:1.05. body,p,button,input: Satoshi line-height:1.6.`
+  },
+  tech:{
+    id:'tech',label:'Tech / SaaS',
+    headFont:"'Syne',sans-serif",bodyFont:"'Inter',sans-serif",
+    headWeight:700,bodyWeight:400,labelWeight:500,
+    headSpacing:'-0.02em',headLine:1.1,bodyLine:1.6,
+    accent:'#185FA5',accentLight:'#E6F1FB',accentMid:'#378ADD',
+    bgDot:'#378ADD',
+    headName:'Syne',bodyName:'Inter',
+    headSrc:'Google Fonts',bodySrc:'Google Fonts',
+    hero:()=>`<span class="hero-word" id="hw" style="font-family:'Syne',sans-serif;font-weight:700;letter-spacing:-0.02em;line-height:1.05;color:var(--color-text-primary);">Infrastructure<br>at any scale.</span>
+<p style="font-family:'Inter',sans-serif;font-weight:400;font-size:15px;color:var(--color-text-secondary);line-height:1.6;margin-top:1rem;max-width:400px;">99.99% uptime, global edge network, automatic failover. The platform serious teams rely on.</p>
+<div class="ui-strip">
+<span class="ui-pill" style="background:#185FA5;color:#fff;font-family:'Inter',sans-serif;font-weight:500;">Start building</span>
+<span class="ui-pill-ghost" style="border:1.5px solid #185FA5;color:#185FA5;font-family:'Inter',sans-serif;font-weight:500;">Read the docs</span>
+</div>`,
+    article:()=>`<p style="font-family:'Inter',sans-serif;font-size:11px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;color:#185FA5;margin-bottom:8px;">Engineering blog</p>
+<div id="hw" style="font-family:'Syne',sans-serif;font-weight:700;letter-spacing:-0.02em;line-height:1.1;color:var(--color-text-primary);margin-bottom:16px;">How we scaled to 10B requests.</div>
+<p style="font-family:'Inter',sans-serif;font-weight:400;font-size:14px;line-height:1.65;color:var(--color-text-secondary);margin-bottom:12px;">Last quarter we processed over 10 billion API requests without a single incident. Here's the architecture that made it possible, and what we learned along the way.</p>
+<p style="font-family:'Inter',sans-serif;font-weight:400;font-size:14px;line-height:1.65;color:var(--color-text-secondary);">The key insight was treating every layer as independently scalable, with circuit breakers at each boundary.</p>`,
+    ui:()=>`<p style="font-family:'Inter',sans-serif;font-size:11px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;color:#185FA5;margin-bottom:10px;">System status</p>
+<div id="hw" style="font-family:'Syne',sans-serif;font-weight:700;letter-spacing:-0.02em;line-height:1.05;color:var(--color-text-primary);margin-bottom:20px;">All systems<br>operational</div>
+${[['API Gateway','99.98%','#1D9E75'],['Edge Network','100%','#1D9E75'],['Database cluster','99.91%','#1D9E75'],['Storage','99.99%','#1D9E75']].map(([svc,up,c])=>
+`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--color-border-tertiary);">
+<div style="width:6px;height:6px;border-radius:50%;background:${c};flex-shrink:0;"></div>
+<span style="font-family:'Inter',sans-serif;font-size:13px;color:var(--color-text-primary);flex:1;">${svc}</span>
+<span style="font-family:'Inter',sans-serif;font-size:12px;font-weight:500;color:var(--color-text-secondary);">${up}</span>
+</div>`).join('')}`,
+    prompt:`Import Syne 700 + Inter 400,500 from Google Fonts. h1,h2,h3: 'Syne' font-weight:700 letter-spacing:-0.02em line-height:1.1. body,p: 'Inter' weight:400 line-height:1.6. All UI — nav, buttons, inputs, labels: Inter weight:500.`
+  },
+  experimental:{
+    id:'experimental',label:'Experimental',
+    headFont:"'Clash Display',sans-serif",bodyFont:"'Satoshi',sans-serif",
+    headWeight:700,bodyWeight:400,labelWeight:500,
+    headSpacing:'-0.04em',headLine:1.0,bodyLine:1.6,
+    accent:'#993C1D',accentLight:'#FAECE7',accentMid:'#D85A30',
+    bgDot:'#D85A30',
+    headName:'Clash Display',bodyName:'Satoshi',
+    headSrc:'Fontshare',bodySrc:'Fontshare',
+    hero:()=>`<span class="hero-word" id="hw" style="font-family:'Clash Display',sans-serif;font-weight:700;letter-spacing:-0.04em;line-height:0.95;color:var(--color-text-primary);text-transform:uppercase;">Form<br>follows<br>force.</span>
+<p style="font-family:'Satoshi',sans-serif;font-weight:400;font-size:15px;color:var(--color-text-secondary);line-height:1.6;margin-top:1.25rem;max-width:380px;">Extended display type. Compressed leading. Tracked labels. The design is the message.</p>
+<div class="ui-strip">
+<span class="ui-pill" style="background:#D85A30;color:#fff;font-family:'Satoshi',sans-serif;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;font-size:12px;">Explore</span>
+<span class="ui-pill-ghost" style="border:1.5px solid #D85A30;color:#D85A30;font-family:'Satoshi',sans-serif;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;font-size:12px;">Archive</span>
+</div>`,
+    article:()=>`<p style="font-family:'Satoshi',sans-serif;font-size:10px;font-weight:500;letter-spacing:0.14em;text-transform:uppercase;color:#D85A30;margin-bottom:10px;">Issue 12 · Typography</p>
+<div id="hw" style="font-family:'Clash Display',sans-serif;font-weight:700;letter-spacing:-0.04em;line-height:0.95;color:var(--color-text-primary);text-transform:uppercase;margin-bottom:18px;">The new<br>brutalism.</div>
+<p style="font-family:'Satoshi',sans-serif;font-weight:400;font-size:14px;line-height:1.65;color:var(--color-text-secondary);margin-bottom:12px;">Raw, honest, confrontational. Web brutalism strips away decoration and exposes the grid — the structure itself becomes the aesthetic statement.</p>
+<p style="font-family:'Satoshi',sans-serif;font-weight:400;font-size:14px;line-height:1.65;color:var(--color-text-secondary);">When Clash Display meets Satoshi, you get tension between compression and openness — exactly the feeling of good brutalist design.</p>`,
+    ui:()=>`<p style="font-family:'Satoshi',sans-serif;font-size:10px;font-weight:500;letter-spacing:0.14em;text-transform:uppercase;color:#D85A30;margin-bottom:10px;">Selected works</p>
+<div id="hw" style="font-family:'Clash Display',sans-serif;font-weight:700;letter-spacing:-0.04em;line-height:0.95;color:var(--color-text-primary);text-transform:uppercase;margin-bottom:20px;">12 projects</div>
+${[['Orbit','Brand identity','2025'],['Vanta','Motion system','2024'],['Suede','Editorial design','2024']].map(([n,t,y])=>
+`<div style="display:flex;align-items:baseline;gap:12px;padding:10px 0;border-bottom:0.5px solid var(--color-border-tertiary);">
+<span style="font-family:'Clash Display',sans-serif;font-weight:700;font-size:16px;letter-spacing:-0.03em;color:var(--color-text-primary);flex:1;">${n}</span>
+<span style="font-family:'Satoshi',sans-serif;font-size:12px;color:var(--color-text-secondary);flex:2;">${t}</span>
+<span style="font-family:'Satoshi',sans-serif;font-size:12px;color:var(--color-text-tertiary);">${y}</span>
+</div>`).join('')}`,
+    prompt:`Import Clash Display @700 + Satoshi @400,500 from Fontshare. h1,h2,h3: text-transform:uppercase letter-spacing:-0.04em line-height:0.95. body,p: Satoshi weight:400 line-height:1.6. Labels: Satoshi weight:500 letter-spacing:0.1em text-transform:uppercase font-size:11px.`
+  },
+  friendly:{
+    id:'friendly',label:'Friendly / Consumer',
+    headFont:"'Nunito',sans-serif",bodyFont:"'Source Sans 3',sans-serif",
+    headWeight:700,bodyWeight:400,labelWeight:500,
+    headSpacing:'-0.01em',headLine:1.2,bodyLine:1.75,
+    accent:'#854F0B',accentLight:'#FAEEDA',accentMid:'#BA7517',
+    bgDot:'#EF9F27',
+    headName:'Nunito',bodyName:'Source Sans 3',
+    headSrc:'Google Fonts',bodySrc:'Google Fonts',
+    hero:()=>`<span class="hero-word" id="hw" style="font-family:'Nunito',sans-serif;font-weight:700;letter-spacing:-0.01em;line-height:1.15;color:var(--color-text-primary);">Every habit starts<br>with one good day.</span>
+<p style="font-family:'Source Sans 3',sans-serif;font-weight:400;font-size:16px;color:var(--color-text-secondary);line-height:1.75;margin-top:1rem;max-width:400px;">Build routines that stick. Small steps, big change. Join 200,000 people on the path to better.</p>
+<div class="ui-strip">
+<span class="ui-pill" style="background:#BA7517;color:#fff;font-family:'Source Sans 3',sans-serif;font-weight:500;">Start your streak</span>
+<span class="ui-pill-ghost" style="border:1.5px solid #BA7517;color:#BA7517;font-family:'Source Sans 3',sans-serif;font-weight:500;">How it works</span>
+</div>`,
+    article:()=>`<p style="font-family:'Source Sans 3',sans-serif;font-size:11px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;color:#BA7517;margin-bottom:8px;">Wellness · Habits</p>
+<div id="hw" style="font-family:'Nunito',sans-serif;font-weight:700;letter-spacing:-0.01em;line-height:1.2;color:var(--color-text-primary);margin-bottom:16px;">Why small wins<br>beat big goals.</div>
+<p style="font-family:'Source Sans 3',sans-serif;font-weight:400;font-size:15px;line-height:1.75;color:var(--color-text-secondary);margin-bottom:12px;">Psychology has a name for it: the progress principle. When you celebrate small wins daily, your brain releases dopamine — making the next step feel easier, not harder.</p>
+<p style="font-family:'Source Sans 3',sans-serif;font-weight:400;font-size:15px;line-height:1.75;color:var(--color-text-secondary);">The key is lowering the activation energy. A 2-minute habit is infinitely better than a 30-minute habit you never start.</p>`,
+    ui:()=>`<p style="font-family:'Source Sans 3',sans-serif;font-size:11px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;color:#BA7517;margin-bottom:10px;">Today's check-in</p>
+<div id="hw" style="font-family:'Nunito',sans-serif;font-weight:700;letter-spacing:-0.01em;line-height:1.15;color:var(--color-text-primary);margin-bottom:20px;">You're on a<br>14-day streak!</div>
+${[['Morning walk','Done','#1D9E75','#E1F5EE'],['Read 10 pages','Done','#1D9E75','#E1F5EE'],['Meditate','Pending','#BA7517','#FAEEDA'],['Journal','Pending','#BA7517','#FAEEDA']].map(([h,s,c,bg])=>
+`<div style="display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:0.5px solid var(--color-border-tertiary);">
+<div style="width:18px;height:18px;border-radius:50%;background:${bg};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+<div style="width:6px;height:6px;border-radius:50%;background:${c};"></div></div>
+<span style="font-family:'Source Sans 3',sans-serif;font-size:14px;color:var(--color-text-primary);flex:1;">${h}</span>
+<span style="font-family:'Source Sans 3',sans-serif;font-size:12px;font-weight:500;color:${c};">${s}</span>
+</div>`).join('')}`,
+    prompt:`Import Nunito 700 + Source Sans 3 400,500 from Google Fonts. h1,h2,h3: 'Nunito' font-weight:700 letter-spacing:-0.01em line-height:1.2. body,p: 'Source Sans 3' weight:400 line-height:1.75. buttons,labels,inputs: Source Sans 3 weight:500.`
+  }
+};
+
+let current = 'editorial';
+let mode = 'hero';
+let hsize = 48;
+
+function render(){
+  const p = PAIRS[current];
+  document.getElementById('bgdot').style.background = p.bgDot;
+
+  const html = p[mode]();
+  document.getElementById('canvas-inner').innerHTML = html;
+
+  const hw = document.getElementById('hw');
+  if(hw) hw.style.fontSize = hsize+'px';
+
+  document.getElementById('font-info').innerHTML = `
+    <div class="sidebar-label">Fonts</div>
+    <div class="specimen-row">
+      <span class="spec-name" style="font-family:${p.headFont};font-weight:${p.headWeight};font-size:18px;">${p.headName}</span>
+      <span class="spec-sub">Headings · weight ${p.headWeight} · ${p.headSrc}</span>
+    </div>
+    <div class="specimen-row">
+      <span class="spec-name" style="font-family:${p.bodyFont};font-size:15px;">The body text flows here</span>
+      <span class="spec-sub">${p.bodyName} · weight 400/500 · ${p.bodySrc}</span>
+    </div>
+  `;
+
+  document.getElementById('prompt-txt').textContent = p.prompt;
+}
+
+document.getElementById('nav').addEventListener('click', e=>{
+  const btn = e.target.closest('.nav-btn');
+  if(!btn) return;
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  current = btn.dataset.id;
+  render();
+});
+
+document.querySelectorAll('.ptoggle').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.ptoggle').forEach(b=>b.classList.remove('on'));
+    btn.classList.add('on');
+    mode = btn.dataset.mode;
+    render();
+  });
+});
+
+const hslider = document.getElementById('hsize');
+hslider.addEventListener('input',()=>{
+  hsize = parseInt(hslider.value);
+  document.getElementById('hsize-out').textContent = hsize+'px';
+  const hw = document.getElementById('hw');
+  if(hw) hw.style.fontSize = hsize+'px';
+});
+
+document.getElementById('copy-btn').addEventListener('click',function(){
+  const txt = document.getElementById('prompt-txt').textContent;
+  navigator.clipboard.writeText(txt).then(()=>{
+    this.textContent='Copied ✓';
+    this.classList.add('done');
+    setTimeout(()=>{this.textContent='Copy prompt';this.classList.remove('done');},2000);
+  });
+});
+
+render();
+</script>

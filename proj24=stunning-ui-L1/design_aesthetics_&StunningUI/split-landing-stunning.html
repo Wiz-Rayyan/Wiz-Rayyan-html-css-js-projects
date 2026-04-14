@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arc — The Work OS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Syne:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --night:#08080a;
+  --night2:#0f0f14;
+  --night3:#16161e;
+  --night4:#1e1e28;
+  --dim:#2e2e3e;
+  --muted:#5a5a72;
+  --ghost:#8080a0;
+  --pale:#b0b0c8;
+  --light:#e8e8f0;
+  --white:#f8f8fc;
+  --gold:#e8c97a;
+  --gold2:#c9a84c;
+  --gold-pale:rgba(232,201,122,0.08);
+  --gold-glow:rgba(232,201,122,0.15);
+  --teal:#4dd9ac;
+  --teal2:#2bba8a;
+  --teal-pale:rgba(77,217,172,0.08);
+  --rose:#e86a7a;
+  --r:18px;
+  --serif:'Playfair Display',Georgia,serif;
+  --sans:'Syne',sans-serif;
+}
+html{scroll-behavior:smooth}
+body{background:var(--night);color:var(--white);font-family:var(--sans);overflow-x:hidden;line-height:1.6}
+
+/* ── NOISE TEXTURE ─────────────────────────────────────── */
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  background-size:200px 200px;
+  pointer-events:none;z-index:999;opacity:0.6;
+}
+
+/* ── NAV ───────────────────────────────────────────────── */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:1.4rem 3.5rem;
+  border-bottom:1px solid rgba(255,255,255,0.04);
+  background:rgba(8,8,10,0.7);
+  backdrop-filter:blur(20px) saturate(180%);
+}
+.logo{
+  font-family:var(--serif);font-size:1.5rem;font-weight:700;
+  color:var(--white);text-decoration:none;letter-spacing:-0.01em;
+}
+.logo span{color:var(--gold)}
+.nav-links{display:flex;gap:2.5rem;list-style:none}
+.nav-links a{font-size:0.8rem;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:var(--ghost);text-decoration:none;transition:color 0.25s}
+.nav-links a:hover{color:var(--white)}
+.nav-pill{
+  display:flex;align-items:center;gap:0.5rem;
+  font-size:0.8rem;font-weight:600;letter-spacing:0.04em;
+  color:var(--night);background:var(--gold);
+  padding:0.6rem 1.4rem;border-radius:100px;
+  text-decoration:none;transition:transform 0.2s,box-shadow 0.2s;
+  box-shadow:0 0 0 0 var(--gold-glow);
+}
+.nav-pill:hover{transform:translateY(-2px);box-shadow:0 8px 30px var(--gold-glow)}
+
+/* ── HERO ──────────────────────────────────────────────── */
+.hero{
+  min-height:100vh;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  padding:8rem 4rem 6rem;text-align:center;
+  position:relative;overflow:hidden;
+}
+.hero-bg-ring{
+  position:absolute;
+  border-radius:50%;border:1px solid rgba(232,201,122,0.08);
+  pointer-events:none;
+}
+.ring1{width:600px;height:600px;top:50%;left:50%;transform:translate(-50%,-50%)}
+.ring2{width:900px;height:900px;top:50%;left:50%;transform:translate(-50%,-50%)}
+.ring3{width:1300px;height:1300px;top:50%;left:50%;transform:translate(-50%,-50%)}
+.hero-glow{
+  position:absolute;width:500px;height:500px;
+  border-radius:50%;
+  background:radial-gradient(circle,rgba(232,201,122,0.07) 0%,transparent 70%);
+  top:50%;left:50%;transform:translate(-50%,-50%);
+  pointer-events:none;
+}
+.hero-eyebrow{
+  display:inline-flex;align-items:center;gap:0.6rem;
+  font-size:0.7rem;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;
+  color:var(--gold);border:1px solid rgba(232,201,122,0.2);
+  padding:0.4rem 1rem;border-radius:100px;margin-bottom:2rem;
+  background:rgba(232,201,122,0.05);
+}
+.hero-eyebrow-dot{width:6px;height:6px;border-radius:50%;background:var(--gold);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(0.8)}}
+.hero h1{
+  font-family:var(--serif);font-size:clamp(3.5rem,7vw,6.5rem);
+  line-height:1.05;letter-spacing:-0.03em;
+  color:var(--white);max-width:800px;margin:0 auto 1.5rem;
+  position:relative;z-index:1;
+}
+.hero h1 em{font-style:italic;color:var(--gold)}
+.hero-sub{
+  font-size:1.05rem;color:var(--ghost);max-width:480px;
+  margin:0 auto 3rem;line-height:1.75;
+}
+.hero-ctas{display:flex;gap:1rem;justify-content:center;align-items:center;flex-wrap:wrap}
+.cta-primary{
+  font-family:var(--sans);font-size:0.875rem;font-weight:600;
+  letter-spacing:0.03em;color:var(--night);
+  background:var(--gold);border:none;cursor:pointer;
+  padding:0.85rem 2rem;border-radius:100px;text-decoration:none;
+  transition:transform 0.2s,box-shadow 0.25s;
+  box-shadow:0 4px 20px rgba(232,201,122,0.25);
+}
+.cta-primary:hover{transform:translateY(-2px);box-shadow:0 12px 40px rgba(232,201,122,0.35)}
+.cta-ghost{
+  font-family:var(--sans);font-size:0.875rem;font-weight:500;
+  color:var(--pale);text-decoration:none;letter-spacing:0.02em;
+  display:flex;align-items:center;gap:0.5rem;
+  transition:color 0.2s;
+}
+.cta-ghost:hover{color:var(--white)}
+.hero-scroll{
+  position:absolute;bottom:2.5rem;left:50%;transform:translateX(-50%);
+  display:flex;flex-direction:column;align-items:center;gap:0.6rem;
+}
+.scroll-line{width:1px;height:48px;background:linear-gradient(to bottom,transparent,rgba(255,255,255,0.2));animation:scrollLine 2s ease-in-out infinite}
+@keyframes scrollLine{0%,100%{opacity:0.3;transform:scaleY(0.5);transform-origin:top}50%{opacity:1;transform:scaleY(1);transform-origin:top}}
+.scroll-label{font-size:0.65rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted)}
+
+/* ── SPLIT SECTIONS ────────────────────────────────────── */
+.split{
+  display:grid;grid-template-columns:3fr 2fr;
+  min-height:100vh;position:relative;
+}
+.split.rev{grid-template-columns:2fr 3fr}
+
+.img-col{
+  position:relative;overflow:visible;
+  background:var(--night2);
+}
+.split.rev .img-col{order:2}
+
+/* Decorative vertical rule between columns */
+.split::after{
+  content:'';position:absolute;top:10%;bottom:10%;
+  left:60%;width:1px;
+  background:linear-gradient(to bottom,transparent,rgba(255,255,255,0.06),transparent);
+  pointer-events:none;z-index:5;
+}
+.split.rev::after{left:40%}
+
+/* Ambient color wash on img pane */
+.img-col::after{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at 30% 40%,rgba(232,201,122,0.04) 0%,transparent 70%);
+  pointer-events:none;
+}
+
+/* The floating mockup card */
+.float-card{
+  position:absolute;inset:3rem;
+  background:var(--night3);
+  border-radius:24px;
+  border:1px solid rgba(255,255,255,0.06);
+  box-shadow:
+    0 0 0 1px rgba(0,0,0,0.5),
+    0 40px 80px rgba(0,0,0,0.5),
+    0 16px 32px rgba(0,0,0,0.3),
+    inset 0 1px 0 rgba(255,255,255,0.06);
+  overflow:hidden;
+  z-index:2;
+  /* Overlap into text col */
+  right:-3rem;
+  transition:transform 0.6s cubic-bezier(0.23,1,0.32,1);
+}
+.split.rev .float-card{left:-3rem;right:3rem}
+.float-card:hover{transform:translateY(-6px) rotate(0.3deg)}
+.split.rev .float-card:hover{transform:translateY(-6px) rotate(-0.3deg)}
+
+/* Floating badge decorations */
+.float-badge{
+  position:absolute;z-index:10;
+  background:var(--night3);
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:14px;padding:0.65rem 1rem;
+  box-shadow:0 12px 40px rgba(0,0,0,0.4);
+  display:flex;align-items:center;gap:0.6rem;
+  font-size:0.72rem;font-weight:500;color:var(--pale);
+  white-space:nowrap;
+  animation:floatBadge 5s ease-in-out infinite;
+}
+@keyframes floatBadge{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.badge-dot{width:8px;height:8px;border-radius:50%}
+.badge-1{bottom:12%;left:-4%;animation-delay:0s}
+.badge-2{top:18%;right:-5%;animation-delay:1.5s}
+.badge-3{bottom:30%;right:-3%;animation-delay:0.8s}
+
+/* TEXT COLUMN */
+.text-col{
+  display:flex;align-items:center;
+  padding:5rem 5rem 5rem 6rem;
+  position:relative;z-index:3;
+}
+.split.rev .text-col{
+  padding:5rem 6rem 5rem 5rem;
+  order:1;
+}
+.text-inner{max-width:380px}
+
+.overline{
+  display:inline-flex;align-items:center;gap:0.55rem;
+  font-size:0.68rem;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;
+  color:var(--gold);margin-bottom:1.4rem;
+}
+.overline-bar{width:24px;height:1px;background:var(--gold2)}
+
+.text-inner h2{
+  font-family:var(--serif);
+  font-size:clamp(2.2rem,3.5vw,3rem);
+  line-height:1.12;letter-spacing:-0.025em;
+  color:var(--white);margin-bottom:1.4rem;
+}
+.text-inner h2 em{font-style:italic;color:var(--gold)}
+
+.text-inner p{
+  font-size:0.93rem;color:var(--ghost);
+  line-height:1.8;margin-bottom:0.9rem;
+}
+
+.checklist{list-style:none;margin:2rem 0 2.5rem;display:flex;flex-direction:column;gap:0.85rem}
+.checklist li{
+  display:flex;align-items:flex-start;gap:0.75rem;
+  font-size:0.88rem;color:var(--light);line-height:1.5;
+}
+.check-wrap{
+  width:20px;height:20px;border-radius:6px;
+  background:rgba(232,201,122,0.12);border:1px solid rgba(232,201,122,0.2);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;
+}
+.check-wrap svg{width:10px;height:10px}
+
+.btn-section{
+  font-family:var(--sans);font-size:0.85rem;font-weight:600;
+  letter-spacing:0.04em;color:var(--night);
+  background:var(--gold);padding:0.8rem 1.8rem;
+  border-radius:100px;text-decoration:none;border:none;cursor:pointer;
+  display:inline-flex;align-items:center;gap:0.5rem;
+  transition:transform 0.2s,box-shadow 0.25s;
+  box-shadow:0 4px 20px rgba(232,201,122,0.2);
+}
+.btn-section:hover{transform:translateY(-2px);box-shadow:0 10px 32px rgba(232,201,122,0.3)}
+
+/* ─── SCREEN CONTENT: SECTION 1 ── canvas/workspace ──── */
+.screen-topbar{
+  height:44px;background:var(--night4);
+  border-bottom:1px solid rgba(255,255,255,0.05);
+  display:flex;align-items:center;padding:0 1rem;gap:0.5rem;
+}
+.tb-dots{display:flex;gap:5px}
+.tb-dot{width:10px;height:10px;border-radius:50%}
+.tb-dot.r{background:#ff5f57}.tb-dot.y{background:#ffbd2e}.tb-dot.g{background:#28c840}
+.tb-url{
+  flex:1;height:26px;background:rgba(255,255,255,0.04);
+  border-radius:6px;margin:0 0.75rem;
+  display:flex;align-items:center;padding:0 0.75rem;
+  font-size:0.65rem;color:var(--muted);font-family:var(--sans);
+  border:1px solid rgba(255,255,255,0.05);
+}
+
+.workspace{display:flex;flex:1;overflow:hidden;height:calc(100% - 44px)}
+.ws-sidebar{
+  width:200px;background:var(--night4);
+  border-right:1px solid rgba(255,255,255,0.04);
+  padding:1rem 0.75rem;
+  display:flex;flex-direction:column;gap:0.4rem;
+}
+.ws-section-label{
+  font-size:0.55rem;letter-spacing:0.1em;text-transform:uppercase;
+  color:var(--muted);padding:0.35rem 0.5rem 0.2rem;
+  font-family:var(--sans);
+}
+.ws-item{
+  display:flex;align-items:center;gap:0.55rem;
+  padding:0.45rem 0.6rem;border-radius:8px;
+  font-size:0.65rem;color:var(--ghost);
+  font-family:var(--sans);cursor:pointer;
+  transition:background 0.15s;
+}
+.ws-item:hover,.ws-item.active{background:rgba(255,255,255,0.05);color:var(--pale)}
+.ws-item.active{color:var(--gold)}
+.ws-icon{width:14px;height:14px;border-radius:4px;background:rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ws-icon-gold{background:rgba(232,201,122,0.15)}
+.ws-icon svg{width:8px;height:8px}
+
+.ws-main{flex:1;padding:1.25rem;overflow:hidden;display:flex;flex-direction:column;gap:0.75rem;background:#0c0c10}
+.ws-header{display:flex;align-items:center;justify-content:space-between}
+.ws-title{font-family:var(--sans);font-size:0.85rem;font-weight:600;color:var(--pale)}
+.ws-actions{display:flex;gap:0.4rem}
+.ws-btn{
+  font-size:0.58rem;padding:0.3rem 0.7rem;border-radius:6px;
+  background:rgba(255,255,255,0.05);color:var(--ghost);
+  border:1px solid rgba(255,255,255,0.06);font-family:var(--sans);
+}
+.ws-btn.primary{background:rgba(232,201,122,0.12);color:var(--gold);border-color:rgba(232,201,122,0.2)}
+
+.board{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.6rem}
+.board-col-header{
+  font-size:0.58rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;
+  color:var(--muted);padding:0.35rem 0;margin-bottom:0.4rem;
+  font-family:var(--sans);display:flex;align-items:center;justify-content:space-between;
+}
+.board-col-count{
+  width:16px;height:16px;border-radius:50%;
+  background:rgba(255,255,255,0.06);
+  display:flex;align-items:center;justify-content:center;
+  font-size:0.5rem;color:var(--ghost);
+}
+.task-card{
+  background:var(--night3);border-radius:10px;padding:0.7rem;
+  border:1px solid rgba(255,255,255,0.05);margin-bottom:0.45rem;
+}
+.task-tag{
+  display:inline-flex;font-size:0.5rem;font-weight:600;letter-spacing:0.06em;
+  text-transform:uppercase;padding:0.2rem 0.45rem;border-radius:4px;
+  margin-bottom:0.45rem;font-family:var(--sans);
+}
+.tag-design{background:rgba(77,217,172,0.12);color:#4dd9ac}
+.tag-eng{background:rgba(232,201,122,0.12);color:var(--gold)}
+.tag-mktg{background:rgba(232,106,122,0.12);color:var(--rose)}
+.task-name{font-size:0.65rem;color:var(--pale);font-family:var(--sans);line-height:1.4;margin-bottom:0.5rem}
+.task-meta{display:flex;align-items:center;justify-content:space-between}
+.task-avatars{display:flex}
+.task-av{
+  width:16px;height:16px;border-radius:50%;
+  border:1.5px solid var(--night3);margin-left:-4px;font-size:0.45rem;
+  display:flex;align-items:center;justify-content:center;font-family:var(--sans);
+  font-weight:600;
+}
+.task-av:first-child{margin-left:0}
+.task-due{font-size:0.55rem;color:var(--muted);font-family:var(--sans)}
+
+/* ─── SCREEN CONTENT: SECTION 2 ── analytics dark ──── */
+.an-header{
+  background:var(--night4);
+  border-bottom:1px solid rgba(255,255,255,0.04);
+  padding:0.75rem 1rem;display:flex;align-items:center;justify-content:space-between;
+}
+.an-title{font-family:var(--sans);font-size:0.7rem;font-weight:600;color:var(--pale)}
+.an-sub{font-size:0.55rem;color:var(--muted);font-family:var(--sans);margin-top:0.1rem}
+.an-tabs{display:flex;gap:0.2rem}
+.an-tab{
+  font-size:0.55rem;padding:0.25rem 0.65rem;border-radius:6px;
+  font-family:var(--sans);color:var(--muted);border:1px solid transparent;
+}
+.an-tab.active{background:rgba(232,201,122,0.1);color:var(--gold);border-color:rgba(232,201,122,0.2)}
+.an-body{flex:1;padding:1rem;display:flex;flex-direction:column;gap:0.65rem;background:var(--night2);overflow:hidden}
+.an-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:0.5rem}
+.kpi{background:var(--night3);border-radius:10px;padding:0.7rem;border:1px solid rgba(255,255,255,0.04)}
+.kpi-label{font-size:0.55rem;color:var(--muted);font-family:var(--sans);margin-bottom:0.25rem}
+.kpi-val{font-size:1rem;font-weight:600;color:var(--white);font-family:var(--sans)}
+.kpi-chg{font-size:0.55rem;font-family:var(--sans);margin-top:0.1rem}
+.up{color:#4dd9ac}.down{color:var(--rose)}
+.chart-area{background:var(--night3);border-radius:10px;padding:0.8rem;border:1px solid rgba(255,255,255,0.04);flex:1}
+.chart-label{font-size:0.6rem;color:var(--muted);font-family:var(--sans);margin-bottom:0.6rem}
+.svg-chart{width:100%;height:90px;overflow:visible}
+.an-bottom{display:grid;grid-template-columns:1fr 1fr;gap:0.5rem}
+.an-card{background:var(--night3);border-radius:10px;padding:0.7rem;border:1px solid rgba(255,255,255,0.04)}
+.an-card-label{font-size:0.55rem;color:var(--muted);font-family:var(--sans);margin-bottom:0.5rem}
+.segment-row{display:flex;align-items:center;gap:0.4rem;margin-bottom:0.3rem}
+.seg-name{font-size:0.55rem;color:var(--ghost);font-family:var(--sans);min-width:48px}
+.seg-bar-bg{flex:1;height:3px;background:rgba(255,255,255,0.06);border-radius:100px}
+.seg-bar{height:3px;border-radius:100px}
+.seg-pct{font-size:0.55rem;color:var(--muted);font-family:var(--sans);min-width:28px;text-align:right}
+.funnel-row{display:flex;align-items:center;gap:0.4rem;margin-bottom:0.35rem}
+.funnel-label{font-size:0.55rem;color:var(--ghost);font-family:var(--sans);min-width:52px}
+.funnel-bar-bg{flex:1;height:6px;background:rgba(255,255,255,0.04);border-radius:3px;overflow:hidden}
+.funnel-bar{height:100%;border-radius:3px}
+.funnel-val{font-size:0.55rem;color:var(--pale);font-family:var(--sans);min-width:28px;text-align:right}
+
+/* ── SECTION DIVIDER ──────────────────────────────────── */
+.divider{height:1px;background:linear-gradient(to right,transparent,rgba(255,255,255,0.05),transparent);margin:0 4rem}
+
+/* ── FOOTER ───────────────────────────────────────────── */
+footer{
+  padding:5rem 3.5rem 3rem;
+  border-top:1px solid rgba(255,255,255,0.04);
+  display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:2rem;
+  margin-top:4rem;
+}
+.footer-left .footer-logo{font-family:var(--serif);font-size:1.3rem;color:var(--white);margin-bottom:0.4rem}
+.footer-left .footer-logo span{color:var(--gold)}
+.footer-tag{font-size:0.78rem;color:var(--muted)}
+.footer-center{text-align:center}
+.footer-copy{font-size:0.75rem;color:var(--dim)}
+.footer-links{display:flex;gap:2rem;list-style:none;justify-content:flex-end}
+.footer-links a{font-size:0.78rem;color:var(--muted);text-decoration:none;transition:color 0.2s}
+.footer-links a:hover{color:var(--pale)}
+
+/* ── ANIMATIONS ───────────────────────────────────────── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(32px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideFromLeft{from{opacity:0;transform:translateX(-40px)}to{opacity:1;transform:translateX(0)}}
+@keyframes slideFromRight{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:translateX(0)}}
+
+.hero-eyebrow{animation:fadeUp 0.6s 0.1s both}
+.hero h1{animation:fadeUp 0.7s 0.2s both}
+.hero-sub{animation:fadeUp 0.7s 0.35s both}
+.hero-ctas{animation:fadeUp 0.7s 0.5s both}
+.hero-scroll{animation:fadeUp 0.7s 0.7s both}
+
+.anim-left{opacity:0}.anim-left.on{animation:slideFromLeft 0.8s cubic-bezier(0.23,1,0.32,1) forwards}
+.anim-right{opacity:0}.anim-right.on{animation:slideFromRight 0.8s cubic-bezier(0.23,1,0.32,1) forwards}
+.anim-up{opacity:0}.anim-up.on{animation:fadeUp 0.7s ease forwards}
+.anim-up.d1{animation-delay:0.1s}.anim-up.d2{animation-delay:0.2s}.anim-up.d3{animation-delay:0.3s}
+
+/* ── GRID LINES BG ─────────────────────────────────────── */
+.hero-grid{
+  position:absolute;inset:0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.015) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,0.015) 1px,transparent 1px);
+  background-size:60px 60px;
+  pointer-events:none;
+  mask-image:radial-gradient(ellipse at center,black 20%,transparent 70%);
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a class="logo" href="#">Arc<span>.</span></a>
+  <ul class="nav-links">
+    <li><a href="#">Product</a></li>
+    <li><a href="#">Features</a></li>
+    <li><a href="#">Pricing</a></li>
+    <li><a href="#">Blog</a></li>
+  </ul>
+  <a class="nav-pill" href="#">Get early access</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-grid"></div>
+  <div class="hero-glow"></div>
+  <div class="hero-bg-ring ring1"></div>
+  <div class="hero-bg-ring ring2"></div>
+  <div class="hero-bg-ring ring3"></div>
+
+  <span class="hero-eyebrow">
+    <span class="hero-eyebrow-dot"></span>
+    Now in public beta — 4,200+ teams onboarded
+  </span>
+
+  <h1>The OS for teams<br>that move <em>fast</em></h1>
+  <p class="hero-sub">Arc replaces your scattered tools with one intelligent workspace — projects, data, and decisions, unified.</p>
+
+  <div class="hero-ctas">
+    <a class="cta-primary" href="#">Start free — no card needed</a>
+    <a class="cta-ghost" href="#">Watch 90s demo →</a>
+  </div>
+
+  <div class="hero-scroll">
+    <span class="scroll-label">Scroll</span>
+    <div class="scroll-line"></div>
+  </div>
+</section>
+
+<!-- ═══ SPLIT SECTION 1: workspace (image left) ══════════════ -->
+<section class="split">
+
+  <div class="img-col">
+
+    <!-- Floating ambient badges -->
+    <div class="float-badge badge-1 anim-left" style="animation-delay:0.6s">
+      <div class="badge-dot" style="background:#4dd9ac"></div>
+      <span>12 tasks completed today</span>
+    </div>
+    <div class="float-badge badge-2 anim-right" style="animation-delay:0.8s">
+      <div class="badge-dot" style="background:var(--gold)"></div>
+      <span>Sprint on track · 94%</span>
+    </div>
+
+    <div class="float-card anim-left" style="display:flex;flex-direction:column">
+      <div class="screen-topbar">
+        <div class="tb-dots"><span class="tb-dot r"></span><span class="tb-dot y"></span><span class="tb-dot g"></span></div>
+        <div class="tb-url">arc.so / workspace / q3-launch</div>
+      </div>
+      <div class="workspace">
+        <div class="ws-sidebar">
+          <div class="ws-section-label">Workspaces</div>
+          <div class="ws-item active">
+            <div class="ws-icon ws-icon-gold"><svg viewBox="0 0 8 8"><rect x="1" y="1" width="6" height="6" rx="1" fill="none" stroke="#e8c97a" stroke-width="1"/></svg></div>
+            Q3 Launch
+          </div>
+          <div class="ws-item">
+            <div class="ws-icon"><svg viewBox="0 0 8 8"><circle cx="4" cy="4" r="2.5" fill="none" stroke="#5a5a72" stroke-width="1"/></svg></div>
+            Brand Refresh
+          </div>
+          <div class="ws-item">
+            <div class="ws-icon"><svg viewBox="0 0 8 8"><path d="M1 7L4 1L7 7" fill="none" stroke="#5a5a72" stroke-width="1"/></svg></div>
+            Growth Exp.
+          </div>
+          <div class="ws-section-label" style="margin-top:0.5rem">Views</div>
+          <div class="ws-item">Board</div>
+          <div class="ws-item">Timeline</div>
+          <div class="ws-item">Table</div>
+          <div class="ws-item">Calendar</div>
+        </div>
+        <div class="ws-main">
+          <div class="ws-header">
+            <div class="ws-title">Q3 Launch · Board</div>
+            <div class="ws-actions">
+              <div class="ws-btn">Filter</div>
+              <div class="ws-btn">Group</div>
+              <div class="ws-btn primary">+ New</div>
+            </div>
+          </div>
+          <div class="board">
+            <!-- Todo -->
+            <div>
+              <div class="board-col-header">To do <div class="board-col-count">4</div></div>
+              <div class="task-card">
+                <div class="task-tag tag-design">Design</div>
+                <div class="task-name">Finalize onboarding illustrations</div>
+                <div class="task-meta">
+                  <div class="task-avatars">
+                    <div class="task-av" style="background:#3a2a60;color:#afa9ec">S</div>
+                    <div class="task-av" style="background:#0a3025;color:#4dd9ac">M</div>
+                  </div>
+                  <div class="task-due">Aug 14</div>
+                </div>
+              </div>
+              <div class="task-card">
+                <div class="task-tag tag-eng">Eng</div>
+                <div class="task-name">API rate limiting middleware</div>
+                <div class="task-meta">
+                  <div class="task-avatars"><div class="task-av" style="background:#1a1a10;color:var(--gold)">J</div></div>
+                  <div class="task-due">Aug 16</div>
+                </div>
+              </div>
+            </div>
+            <!-- In Progress -->
+            <div>
+              <div class="board-col-header" style="color:var(--gold)">In progress <div class="board-col-count">3</div></div>
+              <div class="task-card" style="border-color:rgba(232,201,122,0.12)">
+                <div class="task-tag tag-mktg">Mktg</div>
+                <div class="task-name">Write launch email sequence · 3/5 done</div>
+                <div class="task-meta">
+                  <div class="task-avatars">
+                    <div class="task-av" style="background:#3a0a14;color:var(--rose)">A</div>
+                  </div>
+                  <div class="task-due">Aug 12</div>
+                </div>
+              </div>
+              <div class="task-card" style="border-color:rgba(232,201,122,0.12)">
+                <div class="task-tag tag-eng">Eng</div>
+                <div class="task-name">Dashboard performance audit</div>
+                <div class="task-meta">
+                  <div class="task-avatars">
+                    <div class="task-av" style="background:#0a3025;color:#4dd9ac">M</div>
+                    <div class="task-av" style="background:#1a1a10;color:var(--gold)">J</div>
+                  </div>
+                  <div class="task-due">Aug 13</div>
+                </div>
+              </div>
+            </div>
+            <!-- Done -->
+            <div>
+              <div class="board-col-header" style="color:#4dd9ac">Done <div class="board-col-count">8</div></div>
+              <div class="task-card" style="opacity:0.7">
+                <div class="task-tag tag-design">Design</div>
+                <div class="task-name">Component library v2.0 shipped</div>
+                <div class="task-meta">
+                  <div class="task-avatars"><div class="task-av" style="background:#3a2a60;color:#afa9ec">S</div></div>
+                  <div class="task-due" style="color:#4dd9ac">✓ Done</div>
+                </div>
+              </div>
+              <div class="task-card" style="opacity:0.7">
+                <div class="task-tag tag-eng">Eng</div>
+                <div class="task-name">Auth 2.0 rollout complete</div>
+                <div class="task-meta">
+                  <div class="task-avatars"><div class="task-av" style="background:#1a1a10;color:var(--gold)">J</div></div>
+                  <div class="task-due" style="color:#4dd9ac">✓ Done</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="text-col">
+    <div class="text-inner">
+      <div class="overline anim-up"><span class="overline-bar"></span> New Feature</div>
+      <h2 class="anim-up d1">Projects that run <em>themselves</em></h2>
+      <p class="anim-up d2">Your team's work — not scattered across Notion, Linear, Jira and Slack, but unified in one intelligent canvas that adapts to how your team actually thinks.</p>
+      <p class="anim-up d2">Every task, every deadline, every dependency — wired together automatically.</p>
+      <ul class="checklist anim-up d3">
+        <li>
+          <div class="check-wrap"><svg viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="#e8c97a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          Board, timeline, and table views — all in sync
+        </li>
+        <li>
+          <div class="check-wrap"><svg viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="#e8c97a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          Auto-generated sprint reports, no admin work
+        </li>
+        <li>
+          <div class="check-wrap"><svg viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="#e8c97a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          Cross-team dependency tracking in real time
+        </li>
+        <li>
+          <div class="check-wrap"><svg viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="#e8c97a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          AI triage: assigns priority before you even look
+        </li>
+      </ul>
+      <a class="btn-section anim-up d3" href="#">Explore workspace →</a>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══ SPLIT SECTION 2: analytics (image right / reversed) ══ -->
+<section class="split rev">
+
+  <div class="text-col">
+    <div class="text-inner">
+      <div class="overline anim-up"><span class="overline-bar"></span> Analytics Engine</div>
+      <h2 class="anim-up d1">Data that speaks before you <em>ask</em></h2>
+      <p class="anim-up d2">Arc watches your numbers so you don't have to. Anomaly detected at 3am? You'll see it at 9. Conversion dropped? You'll know why — with context, not just a number.</p>
+      <p class="anim-up d2">This isn't a dashboard. It's a co-pilot for every decision your team makes.</p>
+      <ul class="checklist anim-up d3">
+        <li>
+          <div class="check-wrap"><svg viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="#e8c97a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          Predictive forecasts updated every 15 minutes
+        </li>
+        <li>
+          <div class="check-wrap"><svg viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="#e8c97a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          Cohort analysis with zero SQL, zero waiting
+        </li>
+        <li>
+          <div class="check-wrap"><svg viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="#e8c97a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          AI-written summaries for every weekly review
+        </li>
+        <li>
+          <div class="check-wrap"><svg viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="#e8c97a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          Share live reports — no exports, no stale decks
+        </li>
+      </ul>
+      <a class="btn-section anim-up d3" href="#">See analytics →</a>
+    </div>
+  </div>
+
+  <div class="img-col">
+    <div class="float-badge badge-1 anim-left" style="bottom:18%;left:-3%;animation-delay:0.5s">
+      <div class="badge-dot" style="background:var(--rose)"></div>
+      <span>Anomaly detected · Aug 11 02:41</span>
+    </div>
+    <div class="float-badge badge-3 anim-right" style="top:15%;right:-4%;animation-delay:1s">
+      <div class="badge-dot" style="background:#4dd9ac"></div>
+      <span>Revenue up 24% WoW</span>
+    </div>
+
+    <div class="float-card anim-right" style="display:flex;flex-direction:column">
+      <div class="screen-topbar" style="background:var(--night4)">
+        <div class="tb-dots"><span class="tb-dot r"></span><span class="tb-dot y"></span><span class="tb-dot g"></span></div>
+        <div class="tb-url">arc.so / analytics / overview</div>
+      </div>
+      <div class="an-header">
+        <div>
+          <div class="an-title">Analytics · Overview</div>
+          <div class="an-sub">Aug 1 – Aug 11 · All workspaces</div>
+        </div>
+        <div class="an-tabs">
+          <div class="an-tab active">7d</div>
+          <div class="an-tab">30d</div>
+          <div class="an-tab">90d</div>
+        </div>
+      </div>
+      <div class="an-body">
+        <div class="an-kpis">
+          <div class="kpi"><div class="kpi-label">MRR</div><div class="kpi-val">$218k</div><div class="kpi-chg up">↑ 24.1%</div></div>
+          <div class="kpi"><div class="kpi-label">Active users</div><div class="kpi-val">9,482</div><div class="kpi-chg up">↑ 11.3%</div></div>
+          <div class="kpi"><div class="kpi-label">Churn rate</div><div class="kpi-val">1.8%</div><div class="kpi-chg up">↓ 0.4pts</div></div>
+          <div class="kpi"><div class="kpi-label">NPS score</div><div class="kpi-val">71</div><div class="kpi-chg up">↑ 8pts</div></div>
+        </div>
+        <div class="chart-area">
+          <div class="chart-label">MRR · last 30 days</div>
+          <svg class="svg-chart" viewBox="0 0 380 90" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#e8c97a" stop-opacity="0.18"/>
+                <stop offset="100%" stop-color="#e8c97a" stop-opacity="0"/>
+              </linearGradient>
+              <linearGradient id="g2" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#4dd9ac" stop-opacity="0.12"/>
+                <stop offset="100%" stop-color="#4dd9ac" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <!-- MRR area -->
+            <path d="M0,78 L18,72 L38,68 L58,70 L78,62 L98,55 L118,50 L138,44 L158,38 L178,34 L198,28 L218,22 L238,16 L258,12 L278,8 L298,6 L318,4 L340,3 L380,2 L380,90 L0,90Z" fill="url(#g1)"/>
+            <path d="M0,78 L18,72 L38,68 L58,70 L78,62 L98,55 L118,50 L138,44 L158,38 L178,34 L198,28 L218,22 L238,16 L258,12 L278,8 L298,6 L318,4 L340,3 L380,2" fill="none" stroke="#e8c97a" stroke-width="1.8" stroke-linecap="round"/>
+            <!-- Users area -->
+            <path d="M0,82 L30,80 L60,76 L90,74 L120,70 L150,64 L180,58 L210,50 L240,44 L270,38 L300,32 L330,26 L380,18 L380,90 L0,90Z" fill="url(#g2)"/>
+            <path d="M0,82 L30,80 L60,76 L90,74 L120,70 L150,64 L180,58 L210,50 L240,44 L270,38 L300,32 L330,26 L380,18" fill="none" stroke="#4dd9ac" stroke-width="1.4" stroke-linecap="round" stroke-dasharray="3 2"/>
+            <!-- Anomaly marker -->
+            <circle cx="92" cy="56" r="4" fill="none" stroke="#e86a7a" stroke-width="1.5"/>
+            <line x1="92" y1="52" x2="92" y2="20" stroke="#e86a7a" stroke-width="0.8" stroke-dasharray="2 2"/>
+            <text x="96" y="18" font-size="7" fill="#e86a7a" font-family="Syne,sans-serif">Anomaly</text>
+            <!-- Dot at end -->
+            <circle cx="380" cy="2" r="3" fill="#e8c97a"/>
+          </svg>
+          <div style="display:flex;gap:1rem;margin-top:0.3rem">
+            <div style="display:flex;align-items:center;gap:0.3rem;font-size:0.55rem;color:var(--muted);font-family:var(--sans)"><div style="width:12px;height:1.5px;background:var(--gold)"></div> MRR</div>
+            <div style="display:flex;align-items:center;gap:0.3rem;font-size:0.55rem;color:var(--muted);font-family:var(--sans)"><div style="width:12px;height:1.5px;background:#4dd9ac;border-top:1.5px dashed #4dd9ac"></div> Users</div>
+          </div>
+        </div>
+        <div class="an-bottom">
+          <div class="an-card">
+            <div class="an-card-label">Traffic sources</div>
+            <div class="segment-row"><div class="seg-name">Direct</div><div class="seg-bar-bg"><div class="seg-bar" style="width:58%;background:var(--gold)"></div></div><div class="seg-pct">58%</div></div>
+            <div class="segment-row"><div class="seg-name">Organic</div><div class="seg-bar-bg"><div class="seg-bar" style="width:26%;background:#4dd9ac"></div></div><div class="seg-pct">26%</div></div>
+            <div class="segment-row"><div class="seg-name">Referral</div><div class="seg-bar-bg"><div class="seg-bar" style="width:10%;background:var(--rose)"></div></div><div class="seg-pct">10%</div></div>
+            <div class="segment-row"><div class="seg-name">Other</div><div class="seg-bar-bg"><div class="seg-bar" style="width:6%;background:var(--dim)"></div></div><div class="seg-pct">6%</div></div>
+          </div>
+          <div class="an-card">
+            <div class="an-card-label">Conversion funnel</div>
+            <div class="funnel-row"><div class="funnel-label">Visit</div><div class="funnel-bar-bg"><div class="funnel-bar" style="width:100%;background:rgba(232,201,122,0.3)"></div></div><div class="funnel-val">100%</div></div>
+            <div class="funnel-row"><div class="funnel-label">Sign up</div><div class="funnel-bar-bg"><div class="funnel-bar" style="width:38%;background:rgba(232,201,122,0.5)"></div></div><div class="funnel-val">38%</div></div>
+            <div class="funnel-row"><div class="funnel-label">Activate</div><div class="funnel-bar-bg"><div class="funnel-bar" style="width:22%;background:rgba(232,201,122,0.7)"></div></div><div class="funnel-val">22%</div></div>
+            <div class="funnel-row"><div class="funnel-label">Convert</div><div class="funnel-bar-bg"><div class="funnel-bar" style="width:8%;background:var(--gold)"></div></div><div class="funnel-val">8%</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-left">
+    <div class="footer-logo">Arc<span>.</span></div>
+    <div class="footer-tag">The work OS for fast teams.</div>
+  </div>
+  <div class="footer-center">
+    <div class="footer-copy">© 2025 Arc Technologies, Inc.</div>
+  </div>
+  <ul class="footer-links">
+    <li><a href="#">Privacy</a></li>
+    <li><a href="#">Terms</a></li>
+    <li><a href="#">Status</a></li>
+    <li><a href="#">Contact</a></li>
+  </ul>
+</footer>
+
+<script>
+const obs = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      const els = e.target.querySelectorAll('.anim-up,.anim-left,.anim-right');
+      els.forEach((el, i) => {
+        setTimeout(() => el.classList.add('on'), i * 80);
+      });
+      obs.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.08 });
+
+document.querySelectorAll('.split').forEach(s => obs.observe(s));
+</script>
+</body>
+</html>

@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Horizontal Scroll Portfolio</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #0a0a0a;
+    color: #fff;
+    overflow-x: hidden;
+  }
+
+  /* Hero */
+  .hero {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 2rem;
+    background: #0a0a0a;
+    position: relative;
+  }
+  .hero::after {
+    content: '';
+    position: absolute;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 1px;
+    height: 60px;
+    background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.4));
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:0.3} 50%{opacity:1} }
+  .hero-label {
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.4);
+    margin-bottom: 1.5rem;
+  }
+  .hero h1 {
+    font-size: clamp(2.5rem, 8vw, 6rem);
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    margin-bottom: 1.5rem;
+  }
+  .hero h1 em { font-style: italic; color: rgba(255,255,255,0.45); }
+  .hero p {
+    font-size: 1.05rem;
+    color: rgba(255,255,255,0.5);
+    max-width: 420px;
+    line-height: 1.7;
+  }
+
+  /* Portfolio section — the pinned wrapper */
+  .portfolio-section {
+    position: relative;
+    background: #0a0a0a;
+  }
+
+  /* The sticky container that actually pins */
+  .portfolio-sticky {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Section header row */
+  .portfolio-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 2rem 4rem 1.5rem;
+    flex-shrink: 0;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .portfolio-header .sec-label {
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.35);
+  }
+  .portfolio-header h2 {
+    font-size: 1.1rem;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+  .card-counter {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: rgba(255,255,255,0.35);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* The horizontal track */
+  .cards-track-wrapper {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    padding: 0 4rem;
+    overflow: hidden;
+  }
+  .cards-track {
+    display: flex;
+    gap: 2rem;
+    will-change: transform;
+    align-items: center;
+  }
+
+  /* Individual project card */
+  .project-card {
+    flex-shrink: 0;
+    width: 78vw;
+    max-width: 900px;
+    background: #111;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 20px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 160px);
+    max-height: 680px;
+    transition: border-color 0.4s ease;
+  }
+  .project-card:hover { border-color: rgba(255,255,255,0.18); }
+
+  /* Card image — top 60% */
+  .card-image {
+    flex: 0 0 60%;
+    position: relative;
+    overflow: hidden;
+  }
+  .card-image-inner {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  /* Unique abstract visuals per card */
+  .card-image svg { width: 100%; height: 100%; }
+
+  /* Card info — bottom 40% */
+  .card-info {
+    flex: 1;
+    padding: 2rem 2.5rem 2rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    border-top: 1px solid rgba(255,255,255,0.07);
+  }
+  .card-tag {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: rgba(255,255,255,0.35);
+    margin-bottom: 0.6rem;
+  }
+  .card-title {
+    font-size: clamp(1.4rem, 3vw, 2rem);
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    line-height: 1.15;
+    margin-bottom: 0.8rem;
+  }
+  .card-desc {
+    font-size: 0.9rem;
+    color: rgba(255,255,255,0.45);
+    line-height: 1.65;
+    flex: 1;
+  }
+  .card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 1.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid rgba(255,255,255,0.07);
+  }
+  .card-num {
+    font-size: 11px;
+    color: rgba(255,255,255,0.2);
+    letter-spacing: 0.05em;
+    font-variant-numeric: tabular-nums;
+  }
+  .view-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    color: #fff;
+    text-decoration: none;
+    padding: 0.55rem 1.2rem;
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 100px;
+    transition: all 0.25s ease;
+  }
+  .view-link:hover {
+    background: rgba(255,255,255,0.08);
+    border-color: rgba(255,255,255,0.4);
+    gap: 12px;
+  }
+  .view-link svg { transition: transform 0.25s ease; }
+  .view-link:hover svg { transform: translate(2px,-2px); }
+
+  /* Progress bar at bottom */
+  .portfolio-progress {
+    flex-shrink: 0;
+    padding: 0 4rem 1.8rem;
+  }
+  .progress-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+  }
+  .progress-labels span {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.25);
+  }
+  .progress-track {
+    height: 1px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 100px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    width: 0%;
+    background: #fff;
+    border-radius: 100px;
+    transform-origin: left;
+    transition: width 0.05s linear;
+  }
+
+  /* Footer spacer */
+  .footer-section {
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 1rem;
+    background: #0a0a0a;
+    text-align: center;
+  }
+  .footer-section h2 {
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+  }
+  .footer-section p { color: rgba(255,255,255,0.4); font-size: 1rem; }
+</style>
+</head>
+<body>
+
+<!-- Hero -->
+<section class="hero">
+  <p class="hero-label">Selected work — 2024</p>
+  <h1>We design<br><em>digital things</em><br>that matter.</h1>
+  <p>Scroll down to explore projects that push the boundary between function and form.</p>
+</section>
+
+<!-- PORTFOLIO — pinned horizontal scroll -->
+<section class="portfolio-section" id="portfolioSection">
+  <div class="portfolio-sticky" id="portfolioSticky">
+
+    <div class="portfolio-header">
+      <span class="sec-label">Portfolio</span>
+      <h2>Featured Projects</h2>
+      <span class="card-counter" id="cardCounter">01 / 05</span>
+    </div>
+
+    <div class="cards-track-wrapper">
+      <div class="cards-track" id="cardsTrack">
+
+        <!-- Card 1 -->
+        <article class="project-card">
+          <div class="card-image">
+            <div class="card-image-inner" style="background:#0d1117;">
+              <svg viewBox="0 0 900 420" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+                <defs>
+                  <radialGradient id="g1" cx="30%" cy="40%" r="60%">
+                    <stop offset="0%" stop-color="#6c63ff" stop-opacity="0.6"/>
+                    <stop offset="100%" stop-color="#0d1117" stop-opacity="0"/>
+                  </radialGradient>
+                </defs>
+                <rect width="900" height="420" fill="#0d1117"/>
+                <rect width="900" height="420" fill="url(#g1)"/>
+                <!-- grid lines -->
+                <g stroke="rgba(255,255,255,0.06)" stroke-width="1">
+                  <line x1="0" y1="60" x2="900" y2="60"/><line x1="0" y1="120" x2="900" y2="120"/>
+                  <line x1="0" y1="180" x2="900" y2="180"/><line x1="0" y1="240" x2="900" y2="240"/>
+                  <line x1="0" y1="300" x2="900" y2="300"/><line x1="0" y1="360" x2="900" y2="360"/>
+                  <line x1="150" y1="0" x2="150" y2="420"/><line x1="300" y1="0" x2="300" y2="420"/>
+                  <line x1="450" y1="0" x2="450" y2="420"/><line x1="600" y1="0" x2="600" y2="420"/>
+                  <line x1="750" y1="0" x2="750" y2="420"/>
+                </g>
+                <!-- UI mockup elements -->
+                <rect x="60" y="60" width="340" height="220" rx="12" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+                <rect x="80" y="80" width="140" height="8" rx="4" fill="rgba(255,255,255,0.15)"/>
+                <rect x="80" y="98" width="90" height="6" rx="3" fill="rgba(255,255,255,0.07)"/>
+                <rect x="80" y="120" width="280" height="120" rx="8" fill="rgba(108,99,255,0.15)" stroke="rgba(108,99,255,0.3)" stroke-width="1"/>
+                <text x="220" y="182" text-anchor="middle" font-size="28" font-weight="700" fill="rgba(108,99,255,0.9)" font-family="monospace">$2.4M</text>
+                <text x="220" y="200" text-anchor="middle" font-size="10" fill="rgba(255,255,255,0.3)" font-family="sans-serif">Revenue YTD</text>
+                <rect x="80" y="255" width="60" height="18" rx="9" fill="rgba(108,99,255,0.3)"/>
+                <rect x="150" y="258" width="100" height="6" rx="3" fill="rgba(255,255,255,0.07)"/>
+                <!-- bar chart right side -->
+                <rect x="440" y="80" width="380" height="260" rx="12" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+                <rect x="465" y="220" width="32" height="100" rx="4" fill="rgba(108,99,255,0.5)"/>
+                <rect x="510" y="180" width="32" height="140" rx="4" fill="rgba(108,99,255,0.6)"/>
+                <rect x="555" y="140" width="32" height="180" rx="4" fill="rgba(108,99,255,0.7)"/>
+                <rect x="600" y="160" width="32" height="160" rx="4" fill="rgba(108,99,255,0.55)"/>
+                <rect x="645" y="100" width="32" height="220" rx="4" fill="rgba(108,99,255,0.85)"/>
+                <rect x="690" y="130" width="32" height="190" rx="4" fill="rgba(108,99,255,0.65)"/>
+                <rect x="735" y="90" width="32" height="230" rx="4" fill="rgba(108,99,255,1)"/>
+              </svg>
+            </div>
+          </div>
+          <div class="card-info">
+            <div>
+              <p class="card-tag">SaaS · Analytics</p>
+              <h3 class="card-title">Lumina Dashboard</h3>
+              <p class="card-desc">A comprehensive analytics platform built for enterprise finance teams. Real-time data visualisation across 40+ KPIs with AI-powered anomaly detection.</p>
+            </div>
+            <div class="card-footer">
+              <span class="card-num">01 / 05</span>
+              <a href="#" class="view-link">
+                View Project
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 10L10 2M10 2H4M10 2V8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </a>
+            </div>
+          </div>
+        </article>
+
+        <!-- Card 2 -->
+        <article class="project-card">
+          <div class="card-image">
+            <div class="card-image-inner" style="background:#080c0a;">
+              <svg viewBox="0 0 900 420" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+                <defs>
+                  <radialGradient id="g2" cx="70%" cy="30%" r="55%">
+                    <stop offset="0%" stop-color="#00c896" stop-opacity="0.5"/>
+                    <stop offset="100%" stop-color="#080c0a" stop-opacity="0"/>
+                  </radialGradient>
+                </defs>
+                <rect width="900" height="420" fill="#080c0a"/>
+                <rect width="900" height="420" fill="url(#g2)"/>
+                <!-- flowing organic shapes -->
+                <ellipse cx="200" cy="200" rx="180" ry="120" fill="rgba(0,200,150,0.05)" stroke="rgba(0,200,150,0.12)" stroke-width="1"/>
+                <ellipse cx="200" cy="200" rx="130" ry="85" fill="rgba(0,200,150,0.05)" stroke="rgba(0,200,150,0.15)" stroke-width="1"/>
+                <ellipse cx="200" cy="200" rx="75" ry="50" fill="rgba(0,200,150,0.12)" stroke="rgba(0,200,150,0.3)" stroke-width="1"/>
+                <!-- map pins -->
+                <circle cx="200" cy="200" r="6" fill="#00c896"/>
+                <circle cx="480" cy="130" r="4" fill="rgba(0,200,150,0.7)"/>
+                <circle cx="620" cy="280" r="5" fill="rgba(0,200,150,0.5)"/>
+                <circle cx="350" cy="320" r="3" fill="rgba(0,200,150,0.4)"/>
+                <!-- connection lines -->
+                <line x1="200" y1="200" x2="480" y2="130" stroke="rgba(0,200,150,0.2)" stroke-width="1" stroke-dasharray="4,4"/>
+                <line x1="480" y1="130" x2="620" y2="280" stroke="rgba(0,200,150,0.15)" stroke-width="1" stroke-dasharray="4,4"/>
+                <!-- stat cards overlaid -->
+                <rect x="500" y="50" width="160" height="70" rx="10" fill="rgba(0,200,150,0.08)" stroke="rgba(0,200,150,0.2)" stroke-width="1"/>
+                <text x="520" y="78" font-size="20" font-weight="700" fill="rgba(0,200,150,0.9)" font-family="sans-serif">38K</text>
+                <text x="520" y="96" font-size="10" fill="rgba(255,255,255,0.3)" font-family="sans-serif">Active users</text>
+                <rect x="680" y="180" width="160" height="70" rx="10" fill="rgba(0,200,150,0.08)" stroke="rgba(0,200,150,0.2)" stroke-width="1"/>
+                <text x="700" y="208" font-size="20" font-weight="700" fill="rgba(0,200,150,0.9)" font-family="sans-serif">94.2%</text>
+                <text x="700" y="226" font-size="10" fill="rgba(255,255,255,0.3)" font-family="sans-serif">Retention rate</text>
+              </svg>
+            </div>
+          </div>
+          <div class="card-info">
+            <div>
+              <p class="card-tag">Mobile · Health</p>
+              <h3 class="card-title">Verdant Health App</h3>
+              <p class="card-desc">A wellness tracking application with location-aware recommendations. Gamified habit loops increased 90-day retention to 94.2% — well above industry average.</p>
+            </div>
+            <div class="card-footer">
+              <span class="card-num">02 / 05</span>
+              <a href="#" class="view-link">
+                View Project
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 10L10 2M10 2H4M10 2V8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </a>
+            </div>
+          </div>
+        </article>
+
+        <!-- Card 3 -->
+        <article class="project-card">
+          <div class="card-image">
+            <div class="card-image-inner" style="background:#0e0810;">
+              <svg viewBox="0 0 900 420" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+                <defs>
+                  <radialGradient id="g3" cx="50%" cy="60%" r="60%">
+                    <stop offset="0%" stop-color="#e040fb" stop-opacity="0.4"/>
+                    <stop offset="100%" stop-color="#0e0810" stop-opacity="0"/>
+                  </radialGradient>
+                </defs>
+                <rect width="900" height="420" fill="#0e0810"/>
+                <rect width="900" height="420" fill="url(#g3)"/>
+                <!-- Concentric rings -->
+                <circle cx="450" cy="210" r="180" fill="none" stroke="rgba(224,64,251,0.08)" stroke-width="1"/>
+                <circle cx="450" cy="210" r="140" fill="none" stroke="rgba(224,64,251,0.1)" stroke-width="1"/>
+                <circle cx="450" cy="210" r="100" fill="none" stroke="rgba(224,64,251,0.15)" stroke-width="1"/>
+                <circle cx="450" cy="210" r="60" fill="none" stroke="rgba(224,64,251,0.2)" stroke-width="1"/>
+                <circle cx="450" cy="210" r="24" fill="rgba(224,64,251,0.25)" stroke="rgba(224,64,251,0.6)" stroke-width="1"/>
+                <!-- orbit dots -->
+                <circle cx="450" cy="30" r="5" fill="rgba(224,64,251,0.8)"/>
+                <circle cx="630" cy="210" r="4" fill="rgba(224,64,251,0.6)"/>
+                <circle cx="310" cy="210" r="3" fill="rgba(224,64,251,0.5)"/>
+                <circle cx="450" cy="350" r="6" fill="rgba(224,64,251,0.7)"/>
+                <!-- UI overlay -->
+                <rect x="60" y="80" width="200" height="120" rx="12" fill="rgba(224,64,251,0.06)" stroke="rgba(224,64,251,0.15)" stroke-width="1"/>
+                <text x="80" y="110" font-size="12" fill="rgba(224,64,251,0.7)" font-family="sans-serif" font-weight="600">Live signal</text>
+                <rect x="80" y="120" width="80" height="4" rx="2" fill="rgba(224,64,251,0.4)"/>
+                <rect x="80" y="130" width="120" height="4" rx="2" fill="rgba(255,255,255,0.07)"/>
+                <rect x="80" y="140" width="100" height="4" rx="2" fill="rgba(255,255,255,0.05)"/>
+                <rect x="80" y="158" width="140" height="28" rx="14" fill="rgba(224,64,251,0.2)" stroke="rgba(224,64,251,0.3)" stroke-width="1"/>
+                <text x="150" y="177" text-anchor="middle" font-size="10" fill="rgba(224,64,251,0.9)" font-family="sans-serif">Analyse Now</text>
+              </svg>
+            </div>
+          </div>
+          <div class="card-info">
+            <div>
+              <p class="card-tag">AI · B2B Platform</p>
+              <h3 class="card-title">Orbital AI Studio</h3>
+              <p class="card-desc">An end-to-end platform for training and deploying computer vision models. Reduced model iteration time from weeks to hours with a no-code annotation pipeline.</p>
+            </div>
+            <div class="card-footer">
+              <span class="card-num">03 / 05</span>
+              <a href="#" class="view-link">
+                View Project
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 10L10 2M10 2H4M10 2V8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </a>
+            </div>
+          </div>
+        </article>
+
+        <!-- Card 4 -->
+        <article class="project-card">
+          <div class="card-image">
+            <div class="card-image-inner" style="background:#0c0a08;">
+              <svg viewBox="0 0 900 420" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+                <defs>
+                  <radialGradient id="g4" cx="20%" cy="70%" r="65%">
+                    <stop offset="0%" stop-color="#ff8c42" stop-opacity="0.45"/>
+                    <stop offset="100%" stop-color="#0c0a08" stop-opacity="0"/>
+                  </radialGradient>
+                </defs>
+                <rect width="900" height="420" fill="#0c0a08"/>
+                <rect width="900" height="420" fill="url(#g4)"/>
+                <!-- product grid -->
+                <rect x="60" y="50" width="220" height="290" rx="14" fill="rgba(255,140,66,0.07)" stroke="rgba(255,140,66,0.15)" stroke-width="1"/>
+                <rect x="80" y="70" width="180" height="160" rx="8" fill="rgba(255,140,66,0.1)"/>
+                <circle cx="170" cy="150" r="50" fill="rgba(255,140,66,0.2)" stroke="rgba(255,140,66,0.3)" stroke-width="1"/>
+                <rect x="80" y="244" width="120" height="8" rx="4" fill="rgba(255,255,255,0.12)"/>
+                <rect x="80" y="258" width="80" height="6" rx="3" fill="rgba(255,255,255,0.05)"/>
+                <rect x="80" y="278" width="70" height="6" rx="3" fill="rgba(255,140,66,0.6)"/>
+                <!-- second card -->
+                <rect x="300" y="80" width="220" height="290" rx="14" fill="rgba(255,140,66,0.05)" stroke="rgba(255,140,66,0.1)" stroke-width="1"/>
+                <rect x="320" y="100" width="180" height="160" rx="8" fill="rgba(255,140,66,0.07)"/>
+                <rect x="360" y="120" width="100" height="100" rx="8" fill="rgba(255,140,66,0.15)" stroke="rgba(255,140,66,0.2)" stroke-width="1"/>
+                <!-- cart sidebar -->
+                <rect x="560" y="40" width="290" height="340" rx="16" fill="rgba(255,255,255,0.03)" stroke="rgba(255,140,66,0.12)" stroke-width="1"/>
+                <text x="580" y="72" font-size="13" fill="rgba(255,255,255,0.5)" font-family="sans-serif" font-weight="600">Cart (3)</text>
+                <line x1="560" y1="85" x2="850" y2="85" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+                <rect x="580" y="98" width="50" height="50" rx="6" fill="rgba(255,140,66,0.12)"/>
+                <rect x="644" y="105" width="100" height="7" rx="3" fill="rgba(255,255,255,0.1)"/>
+                <rect x="644" y="118" width="60" height="6" rx="3" fill="rgba(255,255,255,0.05)"/>
+                <rect x="644" y="133" width="50" height="6" rx="3" fill="rgba(255,140,66,0.5)"/>
+                <rect x="580" y="330" width="230" height="34" rx="17" fill="rgba(255,140,66,0.8)"/>
+                <text x="695" y="352" text-anchor="middle" font-size="12" fill="#000" font-family="sans-serif" font-weight="600">Checkout →</text>
+              </svg>
+            </div>
+          </div>
+          <div class="card-info">
+            <div>
+              <p class="card-tag">E-commerce · D2C</p>
+              <h3 class="card-title">Ember Storefront</h3>
+              <p class="card-desc">A headless commerce experience for a premium lifestyle brand. Custom checkout flow and personalised product discovery drove a 31% uplift in average order value.</p>
+            </div>
+            <div class="card-footer">
+              <span class="card-num">04 / 05</span>
+              <a href="#" class="view-link">
+                View Project
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 10L10 2M10 2H4M10 2V8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </a>
+            </div>
+          </div>
+        </article>
+
+        <!-- Card 5 -->
+        <article class="project-card">
+          <div class="card-image">
+            <div class="card-image-inner" style="background:#080b10;">
+              <svg viewBox="0 0 900 420" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+                <defs>
+                  <radialGradient id="g5" cx="60%" cy="40%" r="55%">
+                    <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.4"/>
+                    <stop offset="100%" stop-color="#080b10" stop-opacity="0"/>
+                  </radialGradient>
+                </defs>
+                <rect width="900" height="420" fill="#080b10"/>
+                <rect width="900" height="420" fill="url(#g5)"/>
+                <!-- code terminal -->
+                <rect x="60" y="50" width="450" height="300" rx="14" fill="rgba(255,255,255,0.03)" stroke="rgba(56,189,248,0.15)" stroke-width="1"/>
+                <rect x="60" y="50" width="450" height="36" rx="14" fill="rgba(56,189,248,0.07)"/>
+                <rect x="79" y="64" width="8" height="8" rx="4" fill="rgba(255,80,80,0.6)"/>
+                <rect x="97" y="64" width="8" height="8" rx="4" fill="rgba(255,200,50,0.6)"/>
+                <rect x="115" y="64" width="8" height="8" rx="4" fill="rgba(50,200,100,0.6)"/>
+                <!-- code lines -->
+                <rect x="80" y="105" width="60" height="6" rx="3" fill="rgba(56,189,248,0.6)"/>
+                <rect x="150" y="105" width="100" height="6" rx="3" fill="rgba(255,255,255,0.15)"/>
+                <rect x="80" y="122" width="40" height="6" rx="3" fill="rgba(200,150,255,0.5)"/>
+                <rect x="130" y="122" width="80" height="6" rx="3" fill="rgba(255,255,255,0.1)"/>
+                <rect x="96" y="139" width="120" height="6" rx="3" fill="rgba(56,189,248,0.4)"/>
+                <rect x="96" y="156" width="80" height="6" rx="3" fill="rgba(255,255,255,0.08)"/>
+                <rect x="96" y="173" width="140" height="6" rx="3" fill="rgba(50,200,100,0.4)"/>
+                <rect x="80" y="190" width="30" height="6" rx="3" fill="rgba(200,150,255,0.5)"/>
+                <rect x="80" y="210" width="50" height="6" rx="3" fill="rgba(56,189,248,0.6)"/>
+                <rect x="140" y="210" width="90" height="6" rx="3" fill="rgba(255,255,255,0.12)"/>
+                <!-- terminal output -->
+                <rect x="80" y="250" width="300" height="1" fill="rgba(255,255,255,0.06)"/>
+                <rect x="80" y="264" width="180" height="6" rx="3" fill="rgba(50,200,100,0.5)"/>
+                <rect x="80" y="280" width="120" height="6" rx="3" fill="rgba(255,255,255,0.08)"/>
+                <rect x="80" y="296" width="220" height="6" rx="3" fill="rgba(255,255,255,0.06)"/>
+                <!-- metrics panel right -->
+                <rect x="540" y="60" width="310" height="130" rx="12" fill="rgba(56,189,248,0.05)" stroke="rgba(56,189,248,0.12)" stroke-width="1"/>
+                <text x="560" y="88" font-size="11" fill="rgba(56,189,248,0.6)" font-family="monospace">DEPLOYMENT STATUS</text>
+                <rect x="560" y="100" width="270" height="1" fill="rgba(56,189,248,0.1)"/>
+                <circle cx="572" cy="120" r="5" fill="rgba(50,220,100,0.8)"/>
+                <text x="588" y="125" font-size="11" fill="rgba(255,255,255,0.4)" font-family="monospace">Production · healthy</text>
+                <rect x="560" y="138" width="180" height="6" rx="3" fill="rgba(56,189,248,0.2)"/>
+                <rect x="560" y="152" width="230" height="4" rx="2" fill="rgba(255,255,255,0.05)"/>
+                <rect x="560" y="152" width="195" height="4" rx="2" fill="rgba(56,189,248,0.45)"/>
+                <rect x="540" y="210" width="310" height="80" rx="12" fill="rgba(56,189,248,0.04)" stroke="rgba(56,189,248,0.1)" stroke-width="1"/>
+                <text x="560" y="238" font-size="22" font-weight="700" fill="rgba(56,189,248,0.9)" font-family="sans-serif">99.98%</text>
+                <text x="560" y="256" font-size="10" fill="rgba(255,255,255,0.3)" font-family="sans-serif">Uptime last 90 days</text>
+              </svg>
+            </div>
+          </div>
+          <div class="card-info">
+            <div>
+              <p class="card-tag">DevOps · Infrastructure</p>
+              <h3 class="card-title">Horizon Cloud Console</h3>
+              <p class="card-desc">A unified infrastructure management console for multi-cloud environments. Engineers ship 3× faster with one-click deployments and live environment diffing.</p>
+            </div>
+            <div class="card-footer">
+              <span class="card-num">05 / 05</span>
+              <a href="#" class="view-link">
+                View Project
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 10L10 2M10 2H4M10 2V8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </a>
+            </div>
+          </div>
+        </article>
+
+      </div><!-- /cards-track -->
+    </div><!-- /cards-track-wrapper -->
+
+    <!-- Progress bar -->
+    <div class="portfolio-progress">
+      <div class="progress-labels">
+        <span>Progress</span>
+        <span id="progressLabel">0%</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+    </div>
+
+  </div><!-- /portfolio-sticky -->
+</section><!-- /portfolio-section -->
+
+<!-- Footer cta -->
+<section class="footer-section">
+  <h2>Let's build<br>something great.</h2>
+  <p>Have a project in mind? We'd love to hear about it.</p>
+</section>
+
+<!-- GSAP + ScrollTrigger -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+<script>
+  gsap.registerPlugin(ScrollTrigger);
+
+  const section   = document.getElementById('portfolioSection');
+  const track     = document.getElementById('cardsTrack');
+  const fill      = document.getElementById('progressFill');
+  const label     = document.getElementById('progressLabel');
+  const counter   = document.getElementById('cardCounter');
+  const cards     = document.querySelectorAll('.project-card');
+  const CARD_COUNT = cards.length;
+
+  function getScrollDistance() {
+    const trackW  = track.scrollWidth;
+    const wrapperW = track.parentElement.offsetWidth;
+    return trackW - wrapperW + 64; // 64 = padding offset
+  }
+
+  let scrollDist = getScrollDistance();
+
+  /* Give the section height = scroll distance + viewport height */
+  function setSectionHeight() {
+    scrollDist = getScrollDistance();
+    section.style.height = (scrollDist + window.innerHeight) + 'px';
+  }
+  setSectionHeight();
+
+  const tl = gsap.timeline({
+    scrollTrigger: {
+      trigger: section,
+      start: 'top top',
+      end: () => '+=' + scrollDist,
+      scrub: 1,
+      pin: '.portfolio-sticky',
+      anticipatePin: 1,
+      onUpdate: (self) => {
+        const pct = Math.round(self.progress * 100);
+        fill.style.width = pct + '%';
+        label.textContent = pct + '%';
+
+        /* Card counter */
+        const idx = Math.min(Math.floor(self.progress * CARD_COUNT), CARD_COUNT - 1);
+        counter.textContent = String(idx + 1).padStart(2, '0') + ' / ' + String(CARD_COUNT).padStart(2, '0');
+      }
+    }
+  });
+
+  tl.to(track, {
+    x: () => -scrollDist,
+    ease: 'none'
+  });
+
+  /* Subtle card scale on entry */
+  cards.forEach((card, i) => {
+    gsap.fromTo(card, { scale: 0.94, opacity: 0.5 }, {
+      scale: 1,
+      opacity: 1,
+      ease: 'none',
+      scrollTrigger: {
+        trigger: section,
+        start: 'top top',
+        end: () => '+=' + scrollDist,
+        scrub: 1.5,
+        containerAnimation: tl
+      }
+    });
+  });
+
+  window.addEventListener('resize', () => {
+    setSectionHeight();
+    ScrollTrigger.refresh();
+  });
+</script>
+</body>
+</html>

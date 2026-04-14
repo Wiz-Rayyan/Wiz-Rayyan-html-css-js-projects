@@ -1,0 +1,172 @@
+
+<style>
+  h2.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font-sans)}
+
+  .scene{min-height:460px;display:flex;align-items:center;justify-content:center;background:var(--color-background-tertiary);border-radius:var(--border-radius-lg);padding:2rem;position:relative}
+
+  .open-btn{padding:12px 28px;font-size:15px;font-weight:500;border:none;border-radius:var(--border-radius-md);background:#5B4CF5;color:#fff;cursor:pointer;transition:background .15s,transform .1s;letter-spacing:-.01em}
+  .open-btn:hover{background:#4a3de0}
+  .open-btn:active{transform:scale(0.97)}
+
+  .overlay{position:absolute;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:10;border-radius:var(--border-radius-lg);opacity:0;pointer-events:none;transition:opacity .2s ease}
+  .overlay.open{opacity:1;pointer-events:all}
+
+  .panel{background:var(--color-background-primary);border-radius:16px;padding:32px;width:90%;max-width:440px;box-shadow:0 20px 48px rgba(0,0,0,0.22);transform:scale(0.92);opacity:0;transition:transform .25s ease,opacity .25s ease;position:relative}
+  .overlay.open .panel{transform:scale(1);opacity:1}
+
+  .close-btn{position:absolute;top:16px;right:16px;width:32px;height:32px;border-radius:50%;border:0.5px solid var(--color-border-secondary);background:var(--color-background-secondary);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--color-text-secondary);font-size:18px;line-height:1;transition:background .15s,color .15s}
+  .close-btn:hover{background:var(--color-background-tertiary);color:var(--color-text-primary)}
+
+  .panel h1{font-size:22px;font-weight:500;color:var(--color-text-primary);margin-bottom:6px}
+  .panel .sub{font-size:14px;color:var(--color-text-secondary);margin-bottom:24px}
+
+  .field{margin-bottom:16px}
+  .field label{display:block;font-size:13px;font-weight:500;color:var(--color-text-secondary);margin-bottom:6px}
+  .field input{width:100%;padding:10px 14px;font-size:15px;font-family:var(--font-sans);border:0.5px solid var(--color-border-primary);border-radius:var(--border-radius-md);background:var(--color-background-primary);color:var(--color-text-primary);outline:none;transition:border-color .15s,box-shadow .15s}
+  .field input:focus{border-color:#7B6EF5;box-shadow:0 0 0 3px rgba(91,76,245,0.15)}
+
+  .submit-btn{width:100%;padding:12px;font-size:15px;font-weight:500;font-family:var(--font-sans);border:none;border-radius:var(--border-radius-md);background:#5B4CF5;color:#fff;cursor:pointer;margin-top:8px;transition:background .15s,transform .1s}
+  .submit-btn:hover{background:#4a3de0}
+  .submit-btn:active{transform:scale(0.98)}
+
+  .signin-link{display:block;text-align:center;margin-top:16px;font-size:14px;color:var(--color-text-secondary)}
+  .signin-link a{color:#5B4CF5;text-decoration:none;font-weight:500}
+  .signin-link a:hover{text-decoration:underline}
+
+  .divider{height:0.5px;background:var(--color-border-tertiary);margin:20px 0}
+
+  .password-wrap{position:relative}
+  .password-wrap input{padding-right:44px}
+  .toggle-pw{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--color-text-secondary);font-size:13px;padding:0;font-family:var(--font-sans)}
+  .toggle-pw:hover{color:var(--color-text-primary)}
+
+  .strength{margin-top:6px;display:flex;gap:4px}
+  .strength-bar{height:3px;flex:1;border-radius:2px;background:var(--color-border-tertiary);transition:background .3s}
+  .strength-label{font-size:11px;color:var(--color-text-tertiary);margin-top:4px}
+</style>
+
+<h2 class="sr-only">Modal signup component demo — click the button to open a sign-up dialog</h2>
+
+<div class="scene" id="scene">
+  <button class="open-btn" id="openBtn">Create account</button>
+
+  <div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-labelledby="modalHeading">
+    <div class="panel" id="panel">
+      <button class="close-btn" id="closeBtn" aria-label="Close dialog">&#x2715;</button>
+
+      <h1 id="modalHeading">Create your account</h1>
+      <p class="sub">Start for free. No credit card required.</p>
+
+      <div class="field">
+        <label for="email">Email address</label>
+        <input type="email" id="email" placeholder="you@example.com" autocomplete="email" />
+      </div>
+
+      <div class="field">
+        <label for="password">Password</label>
+        <div class="password-wrap">
+          <input type="password" id="password" placeholder="Min. 8 characters" autocomplete="new-password" />
+          <button class="toggle-pw" id="togglePw" tabindex="0">Show</button>
+        </div>
+        <div class="strength" id="strengthBars">
+          <div class="strength-bar" id="b1"></div>
+          <div class="strength-bar" id="b2"></div>
+          <div class="strength-bar" id="b3"></div>
+          <div class="strength-bar" id="b4"></div>
+        </div>
+        <div class="strength-label" id="strengthLabel"></div>
+      </div>
+
+      <button class="submit-btn" id="submitBtn">Create account</button>
+
+      <div class="divider"></div>
+      <p class="signin-link">Already have an account? <a href="#" id="signinLink">Sign in instead</a></p>
+    </div>
+  </div>
+</div>
+
+<script>
+const overlay = document.getElementById('overlay');
+const openBtn = document.getElementById('openBtn');
+const closeBtn = document.getElementById('closeBtn');
+const pwInput = document.getElementById('password');
+const togglePw = document.getElementById('togglePw');
+const submitBtn = document.getElementById('submitBtn');
+const signinLink = document.getElementById('signinLink');
+let scrollY = 0;
+
+function openModal(){
+  overlay.classList.add('open');
+  document.getElementById('email').focus();
+}
+
+function closeModal(){
+  overlay.classList.remove('open');
+  openBtn.focus();
+}
+
+openBtn.addEventListener('click', openModal);
+closeBtn.addEventListener('click', closeModal);
+
+overlay.addEventListener('click', e => {
+  if(e.target === overlay) closeModal();
+});
+
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape' && overlay.classList.contains('open')) closeModal();
+});
+
+togglePw.addEventListener('click', () => {
+  const show = pwInput.type === 'password';
+  pwInput.type = show ? 'text' : 'password';
+  togglePw.textContent = show ? 'Hide' : 'Show';
+});
+
+const bars = [document.getElementById('b1'),document.getElementById('b2'),document.getElementById('b3'),document.getElementById('b4')];
+const label = document.getElementById('strengthLabel');
+const colors = ['#E24B4A','#EF9F27','#639922','#1D9E75'];
+const labels = ['Weak','Fair','Good','Strong'];
+
+pwInput.addEventListener('input', () => {
+  const v = pwInput.value;
+  let score = 0;
+  if(v.length >= 8) score++;
+  if(/[A-Z]/.test(v)) score++;
+  if(/[0-9]/.test(v)) score++;
+  if(/[^A-Za-z0-9]/.test(v)) score++;
+  bars.forEach((b,i) => {
+    b.style.background = i < score ? colors[score-1] : 'var(--color-border-tertiary)';
+  });
+  label.textContent = v.length > 0 ? labels[Math.max(0,score-1)] : '';
+  label.style.color = v.length > 0 ? colors[Math.max(0,score-1)] : '';
+});
+
+submitBtn.addEventListener('click', () => {
+  const email = document.getElementById('email').value.trim();
+  if(!email){ document.getElementById('email').focus(); return; }
+  if(pwInput.value.length < 8){ pwInput.focus(); return; }
+  submitBtn.textContent = 'Creating account...';
+  submitBtn.disabled = true;
+  setTimeout(() => {
+    submitBtn.textContent = 'Account created!';
+    submitBtn.style.background = '#1D9E75';
+    setTimeout(() => {
+      closeModal();
+      submitBtn.textContent = 'Create account';
+      submitBtn.disabled = false;
+      submitBtn.style.background = '';
+      document.getElementById('email').value = '';
+      pwInput.value = '';
+      bars.forEach(b => b.style.background = '');
+      label.textContent = '';
+    }, 1200);
+  }, 900);
+});
+
+signinLink.addEventListener('click', e => {
+  e.preventDefault();
+  closeModal();
+});
+</script>
