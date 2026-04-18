@@ -1,0 +1,538 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+.r { font-family: 'Courier New', Courier, monospace; background: #0d0d0d; color: #e8e8e8; min-height: 100vh; }
+
+.bar {
+  background: #1a1a1a;
+  border-bottom: 1px solid #2a2a2a;
+  padding: 8px 14px;
+  display: flex; align-items: center; gap: 8px;
+  position: sticky; top: 0; z-index: 10;
+}
+.dots { display: flex; gap: 5px; }
+.dot { width: 11px; height: 11px; border-radius: 50%; }
+.d1 { background: #ff5f57; } .d2 { background: #febc2e; } .d3 { background: #28c840; }
+.url-bar {
+  flex: 1; background: #111; border: 1px solid #333; border-radius: 4px;
+  padding: 4px 10px; font-size: 11px; color: #e74c3c; font-family: monospace;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.url-text { letter-spacing: 0.3px; }
+.url-warn { font-size: 9px; color: #666; }
+.bar-time { font-size: 10px; color: #444; }
+
+.hero {
+  border-bottom: 3px dashed #e74c3c;
+  padding: 40px 32px 32px;
+  position: relative;
+  overflow: hidden;
+}
+.hero-bg-code {
+  position: absolute; inset: 0;
+  font-size: 10px; line-height: 1.6; color: #1a1a1a;
+  font-family: monospace; padding: 8px;
+  pointer-events: none; user-select: none;
+  overflow: hidden;
+}
+.hero-top {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  margin-bottom: 24px; position: relative;
+}
+.err-badge {
+  background: #e74c3c; color: #fff;
+  font-size: 10px; padding: 2px 8px;
+  font-family: monospace; letter-spacing: 1px;
+}
+.hero-status { font-size: 11px; color: #444; text-align: right; line-height: 1.8; }
+.hero-status span { color: #e74c3c; }
+
+.hero-name {
+  font-size: 64px; font-weight: 700; line-height: 0.9;
+  color: #fff; letter-spacing: -3px;
+  position: relative;
+}
+.hero-name .strike { text-decoration: line-through; color: #333; }
+.hero-name .glitch { color: #e74c3c; position: relative; }
+.hero-404 {
+  font-size: 120px; font-weight: 700;
+  color: transparent;
+  -webkit-text-stroke: 1px #2a2a2a;
+  position: absolute; right: 32px; bottom: -20px;
+  line-height: 1; pointer-events: none; user-select: none;
+  letter-spacing: -6px;
+}
+.hero-sub {
+  font-size: 13px; color: #555; margin-top: 12px; line-height: 1.6;
+}
+.hero-sub .red { color: #e74c3c; }
+.hero-sub .dim { color: #2a2a2a; }
+
+.nav {
+  display: flex; gap: 0;
+  border-top: 1px solid #222; border-bottom: 1px solid #222;
+  background: #111;
+}
+.nav-item {
+  padding: 10px 16px; font-size: 11px; border-right: 1px solid #222;
+  cursor: pointer; transition: background 0.15s; color: #666;
+  letter-spacing: 0.5px; text-transform: uppercase;
+}
+.nav-item:hover { background: #1a1a1a; color: #999; }
+.nav-item.active { background: #e74c3c; color: #fff; }
+.nav-item.broken { color: #2a2a2a; text-decoration: line-through; cursor: not-allowed; }
+.nav-item.broken:hover { background: transparent; }
+
+.section { display: none; }
+.section.visible { display: block; }
+
+.main-grid {
+  display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid #1a1a1a;
+}
+.col { border-right: 1px solid #1a1a1a; padding: 24px; }
+.col:last-child { border-right: none; }
+
+.col-label { font-size: 9px; color: #333; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 16px; border-bottom: 1px solid #1a1a1a; padding-bottom: 8px; }
+.col-label span { color: #e74c3c; }
+
+.profile-img {
+  width: 100%; height: 140px;
+  border: 2px dashed #e74c3c;
+  background: #0d0d0d;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  color: #333; font-size: 11px; margin-bottom: 16px; position: relative;
+}
+.profile-img::before { content: "[ IMAGE FAILED ]"; font-size: 10px; color: #e74c3c; margin-bottom: 4px; }
+.profile-img::after { content: "×"; position: absolute; top: 6px; right: 10px; color: #e74c3c; font-size: 18px; }
+.img-icon-big { font-size: 32px; opacity: 0.15; margin-bottom: 4px; }
+
+.bio-name { font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+.bio-title { font-size: 11px; color: #e74c3c; margin-bottom: 12px; letter-spacing: 1px; }
+.bio-text { font-size: 12px; color: #555; line-height: 1.7; margin-bottom: 8px; }
+.redacted { background: #fff; color: #fff; padding: 0 3px; user-select: none; }
+.bio-null { font-size: 10px; color: #2a2a2a; font-style: italic; }
+
+.stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: #1a1a1a; border: 1px solid #1a1a1a; margin-bottom: 12px; }
+.stat { background: #0d0d0d; padding: 12px; }
+.stat-val { font-size: 22px; font-weight: 700; color: #e74c3c; line-height: 1; }
+.stat-val.ok { color: #27ae60; }
+.stat-val.warn { color: #f39c12; }
+.stat-lbl { font-size: 9px; color: #333; letter-spacing: 1px; margin-top: 3px; }
+
+.err-log {
+  background: #060606; border: 1px solid #1a1a1a;
+  padding: 10px 12px; font-size: 10px; line-height: 1.9; font-family: monospace;
+}
+.log-e { color: #e74c3c; }
+.log-w { color: #f39c12; }
+.log-s { color: #27ae60; }
+.log-d { color: #333; }
+
+.work-grid { padding: 24px; border-bottom: 1px solid #1a1a1a; }
+.work-items { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1px; background: #1a1a1a; border: 1px solid #1a1a1a; }
+.work-item { background: #0d0d0d; padding: 16px; cursor: pointer; transition: background 0.15s; }
+.work-item:hover { background: #111; }
+.work-thumb {
+  width: 100%; height: 80px;
+  border: 1px dashed #333; background: #060606;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px; color: #1a1a1a; margin-bottom: 12px;
+  position: relative; overflow: hidden;
+}
+.work-thumb::after { content: attr(data-err); position: absolute; bottom: 4px; right: 6px; font-size: 9px; color: #e74c3c; }
+.work-item-title { font-size: 13px; font-weight: 700; color: #ddd; margin-bottom: 4px; }
+.work-item-title .cross { text-decoration: line-through; color: #333; }
+.work-desc { font-size: 11px; color: #444; line-height: 1.5; margin-bottom: 8px; }
+.tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.tag { border: 1px solid #222; font-size: 9px; padding: 2px 6px; color: #444; }
+.tag.broken { border-style: dashed; color: #e74c3c; border-color: #3a1a1a; }
+.tag.ok { border-color: #1a3a1a; color: #27ae60; }
+
+.error-ticker {
+  border-top: 1px solid #1a1a1a; border-bottom: 1px solid #1a1a1a;
+  background: #060606; overflow: hidden; padding: 8px 0; position: relative;
+}
+.ticker-inner {
+  display: flex; gap: 48px; white-space: nowrap;
+  animation: ticker 28s linear infinite;
+}
+.ticker-item { font-size: 10px; color: #333; font-family: monospace; }
+.ticker-item .t-err { color: #e74c3c; }
+.ticker-item .t-ok { color: #27ae60; }
+@keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+.contact-section { padding: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; border-bottom: 1px solid #1a1a1a; }
+.contact-form { }
+.form-row { margin-bottom: 12px; }
+.form-label { font-size: 9px; color: #333; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 4px; display: block; }
+.form-input {
+  width: 100%; background: #060606; border: 1px solid #1a1a1a; color: #666;
+  padding: 8px 10px; font-size: 12px; font-family: monospace;
+  outline: none; transition: border 0.15s;
+}
+.form-input:focus { border-color: #e74c3c; color: #aaa; }
+.form-input::placeholder { color: #222; }
+.form-textarea { height: 80px; resize: none; font-family: monospace; }
+.form-btn {
+  background: #e74c3c; color: #fff; border: none;
+  padding: 10px 20px; font-size: 11px; font-family: monospace;
+  cursor: pointer; letter-spacing: 1px; width: 100%;
+  transition: background 0.15s;
+}
+.form-btn:hover { background: #c0392b; }
+.form-btn:active { background: #922b21; }
+.contact-info { }
+.contact-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #1a1a1a; font-size: 12px; }
+.contact-row:last-child { border: none; }
+.c-key { color: #333; font-size: 10px; letter-spacing: 1px; }
+.c-val { color: #e74c3c; }
+.c-val.ok { color: #27ae60; }
+.c-val.dim { color: #2a2a2a; text-decoration: line-through; }
+
+.console-footer {
+  background: #060606; border-top: 2px solid #e74c3c;
+  padding: 14px 20px; font-family: monospace;
+}
+.cf-header { font-size: 9px; color: #333; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 10px; display: flex; justify-content: space-between; }
+.cf-lines { }
+.cf-line { font-size: 11px; line-height: 1.9; display: flex; gap: 12px; align-items: baseline; }
+.cf-line .ts { font-size: 9px; color: #2a2a2a; }
+.cf-e { color: #e74c3c; } .cf-w { color: #f39c12; } .cf-s { color: #27ae60; } .cf-d { color: #333; }
+.cf-cursor { display: inline-block; width: 8px; height: 12px; background: #e74c3c; animation: blink 1s step-end infinite; vertical-align: middle; }
+@keyframes blink { 50% { opacity: 0; } }
+
+.about-section { padding: 24px; }
+.about-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.about-block { border: 1px solid #1a1a1a; padding: 16px; }
+.about-block-title { font-size: 9px; color: #333; letter-spacing: 2px; margin-bottom: 12px; text-transform: uppercase; }
+.skill-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 11px; }
+.skill-name { color: #555; width: 80px; flex-shrink: 0; }
+.skill-bar { flex: 1; height: 4px; background: #111; position: relative; }
+.skill-fill { height: 100%; background: #e74c3c; }
+.skill-fill.ok { background: #27ae60; }
+.skill-fill.broken { background: repeating-linear-gradient(90deg, #e74c3c 0 4px, transparent 4px 8px); }
+.skill-pct { font-size: 9px; color: #333; width: 28px; text-align: right; }
+.timeline-item { display: flex; gap: 10px; margin-bottom: 10px; font-size: 11px; }
+.tl-year { color: #333; width: 36px; flex-shrink: 0; font-size: 9px; }
+.tl-dot { width: 6px; height: 6px; border-radius: 50%; background: #e74c3c; margin-top: 3px; flex-shrink: 0; }
+.tl-dot.ok { background: #27ae60; }
+.tl-dot.err { background: #f39c12; }
+.tl-text { color: #555; line-height: 1.5; }
+.tl-text strong { color: #aaa; }
+</style>
+
+<div class="r">
+
+<div class="bar">
+  <div class="dots"><div class="dot d1"></div><div class="dot d2"></div><div class="dot d3"></div></div>
+  <div class="url-bar">
+    <span class="url-text">&#9888; https://undefined.design/∅ — 404 NOT FOUND</span>
+    <span class="url-warn">ERR_CONNECTION_REFUSED</span>
+  </div>
+  <span class="bar-time" id="live-time">--:--:--</span>
+</div>
+
+<div class="hero">
+  <div class="hero-bg-code" id="bg-code-el"></div>
+  <div class="hero-top">
+    <div class="err-badge">HTTP 404 — RESOURCE NOT FOUND</div>
+    <div class="hero-status">
+      STATUS: <span>UNDEFINED</span><br>
+      BUILD: <span>FAILED</span><br>
+      UPTIME: <span id="uptime">0s</span>
+    </div>
+  </div>
+  <div class="hero-name">
+    <span class="strike">ALEX</span><br>
+    REN<span class="glitch" id="glitch-char">D</span>ER
+  </div>
+  <div class="hero-sub">
+    designer / developer / <span class="red">missing asset</span> —
+    currently <span class="red">undefined</span> @
+    <span class="dim">██████████</span> —
+    portfolio <span class="red">failed to load</span> but that's the point
+  </div>
+  <div class="hero-404">404</div>
+</div>
+
+<nav class="nav">
+  <div class="nav-item active" onclick="switchTab('work', this)">work</div>
+  <div class="nav-item" onclick="switchTab('about', this)">about</div>
+  <div class="nav-item" onclick="switchTab('contact', this)">contact</div>
+  <div class="nav-item broken" title="[NULL]">cv.pdf</div>
+  <div class="nav-item broken" title="[403]">archive</div>
+</nav>
+
+<div class="section visible" id="sec-work">
+
+  <div class="main-grid">
+    <div class="col">
+      <div class="col-label">profile <span>[ status: 404 ]</span></div>
+      <div class="profile-img"><div class="img-icon-big">&#128444;</div><div style="font-size:10px;color:#2a2a2a">avatar.jpg — null</div></div>
+      <div class="bio-name">Alex Render</div>
+      <div class="bio-title">DESIGNER / DEV / UNDEFINED</div>
+      <div class="bio-text">I make things for the web. Some of them <span class="redacted">work</span>. All are intentional — even the broken parts. Especially the broken parts.</div>
+      <div class="bio-text">Based in <span class="redacted">REDACTED</span>. Available for <span style="color:#e74c3c">undefined</span> work.</div>
+      <div class="bio-null">* bio.json — ENOENT: no such file or directory</div>
+    </div>
+    <div class="col">
+      <div class="col-label">system diagnostics <span>[ live ]</span></div>
+      <div class="stat-grid">
+        <div class="stat"><div class="stat-val">404</div><div class="stat-lbl">HTTP STATUS</div></div>
+        <div class="stat"><div class="stat-val ok" id="proj-count">12</div><div class="stat-lbl">PROJECTS</div></div>
+        <div class="stat"><div class="stat-val warn">0%</div><div class="stat-lbl">CSS LOADED</div></div>
+        <div class="stat"><div class="stat-val" id="err-count">0</div><div class="stat-lbl">ERRORS SO FAR</div></div>
+      </div>
+      <div class="err-log" id="live-log">
+        <div class="log-e">&#215; [ERR] styles/main.css — net::ERR_FILE_NOT_FOUND</div>
+        <div class="log-w">&#9888; [WARN] 4 of 4 images failed to load</div>
+        <div class="log-s">&#10003; [LOG] intentional-chaos.js — 200 OK</div>
+        <div class="log-d">· [DBG] rendering broken layout...</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="work-grid">
+    <div class="col-label" style="padding:0 0 12px;border-bottom:1px solid #1a1a1a;margin-bottom:16px">selected work <span>[ 3 of 3 assets missing ]</span></div>
+    <div class="work-items">
+      <div class="work-item" onclick="sendPrompt('Tell me more about the Error Identity System project — what was the concept?')">
+        <div class="work-thumb" data-err="404">&#128444;</div>
+        <div class="work-item-title">Error Identity <span class="cross">System</span></div>
+        <div class="work-desc">A generative brand system built entirely from undefined states. Every hover breaks differently.</div>
+        <div class="tags"><span class="tag ok">figma</span><span class="tag ok">2024</span><span class="tag broken">live link &#215;</span></div>
+      </div>
+      <div class="work-item" onclick="sendPrompt('What was the Redacted Brand Refresh project about?')">
+        <div class="work-thumb" data-err="403">&#128444;</div>
+        <div class="work-item-title"><span class="cross">REDACTED</span> Refresh</div>
+        <div class="work-desc">NDA. Assets removed by request. The vibe was intentionally chaotic. Client loved it.</div>
+        <div class="tags"><span class="tag broken">images &#215;</span><span class="tag broken">case study &#215;</span><span class="tag ok">2023</span></div>
+      </div>
+      <div class="work-item">
+        <div class="work-thumb" data-err="self">&#128444;</div>
+        <div class="work-item-title">This Website</div>
+        <div class="work-desc">Something went wrong during deployment. I kept it. You're looking at the final deliverable.</div>
+        <div class="tags"><span class="tag ok">html</span><span class="tag ok">css</span><span class="tag broken">js [failed]</span><span class="tag">ongoing</span></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="section" id="sec-about">
+  <div class="about-section">
+    <div class="about-grid">
+      <div class="about-block">
+        <div class="about-block-title">skills <span style="color:#e74c3c">[partially loaded]</span></div>
+        <div class="skill-row"><span class="skill-name">figma</span><div class="skill-bar"><div class="skill-fill ok" style="width:94%"></div></div><span class="skill-pct ok">94%</span></div>
+        <div class="skill-row"><span class="skill-name">html/css</span><div class="skill-bar"><div class="skill-fill ok" style="width:88%"></div></div><span class="skill-pct ok">88%</span></div>
+        <div class="skill-row"><span class="skill-name">javascript</span><div class="skill-bar"><div class="skill-fill broken" style="width:72%"></div></div><span class="skill-pct">72%</span></div>
+        <div class="skill-row"><span class="skill-name">react</span><div class="skill-bar"><div class="skill-fill" style="width:60%"></div></div><span class="skill-pct">60%</span></div>
+        <div class="skill-row"><span class="skill-name">node.js</span><div class="skill-bar"><div class="skill-fill broken" style="width:44%"></div></div><span class="skill-pct">44%</span></div>
+        <div class="skill-row"><span class="skill-name">sanity</span><div class="skill-bar"><div class="skill-fill" style="width:0%"></div></div><span class="skill-pct" style="color:#e74c3c">null</span></div>
+      </div>
+      <div class="about-block">
+        <div class="about-block-title">timeline <span style="color:#e74c3c">[incomplete]</span></div>
+        <div class="timeline-item"><span class="tl-year">2024</span><div class="tl-dot ok"></div><div class="tl-text"><strong>Freelance chaos</strong> — broke 3 production sites, fixed 4</div></div>
+        <div class="timeline-item"><span class="tl-year">2023</span><div class="tl-dot"></div><div class="tl-text"><strong>Studio <span class="redacted">REDACTED</span></strong> — lead designer, shipped undefined things</div></div>
+        <div class="timeline-item"><span class="tl-year">2022</span><div class="tl-dot err"></div><div class="tl-text"><strong>Startup X</strong> — redesigned app 3 times. Company <span style="color:#e74c3c">404'd</span>.</div></div>
+        <div class="timeline-item"><span class="tl-year">2020</span><div class="tl-dot"></div><div class="tl-text"><strong>CS dropout</strong> — kept the CSS, deleted the rest</div></div>
+        <div class="timeline-item"><span class="tl-year">???</span><div class="tl-dot" style="background:#2a2a2a"></div><div class="tl-text" style="color:#2a2a2a">ENOENT: entry not found</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="sec-contact">
+  <div class="contact-section">
+    <div class="contact-form">
+      <div class="col-label" style="margin-bottom:16px">send a message <span style="color:#e74c3c">[ form may not work ]</span></div>
+      <div class="form-row">
+        <label class="form-label">name</label>
+        <input class="form-input" type="text" placeholder="undefined" id="form-name">
+      </div>
+      <div class="form-row">
+        <label class="form-label">email</label>
+        <input class="form-input" type="email" placeholder="null@∅∅∅.io" id="form-email">
+      </div>
+      <div class="form-row">
+        <label class="form-label">message</label>
+        <textarea class="form-input form-textarea" placeholder="// your message here..." id="form-msg"></textarea>
+      </div>
+      <button class="form-btn" onclick="submitForm()">SEND → [ attempting POST /api/contact ]</button>
+      <div id="form-feedback" style="font-size:10px;color:#333;margin-top:8px;font-family:monospace;min-height:16px;"></div>
+    </div>
+    <div class="contact-info">
+      <div class="col-label" style="margin-bottom:16px">connections <span style="color:#e74c3c">[ 2 of 5 active ]</span></div>
+      <div class="contact-row"><span class="c-key">EMAIL</span><span class="c-val">alex@∅∅∅.design</span></div>
+      <div class="contact-row"><span class="c-key">TWITTER</span><span class="c-val ok">@404handle</span></div>
+      <div class="contact-row"><span class="c-key">GITHUB</span><span class="c-val">github.com/undef</span></div>
+      <div class="contact-row"><span class="c-key">LINKEDIN</span><span class="c-val dim">[connection failed]</span></div>
+      <div class="contact-row"><span class="c-key">PHONE</span><span class="c-val dim">[deprecated]</span></div>
+      <div class="contact-row"><span class="c-key">LOCATION</span><span class="c-val" style="color:#f39c12">NaN, undefined</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="error-ticker">
+  <div class="ticker-inner" id="ticker">
+    <span class="ticker-item"><span class="t-err">&#215; ERR</span> styles/main.css not found</span>
+    <span class="ticker-item"><span class="t-err">&#215; ERR</span> avatar.jpg — 404</span>
+    <span class="ticker-item"><span class="t-ok">&#10003; OK&nbsp;</span> intentional-chaos.js — 200</span>
+    <span class="ticker-item"><span class="t-err">&#215; ERR</span> /api/contact — 500 Internal</span>
+    <span class="ticker-item" style="color:#f39c12">&#9888; WARN bundle.js SyntaxError line 1</span>
+    <span class="ticker-item"><span class="t-err">&#215; ERR</span> CORS blocked by policy</span>
+    <span class="ticker-item"><span class="t-ok">&#10003; OK&nbsp;</span> broken-layout.css — 200</span>
+    <span class="ticker-item"><span class="t-err">&#215; ERR</span> font 'Helvetica Neue' not found</span>
+    <span class="ticker-item" style="color:#333">· DBG  rendering undefined state...</span>
+    <span class="ticker-item"><span class="t-err">&#215; ERR</span> styles/main.css not found</span>
+    <span class="ticker-item"><span class="t-err">&#215; ERR</span> avatar.jpg — 404</span>
+    <span class="ticker-item"><span class="t-ok">&#10003; OK&nbsp;</span> intentional-chaos.js — 200</span>
+    <span class="ticker-item"><span class="t-err">&#215; ERR</span> /api/contact — 500 Internal</span>
+    <span class="ticker-item" style="color:#f39c12">&#9888; WARN bundle.js SyntaxError line 1</span>
+    <span class="ticker-item"><span class="t-err">&#215; ERR</span> CORS blocked by policy</span>
+    <span class="ticker-item"><span class="t-ok">&#10003; OK&nbsp;</span> broken-layout.css — 200</span>
+    <span class="ticker-item"><span class="t-err">&#215; ERR</span> font 'Helvetica Neue' not found</span>
+    <span class="ticker-item" style="color:#333">· DBG  rendering undefined state...</span>
+  </div>
+</div>
+
+<div class="console-footer">
+  <div class="cf-header">
+    <span>&#9654; DEVELOPER CONSOLE — ERRORS (6) WARNINGS (2) LOGS (1)</span>
+    <span style="color:#e74c3c" id="console-ts">--:--:--</span>
+  </div>
+  <div class="cf-lines" id="cf-lines">
+    <div class="cf-line"><span class="ts">00:00:01</span><span class="cf-e">&#215; [ERR] styles/main.css — net::ERR_FILE_NOT_FOUND</span></div>
+    <div class="cf-line"><span class="ts">00:00:01</span><span class="cf-e">&#215; [ERR] js/bundle.js — SyntaxError: Unexpected end of input</span></div>
+    <div class="cf-line"><span class="ts">00:00:02</span><span class="cf-w">&#9888; [WARN] 4 images failed to load (avatar, hero, work1, work2)</span></div>
+    <div class="cf-line"><span class="ts">00:00:02</span><span class="cf-w">&#9888; [WARN] Font 'Helvetica Neue' not found, using Courier fallback</span></div>
+    <div class="cf-line"><span class="ts">00:00:03</span><span class="cf-s">&#10003; [LOG] intentional-chaos.js loaded — this is working as intended</span></div>
+    <div class="cf-line"><span class="ts">00:00:03</span><span class="cf-e">&#215; [ERR] Cannot contact /api — status 0</span></div>
+    <div class="cf-line"><span class="ts">00:00:04</span><span class="cf-d">· [DBG] visitor detected — rendering broken state</span></div>
+    <div class="cf-line"><span class="ts" id="last-ts">00:00:05</span><span class="cf-d">· <span class="cf-cursor"></span></span></div>
+  </div>
+</div>
+
+</div>
+
+<script>
+let errCount = 0;
+let uptimeSec = 0;
+
+function switchTab(id, el) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('visible'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const sec = document.getElementById('sec-' + id);
+  if (sec) sec.classList.add('visible');
+  el.classList.add('active');
+}
+
+function pad(n) { return String(n).padStart(2,'0'); }
+
+function updateTime() {
+  const now = new Date();
+  const ts = pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
+  const el = document.getElementById('live-time');
+  if (el) el.textContent = ts;
+  const ct = document.getElementById('console-ts');
+  if (ct) ct.textContent = ts;
+}
+
+function updateUptime() {
+  uptimeSec++;
+  const el = document.getElementById('uptime');
+  if (!el) return;
+  if (uptimeSec < 60) el.textContent = uptimeSec + 's';
+  else el.textContent = Math.floor(uptimeSec/60) + 'm ' + (uptimeSec%60) + 's';
+}
+
+const glitchChars = ['D','0','Ð','D','∅','D','Ď','D'];
+let gi = 0;
+function glitchName() {
+  gi = (gi+1) % glitchChars.length;
+  const el = document.getElementById('glitch-char');
+  if (el) el.textContent = glitchChars[gi];
+}
+
+const bgLines = [
+  'Uncaught TypeError: Cannot read prop of undefined',
+  'GET /styles/main.css 404 (Not Found)',
+  'Failed to load resource: 403 Forbidden',
+  'SyntaxError: Unexpected token < in JSON',
+  'net::ERR_CONNECTION_REFUSED',
+  'Warning: Each child must have a unique key',
+  'CORS policy: No Access-Control-Allow-Origin',
+  'ReferenceError: $ is not defined',
+  'Module not found: Error: Can\'t resolve ./assets',
+  '500 Internal Server Error — contact.php',
+];
+function updateBgCode() {
+  const el = document.getElementById('bg-code-el');
+  if (!el) return;
+  let html = '';
+  for (let i = 0; i < 12; i++) {
+    const line = bgLines[Math.floor(Math.random() * bgLines.length)];
+    const opacity = (Math.random() * 0.03 + 0.01).toFixed(2);
+    html += `<div style="opacity:${opacity};color:#e74c3c">${line}</div>`;
+  }
+  el.innerHTML = html;
+}
+
+const liveErrors = [
+  ['e','GET /api/user — 401 Unauthorized'],
+  ['w','Hydration mismatch on #root'],
+  ['e','Failed to fetch fonts.googleapis.com'],
+  ['s','keepalive ping — still broken, still here'],
+  ['d','memory leak detected in error-handler.js'],
+  ['e','WebSocket closed unexpectedly: 1006'],
+  ['w','localStorage quota exceeded'],
+];
+let lei = 0;
+function pushLiveLog() {
+  const [type, msg] = liveErrors[lei % liveErrors.length];
+  lei++;
+  errCount++;
+  const ec = document.getElementById('err-count');
+  if (ec) ec.textContent = errCount;
+  const log = document.getElementById('live-log');
+  if (!log) return;
+  const now = new Date();
+  const ts = pad(now.getHours())+':'+pad(now.getMinutes())+':'+pad(now.getSeconds());
+  const cls = {e:'log-e',w:'log-w',s:'log-s',d:'log-d'}[type];
+  const icon = {e:'×',w:'⚠',s:'✓',d:'·'}[type];
+  const div = document.createElement('div');
+  div.className = cls;
+  div.textContent = `${icon} [${type.toUpperCase()}] [${ts}] ${msg}`;
+  log.appendChild(div);
+  while (log.children.length > 6) log.removeChild(log.firstChild);
+
+  const lastTs = document.getElementById('last-ts');
+  if (lastTs) lastTs.textContent = ts;
+}
+
+function submitForm() {
+  const name = (document.getElementById('form-name') || {}).value || '';
+  const fb = document.getElementById('form-feedback');
+  if (!fb) return;
+  fb.style.color = '#f39c12';
+  fb.textContent = '> POST /api/contact — connecting...';
+  setTimeout(() => {
+    fb.style.color = '#e74c3c';
+    fb.textContent = '× [ERR] 500 Internal Server Error — message lost in the void';
+    setTimeout(() => {
+      fb.style.color = '#27ae60';
+      fb.textContent = '✓ [LOG] delivered anyway — somehow. probably.';
+    }, 1800);
+  }, 1200);
+}
+
+updateTime();
+updateBgCode();
+setInterval(updateTime, 1000);
+setInterval(updateUptime, 1000);
+setInterval(() => glitchName(), 400);
+setInterval(updateBgCode, 5000);
+setInterval(pushLiveLog, 3500);
+setTimeout(pushLiveLog, 1500);
+</script>

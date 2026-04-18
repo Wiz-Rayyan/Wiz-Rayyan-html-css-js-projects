@@ -1,0 +1,289 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+#root{background:#050508;border-radius:16px;padding:24px 20px 20px;font-family:'Courier New',monospace;position:relative;overflow:hidden;min-height:560px}
+#particles{position:absolute;inset:0;pointer-events:none;z-index:0}
+#content{position:relative;z-index:2}
+#header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+#logo{font-size:10px;letter-spacing:4px;color:#333;text-transform:uppercase}
+#track-block{}
+#track-name{font-size:17px;font-weight:900;letter-spacing:3px;text-transform:uppercase;background:linear-gradient(90deg,#ff2fff,#00f7ff,#ff2fff);background-size:200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:hueshift 4s linear infinite}
+@keyframes hueshift{0%{background-position:0%}100%{background-position:200%}}
+#track-sub{font-size:10px;letter-spacing:4px;color:#444;margin-top:2px}
+#rings{display:flex;gap:8px}
+.rw{position:relative;width:44px;height:44px}
+.rw svg{transform:rotate(-90deg)}
+.rw .rb{fill:none;stroke:#111;stroke-width:3}
+.rw .rf{fill:none;stroke-width:3;stroke-linecap:round;stroke-dasharray:107;transition:stroke-dashoffset .07s}
+.rv{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:8px;letter-spacing:1px}
+#vis-area{margin-bottom:12px}
+#canvas-bg{position:relative;height:170px;display:flex;align-items:flex-end;gap:1.5px;padding:0 2px;overflow:hidden}
+#reflect{position:relative;height:50px;display:flex;align-items:flex-start;gap:1.5px;padding:0 2px;overflow:hidden;opacity:0.22;margin-bottom:8px;transform:scaleY(-1)}
+.bar{border-radius:2px 2px 0 0;transform-origin:bottom;flex-shrink:0;transition:height .04s}
+.rbar{border-radius:0 0 2px 2px;transform-origin:top;flex-shrink:0;transition:height .04s}
+#peak-line{position:absolute;top:0;left:0;right:0;height:1px;pointer-events:none}
+canvas#wv{display:block;width:100%;height:56px;border-top:1px solid #0a0a12;border-bottom:1px solid #0a0a12;margin-bottom:12px}
+#bottom{display:flex;align-items:center;gap:16px}
+#play-wrap{position:relative;flex-shrink:0}
+#play-btn{width:56px;height:56px;border-radius:50%;border:none;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;position:relative;z-index:1}
+#play-inner{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px}
+.ring-anim{position:absolute;inset:-8px;border-radius:50%;border:1px solid;animation:rpulse 2s ease-out infinite;opacity:0}
+.ring-anim:nth-child(2){animation-delay:.7s}
+@keyframes rpulse{0%{transform:scale(.8);opacity:.9}100%{transform:scale(1.5);opacity:0}}
+#info-side{flex:1}
+#prog-track{height:3px;border-radius:2px;background:#111;cursor:pointer;margin-bottom:7px;position:relative}
+#prog-fill{height:100%;border-radius:2px;width:0%;position:relative}
+#prog-dot{position:absolute;right:-5px;top:-4px;width:11px;height:11px;border-radius:50%;background:#fff;display:none}
+#time-row{display:flex;justify-content:space-between;font-size:10px;color:#333;letter-spacing:2px;margin-bottom:8px}
+#tags{display:flex;gap:6px}
+.tag{font-size:9px;letter-spacing:2px;padding:3px 8px;border-radius:3px;border:1px solid}
+#eq-strip{display:flex;gap:3px;align-items:flex-end;height:20px;margin-left:auto}
+.eq-b{width:3px;border-radius:1px;background:#1a1a2e;transition:height .08s}
+#theme-row{display:flex;gap:8px;margin-bottom:14px;justify-content:center}
+.theme-btn{font-size:9px;letter-spacing:2px;padding:4px 10px;border-radius:20px;border:1px solid #222;background:transparent;color:#444;cursor:pointer;transition:all .2s;font-family:'Courier New',monospace}
+.theme-btn.active,.theme-btn:hover{border-color:#555;color:#ccc}
+</style>
+
+<div id="root">
+<canvas id="particles" width="680" height="560"></canvas>
+<div id="content">
+  <div id="theme-row">
+    <button class="theme-btn active" data-t="0">NEBULA</button>
+    <button class="theme-btn" data-t="1">LAVA</button>
+    <button class="theme-btn" data-t="2">ARCTIC</button>
+    <button class="theme-btn" data-t="3">TOXIC</button>
+  </div>
+  <div id="header">
+    <div>
+      <div id="track-name">MIDNIGHT SIGNAL</div>
+      <div id="track-sub">SYNTHWAVE · 140 BPM · 24BIT</div>
+    </div>
+    <div id="rings">
+      <div class="rw"><svg viewBox="0 0 44 44"><circle class="rb" cx="22" cy="22" r="17"/><circle class="rf" id="r1" cx="22" cy="22" r="17"/></svg><div class="rv" id="rv1" style="color:#888">L</div></div>
+      <div class="rw"><svg viewBox="0 0 44 44"><circle class="rb" cx="22" cy="22" r="17"/><circle class="rf" id="r2" cx="22" cy="22" r="17"/></svg><div class="rv" id="rv2" style="color:#888">R</div></div>
+      <div class="rw"><svg viewBox="0 0 44 44"><circle class="rb" cx="22" cy="22" r="17"/><circle class="rf" id="r3" cx="22" cy="22" r="17"/></svg><div class="rv" id="rv3" style="color:#888">M</div></div>
+    </div>
+  </div>
+
+  <div id="vis-area">
+    <div id="canvas-bg"></div>
+    <div id="reflect"></div>
+  </div>
+  <canvas id="wv" height="56"></canvas>
+
+  <div id="bottom">
+    <div id="play-wrap">
+      <button id="play-btn">
+        <div class="ring-anim" id="ra1"></div>
+        <div class="ring-anim" id="ra2"></div>
+        <div id="play-inner"><span id="play-icon" style="color:#fff;margin-left:3px">&#9654;</span></div>
+      </button>
+    </div>
+    <div id="info-side">
+      <div id="prog-track"><div id="prog-fill"><div id="prog-dot"></div></div></div>
+      <div id="time-row"><span id="ct">0:00</span><span id="tt">4:37</span></div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div id="tags"></div>
+        <div id="eq-strip"></div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+const THEMES = [
+  {name:'NEBULA', colors:['#ff00ff','#bf00ff','#7700ff','#00d4ff','#00ffcc'], ring:['#ff2fff','#bf00ff','#00f7ff'], grad:'linear-gradient(180deg,#ff00ff,#7700ff,#00d4ff)', bg:'#050508', tag:'#2a0040', tagB:'#ff00ff44', tagC:'#ff00ff'},
+  {name:'LAVA',   colors:['#ff0000','#ff4400','#ff8800','#ffcc00','#fff000'], ring:['#ff2200','#ff8800','#ffcc00'], grad:'linear-gradient(180deg,#ff0000,#ff6600,#ffcc00)', bg:'#080200', tag:'#3a0000', tagB:'#ff440044', tagC:'#ff4400'},
+  {name:'ARCTIC', colors:['#00cfff','#00aaff','#0077ff','#00ffcc','#aaffee'], ring:['#00cfff','#0077ff','#00ffcc'], grad:'linear-gradient(180deg,#00cfff,#0044cc,#00ffaa)', bg:'#00050f', tag:'#001133', tagB:'#00cfff44', tagC:'#00cfff'},
+  {name:'TOXIC',  colors:['#00ff44','#aaff00','#ddff00','#ff9900','#ff4444'], ring:['#00ff44','#aaff00','#ff4444'], grad:'linear-gradient(180deg,#00ff44,#aaff00,#ff4444)', bg:'#010800', tag:'#001a00', tagB:'#00ff4444', tagC:'#00ff44'},
+];
+let theme = 0;
+let playing = false, elapsed = 0, lastT = null;
+const TOTAL = 277;
+const NUM = 80;
+let bars = [], rbars = [], peaks = [], phase = 0, wavePhase = 0, beatTime = 0, masterBeat = 0;
+
+const barSection = document.getElementById('canvas-bg');
+const reflSection = document.getElementById('reflect');
+const progFill = document.getElementById('prog-fill');
+const ct = document.getElementById('ct');
+const playBtn = document.getElementById('play-btn');
+const playInner = document.getElementById('play-inner');
+const playIcon = document.getElementById('play-icon');
+const ra1 = document.getElementById('ra1');
+const ra2 = document.getElementById('ra2');
+const wv = document.getElementById('wv');
+const wctx = wv.getContext('2d');
+const pCanvas = document.getElementById('particles');
+const pctx = pCanvas.getContext('2d');
+
+function applyTheme(t) {
+  const th = THEMES[t];
+  document.getElementById('root').style.background = th.bg;
+  document.getElementById('r1').style.stroke = th.ring[0];
+  document.getElementById('r2').style.stroke = th.ring[1];
+  document.getElementById('r3').style.stroke = th.ring[2];
+  ra1.style.borderColor = th.ring[0];
+  ra2.style.borderColor = th.ring[1];
+  playInner.style.background = th.grad;
+  playInner.style.borderRadius = '50%';
+  const pf = document.getElementById('prog-fill');
+  pf.style.background = th.grad.replace('180deg','90deg');
+  document.getElementById('prog-dot').style.background = th.colors[0];
+  const tagEl = document.getElementById('tags');
+  tagEl.innerHTML = ['STEREO','LOSSLESS','LIVE'].map(l=>`<span class="tag" style="border-color:${th.tagB};color:${th.tagC};background:${th.tag}">${l}</span>`).join('');
+  bars.forEach((b,i)=>{
+    const col = barColor(i,NUM,th);
+    b.style.background = col;
+  });
+  rbars.forEach((b,i)=>{
+    const col = barColor(i,NUM,th);
+    b.style.background = col;
+  });
+  document.querySelectorAll('.theme-btn').forEach((btn,i)=>{
+    btn.classList.toggle('active', i===t);
+    if(i===t){btn.style.borderColor=th.colors[0];btn.style.color=th.colors[0];}
+    else{btn.style.borderColor='#222';btn.style.color='#444';}
+  });
+  document.getElementById('track-name').style.background = `linear-gradient(90deg,${th.colors[0]},${th.colors[3]},${th.colors[0]})`;
+  document.getElementById('track-name').style.backgroundSize = '200%';
+  document.getElementById('track-name').style.webkitBackgroundClip = 'text';
+  document.getElementById('track-name').style.webkitTextFillColor = 'transparent';
+}
+
+function barColor(i,n,th) {
+  const t2 = i/n;
+  const c1 = th.colors[Math.floor(t2*(th.colors.length-1))];
+  const c2 = th.colors[Math.min(th.colors.length-1,Math.floor(t2*(th.colors.length-1))+1)];
+  return c1;
+}
+
+function hexToRgb(hex){
+  const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  return {r,g,b};
+}
+
+for(let i=0;i<NUM;i++){
+  const b=document.createElement('div');
+  b.className='bar';
+  b.style.width='7px';
+  b.style.height='4px';
+  barSection.appendChild(b);
+  bars.push(b);
+  const rb=document.createElement('div');
+  rb.className='rbar';
+  rb.style.width='7px';
+  rb.style.height='4px';
+  reflSection.appendChild(rb);
+  rbars.push(rb);
+  peaks.push(Math.random()*.5+.1);
+}
+
+const EQ_N = 12;
+const eqStrip = document.getElementById('eq-strip');
+let eqBars = [];
+for(let i=0;i<EQ_N;i++){const b=document.createElement('div');b.className='eq-b';eqStrip.appendChild(b);eqBars.push(b);}
+
+let particles = [];
+for(let i=0;i<38;i++){
+  particles.push({x:Math.random()*680,y:Math.random()*560,r:Math.random()*1.5+.3,vx:(Math.random()-.5)*.4,vy:(Math.random()-.5)*.4,a:Math.random()});
+}
+
+function noise(){return Math.random()*2-1;}
+function sn(t,f,a){return Math.sin(t*f)*a+Math.cos(t*f*1.37+.5)*a*.5;}
+
+function drawParticles(){
+  pctx.clearRect(0,0,680,560);
+  const th=THEMES[theme];
+  particles.forEach(p=>{
+    pctx.beginPath();
+    pctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    pctx.fillStyle=th.colors[Math.floor(p.a*th.colors.length)]+(playing?'99':'33');
+    pctx.fill();
+    p.x+=p.vx*(playing?1.5:0.3);
+    p.y+=p.vy*(playing?1.5:0.3);
+    if(p.x<0)p.x=680;if(p.x>680)p.x=0;
+    if(p.y<0)p.y=560;if(p.y>560)p.y=0;
+  });
+}
+
+function animate(ts){
+  if(lastT==null)lastT=ts;
+  const dt=(ts-lastT)/1000;
+  lastT=ts;
+  if(playing){elapsed+=dt;if(elapsed>=TOTAL)elapsed=0;beatTime+=dt;}
+  phase+=dt*2.1;wavePhase+=dt*3.4;
+  const pct=elapsed/TOTAL;
+  progFill.style.width=(pct*100).toFixed(2)+'%';
+  const m=Math.floor(elapsed/60),s=Math.floor(elapsed%60);
+  ct.textContent=m+':'+(s<10?'0':'')+s;
+  const beat=playing?(Math.sin(beatTime*Math.PI*2*2.33)>.7?1:0):0;
+  masterBeat=masterBeat*.85+beat*.15;
+  const th=THEMES[theme];
+  for(let i=0;i<NUM;i++){
+    const norm=i/NUM;
+    let target;
+    if(!playing){target=.04+sn(phase+i*.3,1,.03);}
+    else{
+      const base=.18+Math.exp(-norm*2.5)*.48+Math.exp(-(1-norm)*4)*.08;
+      const detail=sn(phase+i*.18,2,.16)+sn(phase*.7+i*.09,3,.08);
+      const kick=norm<.12?masterBeat*.4:0;
+      target=Math.max(0,Math.min(1,base+detail+kick+noise()*.04));
+    }
+    peaks[i]=peaks[i]*.8+target*.2;
+    const h=Math.max(3,peaks[i]*155);
+    bars[i].style.height=h+'px';
+    bars[i].style.opacity=playing?(0.75+peaks[i]*.25):0.18;
+    const rh=Math.max(2,peaks[i]*38);
+    rbars[i].style.height=rh+'px';
+  }
+  eqBars.forEach((b,i)=>{
+    const v=playing?(.3+peaks[Math.floor(i/EQ_N*NUM)]*.7):0.05;
+    b.style.height=Math.max(3,v*18)+'px';
+    b.style.background=th.colors[i%th.colors.length]+'aa';
+  });
+  const W=wv.offsetWidth||640, H2=56;
+  wv.width=W;
+  wctx.clearRect(0,0,W,H2);
+  const amp=playing?16:3;
+  for(let layer=0;layer<3;layer++){
+    wctx.beginPath();
+    const col=th.colors[layer%th.colors.length];
+    wctx.strokeStyle=col+(layer===0?'cc':'55');
+    wctx.lineWidth=layer===0?1.5:.8;
+    const off=layer*.8;
+    for(let x=0;x<=W;x+=3){
+      const t2=x/W;
+      const y=H2/2+Math.sin(t2*Math.PI*(6+layer)+wavePhase+off)*(amp-layer*3)+Math.sin(t2*Math.PI*(13+layer)+wavePhase*.7+off)*(amp*.4)+(playing?noise()*.8:0);
+      x===0?wctx.moveTo(x,y):wctx.lineTo(x,y);
+    }
+    wctx.stroke();
+  }
+  const lp=playing?(.5+peaks.slice(0,20).reduce((a,b2)=>a+b2)/20*.5):.05;
+  const rp=playing?(.5+peaks.slice(55).reduce((a,b2)=>a+b2)/25*.5):.05;
+  const mp=playing?(.5+peaks.slice(25,55).reduce((a,b2)=>a+b2)/30*.5):.05;
+  document.getElementById('r1').style.strokeDashoffset=107-Math.min(1,lp)*107;
+  document.getElementById('r2').style.strokeDashoffset=107-Math.min(1,rp)*107;
+  document.getElementById('r3').style.strokeDashoffset=107-Math.min(1,mp)*107;
+  drawParticles();
+  requestAnimationFrame(animate);
+}
+
+playBtn.addEventListener('click',()=>{
+  playing=!playing;
+  playIcon.innerHTML=playing?'&#9646;&#9646;':'&#9654;';
+  document.getElementById('prog-dot').style.display=playing?'block':'none';
+  ra1.style.animationPlayState=playing?'running':'paused';
+  ra2.style.animationPlayState=playing?'running':'paused';
+});
+
+document.querySelectorAll('.theme-btn').forEach((btn,i)=>{
+  btn.addEventListener('click',()=>{theme=i;applyTheme(i);});
+});
+
+ra1.style.animationPlayState='paused';
+ra2.style.animationPlayState='paused';
+applyTheme(0);
+requestAnimationFrame(animate);
+</script>

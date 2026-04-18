@@ -1,0 +1,507 @@
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,700;1,400;1,500&family=Lora:ital,wght@0,400;0,500;1,400&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --navy:#071e2e;--navy2:#0A2F44;--navy3:#0d3a53;
+  --gold:#F9E2A1;--gold2:#FFD166;--gold3:#FFA940;
+  --cream:#FFF8E7;--dim:rgba(249,226,161,0.55);--faint:rgba(249,226,161,0.18);--ghostly:rgba(249,226,161,0.08);
+}
+body{background:var(--navy);color:var(--gold);font-family:'Lora',Georgia,serif;min-height:100vh;overflow-x:hidden}
+canvas#stars{position:fixed;inset:0;pointer-events:none;z-index:0}
+.glow-bot{position:fixed;bottom:-160px;left:50%;transform:translateX(-50%);width:900px;height:600px;background:radial-gradient(ellipse at 50% 85%,rgba(255,160,40,0.13) 0%,rgba(255,100,20,0.06) 40%,transparent 70%);pointer-events:none;z-index:0;animation:flicker 5s ease-in-out infinite alternate}
+@keyframes flicker{0%{opacity:.7;transform:translateX(-50%) scaleX(1)}40%{opacity:.95;transform:translateX(-49%) scaleX(1.03)}70%{opacity:.75;transform:translateX(-51%) scaleX(.97)}100%{opacity:1;transform:translateX(-50%) scaleX(1.02)}}
+.page{position:relative;z-index:1;width:100%;max-width:900px;margin:0 auto;padding:0 0 80px}
+
+/* NAV */
+nav{display:flex;align-items:center;justify-content:space-between;padding:28px 40px;border-bottom:0.5px solid var(--faint)}
+.nav-brand{font-family:'Playfair Display',serif;font-size:20px;letter-spacing:0.04em;color:var(--gold2)}
+.nav-links{display:flex;gap:32px}
+.nav-links a{font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim);text-decoration:none;transition:color .2s}
+.nav-links a:hover{color:var(--gold)}
+.nav-cta{font-size:12px;letter-spacing:0.12em;text-transform:uppercase;background:var(--gold2);color:var(--navy);padding:9px 20px;border-radius:6px;border:none;cursor:pointer;font-family:'Lora',serif;font-weight:500;transition:all .2s}
+.nav-cta:hover{background:var(--gold3);transform:translateY(-1px)}
+
+/* HERO */
+.hero{display:grid;grid-template-columns:1fr 1fr;gap:0;min-height:520px;border-bottom:0.5px solid var(--faint)}
+.hero-left{padding:72px 40px 72px;display:flex;flex-direction:column;justify-content:center;border-right:0.5px solid var(--faint)}
+.hero-tag{font-size:11px;letter-spacing:0.22em;text-transform:uppercase;color:var(--dim);margin-bottom:24px;display:flex;align-items:center;gap:10px}
+.hero-tag::before{content:'';display:inline-block;width:24px;height:0.5px;background:var(--dim)}
+h1{font-family:'Playfair Display',serif;font-size:58px;font-weight:400;line-height:1.1;margin-bottom:24px;color:var(--gold)}
+h1 em{font-style:italic;color:var(--gold2)}
+.hero-body{font-size:15px;line-height:1.75;color:var(--dim);max-width:340px;margin-bottom:36px}
+.hero-btns{display:flex;gap:12px;flex-wrap:wrap}
+.btn-primary{background:var(--gold2);color:var(--navy);font-family:'Lora',serif;font-size:13px;font-weight:500;padding:14px 28px;border:none;border-radius:7px;cursor:pointer;letter-spacing:0.05em;position:relative;overflow:hidden;transition:all .25s}
+.btn-primary::before{content:'';position:absolute;inset:0;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Cpath d='M0 4Q2 2 4 4Q6 6 8 4' stroke='rgba(0,0,0,0.06)' fill='none' stroke-width='1'/%3E%3C/svg%3E")}
+.btn-primary:hover{background:var(--gold3);transform:translateY(-2px);box-shadow:0 12px 36px rgba(255,209,102,0.22)}
+.btn-ghost{background:transparent;color:var(--gold);font-family:'Lora',serif;font-size:13px;padding:14px 28px;border:0.5px solid var(--faint);border-radius:7px;cursor:pointer;letter-spacing:0.05em;transition:all .25s}
+.btn-ghost:hover{border-color:rgba(249,226,161,0.4);background:var(--ghostly)}
+.hero-right{padding:40px;display:flex;flex-direction:column;justify-content:center;gap:16px;background:var(--ghostly)}
+
+/* TEMP / MOOD WIDGET */
+.mood-widget{background:rgba(249,226,161,0.05);border:0.5px solid var(--faint);border-radius:14px;padding:28px 24px}
+.mood-label{font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:var(--dim);margin-bottom:16px}
+.mood-title{font-family:'Playfair Display',serif;font-size:22px;margin-bottom:8px;color:var(--gold2)}
+.mood-desc{font-size:13px;color:var(--dim);line-height:1.65;margin-bottom:20px}
+.mood-meter{margin-bottom:8px}
+.mood-meter label{font-size:12px;color:var(--dim);letter-spacing:0.1em;display:flex;justify-content:space-between;margin-bottom:6px}
+.mood-bar-track{background:var(--ghostly);border-radius:4px;height:6px;overflow:hidden}
+.mood-bar-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--gold2),var(--gold3));transition:width .6s ease}
+.temp-display{display:flex;align-items:baseline;gap:6px;margin-top:16px}
+.temp-num{font-family:'Playfair Display',serif;font-size:48px;font-weight:400;color:var(--gold)}
+.temp-unit{font-size:20px;color:var(--dim)}
+.temp-label{font-size:13px;color:var(--dim);margin-left:4px;align-self:center}
+
+/* CANDLE TIMER */
+.candle-card{background:rgba(249,226,161,0.05);border:0.5px solid var(--faint);border-radius:14px;padding:24px;display:flex;flex-direction:column;gap:12px}
+.candle-header{display:flex;justify-content:space-between;align-items:center}
+.candle-title{font-family:'Playfair Display',serif;font-size:16px;color:var(--gold)}
+.candle-badge{font-size:10px;letter-spacing:0.1em;text-transform:uppercase;background:rgba(255,160,40,0.15);color:var(--gold3);padding:3px 10px;border-radius:20px}
+.candle-svg-wrap{display:flex;justify-content:center}
+.timer-display{text-align:center}
+.timer-num{font-family:'Playfair Display',serif;font-size:36px;color:var(--gold2);letter-spacing:0.05em}
+.timer-sub{font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:var(--dim);margin-top:2px}
+.candle-btns{display:flex;gap:8px}
+.cbtn{flex:1;font-family:'Lora',serif;font-size:12px;padding:9px;border-radius:6px;cursor:pointer;border:0.5px solid var(--faint);background:var(--ghostly);color:var(--gold);letter-spacing:0.05em;transition:all .2s}
+.cbtn:hover{background:rgba(249,226,161,0.12);border-color:rgba(249,226,161,0.35)}
+.cbtn.active{background:var(--gold2);color:var(--navy);border-color:var(--gold2)}
+
+/* SECTION: PILLARS */
+.section{padding:64px 40px;border-bottom:0.5px solid var(--faint)}
+.section-header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:40px}
+.section-tag{font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:var(--dim);margin-bottom:8px}
+.section-title{font-family:'Playfair Display',serif;font-size:32px;font-weight:400;color:var(--gold)}
+.section-link{font-size:12px;letter-spacing:0.1em;text-transform:uppercase;color:var(--dim);text-decoration:none;border-bottom:0.5px solid var(--faint);padding-bottom:2px;transition:color .2s}
+.section-link:hover{color:var(--gold)}
+.pillars{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--faint);border:0.5px solid var(--faint);border-radius:14px;overflow:hidden}
+.pillar{background:var(--navy);padding:28px 20px;transition:background .25s;cursor:default}
+.pillar:hover{background:var(--ghostly)}
+.pillar-num{font-family:'Playfair Display',serif;font-size:36px;color:rgba(249,226,161,0.12);margin-bottom:16px;line-height:1}
+.pillar-title{font-family:'Playfair Display',serif;font-size:16px;color:var(--gold2);margin-bottom:8px}
+.pillar-text{font-size:12px;color:var(--dim);line-height:1.65}
+
+/* SHOP GRID */
+.shop-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.product-card{background:var(--ghostly);border:0.5px solid var(--faint);border-radius:12px;overflow:hidden;transition:all .3s;cursor:pointer}
+.product-card:hover{transform:translateY(-4px);border-color:rgba(249,226,161,0.3);background:rgba(249,226,161,0.07)}
+.product-img{height:160px;display:flex;align-items:center;justify-content:center;font-size:52px;background:rgba(249,226,161,0.04);border-bottom:0.5px solid var(--faint);position:relative}
+.product-tag{position:absolute;top:10px;left:10px;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;background:rgba(255,160,40,0.18);color:var(--gold3);padding:3px 9px;border-radius:20px}
+.product-body{padding:18px 16px}
+.product-name{font-family:'Playfair Display',serif;font-size:16px;color:var(--gold);margin-bottom:4px}
+.product-sub{font-size:12px;color:var(--dim);margin-bottom:14px;line-height:1.5}
+.product-footer{display:flex;justify-content:space-between;align-items:center}
+.product-price{font-family:'Playfair Display',serif;font-size:20px;color:var(--gold2)}
+.product-btn{font-size:11px;letter-spacing:0.1em;text-transform:uppercase;background:var(--ghostly);color:var(--dim);padding:7px 14px;border-radius:6px;border:0.5px solid var(--faint);cursor:pointer;font-family:'Lora',serif;transition:all .2s}
+.product-btn:hover{background:var(--gold2);color:var(--navy);border-color:var(--gold2)}
+
+/* QUOTE BAND */
+.quote-band{padding:80px 40px;text-align:center;background:rgba(249,226,161,0.03);border-bottom:0.5px solid var(--faint)}
+.quote-mark{font-family:'Playfair Display',serif;font-size:72px;line-height:.5;color:rgba(249,226,161,0.12);margin-bottom:16px}
+blockquote{font-family:'Playfair Display',serif;font-size:26px;font-style:italic;line-height:1.55;color:var(--gold);max-width:600px;margin:0 auto 20px}
+cite{font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:var(--dim)}
+
+/* RITUAL PLANNER */
+.planner{padding:64px 40px;border-bottom:0.5px solid var(--faint)}
+.ritual-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:40px}
+.ritual-slot{background:var(--ghostly);border:0.5px solid var(--faint);border-radius:12px;padding:24px;transition:all .25s}
+.ritual-slot:hover{border-color:rgba(249,226,161,0.3);background:rgba(249,226,161,0.06)}
+.ritual-time{font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:var(--gold3);margin-bottom:10px}
+.ritual-name{font-family:'Playfair Display',serif;font-size:18px;color:var(--gold);margin-bottom:6px}
+.ritual-text{font-size:13px;color:var(--dim);line-height:1.6;margin-bottom:16px}
+.ritual-toggle{display:flex;align-items:center;gap:10px;cursor:pointer}
+.toggle-track{width:36px;height:20px;border-radius:10px;background:var(--ghostly);border:0.5px solid var(--faint);position:relative;transition:background .3s}
+.toggle-track.on{background:rgba(255,160,40,0.3);border-color:var(--gold3)}
+.toggle-thumb{width:14px;height:14px;border-radius:50%;background:var(--dim);position:absolute;top:2px;left:2px;transition:all .3s}
+.toggle-track.on .toggle-thumb{left:20px;background:var(--gold2)}
+.toggle-label{font-size:12px;color:var(--dim);letter-spacing:0.06em}
+
+/* NEWSLETTER */
+.newsletter{padding:64px 40px;display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center;border-bottom:0.5px solid var(--faint)}
+.nl-title{font-family:'Playfair Display',serif;font-size:30px;font-weight:400;color:var(--gold);margin-bottom:10px}
+.nl-text{font-size:14px;color:var(--dim);line-height:1.7}
+.nl-form{display:flex;flex-direction:column;gap:12px}
+.nl-input{background:var(--ghostly);border:0.5px solid var(--faint);border-radius:8px;padding:14px 18px;font-family:'Lora',serif;font-size:14px;color:var(--gold);outline:none;transition:border-color .2s}
+.nl-input::placeholder{color:rgba(249,226,161,0.3)}
+.nl-input:focus{border-color:rgba(249,226,161,0.4)}
+.nl-submit{background:var(--gold2);color:var(--navy);font-family:'Lora',serif;font-size:14px;font-weight:500;padding:14px;border:none;border-radius:8px;cursor:pointer;transition:all .25s;letter-spacing:0.04em}
+.nl-submit:hover{background:var(--gold3);transform:translateY(-1px)}
+
+/* FOOTER */
+footer{padding:40px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:32px;border-top:0.5px solid var(--faint)}
+.ft-col-title{font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:var(--dim);margin-bottom:16px}
+.ft-links{display:flex;flex-direction:column;gap:10px}
+.ft-links a{font-size:13px;color:rgba(249,226,161,0.4);text-decoration:none;transition:color .2s}
+.ft-links a:hover{color:var(--gold)}
+.ft-brand{font-family:'Playfair Display',serif;font-size:24px;color:var(--gold2);margin-bottom:8px}
+.ft-tagline{font-size:13px;color:var(--dim);line-height:1.6}
+.ft-bottom{padding:20px 40px;display:flex;justify-content:space-between;border-top:0.5px solid var(--faint)}
+.ft-copy{font-size:12px;color:rgba(249,226,161,0.3);letter-spacing:0.06em}
+</style>
+
+<canvas id="stars"></canvas>
+<div class="glow-bot"></div>
+
+<div class="page">
+
+<nav>
+  <div class="nav-brand">Kos & Lys</div>
+  <div class="nav-links">
+    <a href="#">Shop</a>
+    <a href="#">Rituals</a>
+    <a href="#">Journal</a>
+    <a href="#">About</a>
+  </div>
+  <button class="nav-cta">Gift sets</button>
+</nav>
+
+<div class="hero">
+  <div class="hero-left">
+    <div class="hero-tag">Winter collection · 2025</div>
+    <h1>The art of<br><em>staying in</em></h1>
+    <p class="hero-body">Hygge is the Danish practice of creating warmth and presence. It is not a product — it is a way of inhabiting a moment. We help you build that habit, one evening at a time.</p>
+    <div class="hero-btns">
+      <button class="btn-primary">Explore the collection</button>
+      <button class="btn-ghost">Our philosophy</button>
+    </div>
+  </div>
+  <div class="hero-right">
+    <div class="mood-widget">
+      <div class="mood-label">Tonight's atmosphere</div>
+      <div class="mood-title" id="mood-title">Deep winter calm</div>
+      <div class="mood-desc" id="mood-desc">Ideal conditions for a hygge evening — low wind, full dark by 5 pm, wool-sock weather.</div>
+      <div class="mood-meter">
+        <label><span>Cosiness index</span><span id="cosy-val">87%</span></label>
+        <div class="mood-bar-track"><div class="mood-bar-fill" id="cosy-bar" style="width:87%"></div></div>
+      </div>
+      <div class="mood-meter">
+        <label><span>Candlelight need</span><span id="candle-val">94%</span></label>
+        <div class="mood-bar-track"><div class="mood-bar-fill" id="candle-bar" style="width:94%"></div></div>
+      </div>
+      <div class="temp-display">
+        <span class="temp-num" id="temp-num">3</span>
+        <span class="temp-unit">°C</span>
+        <span class="temp-label">outside · <span id="temp-inside">21°C inside</span></span>
+      </div>
+    </div>
+    <div class="candle-card">
+      <div class="candle-header">
+        <div class="candle-title">Candlelight timer</div>
+        <div class="candle-badge" id="candle-status">Running</div>
+      </div>
+      <div class="candle-svg-wrap">
+        <svg width="60" height="90" viewBox="0 0 60 90" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="flameGrad" cx="50%" cy="70%" r="60%">
+              <stop offset="0%" stop-color="#FFD166" stop-opacity="1"/>
+              <stop offset="100%" stop-color="#FF7F3F" stop-opacity="0.6"/>
+            </radialGradient>
+          </defs>
+          <rect x="18" y="30" width="24" height="55" rx="4" fill="#F9E2A1" fill-opacity="0.15" stroke="#F9E2A1" stroke-opacity="0.3" stroke-width="0.5"/>
+          <rect x="18" y="55" width="24" height="30" rx="4" fill="#F9E2A1" fill-opacity="0.06"/>
+          <rect x="28" y="24" width="4" height="12" rx="2" fill="#F9E2A1" fill-opacity="0.3"/>
+          <ellipse id="flame" cx="30" cy="20" rx="6" ry="9" fill="url(#flameGrad)" opacity="0.9"/>
+          <ellipse cx="30" cy="20" rx="2.5" ry="4" fill="#FFF8E7" opacity="0.7"/>
+        </svg>
+      </div>
+      <div class="timer-display">
+        <div class="timer-num" id="timer-display">25:00</div>
+        <div class="timer-sub">minutes of stillness</div>
+      </div>
+      <div class="candle-btns">
+        <button class="cbtn" id="btn-25" onclick="setTimer(25)">25 min</button>
+        <button class="cbtn active" id="btn-45" onclick="setTimer(45)">45 min</button>
+        <button class="cbtn" id="btn-60" onclick="setTimer(60)">60 min</button>
+      </div>
+      <button class="btn-primary" id="timer-btn" onclick="toggleTimer()" style="width:100%;margin-top:4px">Pause</button>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-header">
+    <div>
+      <div class="section-tag">The four pillars</div>
+      <div class="section-title">What makes hygge</div>
+    </div>
+    <a href="#" class="section-link">Read the journal →</a>
+  </div>
+  <div class="pillars">
+    <div class="pillar">
+      <div class="pillar-num">01</div>
+      <div class="pillar-title">Warmth</div>
+      <div class="pillar-text">Layered textiles, good wool, the physical weight of being cared for. Your body needs to feel safe before your mind can follow.</div>
+    </div>
+    <div class="pillar">
+      <div class="pillar-num">02</div>
+      <div class="pillar-title">Light</div>
+      <div class="pillar-text">Not harsh light — amber, low, flickering. Danes burn more candles per capita than any nation. This is not an accident.</div>
+    </div>
+    <div class="pillar">
+      <div class="pillar-num">03</div>
+      <div class="pillar-title">Togetherness</div>
+      <div class="pillar-text">Hygge rarely happens alone. It is a shared frequency — an unspoken agreement to be present in the same room.</div>
+    </div>
+    <div class="pillar">
+      <div class="pillar-num">04</div>
+      <div class="pillar-title">Slowness</div>
+      <div class="pillar-text">The deliberate pace of a long dinner, a re-read book, a second pot of tea. Hygge is incompatible with urgency.</div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-header">
+    <div>
+      <div class="section-tag">Winter collection</div>
+      <div class="section-title">Gift sets & rituals</div>
+    </div>
+    <a href="#" class="section-link">View all →</a>
+  </div>
+  <div class="shop-grid">
+    <div class="product-card">
+      <div class="product-img">
+        <div class="product-tag">Best loved</div>
+        🕯
+      </div>
+      <div class="product-body">
+        <div class="product-name">The Fireside Set</div>
+        <div class="product-sub">Beeswax pillar candles, amber oil diffuser, hand-poured soy taper</div>
+        <div class="product-footer">
+          <div class="product-price">£48</div>
+          <button class="product-btn">Add to bag</button>
+        </div>
+      </div>
+    </div>
+    <div class="product-card">
+      <div class="product-img">
+        <div class="product-tag">New</div>
+        🧣
+      </div>
+      <div class="product-body">
+        <div class="product-name">Nordic Solstice</div>
+        <div class="product-sub">Merino wool throw, cedar & spruce candle, pine needle bath salts</div>
+        <div class="product-footer">
+          <div class="product-price">£72</div>
+          <button class="product-btn">Add to bag</button>
+        </div>
+      </div>
+    </div>
+    <div class="product-card">
+      <div class="product-img">☕</div>
+      <div class="product-body">
+        <div class="product-name">The Slow Morning</div>
+        <div class="product-sub">Cardamom chai blend, ceramic mug, beeswax breakfast taper</div>
+        <div class="product-footer">
+          <div class="product-price">£39</div>
+          <button class="product-btn">Add to bag</button>
+        </div>
+      </div>
+    </div>
+    <div class="product-card">
+      <div class="product-img">📚</div>
+      <div class="product-body">
+        <div class="product-name">Winter Refuge</div>
+        <div class="product-sub">Cashmere reading socks, bookmarks, vetiver & smoke room spray</div>
+        <div class="product-footer">
+          <div class="product-price">£65</div>
+          <button class="product-btn">Add to bag</button>
+        </div>
+      </div>
+    </div>
+    <div class="product-card">
+      <div class="product-img">🫖</div>
+      <div class="product-body">
+        <div class="product-name">Kveldsstemning</div>
+        <div class="product-sub">Evening atmosphere blend — loose-leaf tea, tin, linen infuser</div>
+        <div class="product-footer">
+          <div class="product-price">£28</div>
+          <button class="product-btn">Add to bag</button>
+        </div>
+      </div>
+    </div>
+    <div class="product-card">
+      <div class="product-img">🌿</div>
+      <div class="product-body">
+        <div class="product-name">Complete Hygge</div>
+        <div class="product-sub">Our full winter ritual collection — everything you need</div>
+        <div class="product-footer">
+          <div class="product-price">£145</div>
+          <button class="product-btn">Add to bag</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="quote-band">
+  <div class="quote-mark">"</div>
+  <blockquote>Hygge is not about things. It is about the way time slows when you finally stop performing productivity and begin inhabiting a room.</blockquote>
+  <cite>— Meik Wiking, The Little Book of Hygge</cite>
+</div>
+
+<div class="planner">
+  <div class="section-header">
+    <div>
+      <div class="section-tag">Evening ritual planner</div>
+      <div class="section-title">Build your hygge evening</div>
+    </div>
+  </div>
+  <div class="ritual-grid">
+    <div class="ritual-slot">
+      <div class="ritual-time">5:00 pm · Arrival</div>
+      <div class="ritual-name">Light the candles</div>
+      <div class="ritual-text">Begin before the urge to check the phone returns. Flame-first thinking. Close the blinds while the wax is still soft.</div>
+      <div class="ritual-toggle" onclick="toggleRitual(this)">
+        <div class="toggle-track on"><div class="toggle-thumb"></div></div>
+        <span class="toggle-label">Added to your evening</span>
+      </div>
+    </div>
+    <div class="ritual-slot">
+      <div class="ritual-time">5:20 pm · Warmth</div>
+      <div class="ritual-name">Change into wool</div>
+      <div class="ritual-text">The physical transition matters. Outdoor clothes carry the weight of obligations. Wool carries nothing.</div>
+      <div class="ritual-toggle" onclick="toggleRitual(this)">
+        <div class="toggle-track on"><div class="toggle-thumb"></div></div>
+        <span class="toggle-label">Added to your evening</span>
+      </div>
+    </div>
+    <div class="ritual-slot">
+      <div class="ritual-time">5:45 pm · Brew</div>
+      <div class="ritual-name">Make something hot</div>
+      <div class="ritual-text">Tea, cider, soup — the act of making matters more than the vessel. Stand over it. Smell it. Do not rush this part.</div>
+      <div class="ritual-toggle" onclick="toggleRitual(this)">
+        <div class="toggle-track"><div class="toggle-thumb"></div></div>
+        <span class="toggle-label">Add to your evening</span>
+      </div>
+    </div>
+    <div class="ritual-slot">
+      <div class="ritual-time">6:30 pm · Silence</div>
+      <div class="ritual-name">Dim everything</div>
+      <div class="ritual-text">Screens off. Overhead lights off. Let the candles do the work. Your eyes will adjust, and so will your nervous system.</div>
+      <div class="ritual-toggle" onclick="toggleRitual(this)">
+        <div class="toggle-track"><div class="toggle-thumb"></div></div>
+        <span class="toggle-label">Add to your evening</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="newsletter">
+  <div>
+    <div class="nl-title">Letters from the fireplace</div>
+    <p class="nl-text">Monthly dispatches on the hygge philosophy — slow recipes, winter rituals, and the case for doing nothing well. No urgency, ever.</p>
+  </div>
+  <div class="nl-form">
+    <input class="nl-input" type="text" placeholder="Your name">
+    <input class="nl-input" type="email" placeholder="Your email address">
+    <button class="nl-submit" onclick="handleSubscribe()">Subscribe to slow letters</button>
+  </div>
+</div>
+
+<footer>
+  <div>
+    <div class="ft-brand">Kos & Lys</div>
+    <div class="ft-tagline">Cosy & light — a hygge lifestyle brand from Copenhagen, since 2019.</div>
+  </div>
+  <div>
+    <div class="ft-col-title">Shop</div>
+    <div class="ft-links">
+      <a href="#">Gift sets</a>
+      <a href="#">Candles</a>
+      <a href="#">Textiles</a>
+      <a href="#">Tea & brew</a>
+      <a href="#">Complete collection</a>
+    </div>
+  </div>
+  <div>
+    <div class="ft-col-title">The brand</div>
+    <div class="ft-links">
+      <a href="#">Our philosophy</a>
+      <a href="#">The journal</a>
+      <a href="#">Stockists</a>
+      <a href="#">Wholesale</a>
+      <a href="#">Contact</a>
+    </div>
+  </div>
+</footer>
+<div class="ft-bottom">
+  <span class="ft-copy">© 2025 Kos & Lys. All rights reserved.</span>
+  <span class="ft-copy">Made with slowness in Copenhagen</span>
+</div>
+
+</div>
+
+<script>
+const cnv=document.getElementById('stars'),ctx=cnv.getContext('2d');
+function rsz(){cnv.width=window.innerWidth;cnv.height=document.body.scrollHeight||window.innerHeight}
+rsz();window.addEventListener('resize',rsz);
+const stars=Array.from({length:180},()=>({x:Math.random(),y:Math.random()*0.6,r:Math.random()*1.5+0.3,ph:Math.random()*Math.PI*2,sp:0.3+Math.random()*1.4,base:0.1+Math.random()*0.6}));
+let t=0;
+function drawStars(){
+  ctx.clearRect(0,0,cnv.width,cnv.height);
+  stars.forEach(s=>{
+    const op=s.base+Math.sin(t*s.sp+s.ph)*s.base*0.5;
+    ctx.beginPath();ctx.arc(s.x*cnv.width,s.y*cnv.height,s.r,0,Math.PI*2);
+    ctx.fillStyle=`rgba(255,240,200,${Math.max(0,op)})`;ctx.fill();
+  });
+  t+=0.01;requestAnimationFrame(drawStars);
+}
+drawStars();
+
+let timerSecs=45*60,timerRunning=true,timerInterval=null,activeMin=45;
+function fmt(s){const m=Math.floor(s/60),sc=s%60;return`${String(m).padStart(2,'0')}:${String(sc).padStart(2,'0')}`}
+function setTimer(min){
+  clearInterval(timerInterval);timerRunning=false;activeMin=min;timerSecs=min*60;
+  document.getElementById('timer-display').textContent=fmt(timerSecs);
+  document.getElementById('timer-btn').textContent='Start';
+  document.getElementById('candle-status').textContent='Paused';
+  ['25','45','60'].forEach(m=>{document.getElementById('btn-'+m).classList.toggle('active',m==String(min))});
+}
+function toggleTimer(){
+  if(timerRunning){
+    clearInterval(timerInterval);timerRunning=false;
+    document.getElementById('timer-btn').textContent='Resume';
+    document.getElementById('candle-status').textContent='Paused';
+  } else {
+    timerRunning=true;
+    document.getElementById('timer-btn').textContent='Pause';
+    document.getElementById('candle-status').textContent='Running';
+    timerInterval=setInterval(()=>{
+      if(timerSecs>0){timerSecs--;document.getElementById('timer-display').textContent=fmt(timerSecs);}
+      else{clearInterval(timerInterval);timerRunning=false;document.getElementById('candle-status').textContent='Complete';document.getElementById('timer-btn').textContent='Restart';timerSecs=activeMin*60;}
+    },1000);
+  }
+}
+toggleTimer();
+
+function toggleRitual(el){
+  const track=el.querySelector('.toggle-track');
+  const label=el.querySelector('.toggle-label');
+  const on=track.classList.toggle('on');
+  label.textContent=on?'Added to your evening':'Add to your evening';
+}
+
+function handleSubscribe(){
+  const btn=document.querySelector('.nl-submit');
+  btn.textContent='Welcome to the slow letters ✓';
+  btn.style.background='rgba(249,226,161,0.15)';
+  btn.style.color='var(--gold)';
+  btn.style.border='0.5px solid var(--faint)';
+}
+
+const moods=[
+  {title:'Deep winter calm',desc:'Ideal conditions for a hygge evening — full dark by 5 pm, wool-sock weather.',cosy:87,candle:94,temp:3},
+  {title:'Frost on the windows',desc:'Temperatures dropping. The contrast between inside and out has never been sharper.',cosy:91,candle:98,temp:-2},
+  {title:'Snow light evening',desc:'Snow on the ground reflects a pale glow through the curtains. Almost magical.',cosy:95,candle:88,temp:0},
+];
+let mi=0;
+setInterval(()=>{
+  mi=(mi+1)%moods.length;const m=moods[mi];
+  document.getElementById('mood-title').textContent=m.title;
+  document.getElementById('mood-desc').textContent=m.desc;
+  document.getElementById('cosy-val').textContent=m.cosy+'%';
+  document.getElementById('candle-val').textContent=m.candle+'%';
+  document.getElementById('cosy-bar').style.width=m.cosy+'%';
+  document.getElementById('candle-bar').style.width=m.candle+'%';
+  document.getElementById('temp-num').textContent=m.temp;
+},5000);
+</script>

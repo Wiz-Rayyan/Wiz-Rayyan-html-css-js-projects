@@ -1,0 +1,397 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: transparent; }
+  .canvas {
+    font-family: var(--font-mono);
+    color: #00ff41;
+    background: #0a0a0a;
+    padding: 2.5rem;
+    min-height: 680px;
+    border-radius: var(--border-radius-lg);
+    position: relative;
+    overflow: hidden;
+  }
+  .scanline {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,255,65,0.015) 3px, rgba(0,255,65,0.015) 4px);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .content { position: relative; z-index: 1; }
+  .header {
+    font-size: 10px;
+    color: #00ff41;
+    opacity: 0.5;
+    letter-spacing: 0.2em;
+    margin-bottom: 2.5rem;
+    text-transform: uppercase;
+  }
+  .section {
+    margin-bottom: 2rem;
+  }
+  .section-label {
+    font-size: 9px;
+    opacity: 0.4;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+  }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-start; margin-bottom: 1rem; }
+
+  /* Fake buttons */
+  .fake-btn {
+    border: 1px solid #00ff41;
+    background: transparent;
+    color: #00ff41;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 7px 16px;
+    cursor: default;
+    appearance: none;
+    letter-spacing: 0.1em;
+    display: inline-block;
+    pointer-events: none;
+    opacity: 0.85;
+  }
+  .fake-btn.dim { opacity: 0.3; border-color: #00ff41; }
+  .fake-btn.filled { background: #00ff41; color: #0a0a0a; }
+  .fake-btn.lg { padding: 10px 28px; font-size: 12px; }
+
+  /* Fake inputs */
+  .fake-input {
+    border: 1px solid rgba(0,255,65,0.4);
+    background: transparent;
+    color: rgba(0,255,65,0.5);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 7px 10px;
+    cursor: default;
+    appearance: none;
+    width: 200px;
+    display: block;
+    pointer-events: none;
+    letter-spacing: 0.05em;
+  }
+  .fake-input.wide { width: 100%; }
+
+  /* Fake progress bars */
+  .fake-progress-wrap {
+    background: rgba(0,255,65,0.08);
+    border: 1px solid rgba(0,255,65,0.15);
+    height: 6px;
+    width: 100%;
+    position: relative;
+    margin-bottom: 6px;
+  }
+  .fake-bar {
+    height: 100%;
+    background: #00ff41;
+    display: block;
+    pointer-events: none;
+  }
+  .bar-label {
+    font-size: 9px;
+    opacity: 0.35;
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+    letter-spacing: 0.08em;
+  }
+
+  /* Fake sliders */
+  .fake-slider-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+  .fake-slider {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 160px;
+    height: 2px;
+    background: rgba(0,255,65,0.25);
+    border: none;
+    cursor: default;
+    pointer-events: none;
+    position: relative;
+    outline: none;
+  }
+  .fake-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 10px;
+    height: 10px;
+    background: #00ff41;
+    border: none;
+    cursor: default;
+  }
+  .fake-slider::-moz-range-thumb {
+    width: 10px;
+    height: 10px;
+    background: #00ff41;
+    border: none;
+    cursor: default;
+  }
+  .slider-val {
+    font-size: 10px;
+    opacity: 0.5;
+    min-width: 28px;
+  }
+
+  /* Fake dropdown */
+  .fake-select {
+    border: 1px solid rgba(0,255,65,0.4);
+    background: transparent;
+    color: rgba(0,255,65,0.55);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 7px 28px 7px 10px;
+    cursor: default;
+    appearance: none;
+    pointer-events: none;
+    position: relative;
+    letter-spacing: 0.05em;
+  }
+  .select-wrap {
+    position: relative;
+    display: inline-block;
+  }
+  .select-wrap::after {
+    content: '▾';
+    position: absolute;
+    right: 9px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgba(0,255,65,0.4);
+    font-size: 10px;
+    pointer-events: none;
+  }
+
+  /* Fake checkbox / radio */
+  .fake-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: rgba(0,255,65,0.7);
+    cursor: default;
+    pointer-events: none;
+    margin-bottom: 6px;
+  }
+  .check-box {
+    width: 12px;
+    height: 12px;
+    border: 1px solid rgba(0,255,65,0.5);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .check-box.checked::after { content: '✕'; font-size: 8px; color: #00ff41; }
+  .radio-box {
+    width: 12px;
+    height: 12px;
+    border: 1px solid rgba(0,255,65,0.5);
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .radio-box.checked::after {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: #00ff41;
+    border-radius: 50%;
+    display: block;
+  }
+
+  /* Fake spinner */
+  .fake-spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 1.5px solid rgba(0,255,65,0.15);
+    border-top-color: #00ff41;
+    border-radius: 50%;
+    animation: spin 1.2s linear infinite;
+    cursor: default;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Fake toggle */
+  .fake-toggle {
+    width: 34px;
+    height: 18px;
+    border: 1px solid rgba(0,255,65,0.5);
+    border-radius: 9px;
+    background: transparent;
+    position: relative;
+    cursor: default;
+    pointer-events: none;
+    flex-shrink: 0;
+  }
+  .fake-toggle.on { background: rgba(0,255,65,0.15); }
+  .fake-toggle::after {
+    content: '';
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background: rgba(0,255,65,0.5);
+    border-radius: 50%;
+    top: 2px;
+    left: 2px;
+    transition: none;
+  }
+  .fake-toggle.on::after { left: 18px; background: #00ff41; }
+  .toggle-row { display: flex; align-items: center; gap: 10px; font-size: 11px; color: rgba(0,255,65,0.6); margin-bottom: 6px; }
+
+  /* Status badge */
+  .badge {
+    font-size: 9px;
+    border: 1px solid rgba(0,255,65,0.4);
+    padding: 2px 8px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(0,255,65,0.6);
+    cursor: default;
+  }
+  .badge.warn { border-color: rgba(255,165,0,0.4); color: rgba(255,165,0,0.6); }
+
+  /* Blinking cursor */
+  .cursor { display: inline-block; width: 7px; height: 12px; background: #00ff41; opacity: 0.8; animation: blink 1s step-end infinite; vertical-align: text-bottom; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* Divider */
+  .divider { border: none; border-top: 1px solid rgba(0,255,65,0.1); margin: 1.5rem 0; }
+
+  /* Footer */
+  .footer { font-size: 9px; opacity: 0.25; letter-spacing: 0.15em; margin-top: 2rem; text-transform: uppercase; }
+
+  /* Annotation */
+  .annotation { font-size: 9px; opacity: 0.3; letter-spacing: 0.08em; margin-top: 4px; }
+</style>
+
+<div class="canvas">
+  <div class="scanline"></div>
+  <div class="content">
+
+    <div class="header">DECONSTRUCTED_UI.exe &nbsp;·&nbsp; v0.0.0 &nbsp;·&nbsp; non-interactive build</div>
+
+    <div class="section">
+      <div class="section-label">// buttons</div>
+      <div class="row">
+        <span class="fake-btn">submit</span>
+        <span class="fake-btn filled">confirm</span>
+        <span class="fake-btn dim">disabled</span>
+        <span class="fake-btn lg">execute</span>
+        <span class="badge">idle</span>
+        <span class="badge warn">pending</span>
+      </div>
+      <div class="annotation">border: 1px solid — appearance: none — cursor: default — onclick: null</div>
+    </div>
+
+    <hr class="divider">
+
+    <div class="section">
+      <div class="section-label">// progress & loading</div>
+
+      <div class="fake-progress-wrap"><div class="fake-bar" style="width:70%"></div></div>
+      <div class="bar-label"><span>sys_load</span><span>70%</span></div>
+
+      <div class="fake-progress-wrap"><div class="fake-bar" style="width:43%"></div></div>
+      <div class="bar-label"><span>memory_alloc</span><span>43%</span></div>
+
+      <div class="fake-progress-wrap"><div class="fake-bar" style="width:91%"></div></div>
+      <div class="bar-label"><span>task_queue</span><span>91%</span></div>
+
+      <div class="fake-progress-wrap" style="height:3px; margin-top:4px">
+        <div class="fake-bar" style="width:100%; animation: indeterminate 2s ease-in-out infinite;"></div>
+      </div>
+      <div class="bar-label"><span>uploading...</span><span><span class="fake-spinner"></span></span></div>
+
+      <style>
+        @keyframes indeterminate {
+          0% { width: 0%; margin-left: 0%; }
+          50% { width: 60%; margin-left: 20%; }
+          100% { width: 0%; margin-left: 100%; }
+        }
+      </style>
+
+      <div class="annotation">width: static — never resolves — animation: decorative only</div>
+    </div>
+
+    <hr class="divider">
+
+    <div class="section">
+      <div class="section-label">// inputs & selectors</div>
+      <div class="row">
+        <div>
+          <div class="fake-input">user@domain.com<span class="cursor"></span></div>
+          <div class="annotation" style="margin-top:4px">type="email" — readonly — tabindex="-1"</div>
+        </div>
+        <div>
+          <div class="select-wrap">
+            <div class="fake-select">select option ▾</div>
+          </div>
+        </div>
+      </div>
+      <div class="fake-input wide" style="margin-top:8px">_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _</div>
+      <div class="annotation">placeholder: present — value: absent — purpose: none</div>
+    </div>
+
+    <hr class="divider">
+
+    <div class="section">
+      <div class="section-label">// sliders</div>
+      <div class="fake-slider-wrap">
+        <span style="font-size:9px;opacity:0.35;letter-spacing:0.1em">PARAM_A</span>
+        <input type="range" class="fake-slider" value="62" min="0" max="100">
+        <span class="slider-val">62</span>
+      </div>
+      <div class="fake-slider-wrap">
+        <span style="font-size:9px;opacity:0.35;letter-spacing:0.1em">PARAM_B</span>
+        <input type="range" class="fake-slider" value="28" min="0" max="100">
+        <span class="slider-val">28</span>
+      </div>
+      <div class="fake-slider-wrap">
+        <span style="font-size:9px;opacity:0.35;letter-spacing:0.1em">PARAM_C</span>
+        <input type="range" class="fake-slider" value="85" min="0" max="100">
+        <span class="slider-val">85</span>
+      </div>
+      <div class="annotation">-webkit-appearance: none — value: frozen — onchange: undefined</div>
+    </div>
+
+    <hr class="divider">
+
+    <div class="section">
+      <div class="section-label">// toggles & checkboxes</div>
+      <div style="display:flex;gap:2.5rem;flex-wrap:wrap;">
+        <div>
+          <div class="toggle-row"><div class="fake-toggle on"></div><span>verbose_mode</span></div>
+          <div class="toggle-row"><div class="fake-toggle"></div><span>dark_output</span></div>
+          <div class="toggle-row"><div class="fake-toggle on"></div><span>auto_sync</span></div>
+        </div>
+        <div>
+          <div class="fake-check"><div class="check-box checked"></div><span>enable logging</span></div>
+          <div class="fake-check"><div class="check-box"></div><span>compress output</span></div>
+          <div class="fake-check"><div class="check-box checked"></div><span>cache results</span></div>
+          <div class="fake-check" style="margin-top:6px"><div class="radio-box checked"></div><span>mode: async</span></div>
+          <div class="fake-check"><div class="radio-box"></div><span>mode: sync</span></div>
+        </div>
+      </div>
+      <div class="annotation">pointer-events: none — state: hardcoded — interaction: none</div>
+    </div>
+
+    <hr class="divider">
+
+    <div class="footer">
+      all elements pixel-perfect · all elements purposeless · a portrait of interface · © null
+    </div>
+
+  </div>
+</div>

@@ -1,0 +1,525 @@
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+--c:#00E5FF;--g:#FFD600;--r:#FF3D57;--p:#BF5FFF;
+--cb:rgba(0,229,255,0.15);--gb:rgba(255,214,0,0.12);
+--bg:#000A14;--bg2:rgba(0,15,30,0.85);
+}
+.hud{background:var(--bg);color:var(--c);font-family:'Share Tech Mono',monospace;padding:12px;min-height:700px;position:relative;overflow:hidden;width:100%}
+.scanlines{position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,229,255,0.012) 3px);pointer-events:none;z-index:0}
+.vignette{position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 60%,rgba(0,0,20,0.7) 100%);pointer-events:none;z-index:0}
+.hsweep{position:absolute;left:0;width:100%;height:2px;background:linear-gradient(90deg,transparent 0%,rgba(0,229,255,0.5) 50%,transparent 100%);animation:hs 5s linear infinite;pointer-events:none;z-index:1}
+@keyframes hs{0%{top:-2px;opacity:0}5%{opacity:1}95%{opacity:0.4}100%{top:100%;opacity:0}}
+.vsweep{position:absolute;top:0;height:100%;width:2px;background:linear-gradient(180deg,transparent 0%,rgba(255,214,0,0.3) 50%,transparent 100%);animation:vs 8s linear infinite;pointer-events:none;z-index:1}
+@keyframes vs{0%{left:-2px}100%{left:100%}}
+
+.corner{position:absolute;border-color:var(--c);border-style:solid;z-index:3}
+.c1{width:28px;height:28px}
+.c2{width:14px;height:14px;border-color:var(--g);opacity:0.8}
+.c3{width:7px;height:7px;border-color:rgba(0,229,255,0.4)}
+.ctl{top:6px;left:6px;border-width:2px 0 0 2px}
+.ctr{top:6px;right:6px;border-width:2px 2px 0 0}
+.cbl{bottom:6px;left:6px;border-width:0 0 2px 2px}
+.cbr{bottom:6px;right:6px;border-width:0 2px 2px 0}
+
+.wrap{position:relative;z-index:2;display:flex;flex-direction:column;gap:8px;height:100%}
+
+/* TOP BAR */
+.topbar{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;border-bottom:1px solid rgba(0,229,255,0.2);padding-bottom:8px;gap:8px}
+.title-block{display:flex;flex-direction:column;gap:2px}
+.sys-name{font-size:13px;letter-spacing:5px;color:var(--g);font-weight:700}
+.sys-sub{font-size:8px;letter-spacing:3px;color:rgba(0,229,255,0.4)}
+.center-time{text-align:center}
+.mtime{font-size:22px;letter-spacing:4px;color:var(--g);line-height:1}
+.mtime-lbl{font-size:8px;letter-spacing:3px;color:rgba(0,229,255,0.4);margin-top:2px}
+.status-pills{display:flex;gap:8px;align-items:center;justify-content:flex-end;flex-wrap:wrap}
+.pill{font-size:8px;letter-spacing:2px;padding:2px 8px;border:1px solid currentColor}
+.pill.armed{color:var(--r);animation:blink 0.8s step-end infinite}
+.pill.active{color:var(--c)}
+.pill.enc{color:var(--g)}
+.pill.fire{color:var(--p);animation:blink 1.2s step-end infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+
+/* MAIN GRID */
+.mgrid{display:grid;grid-template-columns:minmax(0,1fr) 240px minmax(0,1fr);gap:8px;flex:1}
+
+/* PANELS */
+.panel{background:var(--bg2);border:1px solid rgba(0,229,255,0.15);padding:8px 10px}
+.panel+.panel{margin-top:7px}
+.plbl{font-size:8px;letter-spacing:3px;color:var(--g);margin-bottom:6px;border-bottom:1px solid rgba(255,214,0,0.2);padding-bottom:3px}
+.dr{display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid rgba(0,229,255,0.06)}
+.dr:last-child{border:none}
+.dk{font-size:8px;color:rgba(0,229,255,0.45);letter-spacing:1px}
+.dv{font-size:12px;color:var(--c)}
+.dv.g{color:var(--g)}
+.dv.r{color:var(--r);animation:blink 1s step-end infinite}
+.dv.a{color:#FF9800}
+.dv.p{color:var(--p)}
+.dv.w{color:#fff}
+
+/* BARS */
+.brow{margin:5px 0 2px}
+.bhead{display:flex;justify-content:space-between;font-size:8px;color:rgba(0,229,255,0.5);letter-spacing:1px;margin-bottom:2px}
+.btrack{height:5px;background:rgba(0,229,255,0.07);border:1px solid rgba(0,229,255,0.15);position:relative}
+.bfill{height:100%;transition:width 0.5s}
+.bfill.cy{background:var(--c)}
+.bfill.go{background:var(--g)}
+.bfill.am{background:#FF9800}
+.bfill.re{background:var(--r)}
+.bfill.pu{background:var(--p)}
+.bmark{position:absolute;top:-2px;height:9px;width:1px;background:rgba(255,255,255,0.5)}
+
+/* POWER SEGS */
+.psegs{display:flex;gap:1px;margin-top:4px}
+.pseg{height:8px;flex:1;background:rgba(0,229,255,0.08);border:1px solid rgba(0,229,255,0.1)}
+.pseg.cy{background:var(--c);border-color:rgba(0,229,255,0.5)}
+.pseg.am{background:#FF9800;border-color:#FF9800}
+.pseg.re{background:var(--r);border-color:var(--r)}
+
+/* CENTER COLUMN */
+.ccol{display:flex;flex-direction:column;gap:8px;align-items:center}
+
+/* RETICLE */
+.reticle-wrap{position:relative;width:200px;height:200px;flex-shrink:0}
+.ring{position:absolute;border-radius:50%;border:1px solid rgba(0,229,255,0.25)}
+.ring.outer{inset:0}
+.ring.mid{inset:30px;border-color:rgba(0,229,255,0.45)}
+.ring.inner{inset:70px;border:2px solid var(--c)}
+.ring.lock{inset:70px;border:2px solid var(--r);animation:lk 1.4s ease-in-out infinite}
+@keyframes lk{0%,100%{opacity:0.3;transform:scale(1) rotate(0deg)}50%{opacity:1;transform:scale(1.3) rotate(45deg)}}
+.ring.spin1{inset:14px;border:1px solid rgba(255,214,0,0.3);border-top-color:var(--g);border-right-color:transparent;border-bottom-color:transparent;animation:spin1 4s linear infinite}
+.ring.spin2{inset:46px;border:1px solid rgba(191,95,255,0.2);border-bottom-color:var(--p);border-left-color:transparent;border-right-color:transparent;animation:spin1 6s linear infinite reverse}
+@keyframes spin1{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.ch,.cv{position:absolute;background:var(--c)}
+.ch{height:1px;width:65px;top:99px}
+.chl{left:4px}.chr{right:4px}
+.cv{width:1px;height:65px;left:99px}
+.cvt{top:4px}.cvb{bottom:4px}
+.dot{width:6px;height:6px;background:var(--g);border-radius:50%;position:absolute;top:97px;left:97px}
+.rtick{position:absolute;background:rgba(0,229,255,0.6)}
+.rtt{width:1px;height:12px;top:0;left:99px}
+.rtb{width:1px;height:12px;bottom:0;left:99px}
+.rtl{height:1px;width:12px;top:99px;left:0}
+.rtr{height:1px;width:12px;top:99px;right:0}
+.rcn{position:absolute;font-size:8px;color:rgba(0,229,255,0.5);letter-spacing:1px}
+.rcn.n{top:2px;left:96px}.rcn.s{bottom:2px;left:96px}
+.rcn.e{right:2px;top:96px}.rcn.w{left:2px;top:96px}
+.rcorner{position:absolute;width:16px;height:16px;border-color:var(--g);border-style:solid}
+.rctl{top:0;left:0;border-width:2px 0 0 2px}
+.rctr{top:0;right:0;border-width:2px 2px 0 0}
+.rcbl{bottom:0;left:0;border-width:0 0 2px 2px}
+.rcbr{bottom:0;right:0;border-width:0 2px 2px 0}
+.tgt-info{text-align:center}
+.tgt-name{font-size:10px;letter-spacing:3px;color:var(--g)}
+.tgt-lock{font-size:8px;letter-spacing:3px;color:var(--r);animation:blink 0.85s step-end infinite;margin:2px 0}
+.tgt-row{font-size:9px;color:rgba(0,229,255,0.7);letter-spacing:1px}
+.tgt-row span{color:var(--g);margin:0 4px}
+
+/* RADAR */
+.radar-outer{position:relative;width:180px;height:180px}
+.radar{width:180px;height:180px;border-radius:50%;border:1px solid rgba(0,229,255,0.25);background:radial-gradient(circle,rgba(0,30,60,0.9) 0%,rgba(0,5,15,0.95) 100%);position:relative;overflow:hidden}
+.rring{position:absolute;border-radius:50%;border:1px solid rgba(0,229,255,0.12)}
+.rr1{inset:60px}
+.rr2{inset:30px}
+.rr3{inset:3px}
+.rcx{position:absolute;width:100%;height:1px;top:89px;background:rgba(0,229,255,0.08)}
+.rcy{position:absolute;height:100%;width:1px;left:89px;background:rgba(0,229,255,0.08)}
+.rsweep{position:absolute;width:90px;height:90px;bottom:0;left:0;transform-origin:100% 0;animation:rspin 3s linear infinite}
+.rsweep::before{content:'';position:absolute;right:0;top:0;width:90px;height:90px;background:conic-gradient(from 150deg,rgba(0,229,255,0.6) 0deg,rgba(0,229,255,0.1) 45deg,transparent 55deg);border-radius:0 0 0 100%}
+@keyframes rspin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.blip{position:absolute;width:5px;height:5px;border-radius:50%}
+.blip.hostile{background:var(--r)}
+.blip.friendly{background:var(--c)}
+.blip.unknown{background:var(--g)}
+.blip::after{content:'';position:absolute;inset:-3px;border-radius:50%;border:1px solid currentColor;animation:bp 2s ease-out infinite;opacity:0}
+@keyframes bp{0%{opacity:0.8;transform:scale(1)}100%{opacity:0;transform:scale(2.5)}}
+.blip.h1{top:42px;left:110px;color:var(--r)}
+.blip.h2{top:118px;left:60px;color:var(--r);animation-delay:0.6s}
+.blip.f1{top:60px;left:40px;color:var(--c)}
+.blip.u1{top:85px;left:130px;color:var(--g)}
+.blip.h3{top:30px;left:75px;color:var(--r);animation-delay:1.2s}
+.radar-lbl{position:absolute;font-size:8px;font-family:'Share Tech Mono',monospace;color:rgba(0,229,255,0.4)}
+.rln{top:2px;left:85px}.rls{bottom:2px;left:85px}
+.rle{right:2px;top:86px}.rlw{left:2px;top:86px}
+.radar-legend{display:flex;gap:10px;margin-top:4px;justify-content:center}
+.rleg{font-size:8px;display:flex;align-items:center;gap:4px;color:rgba(0,229,255,0.5);letter-spacing:1px}
+.rdot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+
+/* WAVEFORM */
+.wv-wrap{width:220px;background:var(--bg2);border:1px solid rgba(0,229,255,0.15);padding:6px 8px}
+
+/* THREAT METER */
+.threat-wrap{width:100%;background:var(--bg2);border:1px solid rgba(255,61,87,0.3);padding:7px 10px}
+.threat-arc{position:relative;width:140px;height:70px;margin:4px auto 0;overflow:hidden}
+.tarc-bg{width:140px;height:140px;border-radius:50%;border:8px solid rgba(255,61,87,0.12);position:absolute;top:0;clip-path:inset(0 0 50% 0)}
+.tarc-fill{width:140px;height:140px;border-radius:50%;border:8px solid var(--r);position:absolute;top:0;clip-path:inset(0 0 50% 0);transform-origin:center center;animation:tarc 3s ease-in-out infinite alternate}
+@keyframes tarc{0%{opacity:0.5;filter:none}100%{opacity:1;filter:none}}
+.threat-val{text-align:center;font-size:20px;color:var(--r);letter-spacing:2px;animation:blink 1.5s ease infinite}
+.threat-lbl{text-align:center;font-size:8px;letter-spacing:3px;color:rgba(255,61,87,0.6);margin-top:2px}
+
+/* TIMELINE / HISTORY */
+.timeline{background:var(--bg2);border:1px solid rgba(0,229,255,0.15);padding:7px 10px}
+.tl-item{display:flex;gap:8px;align-items:flex-start;padding:3px 0;border-bottom:1px solid rgba(0,229,255,0.06);font-size:9px}
+.tl-item:last-child{border:none}
+.tl-time{color:var(--g);letter-spacing:1px;flex-shrink:0;width:52px}
+.tl-msg{color:rgba(0,229,255,0.7);letter-spacing:0.5px}
+.tl-msg.r{color:var(--r)}
+.tl-msg.g{color:var(--g)}
+
+/* BOTTOM BAR */
+.botbar{border-top:1px solid rgba(0,229,255,0.2);padding-top:7px;display:flex;align-items:center;gap:12px}
+.ticker-wrap{flex:1;overflow:hidden;position:relative}
+.ticker-inner{display:inline-block;white-space:nowrap;animation:ticker 25s linear infinite;font-size:8px;color:var(--r);letter-spacing:2px}
+@keyframes ticker{0%{transform:translateX(100vw)}100%{transform:translateX(-200%)}}
+.bot-stat{font-size:9px;color:rgba(0,229,255,0.5);letter-spacing:1px;flex-shrink:0}
+.bot-stat span{color:var(--c)}
+.mini-chart{display:flex;align-items:flex-end;gap:1px;height:24px}
+.mbar{width:4px;background:var(--c);opacity:0.7;transition:height 0.4s}
+</style>
+
+<div class="hud">
+<div class="scanlines"></div>
+<div class="vignette"></div>
+<div class="hsweep"></div>
+<div class="vsweep"></div>
+<div class="corner c1 ctl"></div><div class="corner c1 ctr"></div>
+<div class="corner c1 cbl"></div><div class="corner c1 cbr"></div>
+<div class="corner c2" style="top:20px;left:20px;border-width:1px 0 0 1px"></div>
+<div class="corner c2" style="top:20px;right:20px;border-width:1px 1px 0 0"></div>
+<div class="corner c2" style="bottom:20px;left:20px;border-width:0 0 1px 1px"></div>
+<div class="corner c2" style="bottom:20px;right:20px;border-width:0 1px 1px 0"></div>
+<div class="corner c3" style="top:30px;left:30px;border-width:1px 0 0 1px"></div>
+<div class="corner c3" style="top:30px;right:30px;border-width:1px 1px 0 0"></div>
+<div class="corner c3" style="bottom:30px;left:30px;border-width:0 0 1px 1px"></div>
+<div class="corner c3" style="bottom:30px;right:30px;border-width:0 1px 1px 0"></div>
+
+<div class="wrap">
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="title-block">
+      <div class="sys-name">AEGIS MK-IX</div>
+      <div class="sys-sub">TACTICAL OVERLAY SYSTEM // CLASSIFIED // EYES ONLY</div>
+      <div style="display:flex;gap:6px;margin-top:4px">
+        <span class="pill armed">WEAPONS FREE</span>
+        <span class="pill active">UPLINK ACTIVE</span>
+        <span class="pill enc">AES-512</span>
+        <span class="pill fire">FIRE MISSION</span>
+      </div>
+    </div>
+    <div class="center-time">
+      <div class="mtime" id="mtime">00:00:00</div>
+      <div class="mtime-lbl">MISSION ELAPSED</div>
+      <div style="font-size:10px;color:rgba(0,229,255,0.5);margin-top:2px;letter-spacing:2px" id="utc">00:00:00Z</div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+      <div style="font-size:9px;color:rgba(0,229,255,0.5);letter-spacing:1px">SPEED HISTORY</div>
+      <div class="mini-chart" id="spd-chart"></div>
+      <div style="font-size:9px;color:rgba(0,229,255,0.5);letter-spacing:1px">ALT HISTORY</div>
+      <div class="mini-chart" id="alt-chart"></div>
+    </div>
+  </div>
+
+  <!-- MAIN GRID -->
+  <div class="mgrid">
+    <!-- LEFT COLUMN -->
+    <div>
+      <div class="panel">
+        <div class="plbl">Navigation Data</div>
+        <div class="dr"><span class="dk">LATITUDE</span><span class="dv g" id="lat">34.0522°N</span></div>
+        <div class="dr"><span class="dk">LONGITUDE</span><span class="dv g" id="lon">118.2437°W</span></div>
+        <div class="dr"><span class="dk">ALTITUDE</span><span class="dv" id="alt">4,280 m</span></div>
+        <div class="dr"><span class="dk">HEADING</span><span class="dv" id="hdg">247°</span></div>
+        <div class="dr"><span class="dk">GRID REF</span><span class="dv" style="font-size:10px">38S MH 9123 5678</span></div>
+        <div class="dr"><span class="dk">WAYPOINT</span><span class="dv g">WP-07 // 14.2 km</span></div>
+        <div class="dr"><span class="dk">ETA</span><span class="dv" id="eta">00:04:12</span></div>
+      </div>
+      <div class="panel">
+        <div class="plbl">Velocity &amp; Dynamics</div>
+        <div class="dr"><span class="dk">AIRSPEED</span><span class="dv" id="spd">824 km/h</span></div>
+        <div class="dr"><span class="dk">GND SPEED</span><span class="dv">801 km/h</span></div>
+        <div class="dr"><span class="dk">V/SPEED</span><span class="dv" id="vs">+12 m/s</span></div>
+        <div class="dr"><span class="dk">MACH</span><span class="dv g">0.76</span></div>
+        <div class="dr"><span class="dk">G-FORCE</span><span class="dv" id="gf">2.4 G</span></div>
+        <div class="dr"><span class="dk">ROLL</span><span class="dv" id="roll">-3.2°</span></div>
+        <div class="dr"><span class="dk">PITCH</span><span class="dv" id="pitch">+1.8°</span></div>
+      </div>
+      <div class="panel">
+        <div class="plbl">Systems Integrity</div>
+        <div class="brow"><div class="bhead"><span>SHIELDS</span><span id="sh-v">72%</span></div><div class="btrack"><div class="bfill cy" id="sh-b" style="width:72%"></div></div></div>
+        <div class="brow"><div class="bhead"><span>ARMOR</span><span id="ar-v">88%</span></div><div class="btrack"><div class="bfill cy" id="ar-b" style="width:88%"></div></div></div>
+        <div class="brow"><div class="bhead"><span>FUEL</span><span id="fu-v" style="color:#FF9800">38%</span></div><div class="btrack"><div class="bfill am" id="fu-b" style="width:38%"></div><div class="bmark" style="left:25%"></div></div></div>
+        <div class="brow"><div class="bhead"><span>AMMO</span><span id="am-v">91%</span></div><div class="btrack"><div class="bfill cy" id="am-b" style="width:91%"></div></div></div>
+        <div class="brow"><div class="bhead"><span>ECM JAM</span><span id="ec-v">64%</span></div><div class="btrack"><div class="bfill pu" id="ec-b" style="width:64%"></div></div></div>
+        <div class="brow"><div class="bhead"><span>THERMAL</span><span id="th-v" style="color:var(--r)">94%</span></div><div class="btrack"><div class="bfill re" id="th-b" style="width:94%"></div></div></div>
+      </div>
+      <div class="panel">
+        <div class="plbl">Power Grid</div>
+        <div class="psegs" id="psegs"></div>
+        <div style="display:flex;justify-content:space-between;margin-top:5px">
+          <span style="font-size:8px;color:rgba(0,229,255,0.4);letter-spacing:1px">OUTPUT</span>
+          <span style="font-size:11px;color:var(--g)" id="pwr-val">6.8 GW</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:2px">
+          <span style="font-size:8px;color:rgba(0,229,255,0.4);letter-spacing:1px">REACTOR</span>
+          <span style="font-size:11px;color:var(--c)">FUSION-IV</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- CENTER COLUMN -->
+    <div class="ccol">
+      <!-- RETICLE -->
+      <div class="reticle-wrap">
+        <div class="ring outer"></div>
+        <div class="ring spin1"></div>
+        <div class="ring mid"></div>
+        <div class="ring spin2"></div>
+        <div class="ring inner"></div>
+        <div class="ring lock"></div>
+        <div class="rcorner rctl"></div><div class="rcorner rctr"></div>
+        <div class="rcorner rcbl"></div><div class="rcorner rcbr"></div>
+        <div class="ch chl"></div><div class="ch chr"></div>
+        <div class="cv cvt"></div><div class="cv cvb"></div>
+        <div class="dot"></div>
+        <div class="rtick rtt"></div><div class="rtick rtb"></div>
+        <div class="rtick rtl"></div><div class="rtick rtr"></div>
+        <div class="rcn n">N</div><div class="rcn s">S</div>
+        <div class="rcn e">E</div><div class="rcn w">W</div>
+      </div>
+      <div class="tgt-info">
+        <div class="tgt-name">TGT: BRV-04 // HOSTILE ARMOR</div>
+        <div class="tgt-lock">TARGET LOCKED — WEAPONS FREE</div>
+        <div class="tgt-row">RNG <span id="dist">1.4 km</span> BRG <span id="brg">034°</span> ELEV <span>-2.1°</span></div>
+      </div>
+
+      <!-- RADAR -->
+      <div class="radar-outer">
+        <div class="radar">
+          <div class="rring rr1"></div><div class="rring rr2"></div><div class="rring rr3"></div>
+          <div class="rcx"></div><div class="rcy"></div>
+          <div class="rsweep"></div>
+          <div class="blip hostile h1"></div>
+          <div class="blip hostile h2"></div>
+          <div class="blip hostile h3"></div>
+          <div class="blip friendly f1"></div>
+          <div class="blip unknown u1"></div>
+          <div class="radar-lbl rln">N</div><div class="radar-lbl rls">S</div>
+          <div class="radar-lbl rle">E</div><div class="radar-lbl rlw">W</div>
+        </div>
+        <div class="radar-legend">
+          <div class="rleg"><div class="rdot" style="background:var(--r)"></div>HOSTILE</div>
+          <div class="rleg"><div class="rdot" style="background:var(--c)"></div>FRIENDLY</div>
+          <div class="rleg"><div class="rdot" style="background:var(--g)"></div>UNKNOWN</div>
+        </div>
+      </div>
+
+      <!-- WAVEFORM -->
+      <div class="wv-wrap">
+        <div class="plbl" style="margin-bottom:4px">ECM / Signal Waveform</div>
+        <canvas id="wave" height="40" style="width:100%;display:block"></canvas>
+      </div>
+
+      <!-- THREAT METER -->
+      <div class="threat-wrap" style="width:100%">
+        <div class="plbl">Threat Level</div>
+        <div class="threat-val" id="threat-val">CRITICAL</div>
+        <div class="threat-lbl">IMMEDIATE ACTION REQUIRED</div>
+        <div style="display:flex;gap:2px;margin-top:6px" id="threat-segs"></div>
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN -->
+    <div>
+      <div class="panel">
+        <div class="plbl">Targeting System</div>
+        <div class="dr"><span class="dk">TARGET ID</span><span class="dv g">BRV-04</span></div>
+        <div class="dr"><span class="dk">CLASS</span><span class="dv w">MAIN BATTLE TANK</span></div>
+        <div class="dr"><span class="dk">BEARING</span><span class="dv" id="bearing">034°</span></div>
+        <div class="dr"><span class="dk">RANGE</span><span class="dv" id="rng">1,412 m</span></div>
+        <div class="dr"><span class="dk">ELEVATION</span><span class="dv">-2.1°</span></div>
+        <div class="dr"><span class="dk">VELOCITY</span><span class="dv" id="tgt-vel">32 km/h NE</span></div>
+        <div class="dr"><span class="dk">THREAT</span><span class="dv r">CRITICAL</span></div>
+        <div class="dr"><span class="dk">LOCK STATUS</span><span class="dv r">CONFIRMED</span></div>
+      </div>
+      <div class="panel">
+        <div class="plbl">Weapon System</div>
+        <div class="dr"><span class="dk">PRIMARY</span><span class="dv w">30mm CANNON</span></div>
+        <div class="dr"><span class="dk">ROUNDS</span><span class="dv g">1,820</span></div>
+        <div class="dr"><span class="dk">ROF</span><span class="dv">3,900 rpm</span></div>
+        <div class="dr"><span class="dk">SECONDARY</span><span class="dv w">AGM-114 HELLFIRE</span></div>
+        <div class="dr"><span class="dk">MISSILES</span><span class="dv g">8 / 8</span></div>
+        <div class="dr"><span class="dk">COUNTERMEAS</span><span class="dv">FLARES 12 / 24</span></div>
+        <div class="dr"><span class="dk">SAFE MODE</span><span class="dv r">DISABLED</span></div>
+        <div class="dr"><span class="dk">FIRE CTRL</span><span class="dv p">AUTO-ENGAGE</span></div>
+      </div>
+      <div class="panel">
+        <div class="plbl">Environment &amp; Sensors</div>
+        <div class="dr"><span class="dk">TEMPERATURE</span><span class="dv" id="temp">-14°C</span></div>
+        <div class="dr"><span class="dk">PRESSURE</span><span class="dv">618 hPa</span></div>
+        <div class="dr"><span class="dk">WIND</span><span class="dv">NW @ 22 kts</span></div>
+        <div class="dr"><span class="dk">VISIBILITY</span><span class="dv">12.4 km</span></div>
+        <div class="dr"><span class="dk">HUMIDITY</span><span class="dv">34%</span></div>
+        <div class="dr"><span class="dk">RADAR MODE</span><span class="dv g">ACTIVE SCAN</span></div>
+        <div class="dr"><span class="dk">CONTACTS</span><span class="dv r" id="contacts">5 HOSTILE</span></div>
+      </div>
+      <div class="panel">
+        <div class="plbl">Comms &amp; Network</div>
+        <div class="dr"><span class="dk">FREQUENCY</span><span class="dv">243.0 MHz</span></div>
+        <div class="dr"><span class="dk">ENCRYPTION</span><span class="dv g">AES-512</span></div>
+        <div class="dr"><span class="dk">UPLINK</span><span class="dv" id="uplink">NOMINAL</span></div>
+        <div class="dr"><span class="dk">PING</span><span class="dv" id="ping">14 ms</span></div>
+        <div class="dr"><span class="dk">SATELLITES</span><span class="dv">6 / 8 LOCKED</span></div>
+        <div class="dr"><span class="dk">IFF</span><span class="dv g">FRIEND ID OK</span></div>
+        <div class="dr"><span class="dk">DATA LINK</span><span class="dv" id="dlink">ACTIVE</span></div>
+      </div>
+
+      <!-- EVENT LOG -->
+      <div class="timeline">
+        <div class="plbl">Event Log</div>
+        <div class="tl-item"><span class="tl-time" id="t0">--:--:--</span><span class="tl-msg r">TARGET LOCK CONFIRMED BRV-04</span></div>
+        <div class="tl-item"><span class="tl-time" id="t1">--:--:--</span><span class="tl-msg">ECM JAM ACTIVATED — 64%</span></div>
+        <div class="tl-item"><span class="tl-time" id="t2">--:--:--</span><span class="tl-msg g">UPLINK ESTABLISHED</span></div>
+        <div class="tl-item"><span class="tl-time" id="t3">--:--:--</span><span class="tl-msg">ENTERING AO — WEAPONS FREE</span></div>
+        <div class="tl-item"><span class="tl-time" id="t4">--:--:--</span><span class="tl-msg r">LOW FUEL — 38% REMAINING</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM BAR -->
+  <div class="botbar">
+    <div class="bot-stat">FRAME <span id="fps">60</span> Hz</div>
+    <div class="bot-stat">SYS <span>NOMINAL</span></div>
+    <div class="ticker-wrap">
+      <div class="ticker-inner">LOW FUEL WARNING &nbsp;&bull;&nbsp; HOSTILE CONTACT BEARING 034 &nbsp;&bull;&nbsp; 5 ENEMIES ON RADAR &nbsp;&bull;&nbsp; UPLINK SECURED &nbsp;&bull;&nbsp; WEAPONS FREE AUTHORIZED &nbsp;&bull;&nbsp; FIRE MISSION IN PROGRESS &nbsp;&bull;&nbsp; THERMAL OVERLOAD WARNING &nbsp;&bull;&nbsp; COUNTERMEASURES READY &nbsp;&bull;&nbsp;</div>
+    </div>
+    <div class="bot-stat">PING <span id="ping2">14</span> ms</div>
+    <div class="bot-stat" id="utc2" style="color:var(--g)">00:00:00Z</div>
+  </div>
+</div>
+</div>
+
+<script>
+function pad(n,l){return String(Math.round(n)).padStart(l||2,'0')}
+function jitter(b,r){return b+(Math.random()*2-1)*r}
+function clamp(v,mn,mx){return Math.max(mn,Math.min(mx,v))}
+
+let mSec=0,logTimes=[];
+const now=new Date();
+for(let i=4;i>=0;i--){const d=new Date(now-i*18000);logTimes.push(`${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}`);}
+['t0','t1','t2','t3','t4'].forEach((id,i)=>{const el=document.getElementById(id);if(el)el.textContent=logTimes[i];});
+
+function tick(){
+  const d=new Date();
+  const utc=`${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}Z`;
+  document.getElementById('utc').textContent=utc;
+  document.getElementById('utc2').textContent=utc;
+  mSec++;
+  document.getElementById('mtime').textContent=`${pad(Math.floor(mSec/3600))}:${pad(Math.floor((mSec%3600)/60))}:${pad(mSec%60)}`;
+}
+tick();setInterval(tick,1000);
+
+const spdHist=[],altHist=[];
+for(let i=0;i<20;i++){spdHist.push(clamp(jitter(820,40),700,950));altHist.push(clamp(jitter(4280,200),3500,5200));}
+
+function renderMiniChart(id,hist,mn,mx){
+  const el=document.getElementById(id);if(!el)return;
+  el.innerHTML='';
+  hist.forEach(v=>{
+    const b=document.createElement('div');
+    b.className='mbar';
+    b.style.height=Math.round(4+((v-mn)/(mx-mn))*20)+'px';
+    el.appendChild(b);
+  });
+}
+renderMiniChart('spd-chart',spdHist,700,950);
+renderMiniChart('alt-chart',altHist,3500,5200);
+
+function buildSegs(){
+  const el=document.getElementById('psegs');if(!el)return;
+  el.innerHTML='';
+  const pwr=Math.round(jitter(68,5));
+  document.getElementById('pwr-val').textContent=(pwr/10).toFixed(1)+' GW';
+  for(let i=0;i<24;i++){
+    const s=document.createElement('div');
+    const on=i<Math.round(pwr/4.2);
+    s.className='pseg'+(on?(i>19?' re':i>15?' am':' cy'):'');
+    el.appendChild(s);
+  }
+}
+buildSegs();
+
+function buildThreat(){
+  const el=document.getElementById('threat-segs');if(!el)return;
+  el.innerHTML='';
+  for(let i=0;i<10;i++){
+    const s=document.createElement('div');
+    s.style.cssText='flex:1;height:6px;background:'+(i<8?'var(--r)':'rgba(255,61,87,0.12)')+';border:1px solid rgba(255,61,87,0.3)';
+    if(i<8&&i>5)s.style.animation='blink 0.6s step-end infinite';
+    el.appendChild(s);
+  }
+}
+buildThreat();
+
+setInterval(function(){
+  const spd=Math.round(jitter(824,10));
+  document.getElementById('spd').textContent=spd+' km/h';
+  document.getElementById('vs').textContent=(Math.random()>0.5?'+':'-')+Math.round(Math.abs(jitter(12,4)))+' m/s';
+  document.getElementById('alt').textContent=Math.round(jitter(4280,18)).toLocaleString()+' m';
+  document.getElementById('hdg').textContent=Math.round(jitter(247,1))+'°';
+  document.getElementById('gf').textContent=jitter(2.4,0.3).toFixed(1)+' G';
+  document.getElementById('roll').textContent=(Math.random()>0.5?'+':'-')+jitter(3.2,0.5).toFixed(1)+'°';
+  document.getElementById('pitch').textContent=(Math.random()>0.5?'+':'-')+jitter(1.8,0.4).toFixed(1)+'°';
+  const brg=Math.round(jitter(34,1));
+  document.getElementById('bearing').textContent=pad(brg,3)+'°';
+  document.getElementById('brg').textContent=pad(brg,3)+'°';
+  const rng=Math.round(jitter(1412,25));
+  document.getElementById('rng').textContent=rng.toLocaleString()+' m';
+  document.getElementById('dist').textContent=(rng/1000).toFixed(1)+' km';
+  document.getElementById('lat').textContent=jitter(34.0522,0.0002).toFixed(4)+'°N';
+  document.getElementById('lon').textContent=jitter(118.2437,0.0002).toFixed(4)+'°W';
+  document.getElementById('temp').textContent=Math.round(jitter(-14,0.5))+'°C';
+  document.getElementById('fps').textContent=Math.round(jitter(60,1));
+  document.getElementById('ping').textContent=Math.round(jitter(14,3))+' ms';
+  document.getElementById('ping2').textContent=Math.round(jitter(14,3));
+  document.getElementById('tgt-vel').textContent=Math.round(jitter(32,3))+' km/h NE';
+  document.getElementById('eta').textContent='00:'+pad(Math.round(jitter(252,5))/60|0)+':'+pad(Math.round(jitter(252,5))%60);
+  if(Math.random()<0.05){document.getElementById('uplink').textContent='DEGRADED';document.getElementById('uplink').style.color='#FF9800';document.getElementById('dlink').textContent='DEGRADED';document.getElementById('dlink').style.color='#FF9800';}
+  else{document.getElementById('uplink').textContent='NOMINAL';document.getElementById('uplink').style.color='var(--c)';document.getElementById('dlink').textContent='ACTIVE';document.getElementById('dlink').style.color='var(--c)';}
+  spdHist.push(spd);spdHist.shift();
+  altHist.push(Math.round(jitter(4280,18)));altHist.shift();
+  renderMiniChart('spd-chart',spdHist,700,950);
+  renderMiniChart('alt-chart',altHist,3500,5200);
+  buildSegs();
+},300);
+
+const canvas=document.getElementById('wave');
+const ctx=canvas.getContext('2d');
+let wt=0;
+function drawWave(){
+  canvas.width=canvas.offsetWidth||220;canvas.height=40;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.lineWidth=1.2;
+  ctx.strokeStyle='#00E5FF';ctx.beginPath();
+  for(let x=0;x<canvas.width;x++){
+    const y=20+Math.sin((x*0.07)+wt)*8+Math.sin((x*0.19)+wt*1.3)*3+Math.sin((x*0.04)+wt*0.5)*5;
+    x===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  }
+  ctx.stroke();
+  ctx.strokeStyle='rgba(255,214,0,0.5)';ctx.lineWidth=0.8;ctx.beginPath();
+  for(let x=0;x<canvas.width;x++){
+    const y=20+Math.sin((x*0.12)+wt*0.7)*4+Math.cos((x*0.08)+wt*1.1)*3;
+    x===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  }
+  ctx.stroke();
+  ctx.strokeStyle='rgba(191,95,255,0.35)';ctx.lineWidth=0.7;ctx.beginPath();
+  for(let x=0;x<canvas.width;x++){
+    const y=20+Math.cos((x*0.05)+wt*0.4)*6+Math.sin((x*0.15)+wt*0.9)*2;
+    x===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  }
+  ctx.stroke();
+  wt+=0.055;requestAnimationFrame(drawWave);
+}
+drawWave();
+</script>

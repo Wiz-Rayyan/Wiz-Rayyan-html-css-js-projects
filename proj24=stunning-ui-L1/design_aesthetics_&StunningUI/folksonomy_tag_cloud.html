@@ -1,0 +1,124 @@
+
+<style>
+  #cloud { padding: 1.5rem 1rem; line-height: 2.2; }
+  .tag {
+    display: inline-block;
+    margin: 5px 7px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: opacity 0.15s;
+    font-family: var(--font-sans);
+    text-decoration: none;
+  }
+  .tag:hover { opacity: 0.6; }
+  #topic-bar {
+    display: flex; align-items: center; gap: 10px;
+    padding: 0 1rem 1rem;
+    flex-wrap: wrap;
+  }
+  #topic-bar input {
+    flex: 1; min-width: 180px; max-width: 320px;
+    font-size: 14px;
+  }
+  #topic-bar button { font-size: 13px; padding: 6px 14px; }
+  #status { font-size: 12px; color: var(--color-text-tertiary); margin: 0 1rem 0.5rem; min-height: 16px; }
+</style>
+
+<h2 class="sr-only">Folksonomy tag cloud — words sized by importance, colored from a pastel palette</h2>
+
+<div id="topic-bar">
+  <input type="text" id="topic-input" placeholder="Enter a topic…" value="the early internet" />
+  <button id="gen-btn" onclick="generateCloud()">Generate cloud ↗</button>
+</div>
+<div id="status"></div>
+<div id="cloud"></div>
+
+<script>
+const PASTELS = [
+  "#e05c8a","#c45bb8","#7b5ea7","#4e78c4","#3a9fbf",
+  "#2aaa88","#5ab552","#c8a020","#d4622a","#bf3f5e",
+  "#8e5ccc","#2d9e6b","#d97c3a","#4e9ad4","#b84f9e",
+  "#e07040","#45a88c","#a060d0","#c03060","#3868b8"
+];
+
+function pickColor() {
+  return PASTELS[Math.floor(Math.random() * PASTELS.length)];
+}
+
+function sizePx(weight) {
+  return Math.round(13 + weight * 47);
+}
+
+function renderCloud(words) {
+  const cloud = document.getElementById('cloud');
+  cloud.innerHTML = '';
+  words.forEach(({word, weight}) => {
+    const a = document.createElement('span');
+    a.className = 'tag';
+    a.textContent = word;
+    a.style.fontSize = sizePx(weight) + 'px';
+    a.style.color = pickColor();
+    a.style.fontWeight = weight > 0.6 ? '500' : '400';
+    a.onclick = () => sendPrompt('Tell me more about "' + word + '" in the context of the tag cloud topic');
+    cloud.appendChild(a);
+  });
+}
+
+async function generateCloud() {
+  const topic = document.getElementById('topic-input').value.trim() || 'the internet';
+  const btn = document.getElementById('gen-btn');
+  const status = document.getElementById('status');
+  btn.disabled = true;
+  btn.textContent = 'Generating…';
+  status.textContent = 'Asking Claude for words…';
+
+  const prompt = `Generate a folksonomy tag cloud for the topic: "${topic}".
+Return ONLY a JSON array of 60 objects, each with "word" (string) and "weight" (float 0.0–1.0).
+Higher weight = more important/frequent. Vary weights realistically — most between 0.1–0.5, a handful at 0.7–1.0.
+Mix nouns, adjectives, verbs, and proper nouns. No duplicates. No markdown, no explanation, just the JSON array.`;
+
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1000,
+        messages: [{ role: "user", content: prompt }]
+      })
+    });
+    const data = await res.json();
+    const raw = data.content.map(b => b.text || '').join('');
+    const clean = raw.replace(/```json|```/g, '').trim();
+    const words = JSON.parse(clean);
+    renderCloud(words);
+    status.textContent = topic + ' — ' + words.length + ' tags';
+  } catch(e) {
+    status.textContent = 'Error generating cloud. Try again.';
+    console.error(e);
+  }
+  btn.disabled = false;
+  btn.textContent = 'Generate cloud ↗';
+}
+
+const DEMO = [
+  {word:"hyperlink",weight:0.85},{word:"blogroll",weight:0.7},{word:"RSS",weight:0.9},
+  {word:"folksonomy",weight:0.75},{word:"syndication",weight:0.55},{word:"permalink",weight:0.8},
+  {word:"meme",weight:0.65},{word:"trackback",weight:0.5},{word:"aggregator",weight:0.45},
+  {word:"del.icio.us",weight:0.95},{word:"Flickr",weight:0.88},{word:"Technorati",weight:0.6},
+  {word:"tagging",weight:1.0},{word:"social",weight:0.82},{word:"bookmarks",weight:0.77},
+  {word:"wiki",weight:0.7},{word:"open source",weight:0.6},{word:"pingback",weight:0.4},
+  {word:"remix",weight:0.5},{word:"community",weight:0.68},{word:"microformat",weight:0.35},
+  {word:"attention",weight:0.45},{word:"digg",weight:0.72},{word:"slashdot",weight:0.65},
+  {word:"read/write web",weight:0.8},{word:"amateur",weight:0.3},{word:"participation",weight:0.55},
+  {word:"crowdsource",weight:0.6},{word:"long tail",weight:0.78},{word:"niche",weight:0.42},
+  {word:"metadata",weight:0.65},{word:"API",weight:0.7},{word:"mashup",weight:0.75},
+  {word:"embed",weight:0.5},{word:"widget",weight:0.6},{word:"user-generated",weight:0.85},
+  {word:"collaboration",weight:0.58},{word:"viral",weight:0.72},{word:"hype cycle",weight:0.4},
+  {word:"bubble",weight:0.38},{word:"MySpace",weight:0.8},{word:"LiveJournal",weight:0.68},
+  {word:"XHTML",weight:0.42},{word:"micropost",weight:0.32},{word:"stream",weight:0.55},
+  {word:"subscribe",weight:0.62},{word:"share",weight:0.9},{word:"link economy",weight:0.5},
+  {word:"attention data",weight:0.3},{word:"infinite scroll",weight:0.4},{word:"beta",weight:0.7}
+];
+renderCloud(DEMO);
+</script>

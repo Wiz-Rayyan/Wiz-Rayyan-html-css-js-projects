@@ -1,0 +1,335 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=UnifrakturMaguntia&display=swap');
+  .sp-root {
+    background: #2C1810;
+    color: #D7CCC8;
+    font-family: 'Courier Prime', 'Courier New', monospace;
+    padding: 0;
+    position: relative;
+    overflow: hidden;
+    min-height: 600px;
+  }
+  .gear-bg {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; z-index: 0; opacity: 0.07;
+  }
+  .sp-content { position: relative; z-index: 1; padding: 20px; }
+  .sp-header {
+    text-align: center;
+    border-bottom: 2px solid #B8860B;
+    padding-bottom: 14px;
+    margin-bottom: 20px;
+  }
+  .sp-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #D4A017;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    text-shadow: 0 0 8px rgba(184,134,11,0.4);
+  }
+  .sp-subtitle {
+    font-size: 11px;
+    color: #8D6E63;
+    letter-spacing: 3px;
+    margin-top: 4px;
+  }
+  .sp-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+  .sp-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+  .rivet-box {
+    background: #1A0E08;
+    border: 2px inset #8D6E63;
+    border-radius: 3px;
+    padding: 14px 12px;
+    position: relative;
+    box-shadow: inset 0 2px 6px rgba(0,0,0,0.5), 0 1px 0 rgba(184,134,11,0.2);
+  }
+  .rivet-box::before, .rivet-box::after,
+  .rivet-tl, .rivet-tr, .rivet-bl, .rivet-br {
+    content: '';
+    position: absolute;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #D4A017, #7A5C00);
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.6);
+  }
+  .rivet-box::before { top: 5px; left: 5px; }
+  .rivet-box::after  { top: 5px; right: 5px; }
+  .rivet-bl { bottom: 5px; left: 5px; }
+  .rivet-br { bottom: 5px; right: 5px; }
+  .box-label {
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #8D6E63;
+    margin-bottom: 6px;
+  }
+  .box-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: #D4A017;
+  }
+  .box-unit {
+    font-size: 11px;
+    color: #A08060;
+    margin-left: 3px;
+  }
+
+  /* Gauge progress bars */
+  .gauge-track {
+    background: #2a1a0e;
+    border: 1px solid #5C3D1E;
+    border-radius: 2px;
+    height: 14px;
+    margin-top: 8px;
+    overflow: hidden;
+    position: relative;
+  }
+  .gauge-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #7A5C00, #D4A017, #FFD700);
+    border-radius: 2px;
+    position: relative;
+    transition: width 1.2s cubic-bezier(.4,0,.2,1);
+  }
+  .gauge-fill::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(90deg, transparent, transparent 8px, rgba(0,0,0,0.15) 8px, rgba(0,0,0,0.15) 9px);
+  }
+  .gauge-ticks {
+    display: flex; justify-content: space-between;
+    font-size: 8px; color: #5C3D1E;
+    margin-top: 2px;
+    letter-spacing: 0;
+  }
+  .gauge-label-row {
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .gauge-pct { font-size: 13px; font-weight: 700; color: #D4A017; }
+
+  /* Circular dial SVG */
+  .dial-wrap { display: flex; flex-direction: column; align-items: center; }
+
+  /* Status lights */
+  .status-row { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
+  .status-light {
+    width: 10px; height: 10px; border-radius: 50%;
+    border: 1px solid rgba(0,0,0,0.4);
+    flex-shrink: 0;
+  }
+  .light-green  { background: #4CAF50; box-shadow: 0 0 5px #4CAF50; }
+  .light-amber  { background: #FFC107; box-shadow: 0 0 5px #FFC107; }
+  .light-red    { background: #F44336; box-shadow: 0 0 5px #F44336; }
+  .status-text  { font-size: 11px; color: #C4A882; letter-spacing: 1px; }
+
+  /* Teletype log */
+  .log-line {
+    font-size: 10px;
+    color: #8D7060;
+    letter-spacing: 1px;
+    line-height: 1.7;
+    border-left: 2px solid #5C3D1E;
+    padding-left: 8px;
+    margin-top: 6px;
+  }
+  .log-line span.ts { color: #D4A017; }
+  .log-line span.ok { color: #4CAF50; }
+  .log-line span.warn { color: #FFC107; }
+
+  /* Divider */
+  .brass-divider {
+    border: none;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #B8860B 30%, #D4A017 50%, #B8860B 70%, transparent);
+    margin: 14px 0;
+  }
+
+  /* Gear rotation animation */
+  @keyframes spin-cw  { from { transform-origin: 50% 50%; transform: rotate(0deg); }   to { transform-origin: 50% 50%; transform: rotate(360deg); } }
+  @keyframes spin-ccw { from { transform-origin: 50% 50%; transform: rotate(0deg); }   to { transform-origin: 50% 50%; transform: rotate(-360deg); } }
+  .gear-cw  { animation: spin-cw  12s linear infinite; }
+  .gear-ccw { animation: spin-ccw 8s  linear infinite; }
+  .gear-cw2 { animation: spin-cw  20s linear infinite; }
+
+  .footer-bar {
+    text-align: center;
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: #5C3D1E;
+    text-transform: uppercase;
+    padding-top: 10px;
+    border-top: 1px solid #3E2010;
+  }
+
+  @keyframes flicker { 0%,100%{opacity:1} 92%{opacity:0.85} 95%{opacity:0.6} 97%{opacity:0.9} }
+  .flicker { animation: flicker 4s infinite; }
+</style>
+
+<div class="sp-root">
+  <!-- Animated gear background -->
+  <svg class="gear-bg" viewBox="0 0 680 600" xmlns="http://www.w3.org/2000/svg">
+    <g class="gear-cw"  style="transform-box:fill-box; transform-origin:center;" transform="translate(80,100)">
+      <circle cx="0" cy="0" r="55" fill="none" stroke="#B8860B" stroke-width="6"/>
+      <circle cx="0" cy="0" r="22" fill="none" stroke="#B8860B" stroke-width="4"/>
+      <rect x="-6" y="-65" width="12" height="22" rx="2" fill="#B8860B"/>
+      <rect x="-6" y="43" width="12" height="22" rx="2" fill="#B8860B"/>
+      <rect x="-65" y="-6" width="22" height="12" rx="2" fill="#B8860B"/>
+      <rect x="43" y="-6" width="22" height="12" rx="2" fill="#B8860B"/>
+      <rect x="-48" y="-48" width="12" height="18" rx="2" fill="#B8860B" transform="rotate(45)"/>
+      <rect x="38" y="-48" width="12" height="18" rx="2" fill="#B8860B" transform="rotate(-45)"/>
+      <rect x="-48" y="30" width="12" height="18" rx="2" fill="#B8860B" transform="rotate(-45)"/>
+      <rect x="38" y="30" width="12" height="18" rx="2" fill="#B8860B" transform="rotate(45)"/>
+    </g>
+    <g class="gear-ccw" style="transform-box:fill-box; transform-origin:center;" transform="translate(580,150)">
+      <circle cx="0" cy="0" r="70" fill="none" stroke="#B8860B" stroke-width="7"/>
+      <circle cx="0" cy="0" r="28" fill="none" stroke="#B8860B" stroke-width="4"/>
+      <rect x="-7" y="-82" width="14" height="24" rx="2" fill="#B8860B"/>
+      <rect x="-7" y="58" width="14" height="24" rx="2" fill="#B8860B"/>
+      <rect x="-82" y="-7" width="24" height="14" rx="2" fill="#B8860B"/>
+      <rect x="58" y="-7" width="24" height="14" rx="2" fill="#B8860B"/>
+      <rect x="-60" y="-60" width="14" height="22" rx="2" fill="#B8860B" transform="rotate(45,0,0)"/>
+      <rect x="46" y="-60" width="14" height="22" rx="2" fill="#B8860B" transform="rotate(-45,0,0)"/>
+      <rect x="-60" y="38" width="14" height="22" rx="2" fill="#B8860B" transform="rotate(-45,0,0)"/>
+      <rect x="46" y="38" width="14" height="22" rx="2" fill="#B8860B" transform="rotate(45,0,0)"/>
+    </g>
+    <g class="gear-cw2" style="transform-box:fill-box; transform-origin:center;" transform="translate(340,470)">
+      <circle cx="0" cy="0" r="42" fill="none" stroke="#B8860B" stroke-width="5"/>
+      <circle cx="0" cy="0" r="16" fill="none" stroke="#B8860B" stroke-width="3"/>
+      <rect x="-5" y="-50" width="10" height="16" rx="2" fill="#B8860B"/>
+      <rect x="-5" y="34" width="10" height="16" rx="2" fill="#B8860B"/>
+      <rect x="-50" y="-5" width="16" height="10" rx="2" fill="#B8860B"/>
+      <rect x="34" y="-5" width="16" height="10" rx="2" fill="#B8860B"/>
+      <rect x="-36" y="-36" width="10" height="16" rx="2" fill="#B8860B" transform="rotate(45)"/>
+      <rect x="26" y="-36" width="10" height="16" rx="2" fill="#B8860B" transform="rotate(-45)"/>
+    </g>
+  </svg>
+
+  <div class="sp-content">
+    <!-- Header -->
+    <div class="sp-header">
+      <div class="sp-title flicker">⚙ Analytical Engine Control Room ⚙</div>
+      <div class="sp-subtitle">— Mk. IV Aetheric Computation Apparatus — Est. MDCCCLXXXVIII —</div>
+    </div>
+
+    <!-- Row 1: three stat panels -->
+    <div class="sp-grid">
+      <div class="rivet-box">
+        <div class="rivet-bl"></div><div class="rivet-br"></div>
+        <div class="box-label">Steam Pressure</div>
+        <div class="box-value">147<span class="box-unit">PSI</span></div>
+        <div class="gauge-track"><div class="gauge-fill" style="width:73%"></div></div>
+        <div class="gauge-ticks"><span>0</span><span>50</span><span>100</span><span>200</span></div>
+      </div>
+      <div class="rivet-box">
+        <div class="rivet-bl"></div><div class="rivet-br"></div>
+        <div class="box-label">Aetheric Throughput</div>
+        <div class="box-value">3,841<span class="box-unit">AEU/s</span></div>
+        <div class="gauge-track"><div class="gauge-fill" style="width:61%"></div></div>
+        <div class="gauge-ticks"><span>0</span><span>2k</span><span>4k</span><span>6k</span></div>
+      </div>
+      <div class="rivet-box">
+        <div class="rivet-bl"></div><div class="rivet-br"></div>
+        <div class="box-label">Boiler Temperature</div>
+        <div class="box-value">312<span class="box-unit">°F</span></div>
+        <div class="gauge-track"><div class="gauge-fill" style="width:88%; background: linear-gradient(90deg, #7A5C00, #D4A017, #FF6B35)"></div></div>
+        <div class="gauge-ticks"><span>0°</span><span>150°</span><span>300°</span><span>450°</span></div>
+      </div>
+    </div>
+
+    <hr class="brass-divider">
+
+    <!-- Row 2: two wider panels -->
+    <div class="sp-grid-2">
+      <!-- System status panel -->
+      <div class="rivet-box">
+        <div class="rivet-bl"></div><div class="rivet-br"></div>
+        <div class="box-label">System Status Manifest</div>
+        <div class="status-row"><div class="status-light light-green"></div><div class="status-text">ANALYTICAL ENGINE — OPERATIONAL</div></div>
+        <div class="status-row"><div class="status-light light-green"></div><div class="status-text">BABBAGE RELAY ARRAY — NOMINAL</div></div>
+        <div class="status-row"><div class="status-light light-amber"></div><div class="status-text">CAPACITOR BANK 3 — DIMINISHED</div></div>
+        <div class="status-row"><div class="status-light light-amber"></div><div class="status-text">AETHER VALVE B-7 — DEGRADING</div></div>
+        <div class="status-row"><div class="status-light light-red"></div><div class="status-text">COAL RESERVES — CRITICAL</div></div>
+        <div class="status-row"><div class="status-light light-green"></div><div class="status-text">TELEGRAPH LINK — CONNECTED</div></div>
+      </div>
+
+      <!-- Circular gauge panel -->
+      <div class="rivet-box">
+        <div class="rivet-bl"></div><div class="rivet-br"></div>
+        <div class="box-label">Efficiency Gauges</div>
+        <div style="display:flex; gap:10px; justify-content:space-around; margin-top:8px;">
+          <!-- SVG circular dial #1 -->
+          <div class="dial-wrap">
+            <svg width="80" height="80" viewBox="0 0 80 80">
+              <circle cx="40" cy="40" r="32" fill="none" stroke="#3E2010" stroke-width="6"/>
+              <circle cx="40" cy="40" r="32" fill="none" stroke="#D4A017" stroke-width="6"
+                stroke-dasharray="138 201" stroke-dashoffset="0"
+                stroke-linecap="butt" transform="rotate(-90 40 40)"/>
+              <circle cx="40" cy="40" r="32" fill="none" stroke="#5C3D1E" stroke-width="1" stroke-dasharray="4 9.6"/>
+              <text x="40" y="44" text-anchor="middle" fill="#D4A017" font-size="13" font-family="Courier Prime,monospace" font-weight="700">68%</text>
+            </svg>
+            <div style="font-size:9px;color:#8D6E63;letter-spacing:1px;margin-top:2px;">DRIVE</div>
+          </div>
+          <div class="dial-wrap">
+            <svg width="80" height="80" viewBox="0 0 80 80">
+              <circle cx="40" cy="40" r="32" fill="none" stroke="#3E2010" stroke-width="6"/>
+              <circle cx="40" cy="40" r="32" fill="none" stroke="#D4A017" stroke-width="6"
+                stroke-dasharray="181 201" stroke-dashoffset="0"
+                stroke-linecap="butt" transform="rotate(-90 40 40)"/>
+              <circle cx="40" cy="40" r="32" fill="none" stroke="#5C3D1E" stroke-width="1" stroke-dasharray="4 9.6"/>
+              <text x="40" y="44" text-anchor="middle" fill="#D4A017" font-size="13" font-family="Courier Prime,monospace" font-weight="700">90%</text>
+            </svg>
+            <div style="font-size:9px;color:#8D6E63;letter-spacing:1px;margin-top:2px;">BOILER</div>
+          </div>
+          <div class="dial-wrap">
+            <svg width="80" height="80" viewBox="0 0 80 80">
+              <circle cx="40" cy="40" r="32" fill="none" stroke="#3E2010" stroke-width="6"/>
+              <circle cx="40" cy="40" r="32" fill="none" stroke="#F44336" stroke-width="6"
+                stroke-dasharray="62 201" stroke-dashoffset="0"
+                stroke-linecap="butt" transform="rotate(-90 40 40)"/>
+              <circle cx="40" cy="40" r="32" fill="none" stroke="#5C3D1E" stroke-width="1" stroke-dasharray="4 9.6"/>
+              <text x="40" y="44" text-anchor="middle" fill="#F44336" font-size="13" font-family="Courier Prime,monospace" font-weight="700">31%</text>
+            </svg>
+            <div style="font-size:9px;color:#8D6E63;letter-spacing:1px;margin-top:2px;">COAL</div>
+          </div>
+        </div>
+
+        <hr class="brass-divider" style="margin:10px 0 8px;">
+        <div class="gauge-label-row" style="margin-bottom:4px;">
+          <div class="box-label" style="margin:0;">Valve Manifold Load</div>
+          <div class="gauge-pct">54%</div>
+        </div>
+        <div class="gauge-track"><div class="gauge-fill" style="width:54%"></div></div>
+      </div>
+    </div>
+
+    <hr class="brass-divider">
+
+    <!-- Teletype log -->
+    <div class="rivet-box">
+      <div class="rivet-bl"></div><div class="rivet-br"></div>
+      <div class="box-label">Telegraphic Dispatch Log</div>
+      <div class="log-line"><span class="ts">08:14:02</span> — Analytical Engine Mk.IV cold-start sequence initiated .... <span class="ok">[SUCCESS]</span></div>
+      <div class="log-line"><span class="ts">08:14:47</span> — Babbage Relay synchronised to Greenwich Mean Time ....... <span class="ok">[LOCKED]</span></div>
+      <div class="log-line"><span class="ts">09:02:11</span> — Aether Valve B-7 pressure variance detected ............. <span class="warn">[WARNING]</span></div>
+      <div class="log-line"><span class="ts">09:55:33</span> — Coal hopper reservoir below safe operating threshold ..... <span class="warn">[CRITICAL]</span></div>
+      <div class="log-line"><span class="ts">10:31:09</span> — Punch-card batch JOB-0042 processed: 3,841 computations . <span class="ok">[COMPLETE]</span></div>
+    </div>
+
+    <div class="footer-bar" style="margin-top:14px;">
+      ◈ Manufactured by the Imperial Analytical Works, London ◈ Patent Pending ◈ By Appointment to H.M. the Queen ◈
+    </div>
+  </div>
+</div>

@@ -1,0 +1,339 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Special+Elite&display=swap');
+
+  .board {
+    min-height: 640px;
+    background-color: #b5813a;
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.06) 3px, rgba(0,0,0,0.06) 4px),
+      repeating-linear-gradient(90deg, transparent, transparent 3px, rgba(0,0,0,0.06) 3px, rgba(0,0,0,0.06) 4px),
+      radial-gradient(ellipse at 20% 30%, rgba(180,120,40,0.3) 0%, transparent 60%),
+      radial-gradient(ellipse at 75% 70%, rgba(100,60,10,0.2) 0%, transparent 50%);
+    position: relative;
+    border-radius: 6px;
+    overflow: hidden;
+    padding: 0;
+    font-family: 'Courier New', Courier, monospace;
+    border: 6px solid #7a5020;
+    box-shadow: inset 0 0 40px rgba(0,0,0,0.35);
+  }
+
+  .crime-tape {
+    position: absolute;
+    top: 18px;
+    left: -10px;
+    right: -10px;
+    background: repeating-linear-gradient(
+      -45deg,
+      #f5d000,
+      #f5d000 18px,
+      #111 18px,
+      #111 36px
+    );
+    height: 28px;
+    transform: rotate(-1.5deg);
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    letter-spacing: 4px;
+    font-size: 11px;
+    font-weight: bold;
+    color: #111;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    opacity: 0.88;
+  }
+
+  .crime-tape span {
+    background: #f5d000;
+    padding: 2px 14px;
+  }
+
+  .svg-lines {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .polaroid {
+    position: absolute;
+    background: #fff;
+    padding: 10px 10px 32px 10px;
+    box-shadow: 3px 4px 14px rgba(0,0,0,0.55), 1px 1px 0 rgba(255,255,255,0.15) inset;
+    border: 1px solid #ddd;
+    z-index: 5;
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+
+  .polaroid:hover { transform: scale(1.04) rotate(0deg) !important; z-index: 20; }
+
+  .polaroid-img {
+    width: 130px;
+    height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .polaroid-label {
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    text-align: center;
+    margin-top: 6px;
+    color: #222;
+    font-weight: bold;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .pushpin {
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 18px;
+    height: 18px;
+    border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+    z-index: 6;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+  }
+
+  .sticky {
+    position: absolute;
+    background: #f7e94c;
+    padding: 10px 12px;
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    color: #1a1a00;
+    line-height: 1.5;
+    box-shadow: 2px 3px 10px rgba(0,0,0,0.4);
+    z-index: 5;
+    max-width: 140px;
+    border-top: 3px solid rgba(0,0,0,0.1);
+  }
+
+  .sticky::before {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 16px;
+    height: 16px;
+    background: #cc3333;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+  }
+
+  .stamp {
+    position: absolute;
+    border: 3px solid #c0392b;
+    color: #c0392b;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    font-weight: bold;
+    letter-spacing: 3px;
+    padding: 4px 10px;
+    transform: rotate(-18deg);
+    opacity: 0.75;
+    z-index: 8;
+    text-transform: uppercase;
+  }
+
+  .label-tag {
+    position: absolute;
+    background: #fffbe6;
+    border: 1px solid #c8b560;
+    font-family: 'Courier New', monospace;
+    font-size: 10px;
+    color: #333;
+    padding: 3px 8px;
+    z-index: 5;
+    box-shadow: 1px 1px 4px rgba(0,0,0,0.3);
+    letter-spacing: 1px;
+  }
+
+  .label-tag::after {
+    content: '';
+    position: absolute;
+    right: -14px;
+    top: 50%;
+    transform: translateY(-50%);
+    border-left: 7px solid #c8b560;
+    border-top: 7px solid transparent;
+    border-bottom: 7px solid transparent;
+  }
+</style>
+
+<div class="board" id="board">
+  <div class="crime-tape"><span>— CRIME SCENE — DO NOT CROSS — CRIME SCENE —</span></div>
+
+  <svg class="svg-lines" viewBox="0 0 680 640" xmlns="http://www.w3.org/2000/svg">
+    <!-- red strings connecting evidence -->
+    <line x1="175" y1="185" x2="320" y2="155" stroke="#cc1111" stroke-width="1.5" stroke-dasharray="0" opacity="0.85"/>
+    <line x1="320" y1="155" x2="460" y2="200" stroke="#cc1111" stroke-width="1.5" opacity="0.85"/>
+    <line x1="175" y1="185" x2="140" y2="380" stroke="#cc1111" stroke-width="1.5" opacity="0.7"/>
+    <line x1="460" y1="200" x2="510" y2="380" stroke="#cc1111" stroke-width="1.5" opacity="0.7"/>
+    <line x1="320" y1="155" x2="320" y2="390" stroke="#cc1111" stroke-width="1.5" opacity="0.75"/>
+    <line x1="140" y1="380" x2="320" y2="390" stroke="#cc1111" stroke-width="1.2" opacity="0.6" stroke-dasharray="5,3"/>
+    <line x1="320" y1="390" x2="510" y2="380" stroke="#cc1111" stroke-width="1.2" opacity="0.6" stroke-dasharray="5,3"/>
+    <!-- slight sag on some lines to mimic real string -->
+    <path d="M175 185 Q248 175 320 155" fill="none" stroke="#cc1111" stroke-width="1.5" opacity="0.0"/>
+  </svg>
+
+  <!-- Polaroid 1 – Victor Crane -->
+  <div class="polaroid" style="left:48px; top:88px; transform:rotate(-4deg);">
+    <div class="pushpin" style="background:#cc2222;"></div>
+    <div class="polaroid-img" style="background:#2a2a3a; color:#8aafcc;">
+      <svg width="130" height="100" viewBox="0 0 130 100" xmlns="http://www.w3.org/2000/svg">
+        <rect width="130" height="100" fill="#1e2030"/>
+        <circle cx="65" cy="38" r="22" fill="#4a5568"/>
+        <ellipse cx="65" cy="85" rx="36" ry="22" fill="#374151"/>
+        <rect x="35" y="58" width="60" height="4" rx="2" fill="#4a5568"/>
+        <rect x="20" y="6" width="90" height="4" rx="1" fill="#374151" opacity="0.5"/>
+        <rect x="20" y="13" width="60" height="3" rx="1" fill="#374151" opacity="0.4"/>
+      </svg>
+    </div>
+    <div class="polaroid-label">Victor Crane</div>
+  </div>
+
+  <!-- Polaroid 2 – The Manor -->
+  <div class="polaroid" style="left:243px; top:68px; transform:rotate(2deg);">
+    <div class="pushpin" style="background:#1a44aa;"></div>
+    <div class="polaroid-img" style="background:#2c3e2a;">
+      <svg width="130" height="100" viewBox="0 0 130 100" xmlns="http://www.w3.org/2000/svg">
+        <rect width="130" height="100" fill="#3a4a30"/>
+        <rect x="20" y="40" width="90" height="55" fill="#2a3525"/>
+        <polygon points="20,40 65,15 110,40" fill="#1e2a18"/>
+        <rect x="52" y="55" width="26" height="40" fill="#1a2215"/>
+        <rect x="28" y="50" width="18" height="16" fill="#4a6040" rx="1"/>
+        <rect x="84" y="50" width="18" height="16" fill="#4a6040" rx="1"/>
+        <rect x="60" y="22" width="10" height="14" fill="#2a3820"/>
+      </svg>
+    </div>
+    <div class="polaroid-label">Blackwood Manor</div>
+  </div>
+
+  <!-- Polaroid 3 – The Weapon -->
+  <div class="polaroid" style="left:438px; top:95px; transform:rotate(3.5deg);">
+    <div class="pushpin" style="background:#228833;"></div>
+    <div class="polaroid-img" style="background:#1a1008;">
+      <svg width="130" height="100" viewBox="0 0 130 100" xmlns="http://www.w3.org/2000/svg">
+        <rect width="130" height="100" fill="#1a1008"/>
+        <rect x="15" y="46" width="65" height="8" rx="2" fill="#8a7a60" transform="rotate(-12 48 50)"/>
+        <rect x="14" y="43" width="20" height="14" rx="3" fill="#6a5a40" transform="rotate(-12 24 50)"/>
+        <circle cx="100" cy="35" r="12" fill="none" stroke="#8a7a60" stroke-width="2"/>
+        <line x1="88" y1="47" x2="78" y2="57" stroke="#8a7a60" stroke-width="2"/>
+        <circle cx="40" cy="70" r="5" fill="#cc2200" opacity="0.7"/>
+        <circle cx="55" cy="62" r="3" fill="#cc2200" opacity="0.5"/>
+      </svg>
+    </div>
+    <div class="polaroid-label">Murder Weapon?</div>
+  </div>
+
+  <!-- Polaroid 4 – Eleanor Voss -->
+  <div class="polaroid" style="left:40px; top:285px; transform:rotate(2.5deg);">
+    <div class="pushpin" style="background:#cc2222;"></div>
+    <div class="polaroid-img" style="background:#2a1a2e; color:#a080bb;">
+      <svg width="130" height="100" viewBox="0 0 130 100" xmlns="http://www.w3.org/2000/svg">
+        <rect width="130" height="100" fill="#1e1428"/>
+        <circle cx="65" cy="36" r="20" fill="#5a3e70"/>
+        <ellipse cx="65" cy="82" rx="34" ry="20" fill="#3d2952"/>
+        <path d="M45 36 Q65 20 85 36" fill="#4a2e60" stroke="none"/>
+        <rect x="55" y="42" width="20" height="3" rx="1" fill="#7a5a90" opacity="0.6"/>
+      </svg>
+    </div>
+    <div class="polaroid-label">Eleanor Voss</div>
+  </div>
+
+  <!-- Polaroid 5 – Timeline -->
+  <div class="polaroid" style="left:243px; top:295px; transform:rotate(-2deg);">
+    <div class="pushpin" style="background:#cc8800;"></div>
+    <div class="polaroid-img" style="background:#0d1117;">
+      <svg width="130" height="100" viewBox="0 0 130 100" xmlns="http://www.w3.org/2000/svg">
+        <rect width="130" height="100" fill="#0d1117"/>
+        <line x1="25" y1="20" x2="25" y2="80" stroke="#cc4444" stroke-width="2"/>
+        <circle cx="25" cy="25" r="4" fill="#cc4444"/>
+        <text x="35" y="29" fill="#aaaaaa" font-size="9" font-family="Courier New">11:00PM – Dinner</text>
+        <circle cx="25" cy="45" r="4" fill="#cc4444"/>
+        <text x="35" y="49" fill="#aaaaaa" font-size="9" font-family="Courier New">01:15AM – Scream</text>
+        <circle cx="25" cy="65" r="4" fill="#cc4444"/>
+        <text x="35" y="69" fill="#aaaaaa" font-size="9" font-family="Courier New">01:22AM – Body</text>
+        <circle cx="25" cy="80" r="4" fill="#888"/>
+        <text x="35" y="84" fill="#666666" font-size="9" font-family="Courier New">Alibi ???</text>
+      </svg>
+    </div>
+    <div class="polaroid-label">Timeline</div>
+  </div>
+
+  <!-- Polaroid 6 – Fingerprint -->
+  <div class="polaroid" style="left:432px; top:282px; transform:rotate(-3deg);">
+    <div class="pushpin" style="background:#1a44aa;"></div>
+    <div class="polaroid-img" style="background:#0a0a14;">
+      <svg width="130" height="100" viewBox="0 0 130 100" xmlns="http://www.w3.org/2000/svg">
+        <rect width="130" height="100" fill="#0a0a14"/>
+        <ellipse cx="65" cy="50" rx="30" ry="38" fill="none" stroke="#7aaaff" stroke-width="1" opacity="0.8"/>
+        <ellipse cx="65" cy="50" rx="22" ry="29" fill="none" stroke="#7aaaff" stroke-width="1" opacity="0.7"/>
+        <ellipse cx="65" cy="50" rx="14" ry="20" fill="none" stroke="#7aaaff" stroke-width="1" opacity="0.7"/>
+        <ellipse cx="65" cy="50" rx="7" ry="11" fill="none" stroke="#7aaaff" stroke-width="1" opacity="0.8"/>
+        <ellipse cx="65" cy="52" rx="36" ry="44" fill="none" stroke="#5588dd" stroke-width="0.8" opacity="0.5"/>
+        <line x1="85" y1="15" x2="110" y2="10" stroke="#ffdd44" stroke-width="1" opacity="0.9"/>
+        <text x="92" y="9" fill="#ffdd44" font-size="9" font-family="Courier New">MATCH!</text>
+      </svg>
+    </div>
+    <div class="polaroid-label">Fingerprint #7</div>
+  </div>
+
+  <!-- Sticky Note 1 -->
+  <div class="sticky" style="left:590px; top:100px; transform:rotate(3deg); width:130px;">
+    <strong>MOTIVE?</strong><br>
+    Inheritance<br>dispute — £2M<br>estate at stake<br>
+    <em style="font-size:10px;">— Det. Marlowe</em>
+  </div>
+
+  <!-- Sticky Note 2 -->
+  <div class="sticky" style="left:20px; top:520px; transform:rotate(-2.5deg); width:140px; background:#b8f7b0;">
+    ALIBI UNVERIFIED<br>
+    Was seen at<br>the library??<br>
+    Check CCTV footage
+  </div>
+
+  <!-- Sticky Note 3 -->
+  <div class="sticky" style="left:540px; top:470px; transform:rotate(5deg); width:118px;">
+    Victim &amp; Victor<br>argued at<br><strong>10:47 PM</strong><br>
+    3 witnesses
+  </div>
+
+  <!-- Stamp -->
+  <div class="stamp" style="left:250px; top:510px;">CLASSIFIED</div>
+
+  <!-- Label tags -->
+  <div class="label-tag" style="left:30px; top:238px; transform:rotate(-1deg);">EXHIBIT A</div>
+  <div class="label-tag" style="left:433px; top:252px; transform:rotate(1deg);">EXHIBIT B</div>
+
+  <!-- Small handwritten note near center -->
+  <div style="position:absolute; left:244px; top:218px; font-family:'Courier New',monospace; font-size:10px; color:#f0d070; transform:rotate(-1deg); z-index:5; line-height:1.6; text-shadow:0 1px 3px rgba(0,0,0,0.8);">
+    ← WHO HAD ACCESS? →<br>
+    <span style="font-size:9px; opacity:0.8;">Only 4 guests + staff</span>
+  </div>
+
+  <!-- Number tag -->
+  <div style="position:absolute; left:192px;top:450px; background:#cc2222; color:#fff; font-family:'Courier New',monospace; font-size:13px; font-weight:bold; width:26px;height:26px; display:flex;align-items:center;justify-content:center; border-radius:50%; box-shadow:0 2px 6px rgba(0,0,0,0.5); z-index:6;">1</div>
+  <div style="position:absolute; left:365px;top:460px; background:#cc2222; color:#fff; font-family:'Courier New',monospace; font-size:13px; font-weight:bold; width:26px;height:26px; display:flex;align-items:center;justify-content:center; border-radius:50%; box-shadow:0 2px 6px rgba(0,0,0,0.5); z-index:6;">2</div>
+
+  <!-- Corner wear marks -->
+  <div style="position:absolute;bottom:0;left:0;width:60px;height:40px;background:linear-gradient(135deg,rgba(0,0,0,0.2) 0%,transparent 100%);border-radius:0 6px 0 0; pointer-events:none;"></div>
+  <div style="position:absolute;bottom:0;right:0;width:60px;height:40px;background:linear-gradient(225deg,rgba(0,0,0,0.2) 0%,transparent 100%);border-radius:6px 0 0 0; pointer-events:none;"></div>
+
+</div>
+
+<div style="margin-top:10px; font-family:'Courier New',monospace; font-size:11px; color:var(--color-text-secondary); letter-spacing:1px; text-align:center;">
+  CASE FILE #4471 — BLACKWOOD MANOR — DET. MARLOWE — ACTIVE INVESTIGATION
+</div>
