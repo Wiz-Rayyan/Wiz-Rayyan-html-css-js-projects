@@ -1,0 +1,418 @@
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#e8e4db;}
+.pdf-root{background:#e8e4db;font-family:'Times New Roman',Times,serif;font-size:11pt;line-height:1.6;padding-bottom:32px;}
+
+.toolbar{background:#3a3530;padding:7px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-family:Arial,sans-serif;font-size:11px;color:#ddd;position:sticky;top:0;z-index:100;}
+.toolbar label{color:#aaa;font-size:10px;white-space:nowrap;}
+.toolbar select{font-size:10px;padding:2px 4px;background:#555;color:#eee;border:1px solid #777;border-radius:2px;}
+.toolbar input[type=range]{width:70px;accent-color:#c8a84b;}
+.toolbar span.val{font-size:10px;color:#ccc;min-width:22px;}
+.tb-sep{width:1px;background:#666;height:18px;margin:0 3px;}
+.btn-tb{font-size:10px;font-family:Arial,sans-serif;padding:3px 9px;border:1px solid #666;background:#4a4540;color:#ddd;cursor:pointer;border-radius:2px;}
+.btn-tb:hover{background:#5a5550;}
+.btn-tb.active{background:#c8a84b;color:#1a1008;border-color:#a88838;}
+
+.tool-row{background:#2e2b27;padding:5px 14px;display:flex;align-items:center;gap:8px;font-family:Arial,sans-serif;font-size:10px;color:#bbb;border-bottom:1px solid #1a1815;}
+.tool-btn{padding:3px 10px;border:1px solid #555;background:#3a3530;color:#ccc;cursor:pointer;border-radius:2px;font-size:10px;font-family:Arial,sans-serif;}
+.tool-btn:hover{background:#4a4540;}
+.tool-btn.active{background:#c8a84b;color:#1a1008;border-color:#a88838;}
+.color-dot{width:14px;height:14px;border-radius:50%;border:1px solid #888;cursor:pointer;display:inline-block;}
+.color-dot.sel{border:2px solid #fff;}
+
+.sub-bar{background:#f0ede6;border-bottom:1px solid #ccc;padding:5px 16px;display:flex;gap:16px;font-family:Arial,sans-serif;font-size:10px;color:#666;align-items:center;}
+
+.toc-panel{background:#f5f1e8;border-bottom:1px solid #bbb;padding:10px 32px;font-family:'Times New Roman',Times,serif;font-size:9.5pt;display:none;}
+.toc-panel.visible{display:block;}
+.toc-panel li{margin:3px 0;cursor:pointer;color:#1a3a6b;text-decoration:underline;list-style:none;padding:1px 0;}
+.search-bar{background:#f8f5ee;border-bottom:1px solid #ccc;padding:6px 16px;display:none;align-items:center;gap:8px;font-family:Arial,sans-serif;font-size:10px;}
+.search-bar.visible{display:flex;}
+.search-bar input{flex:1;font-family:'Times New Roman',Times,serif;font-size:10pt;border:0.5px solid #aaa;padding:2px 6px;background:#fff;}
+.search-bar span{color:#888;min-width:80px;}
+
+.page-wrap{max-width:760px;margin:24px auto;background:#fff;border:0.5px solid #bbb;}
+.page{padding:52px 68px 56px;position:relative;min-height:600px;cursor:crosshair;}
+.page.tool-select{cursor:text;}
+.page.tool-comment{cursor:cell;}
+.page.tool-stamp{cursor:copy;}
+
+.page-header{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:1px solid #111;padding-bottom:6px;margin-bottom:18px;font-size:8pt;color:#555;letter-spacing:0.04em;}
+h1.title{font-size:20pt;font-weight:bold;line-height:1.2;margin-bottom:4px;}
+.subtitle{font-size:12pt;font-style:italic;color:#444;margin-bottom:12px;}
+.byline{font-size:9pt;color:#555;border-top:0.5px solid #aaa;border-bottom:0.5px solid #aaa;padding:5px 0;margin-bottom:14px;}
+.abstract{font-size:9.5pt;border:0.5px solid #888;padding:10px 14px;margin-bottom:18px;background:#fafafa;}
+.abstract strong{font-variant:small-caps;font-size:10pt;}
+.columns{display:grid;gap:28px;}
+.two-col{grid-template-columns:1fr 1fr;}
+.one-col{grid-template-columns:1fr;}
+h2.section{font-size:10pt;font-weight:bold;font-variant:small-caps;letter-spacing:0.08em;border-bottom:0.5px solid #111;padding-bottom:2px;margin:14px 0 7px;}
+p.body{font-size:10pt;margin-bottom:8px;text-align:justify;position:relative;}
+.figure{border:0.5px solid #888;padding:10px;margin:12px 0;text-align:center;}
+.fig-row{display:flex;justify-content:center;align-items:center;margin-bottom:6px;}
+.fig-box{border:0.5px solid #555;padding:5px 9px;font-size:8pt;}
+.fig-arr{font-size:12px;color:#555;padding:0 4px;}
+.caption{font-size:8pt;color:#555;font-style:italic;}
+.caption strong{font-style:normal;}
+.fn-rule{border-top:0.5px solid #888;margin-top:16px;padding-top:6px;}
+.fn{font-size:8pt;color:#555;margin-bottom:3px;}
+.pullquote{border-left:2px solid #111;padding:4px 10px;font-style:italic;font-size:11pt;color:#222;margin:12px 0;}
+.drop-cap::first-letter{float:left;font-size:36pt;line-height:0.78;margin-right:4px;margin-top:4px;font-weight:bold;}
+.anno-word{border-bottom:2px solid #c8a84b;background:#fffde7;cursor:pointer;position:relative;}
+.anno-tip{display:none;position:absolute;left:0;top:1.4em;background:#fffef0;border:0.5px solid #c8a84b;padding:5px 8px;font-size:8pt;font-style:normal;color:#333;width:200px;z-index:20;font-family:Arial,sans-serif;line-height:1.4;}
+.anno-word:hover .anno-tip{display:block;}
+
+.page-footer{max-width:760px;margin:0 auto;background:#fff;border:0.5px solid #bbb;border-top:none;padding:8px 68px;display:flex;justify-content:space-between;font-size:8pt;color:#666;font-family:'Times New Roman',Times,serif;}
+
+.highlight{border-radius:1px;cursor:pointer;}
+.hl-yellow{background:rgba(255,251,100,0.7);}
+.hl-green{background:rgba(100,220,130,0.5);}
+.hl-pink{background:rgba(255,130,160,0.4);}
+.hl-blue{background:rgba(100,170,255,0.4);}
+
+.sticky-note{position:absolute;background:#fffde7;border:0.5px solid #e8c84a;padding:6px 8px;font-size:8pt;font-family:Arial,sans-serif;color:#333;min-width:120px;max-width:180px;box-shadow:2px 2px 0 rgba(0,0,0,0.08);cursor:move;z-index:30;line-height:1.4;}
+.sticky-note .sn-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;font-size:7pt;color:#888;border-bottom:0.5px solid #e0c840;padding-bottom:3px;}
+.sticky-note .sn-del{cursor:pointer;color:#c00;font-size:9pt;padding:0 2px;}
+.sticky-note textarea{width:100%;border:none;background:transparent;font-size:8pt;font-family:Arial,sans-serif;color:#333;resize:none;outline:none;min-height:50px;}
+
+.stamp{position:absolute;pointer-events:none;z-index:25;font-family:Arial,sans-serif;font-weight:bold;font-size:20pt;letter-spacing:0.1em;opacity:0.22;transform:rotate(-20deg);border:4px solid;border-radius:4px;padding:2px 8px;white-space:nowrap;}
+.stamp-approved{color:#1a7a30;border-color:#1a7a30;}
+.stamp-draft{color:#1a3a7a;border-color:#1a3a7a;}
+.stamp-confidential{color:#c00;border-color:#c00;}
+.stamp-revised{color:#b86000;border-color:#b86000;}
+
+.comment-bubble{position:absolute;right:-44px;top:0;width:28px;height:28px;background:#fffde7;border:1px solid #c8a84b;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;cursor:pointer;z-index:20;font-family:Arial,sans-serif;}
+.comment-bubble:hover{background:#fff8c0;}
+.comment-expanded{position:absolute;right:-210px;top:0;width:190px;background:#fffef5;border:0.5px solid #c8a84b;padding:6px 8px;font-size:8pt;font-family:Arial,sans-serif;z-index:40;display:none;line-height:1.4;}
+.comment-expanded.open{display:block;}
+.comment-expanded strong{font-size:7.5pt;color:#888;display:block;margin-bottom:3px;}
+.comment-del{color:#c00;cursor:pointer;float:right;}
+
+.reading-bar{height:3px;background:#c8a84b;width:0%;transition:width 0.15s;}
+.sepia .page,.sepia .page-footer,.sepia .page-wrap{background:#f9f3e8;}
+.sepia .abstract{background:#f2e9d6;}
+
+.kbd{font-family:monospace;font-size:9px;background:#555;color:#eee;padding:1px 4px;border-radius:2px;}
+</style>
+
+<div id="root">
+<div class="reading-bar" id="rbar"></div>
+
+<div class="toolbar" id="toolbar">
+  <label>Font</label>
+  <select onchange="setFont(this.value)">
+    <option value="'Times New Roman',Times,serif">Times New Roman</option>
+    <option value="Georgia,serif">Georgia</option>
+    <option value="'Palatino Linotype',serif">Palatino</option>
+    <option value="Garamond,serif">Garamond</option>
+    <option value="Arial,sans-serif">Arial</option>
+  </select>
+  <div class="tb-sep"></div>
+  <label>Size</label>
+  <input type="range" min="9" max="16" step="1" value="11" oninput="setSize(this.value)">
+  <span class="val" id="szOut">11pt</span>
+  <div class="tb-sep"></div>
+  <label>Layout</label>
+  <select onchange="setLayout(this.value)">
+    <option value="two">2 columns</option>
+    <option value="one">1 column</option>
+  </select>
+  <div class="tb-sep"></div>
+  <button class="btn-tb" id="sepiaBtn" onclick="toggleSepia()">Sepia</button>
+  <button class="btn-tb" id="tocBtn" onclick="togglePanel('toc')">Contents</button>
+  <button class="btn-tb" id="srchBtn" onclick="togglePanel('search')">Find</button>
+  <button class="btn-tb" onclick="exportAnnotations()">Export notes</button>
+  <button class="btn-tb" onclick="window.print()">Print</button>
+</div>
+
+<div class="tool-row" id="toolRow">
+  <span style="color:#888;font-size:10px;margin-right:4px;">Tool:</span>
+  <button class="tool-btn active" id="tsel" onclick="setTool('select')">Select</button>
+  <button class="tool-btn" id="thl" onclick="setTool('highlight')">Highlight</button>
+  <button class="tool-btn" id="tcmt" onclick="setTool('comment')">Comment</button>
+  <button class="tool-btn" id="tsticky" onclick="setTool('sticky')">Sticky note</button>
+  <button class="tool-btn" id="tstamp" onclick="setTool('stamp')">Stamp</button>
+  <div class="tb-sep"></div>
+  <span style="color:#888;">Colour:</span>
+  <span class="color-dot sel" style="background:#fffb64;" onclick="setHlColor('yellow',this)" id="cy"></span>
+  <span class="color-dot" style="background:#64dc82;" onclick="setHlColor('green',this)" id="cg"></span>
+  <span class="color-dot" style="background:#ff82a0;" onclick="setHlColor('pink',this)" id="cp"></span>
+  <span class="color-dot" style="background:#64aaff;" onclick="setHlColor('blue',this)" id="cb"></span>
+  <div class="tb-sep"></div>
+  <span style="color:#888;">Stamp:</span>
+  <select id="stampSel" style="font-size:10px;padding:2px 4px;background:#3a3530;color:#ddd;border:1px solid #666;border-radius:2px;">
+    <option value="approved">APPROVED</option>
+    <option value="draft">DRAFT</option>
+    <option value="confidential">CONFIDENTIAL</option>
+    <option value="revised">REVISED</option>
+  </select>
+  <div class="tb-sep"></div>
+  <button class="tool-btn" onclick="clearAll()" style="color:#f88;">Clear all</button>
+</div>
+
+<div class="toc-panel" id="tocPanel">
+  <strong style="font-size:9pt;font-variant:small-caps;letter-spacing:0.08em;color:#333;">Table of Contents</strong>
+  <div style="margin-top:6px;display:flex;flex-direction:column;gap:3px;">
+    <span style="cursor:pointer;color:#1a3a6b;text-decoration:underline;font-size:9.5pt;" onclick="gotoSec('intro')">1. Introduction &nbsp;·&nbsp; 1</span>
+    <span style="cursor:pointer;color:#1a3a6b;text-decoration:underline;font-size:9.5pt;" onclick="gotoSec('typo')">2. Typographic Anchors &nbsp;·&nbsp; 1</span>
+    <span style="cursor:pointer;color:#1a3a6b;text-decoration:underline;font-size:9.5pt;" onclick="gotoSec('struct')">3. Structural Signals &nbsp;·&nbsp; 1</span>
+    <span style="cursor:pointer;color:#1a3a6b;text-decoration:underline;font-size:9.5pt;" onclick="gotoSec('cases')">4. Case Studies &nbsp;·&nbsp; 2</span>
+    <span style="cursor:pointer;color:#1a3a6b;text-decoration:underline;font-size:9.5pt;" onclick="gotoSec('disc')">5. Discussion &nbsp;·&nbsp; 2</span>
+  </div>
+</div>
+<div class="search-bar" id="searchPanel">
+  <input id="srchIn" type="text" placeholder="Find in document…" oninput="doSearch(this.value)">
+  <span id="srchRes">—</span>
+  <button class="tool-btn" onclick="togglePanel('search')">Close</button>
+</div>
+
+<div class="sub-bar" id="subBar">
+  <span id="wcOut">Words: —</span>
+  <span id="rtOut">Read time: —</span>
+  <span id="hlCount">Highlights: 0</span>
+  <span id="cmtCount">Comments: 0</span>
+  <span id="stickyCount">Stickies: 0</span>
+  <span style="margin-left:auto;color:#aaa;">Tip: select text to highlight · click paragraph for comment/sticky</span>
+</div>
+
+<div class="page-wrap" id="sepiaTgt">
+<div class="page" id="thePage" onclick="pageClick(event)" onmouseup="pageMouseUp(event)">
+
+  <div class="page-header">
+    <span style="font-style:italic;">Journal of Interface Aesthetics &amp; Design Theory</span>
+    <span style="font-variant:small-caps;">Vol. 12, No. 3 · Spring 2025</span>
+  </div>
+
+  <h1 class="title">The PDF Aesthetic: Authority Through Constraint</h1>
+  <div class="subtitle">How print-era conventions lend credibility to digital documents</div>
+  <div class="byline">A. Thornton &nbsp;·&nbsp; Dept. of Visual Culture, Midvale Institute &nbsp;·&nbsp; a.thornton@midvale.edu</div>
+
+  <div class="abstract">
+    <strong>Abstract.</strong> This paper examines the growing use of print-derived visual conventions — fixed-width columns, serifed typefaces, ruled page headers, and numbered folios — in contemporary web and application design. We argue that the "PDF aesthetic" functions as a trust signal, borrowing authority from institutional document formats to lend weight to digital reading experiences. Three case studies illustrate the pattern: academic preprint servers, minimalist reading platforms, and legal document portals.
+    <div style="font-size:8.5pt;color:#666;margin-top:6px;"><span style="font-variant:small-caps;">Keywords:</span> &nbsp;document design, serif typography, interface credibility, print metaphor, reading UX</div>
+  </div>
+
+  <div class="columns two-col" id="colGrid">
+    <div>
+      <h2 class="section" id="intro">1. Introduction</h2>
+      <p class="body drop-cap" id="p1">The graphical user interface inherited its metaphors from the physical world: the desktop, the folder, the trash can. Yet few borrowings have proven as durable — or as curiously specific — as the printed academic paper. Long after the "paperless office" was declared, designers continue to reach for <span class="anno-word">Times New Roman<span class="anno-tip">Designed in 1931 for The Times of London. Optimised for narrow newspaper columns at small sizes.</span></span>, 1-inch margins, and two-column grids as signals of seriousness.</p>
+      <p class="body" id="p2">This is not mere nostalgia. The conventions of the typeset document carry cultural freight: they imply peer review, institutional backing, archival permanence. When a web page looks like a PDF, it inherits — rightly or not — a portion of that authority.</p>
+
+      <h2 class="section" id="typo">2. Typographic Anchors</h2>
+      <p class="body" id="p3">Serif typefaces such as Times New Roman or <span class="anno-word">Palatino<span class="anno-tip">Hermann Zapf's 1948 design, named after Italian master calligrapher Giambattista Palatino (1515–1575).</span></span> are the most immediate cue. Research on reading perception consistently shows that readers associate serifs with formality and expertise, even when the underlying content is identical to a sans-serif counterpart.<sup>1</sup></p>
+      <blockquote class="pullquote">"The column grid is not merely functional — it is a declaration of seriousness."</blockquote>
+      <p class="body" id="p4">Line length is the second anchor. Academic typesetting targets 60–75 characters per line; the <span class="anno-word">two-column grid<span class="anno-tip">Used in journals since the 18th century. Balances reading comfort with information density on large-format pages.</span></span> achieves this at comfortable type sizes without requiring enormous white margins.</p>
+    </div>
+
+    <div>
+      <h2 class="section" id="struct">3. Structural Signals</h2>
+      <p class="body" id="p5">Beyond typeface, the PDF aesthetic relies on a constellation of structural cues: numbered section headings in <span class="anno-word">small-caps<span class="anno-tip">Small capitals are uppercase letterforms drawn at x-height. They lend hierarchy without the weight of bold.</span></span>, ruled page headers carrying the journal name and volume, and page-number folios at the foot of each column. Individually minor — together they constitute a legibility contract.</p>
+
+      <div class="figure" id="fig1">
+        <div class="fig-row">
+          <div class="fig-box">Raw Text</div><div class="fig-arr">→</div>
+          <div class="fig-box">Typography</div><div class="fig-arr">→</div>
+          <div class="fig-box">Layout Grid</div><div class="fig-arr">→</div>
+          <div class="fig-box">Page Frame</div>
+        </div>
+        <div class="caption"><strong>Fig. 1.</strong> The layered application of PDF aesthetic conventions, from raw content to fully framed document.</div>
+      </div>
+
+      <h2 class="section" id="cases">4. Case Studies</h2>
+      <p class="body" id="p6">Three categories of digital product have adopted this aesthetic most deliberately. Preprint servers such as <span class="anno-word">arXiv<span class="anno-tip">Founded at Los Alamos in 1991 by Paul Ginsparg. Now hosts over 2 million scholarly preprints in physics, maths, and CS.</span></span> and SSRN present machine-generated PDFs that mirror journal formatting precisely. Minimalist reading platforms use the visual grammar of the article to signal long-form reading. Legal portals apply court-filing conventions to lend gravity to contractual content.</p>
+
+      <h2 class="section" id="disc">5. Discussion</h2>
+      <p class="body" id="p7">The PDF aesthetic is, ultimately, a borrowed costume. It cannot substitute for rigorous argument, peer review, or genuine institutional authority. Yet as a design signal it remains remarkably effective — proof that in visual communication, form is never merely formal.<sup>2</sup></p>
+
+      <div class="fn-rule">
+        <div class="fn"><sup>1</sup> Tantillo, J. et al. "Typographic Authority in Digital Contexts." <em>Design Studies</em>, 2022.</div>
+        <div class="fn"><sup>2</sup> McLuhan, M. <em>Understanding Media</em>. McGraw-Hill, 1964.</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+<div class="page-footer">
+  <span>A. Thornton — The PDF Aesthetic</span>
+  <span>2</span>
+  <span><em>J. Interface Aesthetics</em> · 2025</span>
+</div>
+</div>
+
+<script>
+var currentTool='select', hlColor='yellow', sepiaOn=false;
+var highlights=[], comments=[], stickies=[], stamps=[];
+var openPanels={toc:false,search:false};
+
+function setFont(v){document.getElementById('thePage').style.fontFamily=v;}
+function setSize(v){document.getElementById('szOut').textContent=v+'pt';document.getElementById('thePage').style.fontSize=v+'pt';}
+function setLayout(v){var g=document.getElementById('colGrid');g.className='columns '+(v==='two'?'two-col':'one-col');}
+function toggleSepia(){sepiaOn=!sepiaOn;document.getElementById('sepiaTgt').classList.toggle('sepia',sepiaOn);document.getElementById('sepiaBtn').classList.toggle('active',sepiaOn);}
+
+function togglePanel(name){
+  openPanels[name]=!openPanels[name];
+  if(name==='toc'){document.getElementById('tocPanel').className='toc-panel'+(openPanels.toc?' visible':'');document.getElementById('tocBtn').classList.toggle('active',openPanels.toc);}
+  if(name==='search'){document.getElementById('searchPanel').className='search-bar'+(openPanels.search?' visible':'');document.getElementById('srchBtn').classList.toggle('active',openPanels.search);if(openPanels.search)document.getElementById('srchIn').focus();}
+}
+
+function gotoSec(id){var el=document.getElementById(id);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});}
+
+function doSearch(q){
+  var res=document.getElementById('srchRes');
+  if(!q||q.length<2){res.textContent='—';return;}
+  var text=document.getElementById('thePage').innerText;
+  var re=new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi');
+  var m=text.match(re);
+  res.textContent=m?m.length+' match'+(m.length>1?'es':''):'No matches';
+}
+
+function setTool(t){
+  currentTool=t;
+  ['select','highlight','comment','sticky','stamp'].forEach(function(x){
+    var b=document.getElementById('t'+x.replace('highlight','hl').replace('comment','cmt').replace('sticky','sticky').replace('stamp','stamp').replace('select','sel'));
+    if(b)b.classList.toggle('active',x===t);
+  });
+  var page=document.getElementById('thePage');
+  page.className='page'+(t==='select'?' tool-select':t==='comment'?' tool-comment':t==='sticky'?' tool-sticky':t==='stamp'?' tool-stamp':'');
+}
+
+function setHlColor(c,el){
+  hlColor=c;
+  ['cy','cg','cp','cb'].forEach(function(id){document.getElementById(id).classList.remove('sel');});
+  el.classList.add('sel');
+}
+
+function pageMouseUp(e){
+  if(currentTool!=='highlight')return;
+  var sel=window.getSelection();
+  if(!sel||sel.isCollapsed||sel.toString().trim().length<2)return;
+  var range=sel.getRangeAt(0);
+  var span=document.createElement('span');
+  span.className='highlight hl-'+hlColor;
+  span.title='Click to remove highlight';
+  span.onclick=function(ev){ev.stopPropagation();this.outerHTML=this.innerHTML;highlights=highlights.filter(function(h){return h!==span;});updateStats();};
+  try{range.surroundContents(span);highlights.push(span);sel.removeAllRanges();updateStats();}catch(err){}
+}
+
+var cmtIdCounter=0,stickyIdCounter=0,stampIdCounter=0;
+
+function pageClick(e){
+  if(currentTool==='comment'){
+    var para=e.target.closest('p.body');
+    if(!para)return;
+    var existing=para.querySelector('.comment-bubble');
+    if(existing){existing.querySelector('.comment-expanded').classList.toggle('open');return;}
+    var id='cmt'+(++cmtIdCounter);
+    var note=prompt('Add comment:');
+    if(!note)return;
+    var bubble=document.createElement('div');
+    bubble.className='comment-bubble';
+    bubble.innerHTML='&#9998;';
+    bubble.style.position='absolute';
+    bubble.style.right='-44px';
+    bubble.style.top='0';
+    var exp=document.createElement('div');
+    exp.className='comment-expanded open';
+    exp.innerHTML='<strong>Reviewer note</strong><span class="comment-del" onclick="this.closest(\'.body\').querySelector(\'.comment-bubble\').remove();this.closest(\'.comment-expanded\').remove();comments=comments.filter(function(c){return c.id!==\''+id+'\';});updateStats();">&#10005;</span>'+note.replace(/</g,'&lt;');
+    bubble.appendChild(exp);
+    bubble.onclick=function(ev){ev.stopPropagation();exp.classList.toggle('open');};
+    para.style.position='relative';
+    para.appendChild(bubble);
+    comments.push({id:id,text:note});
+    updateStats();
+  }
+  else if(currentTool==='sticky'){
+    var page=document.getElementById('thePage');
+    var rect=page.getBoundingClientRect();
+    var x=e.clientX-rect.left,y=e.clientY-rect.top;
+    var id='stk'+(++stickyIdCounter);
+    var note=document.createElement('div');
+    note.className='sticky-note';
+    note.id=id;
+    note.style.left=x+'px';
+    note.style.top=y+'px';
+    note.innerHTML='<div class="sn-header"><span>Note #'+stickyIdCounter+'</span><span class="sn-del" onclick="document.getElementById(\''+id+'\').remove();stickies=stickies.filter(function(s){return s!==\''+id+'\';});updateStats();">&#10005;</span></div><textarea placeholder="Type note…" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()"></textarea>';
+    page.appendChild(note);
+    makeDraggable(note);
+    stickies.push(id);
+    updateStats();
+    note.querySelector('textarea').focus();
+  }
+  else if(currentTool==='stamp'){
+    var page=document.getElementById('thePage');
+    var rect=page.getBoundingClientRect();
+    var x=e.clientX-rect.left,y=e.clientY-rect.top;
+    var val=document.getElementById('stampSel').value;
+    var labels={approved:'APPROVED',draft:'DRAFT',confidential:'CONFIDENTIAL',revised:'REVISED'};
+    var id='stp'+(++stampIdCounter);
+    var el=document.createElement('div');
+    el.className='stamp stamp-'+val;
+    el.id=id;
+    el.style.left=x+'px';
+    el.style.top=y+'px';
+    el.textContent=labels[val];
+    el.title='Click to remove';
+    el.style.pointerEvents='auto';
+    el.onclick=function(ev){ev.stopPropagation();this.remove();stamps=stamps.filter(function(s){return s!==id;});updateStats();};
+    page.appendChild(el);
+    stamps.push(id);
+    updateStats();
+  }
+}
+
+function makeDraggable(el){
+  var dx=0,dy=0,startX,startY;
+  el.querySelector('.sn-header').addEventListener('mousedown',function(e){
+    e.preventDefault();
+    startX=e.clientX;startY=e.clientY;
+    document.addEventListener('mousemove',onMove);
+    document.addEventListener('mouseup',onUp);
+  });
+  function onMove(e){
+    dx=e.clientX-startX;dy=e.clientY-startY;startX=e.clientX;startY=e.clientY;
+    el.style.left=(el.offsetLeft+dx)+'px';el.style.top=(el.offsetTop+dy)+'px';
+  }
+  function onUp(){document.removeEventListener('mousemove',onMove);document.removeEventListener('mouseup',onUp);}
+}
+
+function updateStats(){
+  document.getElementById('hlCount').textContent='Highlights: '+document.querySelectorAll('.highlight').length;
+  document.getElementById('cmtCount').textContent='Comments: '+document.querySelectorAll('.comment-bubble').length;
+  document.getElementById('stickyCount').textContent='Stickies: '+stickies.length;
+}
+
+function clearAll(){
+  if(!confirm('Clear all annotations?'))return;
+  document.querySelectorAll('.highlight').forEach(function(el){el.outerHTML=el.innerHTML;});
+  document.querySelectorAll('.comment-bubble,.comment-expanded').forEach(function(el){el.remove();});
+  stickies.forEach(function(id){var el=document.getElementById(id);if(el)el.remove();});
+  stamps.forEach(function(id){var el=document.getElementById(id);if(el)el.remove();});
+  stickies=[];stamps=[];comments=[];highlights=[];
+  updateStats();
+}
+
+function exportAnnotations(){
+  var lines=['PDF Aesthetic — Annotations Export','Date: '+new Date().toLocaleDateString(),'','--- HIGHLIGHTS ('+document.querySelectorAll('.highlight').length+') ---'];
+  document.querySelectorAll('.highlight').forEach(function(el,i){lines.push((i+1)+'. "'+el.textContent+'"');});
+  lines.push('','--- COMMENTS ('+document.querySelectorAll('.comment-bubble').length+') ---');
+  document.querySelectorAll('.comment-expanded').forEach(function(el,i){lines.push((i+1)+'. '+el.innerText.replace('✕','').trim());});
+  lines.push('','--- STICKY NOTES ('+stickies.length+') ---');
+  stickies.forEach(function(id,i){var el=document.getElementById(id);if(el){var ta=el.querySelector('textarea');lines.push((i+1)+'. '+(ta?ta.value:''));}});
+  var out=lines.join('\n');
+  var a=document.createElement('a');
+  a.href='data:text/plain;charset=utf-8,'+encodeURIComponent(out);
+  a.download='annotations.txt';
+  a.click();
+}
+
+window.addEventListener('scroll',function(){
+  var h=document.body.scrollHeight-window.innerHeight;
+  document.getElementById('rbar').style.width=(h>0?Math.min(Math.round(window.scrollY/h*100),100):0)+'%';
+});
+
+(function calcStats(){
+  var text=document.getElementById('thePage').innerText||'';
+  var words=text.trim().split(/\s+/).filter(function(w){return w.length>0;}).length;
+  document.getElementById('wcOut').textContent='Words: '+words.toLocaleString();
+  document.getElementById('rtOut').textContent='Read time: ~'+Math.ceil(words/200)+' min';
+})();
+</script>

@@ -1,0 +1,657 @@
+
+<style>
+@keyframes conicspin {
+  0%   { --deg: 0deg }
+  100% { --deg: 360deg }
+}
+@keyframes rotateConic {
+  from { transform: rotate(0deg) }
+  to   { transform: rotate(360deg) }
+}
+@keyframes floatY {
+  0%,100% { transform: translateY(0px) }
+  50%      { transform: translateY(-6px) }
+}
+@keyframes scanline {
+  0%   { top: -4px }
+  100% { top: 100% }
+}
+@keyframes flickerOn {
+  0%,18%,22%,25%,55%,58%,100% { opacity: 1 }
+  20%,24%,56% { opacity: 0.4 }
+}
+@keyframes hueLoop {
+  0%   { filter: hue-rotate(0deg) saturate(2) brightness(1.1) }
+  100% { filter: hue-rotate(360deg) saturate(2) brightness(1.1) }
+}
+@keyframes hueLoopOffset {
+  0%   { filter: hue-rotate(90deg) saturate(2) brightness(1.1) }
+  100% { filter: hue-rotate(450deg) saturate(2) brightness(1.1) }
+}
+@keyframes morphBlob {
+  0%,100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40% }
+  25%      { border-radius: 30% 60% 70% 40% / 50% 60% 30% 60% }
+  50%      { border-radius: 50% 60% 30% 40% / 40% 70% 60% 50% }
+  75%      { border-radius: 40% 50% 60% 70% / 30% 40% 70% 60% }
+}
+@keyframes waveflow {
+  0%   { d: path("M0,30 C120,0 180,60 300,30 C420,0 480,60 600,30 L600,80 L0,80Z") }
+  50%  { d: path("M0,50 C120,20 180,80 300,50 C420,20 480,80 600,50 L600,80 L0,80Z") }
+  100% { d: path("M0,30 C120,0 180,60 300,30 C420,0 480,60 600,30 L600,80 L0,80Z") }
+}
+@keyframes needleSweep {
+  0%,100% { transform: rotate(-30deg) }
+  50%      { transform: rotate(210deg) }
+}
+@keyframes ringPulse {
+  0%,100% { transform: scale(1); opacity: 0.6 }
+  50%      { transform: scale(1.15); opacity: 0.2 }
+}
+@keyframes particleDrift {
+  0%   { transform: translateY(0) translateX(0) scale(1); opacity: 0.8 }
+  33%  { transform: translateY(-18px) translateX(8px) scale(1.2); opacity: 0.5 }
+  66%  { transform: translateY(-8px) translateX(-6px) scale(0.8); opacity: 0.9 }
+  100% { transform: translateY(0) translateX(0) scale(1); opacity: 0.8 }
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0 }
+
+.shell {
+  width: 100%;
+  background: #050508;
+  border-radius: 20px;
+  overflow: hidden;
+  position: relative;
+  min-height: 640px;
+  font-family: 'Courier New', monospace;
+}
+
+.conic-bg {
+  position: absolute;
+  inset: -80px;
+  background: conic-gradient(
+    from var(--r, 0deg) at 50% 50%,
+    hsl(0,100%,50%),
+    hsl(40,100%,55%),
+    hsl(80,100%,45%),
+    hsl(140,100%,45%),
+    hsl(180,100%,50%),
+    hsl(220,100%,55%),
+    hsl(280,100%,60%),
+    hsl(320,100%,55%),
+    hsl(360,100%,50%)
+  );
+  opacity: 0.18;
+  animation: rotateConic 6s linear infinite;
+  z-index: 0;
+}
+
+.noise {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 200px;
+}
+
+.scanline-wrap {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow: hidden;
+  pointer-events: none;
+}
+.scanline {
+  position: absolute;
+  left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(transparent, rgba(255,255,255,0.03) 50%, transparent);
+  animation: scanline 4s linear infinite;
+}
+
+.content {
+  position: relative;
+  z-index: 10;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  min-height: 640px;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.logo {
+  font-size: 11px;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.9);
+  mix-blend-mode: difference;
+  animation: flickerOn 8s ease-in-out infinite;
+}
+
+.status-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 20px;
+  padding: 5px 12px;
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: rgba(255,255,255,0.5);
+  text-transform: uppercase;
+  animation: hueLoop 6s linear infinite;
+}
+.status-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #0f0;
+  box-shadow: 0 0 6px #0f0;
+  animation: ringPulse 1.5s ease-in-out infinite;
+}
+
+.main {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 0;
+}
+
+.left-panel {
+  padding: 28px 24px;
+  border-right: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.hero-block {
+  position: relative;
+}
+
+.hero-eyebrow {
+  font-size: 10px;
+  letter-spacing: 4px;
+  color: rgba(255,255,255,0.3);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.hero-title {
+  font-size: 52px;
+  font-weight: 900;
+  line-height: 0.92;
+  letter-spacing: -2px;
+  font-family: 'Arial Black', sans-serif;
+  text-transform: uppercase;
+  position: relative;
+  display: inline-block;
+}
+.hero-title .layer1 {
+  position: relative;
+  background: conic-gradient(from 0deg, #ff003c, #ff7700, #ffe600, #00ff88, #00e5ff, #b400ff, #ff003c);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-size: 300% 300%;
+  animation: hueLoop 5s linear infinite;
+  display: block;
+}
+.hero-title .layer2 {
+  position: absolute;
+  top: 3px; left: 3px;
+  -webkit-text-fill-color: transparent;
+  -webkit-text-stroke: 1px rgba(255,255,255,0.08);
+  display: block;
+  pointer-events: none;
+}
+
+.thermal-gauge {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.gauge-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.gauge-label {
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: rgba(255,255,255,0.3);
+  text-transform: uppercase;
+  width: 56px;
+  flex-shrink: 0;
+}
+.gauge-track {
+  flex: 1;
+  height: 4px;
+  background: rgba(255,255,255,0.07);
+  border-radius: 2px;
+  overflow: hidden;
+  position: relative;
+}
+.gauge-fill {
+  height: 100%;
+  border-radius: 2px;
+  position: relative;
+}
+.gauge-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%);
+  background-size: 200% 100%;
+  animation: hueLoopOffset 2s linear infinite;
+}
+.gauge-val {
+  font-size: 11px;
+  color: rgba(255,255,255,0.5);
+  width: 36px;
+  text-align: right;
+}
+
+.spectrum-canvas {
+  height: 64px;
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+}
+
+.blob-section {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.blob-wrap {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  flex-shrink: 0;
+}
+.blob {
+  width: 80px; height: 80px;
+  background: conic-gradient(from 0deg, #ff003c, #ff7700, #ffe600, #00ff88, #00e5ff, #ff003c);
+  animation: morphBlob 6s ease-in-out infinite, rotateConic 8s linear infinite;
+  opacity: 0.85;
+}
+.blob-inner {
+  position: absolute;
+  inset: 20px;
+  border-radius: 50%;
+  background: #050508;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: rgba(255,255,255,0.7);
+  font-family: 'Arial Black', sans-serif;
+}
+.blob-meta {
+  flex: 1;
+}
+.blob-title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: rgba(255,255,255,0.85);
+  margin-bottom: 4px;
+  font-family: sans-serif;
+  animation: hueLoop 6s linear infinite;
+  background: conic-gradient(from 0deg, #ff7700, #ffe600, #00e5ff, #b400ff, #ff003c, #ff7700);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.blob-sub {
+  font-size: 10px;
+  color: rgba(255,255,255,0.3);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  font-family: sans-serif;
+  margin-bottom: 8px;
+}
+.tag-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.tag {
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 3px;
+  border: 1px solid;
+  font-family: sans-serif;
+}
+.tag-r { color: #ff5577; border-color: rgba(255,85,119,0.3); background: rgba(255,85,119,0.07) }
+.tag-g { color: #00ffaa; border-color: rgba(0,255,170,0.3); background: rgba(0,255,170,0.07) }
+.tag-b { color: #55aaff; border-color: rgba(85,170,255,0.3); background: rgba(85,170,255,0.07) }
+
+.right-panel {
+  padding: 22px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.gauge-circle-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.gauge-svg {
+  animation: hueLoop 8s linear infinite;
+}
+.needle-group {
+  transform-origin: 90px 90px;
+  animation: needleSweep 4s ease-in-out infinite;
+}
+.gauge-ring {
+  animation: ringPulse 2s ease-in-out infinite;
+  transform-origin: 90px 90px;
+}
+.gauge-label-main {
+  font-size: 11px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.3);
+  font-family: sans-serif;
+}
+
+.mini-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.mini-card {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 10px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.mini-card-val {
+  font-size: 20px;
+  font-weight: 700;
+  font-family: 'Arial Black', sans-serif;
+}
+.mc1 .mini-card-val { animation: hueLoop 5s linear infinite; background: conic-gradient(from 30deg, #ff7700, #ffe600, #ff003c); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.mc2 .mini-card-val { animation: hueLoop 5s linear infinite; animation-delay: -1.5s; background: conic-gradient(from 120deg, #00e5ff, #00ff88, #b400ff); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.mc3 .mini-card-val { animation: hueLoop 5s linear infinite; animation-delay: -3s; background: conic-gradient(from 210deg, #b400ff, #ff003c, #ff7700); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.mc4 .mini-card-val { animation: hueLoop 5s linear infinite; animation-delay: -4s; background: conic-gradient(from 300deg, #00ff88, #00e5ff, #ffe600); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.mini-card-label {
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  color: rgba(255,255,255,0.28);
+  text-transform: uppercase;
+  font-family: sans-serif;
+}
+
+.particles-wrap {
+  position: relative;
+  height: 60px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  overflow: hidden;
+}
+.particle {
+  position: absolute;
+  border-radius: 50%;
+}
+
+.bottombar {
+  padding: 14px 24px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.wave-svg {
+  flex: 1;
+  max-width: 320px;
+  overflow: visible;
+}
+.btn-group { display: flex; gap: 8px; }
+.tcbtn {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.6);
+  border-radius: 7px;
+  padding: 7px 14px;
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  font-family: 'Courier New', monospace;
+  transition: all 0.15s;
+}
+.tcbtn:hover {
+  background: rgba(255,255,255,0.12);
+  color: #fff;
+  filter: hue-rotate(60deg) saturate(3) brightness(1.5);
+  border-color: rgba(255,255,255,0.3);
+}
+.tcbtn.active {
+  background: rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.9);
+  animation: hueLoopOffset 3s linear infinite;
+}
+.time-display {
+  font-size: 11px;
+  color: rgba(255,255,255,0.2);
+  letter-spacing: 3px;
+  font-family: 'Courier New', monospace;
+}
+</style>
+
+<div class="shell">
+  <div class="conic-bg"></div>
+  <div class="noise"></div>
+  <div class="scanline-wrap"><div class="scanline"></div></div>
+
+  <div class="content">
+    <div class="topbar">
+      <div class="logo">Liquid Crystal Interface</div>
+      <div class="status-pill"><div class="status-dot"></div>Thermal Active</div>
+    </div>
+
+    <div class="main">
+      <div class="left-panel">
+
+        <div class="hero-block">
+          <div class="hero-eyebrow">Chromatic Field Analysis</div>
+          <div class="hero-title">
+            <span class="layer2">THERMO</span>
+            <span class="layer1">THERMO</span>
+          </div>
+          <div class="hero-title" style="margin-top:-4px">
+            <span class="layer2">CHROMIC</span>
+            <span class="layer1" style="animation-delay:-2s">CHROMIC</span>
+          </div>
+        </div>
+
+        <div class="thermal-gauge">
+          <div class="gauge-row">
+            <span class="gauge-label">Red</span>
+            <div class="gauge-track"><div class="gauge-fill" id="gR" style="width:78%;background:linear-gradient(90deg,#ff003c,#ff7700)"></div></div>
+            <span class="gauge-val" id="gRv">78</span>
+          </div>
+          <div class="gauge-row">
+            <span class="gauge-label">Heat</span>
+            <div class="gauge-track"><div class="gauge-fill" id="gH" style="width:55%;background:linear-gradient(90deg,#ff7700,#ffe600)"></div></div>
+            <span class="gauge-val" id="gHv">55</span>
+          </div>
+          <div class="gauge-row">
+            <span class="gauge-label">Cyan</span>
+            <div class="gauge-track"><div class="gauge-fill" id="gC" style="width:90%;background:linear-gradient(90deg,#00e5ff,#00ff88)"></div></div>
+            <span class="gauge-val" id="gCv">90</span>
+          </div>
+          <div class="gauge-row">
+            <span class="gauge-label">Violet</span>
+            <div class="gauge-track"><div class="gauge-fill" id="gV" style="width:42%;background:linear-gradient(90deg,#b400ff,#ff003c)"></div></div>
+            <span class="gauge-val" id="gVv">42</span>
+          </div>
+        </div>
+
+        <div class="spectrum-canvas" id="specCanvas"></div>
+
+        <div class="blob-section">
+          <div class="blob-wrap">
+            <div class="blob" style="border-radius:60% 40% 30% 70%/60% 30% 70% 40%"></div>
+            <div class="blob-inner">39°</div>
+          </div>
+          <div class="blob-meta">
+            <div class="blob-title">Neon Fever Dream</div>
+            <div class="blob-sub">Chromawave · 1987 · 3:47</div>
+            <div class="tag-row">
+              <span class="tag tag-r">Thermochromic</span>
+              <span class="tag tag-g">Liquid Crystal</span>
+              <span class="tag tag-b">Iridescent</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="right-panel">
+
+        <div class="gauge-circle-wrap">
+          <svg class="gauge-svg" width="180" height="120" viewBox="0 0 180 120">
+            <defs>
+              <linearGradient id="arcGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#ff003c"/>
+                <stop offset="25%" stop-color="#ff7700"/>
+                <stop offset="50%" stop-color="#ffe600"/>
+                <stop offset="75%" stop-color="#00ff88"/>
+                <stop offset="100%" stop-color="#00e5ff"/>
+              </linearGradient>
+            </defs>
+            <path d="M 20 90 A 70 70 0 0 1 160 90" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="10" stroke-linecap="round"/>
+            <path d="M 20 90 A 70 70 0 0 1 160 90" fill="none" stroke="url(#arcGrad)" stroke-width="10" stroke-linecap="round" stroke-dasharray="220" stroke-dashoffset="55"/>
+            <g class="needle-group">
+              <line x1="90" y1="90" x2="90" y2="28" stroke="rgba(255,255,255,0.8)" stroke-width="1.5" stroke-linecap="round"/>
+              <circle cx="90" cy="90" r="5" fill="rgba(255,255,255,0.2)" stroke="rgba(255,255,255,0.5)" stroke-width="1"/>
+            </g>
+            <circle cx="90" cy="90" r="65" fill="none" stroke="rgba(255,255,255,0.03)" stroke-width="1" class="gauge-ring"/>
+            <text x="90" y="112" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="10" font-family="'Courier New',monospace" letter-spacing="1">THERMAL INDEX</text>
+            <text x="90" y="80" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="18" font-weight="bold" font-family="'Arial Black',sans-serif">7.4</text>
+          </svg>
+          <div class="gauge-label-main">Chromatic Resonance</div>
+        </div>
+
+        <div class="mini-cards">
+          <div class="mini-card mc1"><div class="mini-card-val">38.4</div><div class="mini-card-label">Temp °C</div></div>
+          <div class="mini-card mc2"><div class="mini-card-val">∞ Hz</div><div class="mini-card-label">Frequency</div></div>
+          <div class="mini-card mc3"><div class="mini-card-val">9.8</div><div class="mini-card-label">Intensity</div></div>
+          <div class="mini-card mc4"><div class="mini-card-val">72%</div><div class="mini-card-label">Saturation</div></div>
+        </div>
+
+        <div class="particles-wrap" id="particles"></div>
+
+      </div>
+    </div>
+
+    <div class="bottombar">
+      <svg class="wave-svg" viewBox="0 0 300 40" height="40" preserveAspectRatio="none">
+        <path id="wavePath" d="M0,20 C50,5 100,35 150,20 C200,5 250,35 300,20" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/>
+        <path id="wavePath2" d="M0,25 C60,10 110,40 160,25 C210,10 260,38 300,25" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+      </svg>
+      <div class="btn-group">
+        <button class="tcbtn" onclick="this.classList.toggle('active')">Scan</button>
+        <button class="tcbtn active">Live</button>
+        <button class="tcbtn" onclick="this.classList.toggle('active')">Lock</button>
+      </div>
+      <div class="time-display" id="clockEl">00:00:00</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const specCanvas = document.getElementById('specCanvas');
+const specW = 400, specH = 64;
+specCanvas.innerHTML = `<canvas id="sc" width="${specW}" height="${specH}" style="width:100%;height:100%"></canvas>`;
+const sctx = document.getElementById('sc').getContext('2d');
+let specT = 0;
+const bars2 = Array.from({length: 60}, (_,i) => ({ phase: Math.random()*Math.PI*2, speed: 0.04+Math.random()*0.06 }));
+function drawSpec() {
+  sctx.clearRect(0,0,specW,specH);
+  bars2.forEach((b,i) => {
+    const h = 10 + 38 * (0.5 + 0.5 * Math.sin(specT * b.speed * 60 + b.phase));
+    const hue = (specT * 20 + i * 6) % 360;
+    sctx.fillStyle = `hsla(${hue},100%,60%,0.85)`;
+    const bw = specW/60 - 1;
+    sctx.fillRect(i*(bw+1), specH-h, bw, h);
+  });
+}
+
+const particlesEl = document.getElementById('particles');
+const pData = Array.from({length: 14}, () => ({
+  x: Math.random()*100, y: Math.random()*100,
+  size: 3+Math.random()*7,
+  hue: Math.random()*360,
+  delay: Math.random()*4,
+  dur: 2+Math.random()*3
+}));
+pData.forEach(p => {
+  const el = document.createElement('div');
+  el.className = 'particle';
+  el.style.cssText = `left:${p.x}%;top:${p.y}%;width:${p.size}px;height:${p.size}px;background:hsl(${p.hue},100%,65%);opacity:0.7;animation:particleDrift ${p.dur}s ${p.delay}s ease-in-out infinite;filter:blur(1px)`;
+  particlesEl.appendChild(el);
+});
+
+const gauges = [
+  {id:'gR', vid:'gRv', min:60,max:95},
+  {id:'gH', vid:'gHv', min:30,max:75},
+  {id:'gC', vid:'gCv', min:70,max:98},
+  {id:'gV', vid:'gVv', min:25,max:65}
+];
+let gT = 0;
+function animateGauges() {
+  gauges.forEach((g,i) => {
+    const v = g.min + (g.max-g.min)*(0.5+0.5*Math.sin(gT*0.3 + i*1.1));
+    const pct = Math.round(v);
+    const el = document.getElementById(g.id);
+    const vel = document.getElementById(g.vid);
+    if(el) el.style.width = pct+'%';
+    if(vel) vel.textContent = pct;
+  });
+}
+
+const wavePath = document.getElementById('wavePath');
+const wavePath2 = document.getElementById('wavePath2');
+function animateWave(t) {
+  const a = 12*Math.sin(t*0.8), b = 10*Math.sin(t*0.6+1);
+  wavePath.setAttribute('d',`M0,20 C50,${20-a} 100,${20+a} 150,20 C200,${20-b} 250,${20+b} 300,20`);
+  wavePath2.setAttribute('d',`M0,25 C60,${25-b} 110,${25+b} 160,25 C210,${25-a} 260,${25+a} 300,25`);
+}
+
+const clockEl = document.getElementById('clockEl');
+function updateClock() {
+  const n=new Date();
+  clockEl.textContent=[n.getHours(),n.getMinutes(),n.getSeconds()].map(v=>String(v).padStart(2,'0')).join(':');
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+let raf = 0;
+function loop(ts) {
+  specT = ts * 0.001;
+  gT = ts * 0.001;
+  drawSpec();
+  animateGauges();
+  animateWave(specT);
+  raf = requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>

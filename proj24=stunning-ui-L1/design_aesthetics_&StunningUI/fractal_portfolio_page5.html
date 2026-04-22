@@ -1,0 +1,372 @@
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+#w{width:100%;background:#04040a;overflow:hidden;position:relative;min-height:720px;font-family:sans-serif}
+#bgc{position:absolute;inset:0;width:100%;height:100%}
+#vig{position:absolute;inset:0;background:radial-gradient(ellipse at 70% 30%,transparent 10%,rgba(4,4,10,0.9) 100%)}
+.ui{position:relative;z-index:5;display:flex;flex-direction:column}
+.nav{display:flex;justify-content:space-between;align-items:center;padding:1.3rem 2rem;border-bottom:1px solid rgba(255,255,255,0.07)}
+.logo{font-size:0.75rem;font-weight:500;letter-spacing:0.2em;color:rgba(255,255,255,0.88);text-transform:uppercase}
+.nav-r{display:flex;gap:2rem}
+.nav-r span{font-size:0.68rem;letter-spacing:0.12em;color:rgba(255,255,255,0.3);text-transform:uppercase;cursor:pointer;transition:color .2s}
+.nav-r span.active{color:rgba(255,255,255,0.78)}
+
+.split{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:rgba(255,255,255,0.06);min-height:340px}
+.split-left{background:#04040a;padding:3rem 2.5rem;display:flex;flex-direction:column;justify-content:space-between}
+.sl-top .tag{font-size:0.6rem;letter-spacing:0.25em;color:rgba(255,255,255,0.22);text-transform:uppercase;margin-bottom:0.8rem}
+.sl-top h2{font-size:clamp(1.8rem,3.5vw,2.6rem);font-weight:300;color:#fff;letter-spacing:-0.03em;line-height:1.1}
+.sl-top h2 em{font-style:normal;color:transparent;-webkit-text-stroke:1px rgba(255,255,255,0.3)}
+.sl-top p{font-size:0.75rem;color:rgba(255,255,255,0.3);line-height:1.8;margin-top:1rem;max-width:320px}
+.sl-bottom{display:flex;flex-direction:column;gap:1rem}
+.param-row{display:flex;flex-direction:column;gap:0.35rem}
+.pr-label{display:flex;justify-content:space-between}
+.pr-label span{font-size:0.6rem;letter-spacing:0.14em;color:rgba(255,255,255,0.28);text-transform:uppercase}
+.pr-label .pr-val{color:rgba(255,255,255,0.6);font-variant-numeric:tabular-nums}
+.pr-track{width:100%;height:1px;background:rgba(255,255,255,0.1);position:relative;cursor:pointer}
+.pr-fill{height:100%;background:rgba(255,255,255,0.45);transition:width .15s}
+.pr-thumb{width:8px;height:8px;border-radius:50%;background:#fff;position:absolute;top:-3.5px;transform:translateX(-50%);cursor:grab;transition:left .15s}
+
+.split-right{background:#04040a;position:relative;overflow:hidden}
+#explore-canvas{display:block;width:100%;height:100%;min-height:340px}
+.canvas-overlay{position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:flex-start;padding:1rem 1.2rem;pointer-events:none}
+.co-coords{font-size:0.58rem;letter-spacing:0.1em;color:rgba(255,255,255,0.3);font-variant-numeric:tabular-nums}
+
+.timeline-section{border-top:1px solid rgba(255,255,255,0.07);padding:2.5rem 2rem 0}
+.ts-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem}
+.ts-header .tag{font-size:0.6rem;letter-spacing:0.22em;color:rgba(255,255,255,0.22);text-transform:uppercase}
+.ts-header h3{font-size:1rem;font-weight:300;color:rgba(255,255,255,0.7);letter-spacing:-0.01em}
+.timeline{display:flex;flex-direction:column;gap:0}
+.tl-item{display:grid;grid-template-columns:4rem 1px 1fr;gap:0;align-items:stretch;cursor:pointer}
+.tl-year{font-size:0.65rem;letter-spacing:0.1em;color:rgba(255,255,255,0.2);padding:1.1rem 1rem 1.1rem 0;text-align:right;align-self:start;padding-top:1.2rem}
+.tl-line{display:flex;flex-direction:column;align-items:center;padding:0 1.2rem}
+.tl-dot{width:6px;height:6px;border-radius:50%;border:1px solid rgba(255,255,255,0.25);background:#04040a;margin-top:1.35rem;flex-shrink:0;transition:border-color .2s,background .2s}
+.tl-connector{flex:1;width:1px;background:rgba(255,255,255,0.08)}
+.tl-item:last-child .tl-connector{display:none}
+.tl-content{padding:1rem 0 1.2rem}
+.tl-name{font-size:0.8rem;font-weight:500;color:rgba(255,255,255,0.72);letter-spacing:0.02em;margin-bottom:0.3rem}
+.tl-desc{font-size:0.68rem;color:rgba(255,255,255,0.28);line-height:1.65}
+.tl-item:hover .tl-dot{border-color:rgba(255,255,255,0.7);background:rgba(255,255,255,0.15)}
+.tl-item:hover .tl-name{color:rgba(255,255,255,0.95)}
+.tl-canvas-wrap{display:none;margin-top:0.8rem}
+.tl-item:hover .tl-canvas-wrap{display:block}
+.tl-canvas-wrap canvas{display:block;border-radius:2px}
+
+.formula-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:rgba(255,255,255,0.06);margin-top:2.5rem;border-top:1px solid rgba(255,255,255,0.06)}
+.formula-cell{background:#04040a;padding:1.5rem 1.8rem}
+.fc-eq{font-size:1rem;color:rgba(255,255,255,0.55);letter-spacing:0.04em;margin-bottom:0.5rem;font-variant-numeric:tabular-nums}
+.fc-name{font-size:0.62rem;letter-spacing:0.16em;color:rgba(255,255,255,0.22);text-transform:uppercase;margin-bottom:0.3rem}
+.fc-desc{font-size:0.68rem;color:rgba(255,255,255,0.25);line-height:1.6}
+
+.foot{display:flex;justify-content:space-between;align-items:center;padding:1rem 2rem;border-top:1px solid rgba(255,255,255,0.06)}
+.fl{font-size:0.6rem;letter-spacing:0.12em;color:rgba(255,255,255,0.15);text-transform:uppercase}
+.pager{display:flex;gap:0.5rem;align-items:center}
+.pg{width:18px;height:1px;background:rgba(255,255,255,0.15);cursor:pointer;transition:all .2s}
+.pg.on{background:rgba(255,255,255,0.6);width:28px}
+.fc2{font-size:0.58rem;color:rgba(255,255,255,0.13);font-variant-numeric:tabular-nums}
+</style>
+
+<div id="w">
+  <canvas id="bgc"></canvas>
+  <div id="vig"></div>
+  <div class="ui">
+    <nav class="nav">
+      <div class="logo">Fractal Studio</div>
+      <div class="nav-r">
+        <span>Work</span><span>About</span><span>Contact</span><span>Shop</span><span class="active">Explorer</span>
+      </div>
+    </nav>
+
+    <div class="split">
+      <div class="split-left">
+        <div class="sl-top">
+          <div class="tag">Page 05 — Live Explorer</div>
+          <h2>Shape the<br><em>equation</em><br>yourself</h2>
+          <p>Tune the parameters below and watch the fractal transform in real time. Every coordinate is a universe.</p>
+        </div>
+        <div class="sl-bottom">
+          <div class="param-row">
+            <div class="pr-label"><span>Real (c)</span><span class="pr-val" id="v-re">−0.700</span></div>
+            <div class="pr-track" id="t-re"><div class="pr-fill" id="f-re" style="width:32.5%"></div><div class="pr-thumb" id="th-re" style="left:32.5%"></div></div>
+          </div>
+          <div class="param-row">
+            <div class="pr-label"><span>Imaginary (c)</span><span class="pr-val" id="v-im">0.270</span></div>
+            <div class="pr-track" id="t-im"><div class="pr-fill" id="f-im" style="width:63.5%"></div><div class="pr-thumb" id="th-im" style="left:63.5%"></div></div>
+          </div>
+          <div class="param-row">
+            <div class="pr-label"><span>Zoom</span><span class="pr-val" id="v-zoom">1.0×</span></div>
+            <div class="pr-track" id="t-zoom"><div class="pr-fill" id="f-zoom" style="width:10%"></div><div class="pr-thumb" id="th-zoom" style="left:10%"></div></div>
+          </div>
+          <div class="param-row">
+            <div class="pr-label"><span>Hue offset</span><span class="pr-val" id="v-hue">200°</span></div>
+            <div class="pr-track" id="t-hue"><div class="pr-fill" id="f-hue" style="width:55.5%"></div><div class="pr-thumb" id="th-hue" style="left:55.5%"></div></div>
+          </div>
+          <div class="param-row">
+            <div class="pr-label"><span>Iterations</span><span class="pr-val" id="v-iter">80</span></div>
+            <div class="pr-track" id="t-iter"><div class="pr-fill" id="f-iter" style="width:53%"></div><div class="pr-thumb" id="th-iter" style="left:53%"></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="split-right">
+        <canvas id="explore-canvas"></canvas>
+        <div class="canvas-overlay"><div class="co-coords" id="ex-coords">c = −0.700 + 0.270i</div></div>
+      </div>
+    </div>
+
+    <div class="timeline-section">
+      <div class="ts-header">
+        <div>
+          <div class="tag">History of the form</div>
+          <h3>Key moments in fractal mathematics</h3>
+        </div>
+      </div>
+      <div class="timeline">
+        <div class="tl-item">
+          <div class="tl-year">1883</div>
+          <div class="tl-line"><div class="tl-dot"></div><div class="tl-connector"></div></div>
+          <div class="tl-content"><div class="tl-name">Cantor set discovered</div><div class="tl-desc">Georg Cantor describes a set of points with zero length but uncountably infinite members — the first rigorous fractal-like object.</div><div class="tl-canvas-wrap"><canvas id="tc1" width="200" height="40"></canvas></div></div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-year">1904</div>
+          <div class="tl-line"><div class="tl-dot"></div><div class="tl-connector"></div></div>
+          <div class="tl-content"><div class="tl-name">Koch snowflake</div><div class="tl-desc">Helge von Koch constructs an infinitely long curve enclosing finite area — a curve that is continuous everywhere but differentiable nowhere.</div><div class="tl-canvas-wrap"><canvas id="tc2" width="200" height="60"></canvas></div></div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-year">1918</div>
+          <div class="tl-line"><div class="tl-dot"></div><div class="tl-connector"></div></div>
+          <div class="tl-content"><div class="tl-name">Julia & Fatou sets</div><div class="tl-desc">Gaston Julia and Pierre Fatou independently classify the dynamics of rational maps — without computers, working purely by hand.</div><div class="tl-canvas-wrap"><canvas id="tc3" width="200" height="40"></canvas></div></div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-year">1975</div>
+          <div class="tl-line"><div class="tl-dot"></div><div class="tl-connector"></div></div>
+          <div class="tl-content"><div class="tl-name">Mandelbrot coins "fractal"</div><div class="tl-desc">Benoît Mandelbrot publishes Les objets fractals — giving language to self-similar geometry and its presence throughout nature.</div><div class="tl-canvas-wrap"><canvas id="tc4" width="200" height="40"></canvas></div></div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-year">1980</div>
+          <div class="tl-line"><div class="tl-dot"></div><div class="tl-connector"></div></div>
+          <div class="tl-content"><div class="tl-name">First computer rendering</div><div class="tl-desc">Mandelbrot renders the set bearing his name at IBM — the first visualisation of infinite boundary complexity via machine.</div><div class="tl-canvas-wrap"><canvas id="tc5" width="200" height="40"></canvas></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="formula-strip">
+      <div class="formula-cell">
+        <div class="fc-name">Mandelbrot iteration</div>
+        <div class="fc-eq">z → z² + c</div>
+        <div class="fc-desc">c fixed per pixel, z starts at 0. Colour by escape time through the complex plane.</div>
+      </div>
+      <div class="formula-cell">
+        <div class="fc-name">Julia iteration</div>
+        <div class="fc-eq">z → z² + c</div>
+        <div class="fc-desc">Same formula — but c is fixed globally and z is the pixel coordinate. One c, infinite portraits.</div>
+      </div>
+      <div class="formula-cell">
+        <div class="fc-name">Hausdorff dimension</div>
+        <div class="fc-eq">D = log N / log s</div>
+        <div class="fc-desc">Fractal dimension D measures how detail scales. Sierpiński triangle: D ≈ 1.585. Coastline of Britain: D ≈ 1.25.</div>
+      </div>
+    </div>
+
+    <div class="foot">
+      <div class="fl">© 2025 Fractal Studio</div>
+      <div class="pager">
+        <div class="pg"></div><div class="pg"></div><div class="pg"></div><div class="pg"></div><div class="pg on"></div>
+      </div>
+      <div class="fc2" id="foot-coords">Re: −0.700  Im: 0.270</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+function hsl(h,s,l){
+  s/=100;l/=100;
+  const k=n=>(n+h/30)%12,a=s*Math.min(l,1-l),f=n=>l-a*Math.max(-1,Math.min(k(n)-3,Math.min(9-k(n),1)));
+  return[Math.round(f(0)*255),Math.round(f(8)*255),Math.round(f(4)*255)];
+}
+
+const BG=document.getElementById('bgc');
+const bx=BG.getContext('2d');
+function resizeBg(){const r=document.getElementById('w');BG.width=r.offsetWidth;BG.height=r.offsetHeight;}
+
+function renderBg(t){
+  const W=BG.width,H=BG.height;if(!W||!H)return;
+  const a=t*0.018,cr=-0.54+Math.cos(a)*0.02,ci=0.54+Math.sin(a)*0.02;
+  const img=bx.createImageData(W,H);const d=img.data;const maxI=60;
+  for(let px=0;px<W;px+=2)for(let py=0;py<H;py+=2){
+    let zr=-1.6+(px/W)*3.2,zi=-1.2+(py/H)*2.4,i=0;
+    while(i<maxI&&zr*zr+zi*zi<4){const tr=zr*zr-zi*zi+cr;zi=2*zr*zi+ci;zr=tr;i++;}
+    let r=0,g=0,b=0;
+    if(i<maxI){const tv=(i+1-Math.log(Math.log(Math.sqrt(zr*zr+zi*zi)))/Math.log(2))/maxI;[r,g,b]=hsl(30+tv*120+t*0.5,80,tv*22);}
+    const idx=(py*W+px)*4;
+    d[idx]=r;d[idx+1]=g;d[idx+2]=b;d[idx+3]=255;
+    if(px+1<W){d[idx+4]=r;d[idx+5]=g;d[idx+6]=b;d[idx+7]=255;}
+    if(py+1<H){const i2=((py+1)*W+px)*4;d[i2]=r;d[i2+1]=g;d[i2+2]=b;d[i2+3]=255;if(px+1<W){d[i2+4]=r;d[i2+5]=g;d[i2+6]=b;d[i2+7]=255;}}
+  }
+  bx.putImageData(img,0,0);
+}
+
+const EC=document.getElementById('explore-canvas');
+const ex=EC.getContext('2d');
+let params={re:-0.7,im:0.27,zoom:1,hue:200,iter:80};
+let dirty=true;
+
+function resizeExplore(){
+  const p=EC.parentElement;
+  EC.width=p.offsetWidth||300;
+  EC.height=p.offsetHeight||340;
+  dirty=true;
+}
+
+function renderExplore(){
+  const W=EC.width,H=EC.height;if(!W||!H)return;
+  const cr=params.re,ci=params.im;
+  const rng=1.6/params.zoom;
+  const img=ex.createImageData(W,H);const d=img.data;
+  const maxI=Math.round(params.iter);
+  for(let px=0;px<W;px++)for(let py=0;py<H;py++){
+    let zr=-rng+(px/W)*2*rng*(W/H>1?(H/W):1);
+    let zi=-rng+(py/H)*2*rng*(W/H<1?(W/H):1);
+    if(W>H){zr=-rng*W/H+(px/W)*2*rng*W/H;zi=-rng+(py/H)*2*rng;}
+    let i=0;
+    while(i<maxI&&zr*zr+zi*zi<4){const tr=zr*zr-zi*zi+cr;zi=2*zr*zi+ci;zr=tr;i++;}
+    const idx=(py*W+px)*4;if(i===maxI){d[idx+3]=255;continue;}
+    const tv=(i+1-Math.log(Math.log(Math.sqrt(zr*zr+zi*zi)))/Math.log(2))/maxI;
+    const[r,g,b]=hsl(params.hue+tv*100,85,tv*60);
+    d[idx]=r;d[idx+1]=g;d[idx+2]=b;d[idx+3]=255;
+  }
+  ex.putImageData(img,0,0);
+  dirty=false;
+}
+
+function setupSlider(trackId,fillId,thumbId,valId,min,max,init,fmt,key){
+  const track=document.getElementById(trackId);
+  const fill=document.getElementById(fillId);
+  const thumb=document.getElementById(thumbId);
+  const val=document.getElementById(valId);
+  let dragging=false;
+  function update(pct){
+    pct=Math.max(0,Math.min(1,pct));
+    fill.style.width=(pct*100)+'%';
+    thumb.style.left=(pct*100)+'%';
+    const v=min+pct*(max-min);
+    params[key]=v;
+    val.textContent=fmt(v);
+    dirty=true;
+    const el=document.getElementById('ex-coords');
+    if(el)el.textContent=`c = ${params.re.toFixed(3)} + ${params.im.toFixed(3)}i`;
+    const fc=document.getElementById('foot-coords');
+    if(fc)fc.textContent=`Re: ${params.re.toFixed(3)}  Im: ${params.im.toFixed(3)}`;
+  }
+  function pctFromEvent(e){
+    const rect=track.getBoundingClientRect();
+    return(e.clientX-rect.left)/rect.width;
+  }
+  track.addEventListener('mousedown',e=>{dragging=true;update(pctFromEvent(e));});
+  window.addEventListener('mousemove',e=>{if(dragging)update(pctFromEvent(e));});
+  window.addEventListener('mouseup',()=>{dragging=false;});
+  track.addEventListener('touchstart',e=>{dragging=true;update(pctFromEvent(e.touches[0]));},{passive:true});
+  window.addEventListener('touchmove',e=>{if(dragging)update(pctFromEvent(e.touches[0]));},{passive:true});
+  window.addEventListener('touchend',()=>{dragging=false;});
+  const initPct=(init-min)/(max-min);
+  fill.style.width=(initPct*100)+'%';
+  thumb.style.left=(initPct*100)+'%';
+}
+
+setupSlider('t-re','f-re','th-re','v-re',-2,2,-0.7,v=>v.toFixed(3),'re');
+setupSlider('t-im','f-im','th-im','v-im',-2,2,0.27,v=>v.toFixed(3),'im');
+setupSlider('t-zoom','f-zoom','th-zoom','v-zoom',1,20,1,v=>v.toFixed(1)+'×','zoom');
+setupSlider('t-hue','f-hue','th-hue','v-hue',0,360,200,v=>Math.round(v)+'°','hue');
+setupSlider('t-iter','f-iter','th-iter','v-iter',20,200,80,v=>Math.round(v),'iter');
+
+function kochLine(ctx,x1,y1,x2,y2,depth){
+  if(depth===0){ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);return;}
+  const dx=x2-x1,dy=y2-y1;
+  const ax=x1+dx/3,ay=y1+dy/3;
+  const bx=x1+2*dx/3,by=y1+2*dy/3;
+  const mx=(ax+bx)/2-(ay-by)*Math.sqrt(3)/2;
+  const my=(ay+by)/2+(ax-bx)*Math.sqrt(3)/2;
+  kochLine(ctx,x1,y1,ax,ay,depth-1);
+  kochLine(ctx,ax,ay,mx,my,depth-1);
+  kochLine(ctx,mx,my,bx,by,depth-1);
+  kochLine(ctx,bx,by,x2,y2,depth-1);
+}
+
+function drawTimelineCanvases(){
+  const tc1=document.getElementById('tc1');
+  if(tc1){
+    const ctx=tc1.getContext('2d');ctx.fillStyle='#04040a';ctx.fillRect(0,0,200,40);
+    let x=10,w=180;
+    for(let d=0;d<5;d++){
+      const seg=w/Math.pow(3,d);
+      for(let i=0;i<Math.pow(3,d);i++){
+        const sx=x+i*w/Math.pow(3,d);
+        if(i%3!==1){ctx.fillStyle=`rgba(0,200,255,${0.3+d*0.12})`;ctx.fillRect(sx,18,seg,4);}
+      }
+    }
+  }
+  const tc2=document.getElementById('tc2');
+  if(tc2){
+    const ctx=tc2.getContext('2d');ctx.fillStyle='#04040a';ctx.fillRect(0,0,200,60);
+    ctx.strokeStyle='rgba(160,80,255,0.65)';ctx.lineWidth=0.8;ctx.beginPath();
+    kochLine(ctx,20,45,100,45,4);kochLine(ctx,100,45,60,10,4);kochLine(ctx,60,10,20,45,4);
+    ctx.stroke();
+  }
+  const tc3=document.getElementById('tc3');
+  if(tc3){
+    const ctx=tc3.getContext('2d');ctx.fillStyle='#04040a';ctx.fillRect(0,0,200,40);
+    const img=ctx.createImageData(200,40);const d=img.data;
+    for(let px=0;px<200;px++)for(let py=0;py<40;py++){
+      let zr=-1.5+(px/200)*3,zi=-0.8+(py/40)*1.6,i=0;
+      while(i<40&&zr*zr+zi*zi<4){const tr=zr*zr-zi*zi-0.5;zi=2*zr*zi+0.5;zr=tr;i++;}
+      if(i<40){const tv=i/40;const[r,g,b]=[Math.round(tv*255),Math.round(tv*100),Math.round(tv*200)];
+      const idx=(py*200+px)*4;d[idx]=r;d[idx+1]=g;d[idx+2]=b;d[idx+3]=255;}
+      else{const idx=(py*200+px)*4;d[idx+3]=255;}
+    }
+    ctx.putImageData(img,0,0);
+  }
+  const tc4=document.getElementById('tc4');
+  if(tc4){
+    const ctx=tc4.getContext('2d');ctx.fillStyle='#04040a';ctx.fillRect(0,0,200,40);
+    const img=ctx.createImageData(200,40);const d=img.data;
+    for(let px=0;px<200;px++)for(let py=0;py<40;py++){
+      const cr=-2+(px/200)*2.5,ci=-0.8+(py/40)*1.6;
+      let zr=0,zi=0,i=0;
+      while(i<50&&zr*zr+zi*zi<4){const tr=zr*zr-zi*zi+cr;zi=2*zr*zi+ci;zr=tr;i++;}
+      const idx=(py*200+px)*4;if(i===50){d[idx+3]=255;continue;}
+      const tv=i/50;const[r,g,b]=[Math.round(tv*200),Math.round(tv*80),Math.round(tv*255)];
+      d[idx]=r;d[idx+1]=g;d[idx+2]=b;d[idx+3]=255;
+    }
+    ctx.putImageData(img,0,0);
+  }
+  const tc5=document.getElementById('tc5');
+  if(tc5){
+    const ctx=tc5.getContext('2d');ctx.fillStyle='#04040a';ctx.fillRect(0,0,200,40);
+    const img=ctx.createImageData(200,40);const d=img.data;
+    for(let px=0;px<200;px++)for(let py=0;py<40;py++){
+      const cr=-2+(px/200)*3,ci=-0.75+(py/40)*1.5;
+      let zr=0,zi=0,i=0;
+      while(i<60&&zr*zr+zi*zi<4){const tr=zr*zr-zi*zi+cr;zi=2*zr*zi+ci;zr=tr;i++;}
+      const idx=(py*200+px)*4;if(i===60){d[idx+3]=255;continue;}
+      const tv=i/60;const[r,g,b]=[Math.round(tv*80),Math.round(tv*200),Math.round(tv*120)];
+      d[idx]=r;d[idx+1]=g;d[idx+2]=b;d[idx+3]=255;
+    }
+    ctx.putImageData(img,0,0);
+  }
+}
+
+let tick=0,lastBg=0,lastEx=0;
+function loop(){
+  tick++;
+  if(tick-lastBg>5){renderBg(tick);lastBg=tick;}
+  if(dirty&&tick-lastEx>2){renderExplore();lastEx=tick;}
+  requestAnimationFrame(loop);
+}
+
+resizeBg();
+resizeExplore();
+drawTimelineCanvases();
+renderExplore();
+requestAnimationFrame(loop);
+window.addEventListener('resize',()=>{resizeBg();resizeExplore();});
+})();
+</script>

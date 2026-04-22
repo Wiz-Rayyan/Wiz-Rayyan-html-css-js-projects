@@ -1,0 +1,343 @@
+
+<style>
+  @keyframes spin { from { --angle: 0deg } to { --angle: 360deg } }
+  @keyframes spinBg { from { transform: rotate(0deg) scale(2) } to { transform: rotate(360deg) scale(2) } }
+  @keyframes pulse { 0%,100% { opacity: 0.7 } 50% { opacity: 1 } }
+  @keyframes shimmer { 0% { background-position: -200% center } 100% { background-position: 200% center } }
+  @keyframes hueShift { 0% { filter: hue-rotate(0deg) brightness(1.2) } 100% { filter: hue-rotate(360deg) brightness(1.2) } }
+  @keyframes tempPulse { 0%,100% { filter: hue-rotate(0deg) saturate(1.5) } 50% { filter: hue-rotate(60deg) saturate(2) } }
+
+  .thermo-root {
+    position: relative;
+    min-height: 560px;
+    overflow: hidden;
+    border-radius: 16px;
+    font-family: 'SF Pro Display', system-ui, sans-serif;
+    color: #fff;
+  }
+
+  .bg-layer {
+    position: absolute;
+    inset: -50%;
+    background: conic-gradient(from 0deg, #ff0040, #ff6600, #ffcc00, #00ff88, #00ccff, #8800ff, #ff0099, #ff0040);
+    animation: spinBg 8s linear infinite;
+    z-index: 0;
+  }
+
+  .bg-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.35);
+    backdrop-filter: blur(0px);
+    z-index: 1;
+  }
+
+  .content {
+    position: relative;
+    z-index: 2;
+    padding: 28px 24px;
+  }
+
+  .top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+
+  .logo-text {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    mix-blend-mode: difference;
+    background: linear-gradient(90deg, #fff, #fff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: brightness(2);
+  }
+
+  .temp-badge {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 13px;
+    letter-spacing: 1px;
+    backdrop-filter: blur(8px);
+    animation: tempPulse 3s ease-in-out infinite;
+  }
+
+  .hero-title {
+    font-size: 38px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    line-height: 1.1;
+    margin-bottom: 8px;
+    mix-blend-mode: overlay;
+    filter: brightness(3) contrast(1.5);
+  }
+
+  .hero-sub {
+    font-size: 14px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    opacity: 0.75;
+    margin-bottom: 28px;
+  }
+
+  .cards-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .card {
+    background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 12px;
+    padding: 16px;
+    backdrop-filter: blur(12px);
+    transition: transform 0.2s, border-color 0.2s;
+    cursor: default;
+  }
+  .card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255,255,255,0.4);
+  }
+
+  .card-temp {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 2px;
+    animation: hueShift 8s linear infinite;
+    -webkit-text-fill-color: transparent;
+    background: conic-gradient(from 0deg, #ff6600, #ffcc00, #00ff88, #00ccff, #ff0099, #ff6600);
+    -webkit-background-clip: text;
+    background-clip: text;
+    background-size: 200%;
+    filter: brightness(1.4);
+  }
+  .card:nth-child(2) .card-temp { animation-delay: -2.6s; }
+  .card:nth-child(3) .card-temp { animation-delay: -5.3s; }
+
+  .card-label {
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    opacity: 0.6;
+  }
+  .card-bar {
+    height: 3px;
+    border-radius: 2px;
+    margin-top: 10px;
+    background: linear-gradient(90deg, rgba(255,255,255,0.1), rgba(255,255,255,0.6));
+    position: relative;
+    overflow: hidden;
+  }
+  .card-bar::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.9), transparent);
+    animation: shimmer 2s linear infinite;
+    background-size: 200% 100%;
+  }
+
+  .waveform {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    height: 40px;
+    margin-bottom: 20px;
+  }
+  .wave-bar {
+    flex: 1;
+    border-radius: 2px;
+    background: rgba(255,255,255,0.5);
+    transition: height 0.1s;
+  }
+
+  .track-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: rgba(0,0,0,0.45);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    backdrop-filter: blur(12px);
+  }
+
+  .track-art {
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    background: conic-gradient(from 45deg, #ff0040, #ff6600, #ffcc00, #00ff88, #8800ff, #ff0040);
+    flex-shrink: 0;
+    animation: spinBg 4s linear infinite;
+    overflow: hidden;
+    position: relative;
+  }
+  .track-art::after {
+    content: '';
+    position: absolute;
+    inset: 30%;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.6);
+  }
+
+  .track-meta { flex: 1 }
+  .track-name { font-size: 15px; font-weight: 600; margin-bottom: 2px; }
+  .track-artist { font-size: 12px; opacity: 0.55; letter-spacing: 1px; }
+
+  .controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .ctrl-btn {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: #fff;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 12px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.2s;
+    backdrop-filter: blur(8px);
+  }
+  .ctrl-btn:hover {
+    background: rgba(255,255,255,0.2);
+    border-color: rgba(255,255,255,0.5);
+    filter: hue-rotate(45deg) brightness(1.3);
+  }
+  .ctrl-btn.play {
+    background: rgba(255,255,255,0.2);
+    padding: 8px 20px;
+    font-size: 16px;
+  }
+  .ctrl-btn.play:hover {
+    background: rgba(255,255,255,0.35);
+    filter: hue-rotate(90deg) brightness(1.4);
+    transform: scale(1.05);
+  }
+
+  .progress-track {
+    height: 4px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 2px;
+    margin: 12px 0 8px;
+    position: relative;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    width: 38%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, #ff6600, #ffcc00, #00ff88);
+    animation: shimmer 3s linear infinite;
+    background-size: 200% 100%;
+  }
+  .progress-times {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    opacity: 0.5;
+    letter-spacing: 1px;
+  }
+</style>
+
+<div class="thermo-root">
+  <div class="bg-layer"></div>
+  <div class="bg-overlay"></div>
+
+  <div class="content">
+    <div class="top-bar">
+      <div class="logo-text">Chroma</div>
+      <div class="temp-badge">38.4°C ACTIVE</div>
+    </div>
+
+    <div class="hero-title">HEAT<br>VISION</div>
+    <div class="hero-sub">Thermochromic Audio Engine</div>
+
+    <div class="cards-row">
+      <div class="card">
+        <div class="card-temp">72°</div>
+        <div class="card-label">Frequency</div>
+        <div class="card-bar"></div>
+      </div>
+      <div class="card">
+        <div class="card-temp">∞Hz</div>
+        <div class="card-label">Resonance</div>
+        <div class="card-bar"></div>
+      </div>
+      <div class="card">
+        <div class="card-temp">9.8</div>
+        <div class="card-label">Intensity</div>
+        <div class="card-bar"></div>
+      </div>
+    </div>
+
+    <div class="waveform" id="waveform"></div>
+
+    <div class="track-info">
+      <div class="track-art"></div>
+      <div class="track-meta">
+        <div class="track-name">Neon Fever Dream</div>
+        <div class="track-artist">CHROMAWAVE · 1987</div>
+      </div>
+    </div>
+
+    <div class="progress-track">
+      <div class="progress-fill"></div>
+    </div>
+    <div class="progress-times">
+      <span>1:24</span><span>3:47</span>
+    </div>
+
+    <div class="controls">
+      <button class="ctrl-btn">⟨⟨</button>
+      <button class="ctrl-btn play">▶</button>
+      <button class="ctrl-btn">⟩⟩</button>
+      <button class="ctrl-btn" style="margin-left: auto;">≋</button>
+      <button class="ctrl-btn">↺</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const wf = document.getElementById('waveform');
+  const bars = Array.from({length: 48}, () => {
+    const b = document.createElement('div');
+    b.className = 'wave-bar';
+    wf.appendChild(b);
+    return b;
+  });
+
+  const heights = bars.map(() => Math.random());
+  const speeds = bars.map(() => 0.02 + Math.random() * 0.04);
+  const offsets = bars.map(() => Math.random() * Math.PI * 2);
+
+  function animate(t) {
+    bars.forEach((b, i) => {
+      const h = 20 + 70 * (0.5 + 0.5 * Math.sin(t * speeds[i] * 60 + offsets[i]));
+      b.style.height = h + '%';
+      b.style.opacity = 0.3 + 0.7 * (h / 90);
+    });
+    requestAnimationFrame(animate);
+  }
+  requestAnimationFrame(animate);
+
+  const playBtn = document.querySelector('.ctrl-btn.play');
+  let playing = true;
+  playBtn.addEventListener('click', () => {
+    playing = !playing;
+    playBtn.textContent = playing ? '▶' : '❚❚';
+  });
+</script>

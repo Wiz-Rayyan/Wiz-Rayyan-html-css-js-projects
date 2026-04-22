@@ -1,0 +1,244 @@
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+.pdf-root{background:#fff;color:#111;font-family:'Times New Roman',Times,serif;font-size:11pt;line-height:1.6;}
+.toolbar{background:#f0ede6;border-bottom:1px solid #bbb;padding:8px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-family:Arial,sans-serif;font-size:12px;}
+.toolbar label{color:#444;font-size:11px;white-space:nowrap;}
+.toolbar select,.toolbar input[type=range]{font-size:11px;}
+.toolbar input[type=range]{width:80px;}
+.toolbar span{font-size:11px;color:#333;min-width:20px;}
+.tb-sep{width:1px;background:#bbb;height:20px;margin:0 4px;}
+.btn-tb{font-size:11px;font-family:Arial,sans-serif;padding:3px 10px;border:1px solid #999;background:#fff;cursor:pointer;border-radius:2px;}
+.btn-tb:hover{background:#e8e4db;}
+.btn-tb.active{background:#d0cbc0;border-color:#777;}
+.page{max-width:720px;margin:0 auto;padding:48px 64px 56px;border-bottom:2px solid #111;position:relative;transition:font-size 0.2s,font-family 0.2s;}
+.page-header{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:1px solid #111;padding-bottom:6px;margin-bottom:18px;font-size:8pt;color:#555;letter-spacing:0.04em;}
+.journal-name{font-style:italic;}
+h1.title{font-size:20pt;font-weight:bold;line-height:1.2;margin-bottom:4px;}
+.subtitle{font-size:12pt;font-style:italic;color:#444;margin-bottom:12px;}
+.byline{font-size:9pt;color:#555;border-top:0.5px solid #aaa;border-bottom:0.5px solid #aaa;padding:5px 0;margin-bottom:14px;}
+.abstract{font-size:9.5pt;border:0.5px solid #888;padding:10px 14px;margin-bottom:18px;background:#fafafa;}
+.abstract strong{font-variant:small-caps;font-size:10pt;}
+.columns{display:grid;gap:28px;}
+.columns.two-col{grid-template-columns:1fr 1fr;}
+.columns.one-col{grid-template-columns:1fr;}
+h2.section{font-size:10pt;font-weight:bold;font-variant:small-caps;letter-spacing:0.08em;border-bottom:0.5px solid #111;padding-bottom:2px;margin:14px 0 7px;}
+p.body{font-size:10pt;margin-bottom:8px;text-align:justify;}
+.figure{border:0.5px solid #888;padding:10px;margin:12px 0;text-align:center;}
+.figure-diagram{display:flex;justify-content:center;align-items:center;gap:0;margin-bottom:6px;}
+.fig-box{border:0.5px solid #555;padding:5px 9px;font-size:8pt;background:#fff;}
+.fig-arrow{font-size:14px;color:#555;padding:0 4px;}
+.caption{font-size:8pt;color:#555;font-style:italic;}
+.caption strong{font-style:normal;}
+.footnote-rule{border-top:0.5px solid #888;margin-top:16px;padding-top:6px;}
+.footnote{font-size:8pt;color:#555;margin-bottom:3px;}
+.page-footer{max-width:720px;margin:0 auto;padding:8px 64px;display:flex;justify-content:space-between;font-size:8pt;color:#666;border-top:0.5px solid #bbb;font-family:'Times New Roman',Times,serif;}
+.drop-cap::first-letter{float:left;font-size:36pt;line-height:0.78;margin-right:4px;margin-top:4px;font-weight:bold;}
+blockquote.pullquote{border-left:2px solid #111;padding:4px 10px;font-style:italic;font-size:11pt;color:#222;margin:12px 0;}
+.highlight-word{background:#fffb8a;border-radius:1px;}
+.search-bar{background:#f8f5ee;border:1px solid #ccc;padding:6px 12px;font-family:'Times New Roman',Times,serif;font-size:10pt;width:100%;margin-bottom:0;display:none;}
+.search-bar.visible{display:block;}
+.word-count-bar{background:#e8e4db;padding:4px 16px;font-family:Arial,sans-serif;font-size:10px;color:#666;display:flex;gap:16px;border-bottom:1px solid #ccc;}
+.annotation{position:relative;cursor:pointer;}
+.annotation-mark{border-bottom:2px solid #c8a84b;background:#fffde7;}
+.annotation-tip{display:none;position:absolute;left:0;top:1.3em;background:#fff;border:0.5px solid #aaa;padding:5px 8px;font-size:8pt;font-style:normal;color:#333;width:180px;z-index:10;font-family:Arial,sans-serif;box-shadow:0 2px 6px rgba(0,0,0,0.1);}
+.annotation:hover .annotation-tip{display:block;}
+.toc-panel{background:#f8f5ee;border-bottom:1px solid #ccc;padding:10px 24px;font-family:'Times New Roman',Times,serif;font-size:9.5pt;display:none;}
+.toc-panel.visible{display:block;}
+.toc-panel ol{padding-left:18px;}
+.toc-panel li{margin:3px 0;cursor:pointer;color:#1a3a6b;text-decoration:underline;}
+.toc-panel li:hover{color:#0a1f40;}
+.print-mode .toolbar,.print-mode .word-count-bar,.print-mode .toc-panel,.print-mode .search-bar{display:none!important;}
+.sepia-mode .page{background:#f9f3e8;color:#3b2e1a;}
+.sepia-mode .pdf-root{background:#f4ede0;color:#3b2e1a;}
+.sepia-mode .abstract{background:#f0e8d6;}
+.sepia-mode .page-header,.sepia-mode .page-footer{color:#7a6040;}
+.sepia-mode .pullquote{color:#5a3e1e;}
+.reading-progress{height:2px;background:#111;width:0%;transition:width 0.1s;}
+</style>
+
+<div id="root">
+  <div class="reading-progress" id="progress"></div>
+
+  <div class="toolbar" id="toolbar">
+    <label>Font</label>
+    <select id="fontSel" onchange="applyFont(this.value)">
+      <option value="'Times New Roman',Times,serif">Times New Roman</option>
+      <option value="'Garamond',Georgia,serif">Garamond</option>
+      <option value="Georgia,serif">Georgia</option>
+      <option value="'Palatino Linotype',serif">Palatino</option>
+      <option value="Arial,sans-serif">Arial (sans)</option>
+    </select>
+    <div class="tb-sep"></div>
+    <label>Size</label>
+    <input type="range" id="fontSize" min="9" max="15" step="1" value="11" oninput="applySize(this.value)">
+    <span id="sizeOut">11pt</span>
+    <div class="tb-sep"></div>
+    <label>Layout</label>
+    <select id="layoutSel" onchange="applyLayout(this.value)">
+      <option value="two">Two columns</option>
+      <option value="one">Single column</option>
+    </select>
+    <div class="tb-sep"></div>
+    <button class="btn-tb" id="sepiaBtn" onclick="toggleSepia()">Sepia</button>
+    <button class="btn-tb" id="tocBtn" onclick="toggleTOC()">Contents</button>
+    <button class="btn-tb" id="searchBtn" onclick="toggleSearch()">Find</button>
+    <button class="btn-tb" onclick="window.print()">Print</button>
+  </div>
+
+  <div class="toc-panel" id="tocPanel">
+    <strong style="font-size:9pt;font-variant:small-caps;letter-spacing:0.08em;">Table of Contents</strong>
+    <ol style="margin-top:6px;">
+      <li onclick="scrollTo(0,0)">1. Introduction &nbsp;&middot;&nbsp; 1</li>
+      <li onclick="scrollToSection('sec2')">2. Typographic Anchors &nbsp;&middot;&nbsp; 1</li>
+      <li onclick="scrollToSection('sec3')">3. Structural Signals &nbsp;&middot;&nbsp; 1</li>
+      <li onclick="scrollToSection('sec4')">4. Case Studies &nbsp;&middot;&nbsp; 2</li>
+      <li onclick="scrollToSection('sec5')">5. Discussion &nbsp;&middot;&nbsp; 2</li>
+    </ol>
+  </div>
+
+  <div class="search-bar" id="searchBar">
+    <input type="text" id="searchInput" placeholder="Find in document..." style="width:100%;font-family:'Times New Roman',Times,serif;font-size:10pt;border:none;background:transparent;outline:none;" oninput="doSearch(this.value)">
+    <span id="searchCount" style="font-family:Arial,sans-serif;font-size:10px;color:#888;margin-top:2px;display:block;"></span>
+  </div>
+
+  <div class="word-count-bar" id="wcBar">
+    <span id="wcSpan">Words: —</span>
+    <span id="readTime">Read time: —</span>
+    <span id="charSpan">Characters: —</span>
+  </div>
+
+  <div class="pdf-root" id="pdfRoot">
+    <div class="page" id="mainPage">
+      <div class="page-header">
+        <span class="journal-name">Journal of Interface Aesthetics &amp; Design Theory</span>
+        <span style="font-variant:small-caps;">Vol. 12, No. 3 · Spring 2025</span>
+      </div>
+
+      <h1 class="title">The PDF Aesthetic: Authority Through Constraint</h1>
+      <div class="subtitle">How print-era conventions lend credibility to digital documents</div>
+      <div class="byline">A. Thornton &nbsp;·&nbsp; Dept. of Visual Culture, Midvale Institute &nbsp;·&nbsp; a.thornton@midvale.edu</div>
+
+      <div class="abstract">
+        <strong>Abstract.</strong> This paper examines the growing use of print-derived visual conventions — fixed-width columns, serifed typefaces, ruled page headers, and numbered folios — in contemporary web and application design. We argue that the "PDF aesthetic" functions as a trust signal, borrowing authority from institutional document formats to lend weight to digital reading experiences. Three case studies illustrate the pattern: academic preprint servers, minimalist reading platforms, and legal document portals.
+        <div style="font-size:8.5pt;color:#555;margin-top:6px;"><span style="font-variant:small-caps;">Keywords:</span> &nbsp;document design, serif typography, interface credibility, print metaphor, reading UX</div>
+      </div>
+
+      <div class="columns two-col" id="colGrid">
+        <div>
+          <h2 class="section" id="sec1">1. Introduction</h2>
+          <p class="body drop-cap" id="bodyText">The graphical user interface inherited its metaphors from the physical world: the desktop, the folder, the trash can. Yet few borrowings have proven as durable — or as curiously specific — as the printed academic paper. Long after the "paperless office" was declared, designers continue to reach for <span class="annotation"><span class="annotation-mark">Times New Roman</span><span class="annotation-tip">Designed in 1931 for The Times of London. Optimised for narrow newspaper columns.</span></span>, 1-inch margins, and two-column grids as signals of seriousness.</p>
+          <p class="body">This is not mere nostalgia. The conventions of the typeset document carry cultural freight: they imply peer review, institutional backing, archival permanence. When a web page looks like a PDF, it inherits — rightly or not — a portion of that authority.</p>
+
+          <h2 class="section" id="sec2">2. Typographic Anchors</h2>
+          <p class="body">Serif typefaces such as Times New Roman or <span class="annotation"><span class="annotation-mark">Palatino</span><span class="annotation-tip">Hermann Zapf's 1948 design, named after 16th-century Italian master calligrapher Giambattista Palatino.</span></span> are the most immediate cue. Research on reading perception consistently shows that readers associate serifs with formality and expertise, even when the underlying content is identical to a sans-serif counterpart.<sup>1</sup></p>
+          <blockquote class="pullquote">"The column grid is not merely functional — it is a declaration of seriousness."</blockquote>
+          <p class="body">Line length is the second anchor. Academic typesetting targets 60–75 characters per line; the two-column grid achieves this at comfortable type sizes without requiring enormous white margins.</p>
+        </div>
+
+        <div>
+          <h2 class="section" id="sec3">3. Structural Signals</h2>
+          <p class="body">Beyond typeface, the PDF aesthetic relies on a constellation of structural cues: numbered section headings in <span class="annotation"><span class="annotation-mark">small-caps</span><span class="annotation-tip">Small capitals are uppercase letterforms scaled to x-height. They lend hierarchy without the weight of bold.</span></span>, ruled page headers carrying the journal name and volume, and page-number folios at the foot of each column. Individually, each element is minor. Together, they constitute a legibility contract.</p>
+
+          <div class="figure">
+            <div class="figure-diagram">
+              <div class="fig-box">Raw Text</div>
+              <div class="fig-arrow">→</div>
+              <div class="fig-box">Typography</div>
+              <div class="fig-arrow">→</div>
+              <div class="fig-box">Layout Grid</div>
+              <div class="fig-arrow">→</div>
+              <div class="fig-box">Page Frame</div>
+            </div>
+            <div class="caption"><strong>Fig. 1.</strong> The layered application of PDF aesthetic conventions, from raw content to fully framed document.</div>
+          </div>
+
+          <h2 class="section" id="sec4">4. Case Studies</h2>
+          <p class="body">Three categories of digital product have adopted this aesthetic most deliberately. Preprint servers such as arXiv and SSRN present machine-generated PDFs that mirror journal formatting precisely. Minimalist reading platforms use the visual grammar of the article to signal that long-form reading is the intended mode. Legal portals apply the conventions of court filings to lend official gravity to contractual content.</p>
+
+          <h2 class="section" id="sec5">5. Discussion</h2>
+          <p class="body">The PDF aesthetic is, ultimately, a borrowed costume. It cannot substitute for rigorous argument, peer review, or genuine institutional authority. Yet as a design signal it remains remarkably effective — proof that in visual communication, form is never merely formal.<sup>2</sup></p>
+
+          <div class="footnote-rule">
+            <div class="footnote"><sup>1</sup> Tantillo, J. et al. "Typographic Authority in Digital Contexts." <em>Design Studies</em>, 2022.</div>
+            <div class="footnote"><sup>2</sup> McLuhan, M. <em>Understanding Media</em>. McGraw-Hill, 1964.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-footer">
+      <span>A. Thornton — The PDF Aesthetic</span>
+      <span id="pageNum">2</span>
+      <span><em>J. Interface Aesthetics</em> · 2025</span>
+    </div>
+  </div>
+</div>
+
+<script>
+var sepia=false,tocOpen=false,searchOpen=false;
+
+function applyFont(v){
+  document.getElementById('pdfRoot').style.fontFamily=v;
+  document.getElementById('page-footer-text') && (document.getElementById('page-footer-text').style.fontFamily=v);
+  document.querySelectorAll('.page,.page-footer').forEach(function(el){el.style.fontFamily=v;});
+}
+function applySize(v){
+  document.getElementById('sizeOut').textContent=v+'pt';
+  document.getElementById('mainPage').style.fontSize=v+'pt';
+}
+function applyLayout(v){
+  var g=document.getElementById('colGrid');
+  if(v==='two'){g.classList.add('two-col');g.classList.remove('one-col');}
+  else{g.classList.remove('two-col');g.classList.add('one-col');}
+}
+function toggleSepia(){
+  sepia=!sepia;
+  document.getElementById('pdfRoot').classList.toggle('sepia-mode',sepia);
+  document.getElementById('sepiaBtn').classList.toggle('active',sepia);
+}
+function toggleTOC(){
+  tocOpen=!tocOpen;
+  document.getElementById('tocPanel').classList.toggle('visible',tocOpen);
+  document.getElementById('tocBtn').classList.toggle('active',tocOpen);
+}
+function toggleSearch(){
+  searchOpen=!searchOpen;
+  document.getElementById('searchBar').classList.toggle('visible',searchOpen);
+  document.getElementById('searchBtn').classList.toggle('active',searchOpen);
+  if(searchOpen) document.getElementById('searchInput').focus();
+  else{document.getElementById('searchInput').value='';doSearch('');}
+}
+function scrollToSection(id){
+  var el=document.getElementById(id);
+  if(el) el.scrollIntoView({behavior:'smooth'});
+}
+
+function doSearch(q){
+  var root=document.getElementById('pdfRoot');
+  var count=document.getElementById('searchCount');
+  if(!q||q.length<2){count.textContent='';return;}
+  var text=root.innerText||root.textContent;
+  var re=new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi');
+  var matches=(text.match(re)||[]).length;
+  count.textContent=matches>0?matches+' occurrence'+(matches>1?'s':'') + ' found':'No results';
+}
+
+function calcStats(){
+  var text=document.getElementById('pdfRoot').innerText||'';
+  var words=text.trim().split(/\s+/).filter(function(w){return w.length>0;}).length;
+  var chars=text.replace(/\s/g,'').length;
+  var mins=Math.ceil(words/200);
+  document.getElementById('wcSpan').textContent='Words: '+words.toLocaleString();
+  document.getElementById('charSpan').textContent='Characters: '+chars.toLocaleString();
+  document.getElementById('readTime').textContent='Read time: ~'+mins+' min';
+}
+
+window.addEventListener('scroll',function(){
+  var el=document.getElementById('root');
+  var h=el.scrollHeight-window.innerHeight;
+  var pct=h>0?Math.round((window.scrollY/h)*100):0;
+  document.getElementById('progress').style.width=Math.min(pct,100)+'%';
+});
+
+setTimeout(calcStats,200);
+</script>
