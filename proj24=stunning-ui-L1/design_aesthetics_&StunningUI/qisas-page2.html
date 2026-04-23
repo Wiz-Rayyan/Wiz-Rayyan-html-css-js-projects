@@ -1,0 +1,2234 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Qisas al-Anbiya — The Illuminated Archive</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Cinzel+Decorative:wght@400;700&family=EB+Garamond:ital,wght@0,400;0,500;0,700;1,400;1,500&family=Noto+Naskh+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════
+   ROOT TOKENS
+═══════════════════════════════════════════ */
+:root {
+  --lapis:        #1a3270;
+  --lapis-dk:     #0d1a3a;
+  --lapis-mid:    #1e3a8a;
+  --lapis-lt:     #2d52b8;
+  --cinnabar:     #c23b22;
+  --cinnabar-lt:  #e04b30;
+  --linen:        #f5e6d3;
+  --linen-warm:   #ede0ca;
+  --linen-dk:     #c8b094;
+  --silver:       #9ca3af;
+  --malachite:    #2e5a4c;
+  --malachite-lt: #3d7a65;
+  --gold:         #d4a017;
+  --gold-lt:      #eab308;
+  --gold-pale:    #fef3c7;
+  --gold-glow:    rgba(212,160,23,0.35);
+  --ink:          #0a0804;
+  --ink-soft:     #1c1408;
+
+  --sp1: 5px; --sp2: 8px; --sp3: 13px; --sp4: 21px;
+  --sp5: 34px; --sp6: 55px; --sp7: 89px; --sp8: 144px;
+
+  --font-disp: 'Cinzel Decorative', 'Cinzel', serif;
+  --font-cinzel: 'Cinzel', serif;
+  --font-body: 'EB Garamond', serif;
+  --font-ar:  'Noto Naskh Arabic', serif;
+
+  --nav-w: 260px;
+  --header-h: 72px;
+  --easing: cubic-bezier(.4,0,.2,1);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; font-size: 16px; }
+
+body {
+  background: var(--lapis-dk);
+  color: var(--linen);
+  font-family: var(--font-body);
+  font-size: 1.05rem;
+  line-height: 1.7;
+  overflow-x: hidden;
+  cursor: none;
+}
+
+/* ═══════════════════════════════════════════
+   CUSTOM CURSOR
+═══════════════════════════════════════════ */
+#cursor {
+  position: fixed;
+  width: 28px; height: 28px;
+  pointer-events: none;
+  z-index: 99999;
+  transform: translate(-50%, -50%);
+  transition: transform .12s var(--easing), opacity .2s;
+  mix-blend-mode: difference;
+}
+#cursor-inner {
+  width: 100%; height: 100%;
+  position: relative;
+  display: flex; align-items: center; justify-content: center;
+}
+#cursor svg { position: absolute; }
+#cursor-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--gold-lt);
+  position: absolute;
+  transition: transform .15s var(--easing);
+}
+body:hover #cursor { opacity: 1; }
+
+/* ═══════════════════════════════════════════
+   AMBIENT STARFIELD
+═══════════════════════════════════════════ */
+#starfield {
+  position: fixed; inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+.star {
+  position: absolute;
+  border-radius: 50%;
+  background: white;
+  animation: twinkle var(--dur, 3s) var(--delay, 0s) ease-in-out infinite alternate;
+}
+@keyframes twinkle {
+  from { opacity: var(--lo, 0.1); transform: scale(1); }
+  to   { opacity: var(--hi, 0.8); transform: scale(1.4); }
+}
+
+/* ═══════════════════════════════════════════
+   GEOMETRIC ARABESQUE BACKGROUND
+═══════════════════════════════════════════ */
+#arabesque-bg {
+  position: fixed; inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cdefs%3E%3Cpattern id='p' x='0' y='0' width='60' height='60' patternUnits='userSpaceOnUse'%3E%3Ccircle cx='30' cy='30' r='28' fill='none' stroke='%23EAB308' stroke-width='0.5'/%3E%3Cpath d='M30 2 L58 30 L30 58 L2 30Z' fill='none' stroke='%23EAB308' stroke-width='0.5'/%3E%3Cpath d='M30 10 L50 30 L30 50 L10 30Z' fill='none' stroke='%23EAB308' stroke-width='0.4'/%3E%3Ccircle cx='30' cy='30' r='8' fill='none' stroke='%23EAB308' stroke-width='0.5'/%3E%3Cline x1='2' y1='30' x2='58' y2='30' stroke='%23EAB308' stroke-width='0.3'/%3E%3Cline x1='30' y1='2' x2='30' y2='58' stroke='%23EAB308' stroke-width='0.3'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='120' height='120' fill='url(%23p)'/%3E%3C/svg%3E");
+}
+
+/* ═══════════════════════════════════════════
+   TOP HEADER
+═══════════════════════════════════════════ */
+#header {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: var(--header-h);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--sp4);
+  background: linear-gradient(180deg, rgba(10,8,4,.97) 0%, rgba(13,26,58,.92) 100%);
+  border-bottom: 1px solid rgba(212,160,23,.2);
+  backdrop-filter: blur(12px);
+}
+
+.header-brand {
+  display: flex; align-items: center; gap: var(--sp3);
+}
+.header-brand-emblem {
+  width: 44px; height: 44px;
+  position: relative;
+  flex-shrink: 0;
+}
+.brand-text {}
+.brand-title {
+  font-family: var(--font-disp);
+  font-size: .72rem;
+  letter-spacing: .12em;
+  color: var(--gold-lt);
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+.brand-sub {
+  font-family: var(--font-ar);
+  font-size: .95rem;
+  color: var(--linen-dk);
+  direction: rtl;
+  opacity: .8;
+}
+
+.header-center {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--sp4);
+}
+
+.search-bar {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+}
+.search-bar input {
+  width: 100%;
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(212,160,23,.25);
+  border-radius: 0;
+  padding: var(--sp2) var(--sp4) var(--sp2) 40px;
+  color: var(--linen);
+  font-family: var(--font-body);
+  font-size: .95rem;
+  outline: none;
+  transition: border-color .2s, background .2s;
+  clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+}
+.search-bar input::placeholder { color: var(--silver); opacity: .6; font-style: italic; }
+.search-bar input:focus {
+  border-color: var(--gold-lt);
+  background: rgba(212,160,23,.07);
+}
+.search-icon {
+  position: absolute;
+  left: 12px; top: 50%;
+  transform: translateY(-50%);
+  color: var(--gold);
+  pointer-events: none;
+}
+
+.header-actions {
+  display: flex; align-items: center; gap: var(--sp3);
+}
+.header-btn {
+  background: none;
+  border: 1px solid rgba(212,160,23,.3);
+  color: var(--gold);
+  padding: var(--sp2) var(--sp3);
+  font-family: var(--font-cinzel);
+  font-size: .62rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all .2s;
+  clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+}
+.header-btn:hover {
+  background: var(--gold);
+  color: var(--lapis-dk);
+  border-color: var(--gold);
+}
+.header-btn.active {
+  background: rgba(212,160,23,.15);
+  border-color: var(--gold-lt);
+}
+
+/* ═══════════════════════════════════════════
+   SIDEBAR NAV
+═══════════════════════════════════════════ */
+#sidebar {
+  position: fixed;
+  left: 0; top: var(--header-h); bottom: 0;
+  width: var(--nav-w);
+  z-index: 900;
+  background: linear-gradient(180deg, rgba(10,8,4,.98) 0%, rgba(13,26,58,.96) 100%);
+  border-right: 1px solid rgba(212,160,23,.15);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(212,160,23,.3) transparent;
+  transform: translateX(0);
+  transition: transform .35s var(--easing);
+}
+#sidebar.collapsed { transform: translateX(calc(-1 * var(--nav-w))); }
+
+.sidebar-section-label {
+  font-family: var(--font-cinzel);
+  font-size: .52rem;
+  letter-spacing: .25em;
+  color: var(--gold);
+  text-transform: uppercase;
+  padding: var(--sp4) var(--sp4) var(--sp2);
+  opacity: .6;
+  border-top: 1px solid rgba(212,160,23,.08);
+  margin-top: var(--sp3);
+}
+.sidebar-section-label:first-child { margin-top: 0; border-top: none; }
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp3);
+  padding: var(--sp3) var(--sp4);
+  cursor: pointer;
+  transition: background .2s, border-left-color .2s;
+  border-left: 3px solid transparent;
+  position: relative;
+}
+.nav-item:hover {
+  background: rgba(212,160,23,.07);
+  border-left-color: rgba(212,160,23,.4);
+}
+.nav-item.active {
+  background: rgba(212,160,23,.12);
+  border-left-color: var(--gold-lt);
+}
+.nav-item-icon {
+  flex-shrink: 0;
+  width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+}
+.nav-item-text {}
+.nav-item-en {
+  font-family: var(--font-cinzel);
+  font-size: .7rem;
+  letter-spacing: .08em;
+  color: var(--linen);
+  display: block;
+  line-height: 1.2;
+}
+.nav-item-ar {
+  font-family: var(--font-ar);
+  font-size: .85rem;
+  color: var(--gold);
+  display: block;
+  direction: rtl;
+  line-height: 1.3;
+  opacity: .85;
+}
+.nav-item.active .nav-item-en { color: var(--gold-lt); }
+.nav-badge {
+  margin-left: auto;
+  background: var(--cinnabar);
+  color: white;
+  font-family: var(--font-cinzel);
+  font-size: .52rem;
+  letter-spacing: .05em;
+  padding: 2px 6px;
+  border-radius: 2px;
+}
+
+/* Prayer times widget in sidebar */
+.prayer-widget {
+  margin: var(--sp3) var(--sp3);
+  border: 1px solid rgba(212,160,23,.2);
+  background: rgba(212,160,23,.04);
+  position: relative;
+  overflow: hidden;
+}
+.prayer-widget::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold-lt), transparent);
+}
+.prayer-header {
+  padding: var(--sp2) var(--sp3);
+  background: rgba(212,160,23,.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(212,160,23,.12);
+}
+.prayer-header-title {
+  font-family: var(--font-cinzel);
+  font-size: .6rem;
+  letter-spacing: .15em;
+  color: var(--gold-lt);
+  text-transform: uppercase;
+}
+.prayer-header-ar {
+  font-family: var(--font-ar);
+  font-size: .85rem;
+  color: var(--linen-dk);
+  direction: rtl;
+}
+.prayer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px var(--sp3);
+  border-bottom: 1px solid rgba(255,255,255,.04);
+  transition: background .15s;
+}
+.prayer-row:last-child { border-bottom: none; }
+.prayer-row.next {
+  background: rgba(212,160,23,.1);
+  border-left: 2px solid var(--gold-lt);
+}
+.prayer-name-en {
+  font-family: var(--font-cinzel);
+  font-size: .6rem;
+  letter-spacing: .1em;
+  color: var(--silver);
+  text-transform: uppercase;
+}
+.prayer-row.next .prayer-name-en { color: var(--gold-lt); }
+.prayer-name-ar {
+  font-family: var(--font-ar);
+  font-size: .85rem;
+  color: var(--linen-warm);
+  direction: rtl;
+}
+.prayer-time {
+  font-family: var(--font-cinzel);
+  font-size: .72rem;
+  color: var(--linen-dk);
+  letter-spacing: .06em;
+}
+.prayer-row.next .prayer-time { color: var(--gold-lt); }
+
+/* ═══════════════════════════════════════════
+   MAIN CONTENT
+═══════════════════════════════════════════ */
+#main {
+  margin-left: var(--nav-w);
+  margin-top: var(--header-h);
+  min-height: calc(100vh - var(--header-h));
+  position: relative;
+  z-index: 1;
+  transition: margin-left .35s var(--easing);
+}
+#main.expanded { margin-left: 0; }
+
+/* ═══════════════════════════════════════════
+   HERO — FULL VIEWPORT
+═══════════════════════════════════════════ */
+#hero {
+  min-height: calc(100vh - var(--header-h));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  padding: var(--sp5);
+}
+
+/* Radial glow behind hero */
+#hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 60% 50% at 50% 40%, rgba(30,58,138,.7) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 30% at 50% 40%, rgba(212,160,23,.08) 0%, transparent 60%);
+}
+
+/* Rotating geometric ring */
+.geo-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid rgba(212,160,23,.15);
+  animation: spin-ring var(--dur) linear infinite;
+  pointer-events: none;
+}
+@keyframes spin-ring {
+  from { transform: translate(-50%,-50%) rotate(0deg); }
+  to   { transform: translate(-50%,-50%) rotate(360deg); }
+}
+
+.hero-inner {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  max-width: 760px;
+}
+
+/* Giant pointed arch frame */
+.hero-arch {
+  position: relative;
+  display: inline-block;
+  width: min(560px, 90vw);
+}
+.hero-arch-svg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.hero-arch-content {
+  padding: var(--sp8) var(--sp6) var(--sp6);
+  position: relative;
+  z-index: 1;
+}
+
+/* Animated Basmala */
+.basmala {
+  font-family: var(--font-ar);
+  font-size: clamp(1.4rem, 4vw, 2.2rem);
+  color: var(--gold-lt);
+  direction: rtl;
+  margin-bottom: var(--sp4);
+  line-height: 1.5;
+  text-shadow: 0 0 40px rgba(212,160,23,.4), 0 2px 4px rgba(0,0,0,.6);
+  animation: fadeInDown .9s var(--easing) both;
+}
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.hero-title {
+  font-family: var(--font-disp);
+  font-size: clamp(1.4rem, 4.5vw, 3rem);
+  color: var(--linen);
+  line-height: 1.1;
+  letter-spacing: .03em;
+  margin-bottom: var(--sp2);
+  animation: fadeInDown .9s .15s var(--easing) both;
+  text-shadow: 0 2px 20px rgba(0,0,0,.5);
+}
+.hero-title span { color: var(--gold-lt); }
+
+.hero-subtitle-ar {
+  font-family: var(--font-ar);
+  font-size: clamp(1rem, 2.5vw, 1.4rem);
+  color: var(--linen-dk);
+  direction: rtl;
+  margin-bottom: var(--sp4);
+  animation: fadeInDown .9s .25s var(--easing) both;
+  opacity: .85;
+}
+
+.hero-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--sp3);
+  justify-content: center;
+  margin: var(--sp4) 0;
+  animation: fadeIn .9s .35s var(--easing) both;
+}
+.hero-divider-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(212,160,23,.5), transparent);
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.hero-desc {
+  font-style: italic;
+  color: var(--linen-warm);
+  font-size: clamp(.9rem, 1.8vw, 1.1rem);
+  line-height: 1.75;
+  max-width: 440px;
+  margin: 0 auto var(--sp5);
+  animation: fadeInDown .9s .4s var(--easing) both;
+  opacity: .9;
+}
+
+.hero-cta-row {
+  display: flex;
+  gap: var(--sp3);
+  justify-content: center;
+  flex-wrap: wrap;
+  animation: fadeIn .9s .5s var(--easing) both;
+}
+
+/* CTA Buttons */
+.cta-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp2);
+  padding: var(--sp3) var(--sp5);
+  font-family: var(--font-cinzel);
+  font-size: .72rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border: none;
+  text-decoration: none;
+  transition: all .25s var(--easing);
+  clip-path: polygon(10px 0%, 100% 0%, calc(100% - 10px) 100%, 0% 100%);
+  overflow: hidden;
+}
+.cta-btn::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,.1) 0%, transparent 50%);
+  opacity: 0;
+  transition: opacity .25s;
+}
+.cta-btn:hover::before { opacity: 1; }
+
+.cta-primary {
+  background: var(--gold);
+  color: var(--lapis-dk);
+}
+.cta-primary:hover {
+  background: var(--gold-lt);
+  box-shadow: 0 0 30px rgba(212,160,23,.5), 0 4px 16px rgba(0,0,0,.4);
+  transform: translateY(-2px);
+}
+.cta-secondary {
+  background: transparent;
+  color: var(--gold);
+  border: 1px solid rgba(212,160,23,.5);
+}
+.cta-secondary:hover {
+  background: rgba(212,160,23,.1);
+  border-color: var(--gold-lt);
+  transform: translateY(-2px);
+}
+
+/* Floating scroll cue */
+.scroll-cue {
+  position: absolute;
+  bottom: var(--sp5);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp2);
+  animation: fadeIn 1.2s 1s both, bounce 2s 1.5s ease-in-out infinite;
+  cursor: pointer;
+}
+@keyframes bounce {
+  0%,100% { transform: translateX(-50%) translateY(0); }
+  50%      { transform: translateX(-50%) translateY(8px); }
+}
+.scroll-cue-text {
+  font-family: var(--font-cinzel);
+  font-size: .55rem;
+  letter-spacing: .25em;
+  color: var(--gold);
+  text-transform: uppercase;
+  opacity: .6;
+}
+
+/* ═══════════════════════════════════════════
+   SECTION: STATS BAR
+═══════════════════════════════════════════ */
+#stats-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-top: 1px solid rgba(212,160,23,.15);
+  border-bottom: 1px solid rgba(212,160,23,.15);
+  background: rgba(10,8,4,.85);
+  backdrop-filter: blur(8px);
+  position: relative;
+  z-index: 10;
+}
+.stat-cell {
+  padding: var(--sp4) var(--sp4);
+  text-align: center;
+  border-right: 1px solid rgba(212,160,23,.1);
+  position: relative;
+  overflow: hidden;
+  transition: background .25s;
+}
+.stat-cell:last-child { border-right: none; }
+.stat-cell:hover { background: rgba(212,160,23,.05); }
+.stat-cell::before {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 2px;
+  background: var(--gold-lt);
+  transition: width .3s var(--easing);
+}
+.stat-cell:hover::before { width: 60%; }
+.stat-num {
+  font-family: var(--font-disp);
+  font-size: clamp(1.5rem, 3vw, 2.2rem);
+  color: var(--gold-lt);
+  line-height: 1;
+  margin-bottom: 4px;
+  text-shadow: 0 0 20px var(--gold-glow);
+}
+.stat-label-en {
+  font-family: var(--font-cinzel);
+  font-size: .6rem;
+  letter-spacing: .14em;
+  color: var(--silver);
+  text-transform: uppercase;
+  display: block;
+}
+.stat-label-ar {
+  font-family: var(--font-ar);
+  font-size: .9rem;
+  color: var(--linen-dk);
+  direction: rtl;
+  display: block;
+  margin-top: 2px;
+  opacity: .7;
+}
+
+/* ═══════════════════════════════════════════
+   SECTION: PROPHETS GRID
+═══════════════════════════════════════════ */
+#prophets-section {
+  padding: var(--sp7) var(--sp5);
+  position: relative;
+}
+
+.section-header {
+  text-align: center;
+  margin-bottom: var(--sp6);
+}
+.section-eyebrow {
+  font-family: var(--font-cinzel);
+  font-size: .6rem;
+  letter-spacing: .3em;
+  color: var(--gold);
+  text-transform: uppercase;
+  margin-bottom: var(--sp3);
+  opacity: .75;
+}
+.section-title {
+  font-family: var(--font-disp);
+  font-size: clamp(1.4rem, 3vw, 2.2rem);
+  color: var(--linen);
+  line-height: 1.15;
+  margin-bottom: var(--sp2);
+}
+.section-title-ar {
+  font-family: var(--font-ar);
+  font-size: clamp(1.1rem, 2vw, 1.5rem);
+  color: var(--gold);
+  direction: rtl;
+  opacity: .85;
+}
+.section-line {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp3);
+  margin: var(--sp4) 0;
+}
+.section-line-seg {
+  height: 1px;
+  width: 80px;
+  background: linear-gradient(90deg, transparent, var(--gold));
+}
+.section-line-seg:last-child {
+  background: linear-gradient(270deg, transparent, var(--gold));
+}
+
+/* Filter tabs */
+.filter-tabs {
+  display: flex;
+  justify-content: center;
+  gap: var(--sp2);
+  flex-wrap: wrap;
+  margin-bottom: var(--sp5);
+}
+.filter-tab {
+  padding: var(--sp2) var(--sp4);
+  font-family: var(--font-cinzel);
+  font-size: .62rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--silver);
+  border: 1px solid rgba(212,160,23,.2);
+  background: transparent;
+  cursor: pointer;
+  transition: all .2s;
+  clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+}
+.filter-tab:hover, .filter-tab.active {
+  color: var(--gold-lt);
+  border-color: var(--gold-lt);
+  background: rgba(212,160,23,.08);
+}
+
+/* Prophet cards */
+.prophets-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--sp4);
+}
+
+.prophet-card {
+  position: relative;
+  background: linear-gradient(160deg, rgba(26,50,112,.9) 0%, rgba(13,26,58,.95) 100%);
+  border: 1px solid rgba(212,160,23,.2);
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform .3s var(--easing), box-shadow .3s var(--easing), border-color .3s;
+  display: flex;
+  flex-direction: column;
+}
+.prophet-card:hover {
+  transform: translateY(-6px);
+  border-color: rgba(212,160,23,.6);
+  box-shadow: 0 20px 60px rgba(0,0,0,.5), 0 0 40px rgba(212,160,23,.12);
+}
+
+/* Sky register */
+.pc-sky {
+  background: linear-gradient(180deg, rgba(8,14,36,1) 0%, rgba(26,50,112,.8) 100%);
+  padding: var(--sp3) var(--sp4);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 54px;
+  border-bottom: 1px solid rgba(212,160,23,.15);
+  position: relative;
+  overflow: hidden;
+}
+.pc-sky-stars {
+  display: flex; gap: var(--sp2); align-items: center;
+}
+.pc-sky::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(212,160,23,.4), transparent);
+}
+.pc-number {
+  font-family: var(--font-cinzel);
+  font-size: .55rem;
+  letter-spacing: .2em;
+  color: var(--gold);
+  opacity: .5;
+}
+
+/* Halo in card */
+.pc-halo-wrap {
+  position: absolute;
+  right: var(--sp4);
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* Scene register */
+.pc-scene {
+  padding: var(--sp4);
+  flex: 1;
+  position: relative;
+}
+.pc-prophet-name {
+  font-family: var(--font-disp);
+  font-size: .9rem;
+  color: var(--gold-lt);
+  letter-spacing: .06em;
+  margin-bottom: 2px;
+}
+.pc-prophet-ar {
+  font-family: var(--font-ar);
+  font-size: 1.15rem;
+  color: var(--cinnabar-lt);
+  direction: rtl;
+  margin-bottom: var(--sp3);
+  line-height: 1.3;
+}
+.pc-prophet-title {
+  font-family: var(--font-cinzel);
+  font-size: .58rem;
+  letter-spacing: .15em;
+  color: var(--silver);
+  text-transform: uppercase;
+  margin-bottom: var(--sp3);
+}
+.pc-body {
+  font-style: italic;
+  font-size: .92rem;
+  color: var(--linen-warm);
+  line-height: 1.65;
+  opacity: .9;
+}
+
+/* Tags */
+.pc-tags {
+  display: flex;
+  gap: var(--sp2);
+  flex-wrap: wrap;
+  margin-top: var(--sp3);
+}
+.pc-tag {
+  padding: 3px 10px;
+  font-family: var(--font-cinzel);
+  font-size: .5rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  border: 1px solid rgba(212,160,23,.25);
+  color: var(--gold);
+  background: rgba(212,160,23,.05);
+}
+
+/* Ground register */
+.pc-ground {
+  background: linear-gradient(180deg, rgba(46,90,76,.7) 0%, rgba(46,90,76,.4) 100%);
+  padding: var(--sp2) var(--sp4);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid rgba(212,160,23,.12);
+  min-height: 44px;
+}
+.pc-ground-label {
+  font-family: var(--font-cinzel);
+  font-size: .55rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--gold-pale);
+}
+.pc-ground-read {
+  font-family: var(--font-cinzel);
+  font-size: .55rem;
+  letter-spacing: .1em;
+  color: var(--gold);
+  text-transform: uppercase;
+  cursor: pointer;
+  opacity: 0;
+  transform: translateX(4px);
+  transition: opacity .2s, transform .2s;
+  display: flex; align-items: center; gap: 4px;
+}
+.prophet-card:hover .pc-ground-read {
+  opacity: 1; transform: translateX(0);
+}
+
+/* Hover gold glow overlay */
+.prophet-card::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(212,160,23,.04) 0%, transparent 60%);
+  opacity: 0;
+  transition: opacity .3s;
+  pointer-events: none;
+}
+.prophet-card:hover::after { opacity: 1; }
+
+/* ═══════════════════════════════════════════
+   CRENELLATION BAND
+═══════════════════════════════════════════ */
+.crenel-band {
+  width: 100%;
+  overflow: hidden;
+  line-height: 0;
+  position: relative;
+}
+.crenel-band::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(212,160,23,.35), transparent);
+}
+
+/* ═══════════════════════════════════════════
+   SECTION: FEATURED SCROLL / TIMELINE
+═══════════════════════════════════════════ */
+#scroll-section {
+  padding: var(--sp7) var(--sp5);
+  background: linear-gradient(180deg, rgba(10,8,4,.5) 0%, rgba(13,26,58,.3) 100%);
+  position: relative;
+}
+
+/* Illuminated manuscript panel */
+.manuscript-panel {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: var(--sp5);
+  max-width: 900px;
+  margin: 0 auto;
+  align-items: start;
+}
+@media (max-width: 700px) {
+  .manuscript-panel { grid-template-columns: 1fr; }
+  .stats-bar { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* Arch panel left */
+.arch-panel {
+  position: relative;
+}
+.arch-panel-frame {
+  position: relative;
+  padding-bottom: 130%;
+}
+.arch-panel-inner {
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(10,14,36,1) 0%, rgba(26,50,112,.9) 70%, rgba(46,90,76,.6) 100%);
+  border: 2px solid rgba(212,160,23,.35);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  clip-path: polygon(0 0, 100% 0, 100% 80%, 50% 100%, 0 80%);
+}
+.arch-panel-inner::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 20%;
+  border-radius: 50% 50% 0 0 / 18% 18% 0 0;
+  border-top: 2px solid rgba(212,160,23,.5);
+  pointer-events: none;
+}
+
+.arch-panel-content {
+  text-align: center;
+  padding: var(--sp5) var(--sp4);
+  position: relative;
+  z-index: 1;
+}
+.arch-panel-halo {
+  margin-bottom: var(--sp4);
+}
+.arch-panel-name {
+  font-family: var(--font-disp);
+  font-size: 1rem;
+  color: var(--gold-lt);
+  letter-spacing: .08em;
+  margin-bottom: var(--sp2);
+}
+.arch-panel-ar {
+  font-family: var(--font-ar);
+  font-size: 1.3rem;
+  color: var(--linen);
+  direction: rtl;
+  margin-bottom: var(--sp3);
+}
+.arch-panel-verse {
+  font-style: italic;
+  font-size: .85rem;
+  color: var(--linen-dk);
+  line-height: 1.65;
+  border-top: 1px solid rgba(212,160,23,.2);
+  padding-top: var(--sp3);
+  margin-top: var(--sp3);
+}
+
+/* Timeline right */
+.timeline-panel {}
+.timeline-list {
+  position: relative;
+  padding-left: var(--sp5);
+}
+.timeline-list::before {
+  content: '';
+  position: absolute;
+  left: 18px;
+  top: 10px; bottom: 10px;
+  width: 1px;
+  background: linear-gradient(180deg, transparent, var(--gold) 10%, var(--gold) 90%, transparent);
+  opacity: .4;
+}
+
+.tl-item {
+  position: relative;
+  margin-bottom: var(--sp4);
+  cursor: pointer;
+  transition: transform .2s;
+}
+.tl-item:hover { transform: translateX(4px); }
+.tl-item:last-child { margin-bottom: 0; }
+
+.tl-marker {
+  position: absolute;
+  left: calc(-1 * var(--sp5) + 10px);
+  top: 12px;
+  transform: translateX(-50%);
+  z-index: 1;
+}
+
+.tl-content {
+  background: linear-gradient(135deg, rgba(26,50,112,.6) 0%, rgba(13,26,58,.8) 100%);
+  border: 1px solid rgba(212,160,23,.18);
+  border-left: 3px solid rgba(212,160,23,.4);
+  padding: var(--sp3) var(--sp4);
+  transition: border-left-color .2s, background .2s;
+}
+.tl-item:hover .tl-content {
+  border-left-color: var(--gold-lt);
+  background: rgba(212,160,23,.06);
+}
+.tl-item.active .tl-content {
+  border-left-color: var(--gold-lt);
+  background: rgba(212,160,23,.1);
+}
+
+.tl-prophet {
+  font-family: var(--font-disp);
+  font-size: .78rem;
+  color: var(--gold);
+  letter-spacing: .06em;
+  margin-bottom: 2px;
+}
+.tl-ar {
+  font-family: var(--font-ar);
+  font-size: .95rem;
+  color: var(--cinnabar-lt);
+  direction: rtl;
+  margin-bottom: var(--sp2);
+}
+.tl-desc {
+  font-style: italic;
+  font-size: .88rem;
+  color: var(--linen-warm);
+  line-height: 1.6;
+  opacity: .85;
+}
+
+/* Cloud separator */
+.cloud-sep {
+  display: flex;
+  align-items: center;
+  gap: var(--sp2);
+  padding: var(--sp2) 0;
+  opacity: .4;
+}
+
+/* ═══════════════════════════════════════════
+   SECTION: VERSE OF THE DAY
+═══════════════════════════════════════════ */
+#verse-section {
+  padding: var(--sp7) var(--sp5);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+#verse-section::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 70% 60% at 50% 50%, rgba(26,50,112,.4) 0%, transparent 70%);
+}
+.verse-container {
+  position: relative;
+  max-width: 700px;
+  margin: 0 auto;
+  z-index: 1;
+}
+.verse-arch-border {
+  border: 2px solid rgba(212,160,23,.3);
+  padding: var(--sp6) var(--sp5);
+  position: relative;
+}
+.verse-arch-border::before {
+  content: '';
+  position: absolute;
+  top: -2px; left: 10%; right: 10%;
+  height: 60px;
+  border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+  border: 2px solid rgba(212,160,23,.3);
+  border-bottom: none;
+  transform: translateY(-100%);
+}
+.verse-text-ar {
+  font-family: var(--font-ar);
+  font-size: clamp(1.3rem, 3vw, 2rem);
+  color: var(--gold-lt);
+  direction: rtl;
+  line-height: 1.8;
+  margin-bottom: var(--sp4);
+  text-shadow: 0 0 30px rgba(212,160,23,.25);
+}
+.verse-text-en {
+  font-style: italic;
+  font-size: clamp(1rem, 1.8vw, 1.2rem);
+  color: var(--linen-warm);
+  line-height: 1.75;
+  margin-bottom: var(--sp4);
+  opacity: .9;
+}
+.verse-reference {
+  font-family: var(--font-cinzel);
+  font-size: .65rem;
+  letter-spacing: .18em;
+  color: var(--silver);
+  text-transform: uppercase;
+}
+
+/* ═══════════════════════════════════════════
+   MODAL / LIGHTBOX
+═══════════════════════════════════════════ */
+#modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(5,4,2,.92);
+  z-index: 10000;
+  display: flex; align-items: center; justify-content: center;
+  padding: var(--sp4);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .3s var(--easing);
+  backdrop-filter: blur(4px);
+}
+#modal-overlay.open {
+  opacity: 1;
+  pointer-events: all;
+}
+#modal {
+  background: linear-gradient(160deg, rgba(26,50,112,.98) 0%, rgba(13,26,58,.99) 100%);
+  border: 1px solid rgba(212,160,23,.35);
+  max-width: 640px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  position: relative;
+  transform: translateY(20px) scale(.97);
+  transition: transform .3s var(--easing);
+}
+#modal-overlay.open #modal {
+  transform: translateY(0) scale(1);
+}
+.modal-arch-top {
+  height: 40px;
+  background: linear-gradient(180deg, rgba(8,14,36,1) 0%, rgba(26,50,112,.8) 100%);
+  border-bottom: 1px solid rgba(212,160,23,.2);
+  display: flex; align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--sp4);
+  position: sticky;
+  top: 0; z-index: 1;
+}
+.modal-close {
+  background: none; border: none;
+  color: var(--gold); font-size: 1.2rem;
+  cursor: pointer; padding: var(--sp2);
+  transition: color .2s;
+}
+.modal-close:hover { color: var(--cinnabar-lt); }
+.modal-body { padding: var(--sp5); }
+.modal-prophet-title {
+  font-family: var(--font-disp);
+  font-size: 1.4rem;
+  color: var(--gold-lt);
+  margin-bottom: var(--sp2);
+  letter-spacing: .05em;
+}
+.modal-prophet-ar {
+  font-family: var(--font-ar);
+  font-size: 1.8rem;
+  color: var(--cinnabar-lt);
+  direction: rtl;
+  margin-bottom: var(--sp4);
+}
+.modal-desc {
+  font-style: italic;
+  line-height: 1.75;
+  color: var(--linen-warm);
+  margin-bottom: var(--sp4);
+}
+.modal-miracle-label {
+  font-family: var(--font-cinzel);
+  font-size: .6rem;
+  letter-spacing: .2em;
+  color: var(--gold);
+  text-transform: uppercase;
+  margin-bottom: var(--sp3);
+  border-bottom: 1px solid rgba(212,160,23,.2);
+  padding-bottom: var(--sp2);
+}
+.modal-miracle {
+  background: rgba(212,160,23,.06);
+  border-left: 3px solid var(--gold);
+  padding: var(--sp3) var(--sp4);
+  margin-bottom: var(--sp2);
+  font-style: italic;
+  color: var(--linen-warm);
+  font-size: .95rem;
+}
+
+/* ═══════════════════════════════════════════
+   FOOTER
+═══════════════════════════════════════════ */
+#footer {
+  background: rgba(8,12,28,.98);
+  border-top: 1px solid rgba(212,160,23,.15);
+  padding: var(--sp6) var(--sp5) var(--sp5);
+  text-align: center;
+}
+.footer-emblem { margin-bottom: var(--sp4); }
+.footer-title {
+  font-family: var(--font-disp);
+  font-size: .75rem;
+  letter-spacing: .14em;
+  color: var(--gold);
+  text-transform: uppercase;
+  margin-bottom: var(--sp2);
+}
+.footer-ar {
+  font-family: var(--font-ar);
+  font-size: 1.1rem;
+  color: var(--linen-dk);
+  direction: rtl;
+  opacity: .6;
+  margin-bottom: var(--sp4);
+}
+.footer-links {
+  display: flex;
+  gap: var(--sp5);
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: var(--sp5);
+}
+.footer-link {
+  font-family: var(--font-cinzel);
+  font-size: .58rem;
+  letter-spacing: .15em;
+  color: var(--silver);
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color .2s;
+}
+.footer-link:hover { color: var(--gold-lt); }
+.footer-copy {
+  font-family: var(--font-cinzel);
+  font-size: .52rem;
+  letter-spacing: .1em;
+  color: var(--silver);
+  opacity: .4;
+}
+
+/* ═══════════════════════════════════════════
+   NOTIFICATION TOAST
+═══════════════════════════════════════════ */
+#toast {
+  position: fixed;
+  bottom: var(--sp5);
+  right: var(--sp5);
+  background: rgba(26,50,112,.97);
+  border: 1px solid rgba(212,160,23,.4);
+  border-left: 4px solid var(--gold-lt);
+  padding: var(--sp3) var(--sp4);
+  z-index: 20000;
+  max-width: 280px;
+  transform: translateY(100px);
+  opacity: 0;
+  transition: all .3s var(--easing);
+  backdrop-filter: blur(8px);
+}
+#toast.show { transform: translateY(0); opacity: 1; }
+.toast-title {
+  font-family: var(--font-cinzel);
+  font-size: .6rem;
+  letter-spacing: .12em;
+  color: var(--gold-lt);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.toast-body {
+  font-size: .85rem;
+  color: var(--linen-warm);
+  font-style: italic;
+}
+
+/* ═══════════════════════════════════════════
+   SCROLLBAR STYLING
+═══════════════════════════════════════════ */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: rgba(10,8,4,.5); }
+::-webkit-scrollbar-thumb { background: rgba(212,160,23,.3); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(212,160,23,.5); }
+
+/* ═══════════════════════════════════════════
+   SELECTION COLOR
+═══════════════════════════════════════════ */
+::selection { background: rgba(212,160,23,.3); color: var(--linen); }
+
+/* ═══════════════════════════════════════════
+   ANIMATION UTILITIES
+═══════════════════════════════════════════ */
+.fade-in-up {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity .65s var(--easing), transform .65s var(--easing);
+}
+.fade-in-up.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ═══════════════════════════════════════════
+   RESPONSIVE TWEAKS
+═══════════════════════════════════════════ */
+@media (max-width: 768px) {
+  :root { --nav-w: 240px; }
+  #sidebar { transform: translateX(calc(-1 * var(--nav-w))); }
+  #sidebar.open { transform: translateX(0); }
+  #main { margin-left: 0; }
+  #stats-bar { grid-template-columns: repeat(2, 1fr); }
+  .header-center { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════
+     CUSTOM CURSOR
+═══════════════════════════════════════ -->
+<div id="cursor">
+  <div id="cursor-inner">
+    <svg width="28" height="28" viewBox="0 0 28 28">
+      <circle cx="14" cy="14" r="12" fill="none" stroke="rgba(212,160,23,0.6)" stroke-width="1"/>
+      <circle cx="14" cy="14" r="6" fill="none" stroke="rgba(212,160,23,0.3)" stroke-width="1"/>
+    </svg>
+    <div id="cursor-dot"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     AMBIENT BACKGROUND
+═══════════════════════════════════════ -->
+<div id="starfield"></div>
+<div id="arabesque-bg"></div>
+
+<!-- ═══════════════════════════════════════
+     INLINE SVG DEFS
+═══════════════════════════════════════ -->
+<svg width="0" height="0" style="position:absolute;overflow:hidden">
+<defs>
+  <!-- Flaming Halo (lg) -->
+  <g id="fh-lg">
+    <circle cx="44" cy="44" r="24" fill="#d4a017" opacity=".95"/>
+    <circle cx="44" cy="44" r="20" fill="#eab308"/>
+    <circle cx="44" cy="44" r="16" fill="#fcd34d"/>
+    <!-- flames -->
+    <path d="M44 20Q48 10 44 3Q40 10 44 20Z" fill="#c23b22" opacity=".9"/>
+    <path d="M44 20Q51 13 50 5Q44 12 44 20Z" fill="#eab308" opacity=".8"/>
+    <path d="M44 20Q37 13 38 5Q44 12 44 20Z" fill="#eab308" opacity=".8"/>
+    <path d="M60 32Q68 27 70 20Q62 25 60 32Z" fill="#c23b22" opacity=".8"/>
+    <path d="M60 32Q70 33 74 28Q64 27 60 32Z" fill="#eab308" opacity=".7"/>
+    <path d="M28 32Q20 27 18 20Q26 25 28 32Z" fill="#c23b22" opacity=".8"/>
+    <path d="M28 32Q18 33 14 28Q24 27 28 32Z" fill="#eab308" opacity=".7"/>
+    <path d="M58 58Q65 63 66 70Q59 65 58 58Z" fill="#c23b22" opacity=".7"/>
+    <path d="M30 58Q23 63 22 70Q29 65 30 58Z" fill="#c23b22" opacity=".7"/>
+    <path d="M44 66Q48 76 44 84Q40 76 44 66Z" fill="#c23b22" opacity=".8"/>
+    <circle cx="44" cy="44" r="32" fill="none" stroke="#eab308" stroke-width="1.2" stroke-dasharray="5 3" opacity=".5"/>
+  </g>
+  <!-- Flaming Halo (sm) -->
+  <g id="fh-sm">
+    <circle cx="14" cy="14" r="8" fill="#d4a017" opacity=".9"/>
+    <circle cx="14" cy="14" r="6" fill="#fcd34d"/>
+    <path d="M14 6Q16 2 14 0Q12 2 14 6Z" fill="#c23b22" opacity=".9"/>
+    <path d="M14 6Q17 3 17 0Q14 3 14 6Z" fill="#eab308" opacity=".75"/>
+    <path d="M14 6Q11 3 11 0Q14 3 14 6Z" fill="#eab308" opacity=".75"/>
+    <path d="M20 10Q23 8 24 5Q21 8 20 10Z" fill="#c23b22" opacity=".7"/>
+    <path d="M8 10Q5 8 4 5Q7 8 8 10Z"   fill="#c23b22" opacity=".7"/>
+    <path d="M20 18Q23 20 24 23Q21 20 20 18Z" fill="#c23b22" opacity=".6"/>
+    <path d="M8 18Q5 20 4 23Q7 20 8 18Z"     fill="#c23b22" opacity=".6"/>
+    <path d="M14 20Q16 24 14 28Q12 24 14 20Z" fill="#c23b22" opacity=".7"/>
+    <circle cx="14" cy="14" r="11" fill="none" stroke="#eab308" stroke-width=".8" stroke-dasharray="3 2" opacity=".5"/>
+  </g>
+  <!-- Crescent -->
+  <g id="crescent">
+    <path d="M10 2A9 9 0 1 1 10 18A6 6 0 1 0 10 2Z" fill="#d4a017"/>
+  </g>
+  <!-- Star -->
+  <g id="star6">
+    <polygon points="7,1 9,5 14,5 10,8 11,13 7,10 3,13 4,8 0,5 5,5" fill="#eab308" opacity=".85"/>
+  </g>
+  <!-- Hanging lamp -->
+  <g id="lamp">
+    <line x1="8" y1="0" x2="8" y2="7" stroke="#d4a017" stroke-width="1.2"/>
+    <ellipse cx="8" cy="11" rx="5" ry="4" fill="#d4a017" opacity=".85"/>
+    <path d="M4 11Q3 19 5 23Q8 27 11 23Q13 19 12 11Z" fill="#d4a017" opacity=".55"/>
+    <ellipse cx="8" cy="23" rx="3" ry="1.5" fill="#d4a017" opacity=".35"/>
+  </g>
+</defs>
+</svg>
+
+<!-- ═══════════════════════════════════════
+     MODAL
+═══════════════════════════════════════ -->
+<div id="modal-overlay" onclick="closeModal(event)">
+  <div id="modal">
+    <div class="modal-arch-top">
+      <div style="display:flex;align-items:center;gap:8px">
+        <svg width="16" height="16"><use href="#star6"/></svg>
+        <span style="font-family:var(--font-cinzel);font-size:.58rem;letter-spacing:.15em;color:var(--gold);text-transform:uppercase" id="modal-label">Prophet Detail</span>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-content"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     TOAST
+═══════════════════════════════════════ -->
+<div id="toast">
+  <div class="toast-title" id="toast-title"></div>
+  <div class="toast-body" id="toast-body"></div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     HEADER
+═══════════════════════════════════════ -->
+<header id="header">
+  <div class="header-brand">
+    <div class="header-brand-emblem">
+      <svg viewBox="0 0 44 44" width="44" height="44">
+        <circle cx="22" cy="22" r="20" fill="none" stroke="rgba(212,160,23,.4)" stroke-width="1"/>
+        <polygon points="22,4 26,16 38,16 28,24 32,36 22,28 12,36 16,24 6,16 18,16" fill="none" stroke="rgba(212,160,23,.6)" stroke-width=".8"/>
+        <circle cx="22" cy="22" r="6" fill="rgba(212,160,23,.2)" stroke="rgba(212,160,23,.5)" stroke-width=".8"/>
+        <circle cx="22" cy="22" r="2" fill="#d4a017"/>
+      </svg>
+    </div>
+    <div class="brand-text">
+      <div class="brand-title">Qisas al-Anbiya</div>
+      <div class="brand-sub">قصص الأنبياء</div>
+    </div>
+  </div>
+
+  <div class="header-center">
+    <div class="search-bar">
+      <span class="search-icon">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <circle cx="5.5" cy="5.5" r="4.5" stroke="#d4a017" stroke-width="1.2"/>
+          <line x1="9" y1="9" x2="13" y2="13" stroke="#d4a017" stroke-width="1.2" stroke-linecap="round"/>
+        </svg>
+      </span>
+      <input type="text" id="search-input" placeholder="Search prophets, miracles, verses…" oninput="handleSearch(this.value)">
+    </div>
+  </div>
+
+  <div class="header-actions">
+    <button class="header-btn" id="nav-toggle" onclick="toggleSidebar()">☰ Menu</button>
+    <button class="header-btn active" onclick="showToast('Bookmark', 'This scroll has been saved to your collection.')">⊕ Bookmark</button>
+    <button class="header-btn" onclick="showToast('Share', 'May this knowledge reach many hands and hearts.')">↗ Share</button>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════════════
+     SIDEBAR
+═══════════════════════════════════════ -->
+<aside id="sidebar">
+
+  <!-- Prayer times -->
+  <div class="prayer-widget">
+    <div class="prayer-header">
+      <span class="prayer-header-title">Prayer Times</span>
+      <span class="prayer-header-ar">أوقات الصلاة</span>
+    </div>
+    <div class="prayer-row">
+      <div><div class="prayer-name-en">Fajr</div><div class="prayer-name-ar">الفجر</div></div>
+      <div class="prayer-time">05:14</div>
+    </div>
+    <div class="prayer-row">
+      <div><div class="prayer-name-en">Dhuhr</div><div class="prayer-name-ar">الظهر</div></div>
+      <div class="prayer-time">12:38</div>
+    </div>
+    <div class="prayer-row next">
+      <div><div class="prayer-name-en">Asr ▸</div><div class="prayer-name-ar">العصر</div></div>
+      <div class="prayer-time">16:02</div>
+    </div>
+    <div class="prayer-row">
+      <div><div class="prayer-name-en">Maghrib</div><div class="prayer-name-ar">المغرب</div></div>
+      <div class="prayer-time">19:47</div>
+    </div>
+    <div class="prayer-row">
+      <div><div class="prayer-name-en">Isha</div><div class="prayer-name-ar">العشاء</div></div>
+      <div class="prayer-time">21:18</div>
+    </div>
+  </div>
+
+  <div class="sidebar-section-label">Navigation</div>
+
+  <div class="nav-item active" onclick="scrollTo(0,0)">
+    <div class="nav-item-icon"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M10 2L2 8v10h6v-5h4v5h6V8z" fill="none" stroke="#d4a017" stroke-width="1.2"/></svg></div>
+    <div class="nav-item-text">
+      <span class="nav-item-en">The Archive</span>
+      <span class="nav-item-ar">المخطوطة</span>
+    </div>
+  </div>
+
+  <div class="nav-item" onclick="scrollToSection('prophets-section')">
+    <div class="nav-item-icon"><svg width="20" height="18"><use href="#fh-sm" transform="scale(.7) translate(1,1)"/></svg></div>
+    <div class="nav-item-text">
+      <span class="nav-item-en">The Prophets</span>
+      <span class="nav-item-ar">الأنبياء</span>
+    </div>
+    <span class="nav-badge">25</span>
+  </div>
+
+  <div class="nav-item" onclick="scrollToSection('scroll-section')">
+    <div class="nav-item-icon"><svg width="20" height="20" viewBox="0 0 20 20"><rect x="3" y="4" width="14" height="12" rx="1" fill="none" stroke="#d4a017" stroke-width="1.2"/><line x1="6" y1="8" x2="14" y2="8" stroke="#d4a017" stroke-width="1"/><line x1="6" y1="11" x2="12" y2="11" stroke="#d4a017" stroke-width="1"/></svg></div>
+    <div class="nav-item-text">
+      <span class="nav-item-en">The Scroll</span>
+      <span class="nav-item-ar">السيرة</span>
+    </div>
+  </div>
+
+  <div class="nav-item" onclick="scrollToSection('verse-section')">
+    <div class="nav-item-icon"><svg width="20" height="18"><use href="#crescent" transform="scale(.95) translate(1,1)"/></svg></div>
+    <div class="nav-item-text">
+      <span class="nav-item-en">Verse of the Day</span>
+      <span class="nav-item-ar">آية اليوم</span>
+    </div>
+  </div>
+
+  <div class="sidebar-section-label">Collections</div>
+
+  <div class="nav-item" onclick="showToast('Bookmarks', 'Your saved scrolls will appear here.')">
+    <div class="nav-item-icon"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M5 3h10v15l-5-3-5 3V3z" fill="none" stroke="#d4a017" stroke-width="1.2"/></svg></div>
+    <div class="nav-item-text">
+      <span class="nav-item-en">Bookmarks</span>
+      <span class="nav-item-ar">المحفوظات</span>
+    </div>
+    <span class="nav-badge">3</span>
+  </div>
+
+  <div class="nav-item" onclick="showToast('Reading History', 'Continue your journey through the ages.')">
+    <div class="nav-item-icon"><svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7" fill="none" stroke="#d4a017" stroke-width="1.2"/><path d="M10 6v4l3 2" stroke="#d4a017" stroke-width="1.2" stroke-linecap="round"/></svg></div>
+    <div class="nav-item-text">
+      <span class="nav-item-en">History</span>
+      <span class="nav-item-ar">التاريخ</span>
+    </div>
+  </div>
+
+  <div class="sidebar-section-label">Settings</div>
+
+  <div class="nav-item" onclick="showToast('Language', 'Arabic / English display toggled.')">
+    <div class="nav-item-icon"><svg width="20" height="18" viewBox="0 0 20 18"><text x="0" y="14" font-family="serif" font-size="13" fill="#d4a017">ع</text><text x="10" y="14" font-family="serif" font-size="10" fill="rgba(212,160,23,.5)">E</text></svg></div>
+    <div class="nav-item-text">
+      <span class="nav-item-en">Language · Arabic</span>
+      <span class="nav-item-ar">اللغة</span>
+    </div>
+  </div>
+
+  <div class="nav-item" onclick="showToast('Night Mode', 'The manuscript is illuminated by lamplight.')">
+    <div class="nav-item-icon"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M10 3a7 7 0 0 0 0 14 7 7 0 0 1 0-14z" fill="#d4a017" opacity=".7"/></svg></div>
+    <div class="nav-item-text">
+      <span class="nav-item-en">Night Mode</span>
+      <span class="nav-item-ar">الوضع الليلي</span>
+    </div>
+  </div>
+
+</aside>
+
+<!-- ═══════════════════════════════════════
+     MAIN CONTENT
+═══════════════════════════════════════ -->
+<main id="main">
+
+  <!-- ── HERO ── -->
+  <section id="hero">
+    <!-- Geometric rings -->
+    <div class="geo-ring" style="width:500px;height:500px;left:50%;top:45%;--dur:40s"></div>
+    <div class="geo-ring" style="width:360px;height:360px;left:50%;top:45%;--dur:28s;animation-direction:reverse;border-style:dashed;opacity:.6"></div>
+    <div class="geo-ring" style="width:680px;height:680px;left:50%;top:45%;--dur:60s;opacity:.3"></div>
+
+    <div class="hero-inner">
+      <div class="hero-arch">
+        <!-- Arch SVG frame -->
+        <svg class="hero-arch-svg" viewBox="0 0 560 720" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Outer arch border -->
+          <path d="M20 720 L20 280 Q20 20 280 20 Q540 20 540 280 L540 720Z" fill="rgba(13,26,58,.85)" stroke="rgba(212,160,23,.5)" stroke-width="2"/>
+          <!-- Inner arch border -->
+          <path d="M40 720 L40 285 Q40 50 280 50 Q520 50 520 285 L520 720Z" fill="none" stroke="rgba(212,160,23,.2)" stroke-width="1"/>
+          <!-- Corner ornaments -->
+          <circle cx="20" cy="720" r="6" fill="#d4a017" opacity=".4"/>
+          <circle cx="540" cy="720" r="6" fill="#d4a017" opacity=".4"/>
+          <!-- Top star -->
+          <polygon points="280,8 283,16 292,16 285,21 288,30 280,25 272,30 275,21 268,16 277,16" fill="#d4a017" opacity=".8"/>
+          <!-- Sky band pattern -->
+          <rect x="20" y="280" width="520" height="2" fill="rgba(212,160,23,.2)"/>
+          <!-- Ground band -->
+          <path d="M20 640 Q140 625 280 640 Q420 655 540 640 L540 720 L20 720Z" fill="rgba(46,90,76,.4)"/>
+          <!-- Crenellations mini -->
+          <path d="M20 638 L20 630 L40 630 L40 620 L60 620 L60 630 L80 630 L80 620 L100 620 L100 630 L120 630 L120 620 L140 620 L140 630 L160 630 L160 638" fill="rgba(46,90,76,.6)" stroke="rgba(212,160,23,.2)" stroke-width=".5"/>
+          <path d="M380 638 L380 630 L400 630 L400 620 L420 620 L420 630 L440 630 L440 620 L460 620 L460 630 L480 630 L480 620 L500 620 L500 630 L520 630 L520 638" fill="rgba(46,90,76,.6)" stroke="rgba(212,160,23,.2)" stroke-width=".5"/>
+          <!-- Wavy ground lines -->
+          <path d="M20 660 Q140 648 280 660 Q420 672 540 660" fill="none" stroke="rgba(212,160,23,.15)" stroke-width="1"/>
+        </svg>
+
+        <div class="hero-arch-content">
+          <!-- Sky band moons + stars -->
+          <div style="display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:16px;position:absolute;top:28px;left:0;right:0">
+            <svg width="12" height="10"><use href="#star6" transform="scale(.85)"/></svg>
+            <svg width="16" height="20"><use href="#crescent" transform="scale(.9)"/></svg>
+            <svg width="12" height="10"><use href="#star6" transform="scale(.85)"/></svg>
+            <svg width="16" height="20"><use href="#crescent" transform="scale(.9)"/></svg>
+            <svg width="12" height="10"><use href="#star6" transform="scale(.85)"/></svg>
+          </div>
+
+          <!-- Basmala -->
+          <div class="basmala">بِسْمِ اللهِ الرَّحْمَنِ الرَّحِيمِ</div>
+
+          <!-- Giant halo -->
+          <div style="display:flex;justify-content:center;margin-bottom:24px;animation:fadeIn .9s .2s both">
+            <svg width="88" height="88" style="filter:drop-shadow(0 0 20px rgba(212,160,23,.5))">
+              <use href="#fh-lg"/>
+            </svg>
+          </div>
+
+          <h1 class="hero-title">Stories of the<br><span>Prophets</span></h1>
+          <div class="hero-subtitle-ar">قصص الأنبياء · مدرسة تبريز</div>
+
+          <div class="hero-divider">
+            <div class="hero-divider-line"></div>
+            <svg width="12" height="10"><use href="#star6"/></svg>
+            <svg width="16" height="20"><use href="#crescent"/></svg>
+            <svg width="12" height="10"><use href="#star6"/></svg>
+            <div class="hero-divider-line"></div>
+          </div>
+
+          <p class="hero-desc">
+            An illuminated archive of prophetic narratives, rendered in the Tabriz tradition of the Ilkhanid court — where lapis and gold speak of the eternal.
+          </p>
+
+          <div class="hero-cta-row">
+            <a class="cta-btn cta-primary" href="#" onclick="scrollToSection('prophets-section');return false">
+              <svg width="14" height="12"><use href="#star6" transform="scale(.9)"/></svg>
+              Begin Reading
+            </a>
+            <a class="cta-btn cta-secondary" href="#" onclick="showToast('Collection', 'Explore the full manuscript collection.');return false">
+              View Collection
+            </a>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Scroll cue -->
+    <div class="scroll-cue" onclick="scrollToSection('stats-bar')">
+      <span class="scroll-cue-text">Scroll to Enter</span>
+      <svg width="16" height="24" viewBox="0 0 16 24" fill="none">
+        <rect x="5" y="1" width="6" height="10" rx="3" stroke="rgba(212,160,23,.5)" stroke-width="1.2"/>
+        <line x1="8" y1="4" x2="8" y2="7" stroke="rgba(212,160,23,.6)" stroke-width="1.2" stroke-linecap="round">
+          <animate attributeName="y1" values="4;6;4" dur="1.5s" repeatCount="indefinite"/>
+          <animate attributeName="y2" values="7;9;7" dur="1.5s" repeatCount="indefinite"/>
+        </line>
+        <path d="M3 16 L8 22 L13 16" stroke="rgba(212,160,23,.4)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+  </section>
+
+  <!-- ── STATS BAR ── -->
+  <div id="stats-bar">
+    <div class="stat-cell">
+      <div class="stat-num" data-target="25">0</div>
+      <span class="stat-label-en">Prophets</span>
+      <span class="stat-label-ar">نبياً</span>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-num" data-target="114">0</div>
+      <span class="stat-label-en">Surahs</span>
+      <span class="stat-label-ar">سورة</span>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-num" data-target="6236">0</div>
+      <span class="stat-label-en">Verses</span>
+      <span class="stat-label-ar">آية</span>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-num">14<span style="font-size:60%">c</span></div>
+      <span class="stat-label-en">Century</span>
+      <span class="stat-label-ar">القرن</span>
+    </div>
+  </div>
+
+  <!-- ── CRENELLATION ── -->
+  <div class="crenel-band">
+    <svg viewBox="0 0 1100 28" width="100%" height="28" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0 28 L0 10 L18 10 L18 0 L36 0 L36 10 L54 10 L54 0 L72 0 L72 10 L90 10 L90 0 L108 0 L108 10 L126 10 L126 0 L144 0 L144 10 L162 10 L162 0 L180 0 L180 10 L198 10 L198 0 L216 0 L216 10 L234 10 L234 0 L252 0 L252 10 L270 10 L270 0 L288 0 L288 10 L306 10 L306 0 L324 0 L324 10 L342 10 L342 0 L360 0 L360 10 L378 10 L378 0 L396 0 L396 10 L414 10 L414 0 L432 0 L432 10 L450 10 L450 0 L468 0 L468 10 L486 10 L486 0 L504 0 L504 10 L522 10 L522 0 L540 0 L540 10 L558 10 L558 0 L576 0 L576 10 L594 10 L594 0 L612 0 L612 10 L630 10 L630 0 L648 0 L648 10 L666 10 L666 0 L684 0 L684 10 L702 10 L702 0 L720 0 L720 10 L738 10 L738 0 L756 0 L756 10 L774 10 L774 0 L792 0 L792 10 L810 10 L810 0 L828 0 L828 10 L846 10 L846 0 L864 0 L864 10 L882 10 L882 0 L900 0 L900 10 L918 10 L918 0 L936 0 L936 10 L954 10 L954 0 L972 0 L972 10 L990 10 L990 0 L1008 0 L1008 10 L1026 10 L1026 0 L1044 0 L1044 10 L1062 10 L1062 0 L1080 0 L1080 10 L1100 10 L1100 28Z"
+        fill="rgba(13,26,58,.9)" stroke="rgba(212,160,23,.25)" stroke-width=".8"/>
+    </svg>
+  </div>
+
+  <!-- ── PROPHETS GRID ── -->
+  <section id="prophets-section" style="padding:var(--sp7) var(--sp5);position:relative">
+
+    <div class="section-header fade-in-up">
+      <div class="section-eyebrow">The Illuminated Register</div>
+      <h2 class="section-title">The Blessed <span style="color:var(--gold-lt)">Messengers</span></h2>
+      <div class="section-title-ar">رسل الله الكرام</div>
+      <div class="section-line">
+        <div class="section-line-seg"></div>
+        <svg width="20" height="18"><use href="#crescent" transform="scale(.9)"/></svg>
+        <svg width="12" height="10"><use href="#star6"/></svg>
+        <svg width="20" height="18"><use href="#crescent" transform="scale(.9) translate(0,0)"/></svg>
+        <div class="section-line-seg"></div>
+      </div>
+    </div>
+
+    <div class="filter-tabs fade-in-up">
+      <button class="filter-tab active" onclick="filterCards('all', this)">All Prophets</button>
+      <button class="filter-tab" onclick="filterCards('pre-flood', this)">Pre-Flood</button>
+      <button class="filter-tab" onclick="filterCards('patriarch', this)">Patriarchs</button>
+      <button class="filter-tab" onclick="filterCards('israelite', this)">Israelite</button>
+      <button class="filter-tab" onclick="filterCards('final', this)">Final Age</button>
+    </div>
+
+    <div class="prophets-grid" id="prophets-grid">
+      <!-- Cards injected by JS -->
+    </div>
+
+  </section>
+
+  <!-- ── CLOUD BAND ── -->
+  <div style="overflow:hidden;line-height:0;position:relative;z-index:2">
+    <svg viewBox="0 0 1100 60" width="100%" height="60" preserveAspectRatio="none">
+      <g opacity=".18" fill="white">
+        <ellipse cx="80"  cy="32" rx="70" ry="20"/>
+        <ellipse cx="120" cy="22" rx="55" ry="16"/>
+        <ellipse cx="280" cy="32" rx="70" ry="20"/>
+        <ellipse cx="320" cy="22" rx="55" ry="16"/>
+        <ellipse cx="480" cy="32" rx="70" ry="20"/>
+        <ellipse cx="520" cy="22" rx="55" ry="16"/>
+        <ellipse cx="680" cy="32" rx="70" ry="20"/>
+        <ellipse cx="720" cy="22" rx="55" ry="16"/>
+        <ellipse cx="900" cy="32" rx="70" ry="20"/>
+        <ellipse cx="940" cy="22" rx="55" ry="16"/>
+      </g>
+      <path d="M0 50 Q275 30 550 50 Q825 70 1100 50" fill="none" stroke="rgba(212,160,23,.15)" stroke-width="1"/>
+    </svg>
+  </div>
+
+  <!-- ── TIMELINE / FEATURED SCROLL ── -->
+  <section id="scroll-section" style="padding:var(--sp7) var(--sp5);background:linear-gradient(180deg,rgba(8,12,28,.6) 0%,rgba(13,26,58,.3) 100%)">
+
+    <div class="section-header fade-in-up">
+      <div class="section-eyebrow">The Illuminated Scroll</div>
+      <h2 class="section-title">Chain of <span style="color:var(--gold-lt)">Prophecy</span></h2>
+      <div class="section-title-ar">سلسلة النبوة</div>
+      <div class="section-line">
+        <div class="section-line-seg"></div>
+        <svg width="12" height="10"><use href="#star6"/></svg>
+        <div class="section-line-seg"></div>
+      </div>
+    </div>
+
+    <div class="manuscript-panel fade-in-up">
+
+      <!-- Arch panel (featured prophet) -->
+      <div class="arch-panel">
+        <div class="arch-panel-frame">
+          <div class="arch-panel-inner" id="featured-panel">
+            <!-- sky stars -->
+            <div style="position:absolute;top:16px;left:0;right:0;display:flex;justify-content:center;gap:12px;z-index:1">
+              <svg width="12" height="10"><use href="#star6" transform="scale(.85)"/></svg>
+              <svg width="14" height="18"><use href="#crescent" transform="scale(.8)"/></svg>
+              <svg width="12" height="10"><use href="#star6" transform="scale(.85)"/></svg>
+            </div>
+            <div class="arch-panel-content" style="position:relative;z-index:1">
+              <div class="arch-panel-halo">
+                <svg width="72" height="72" style="filter:drop-shadow(0 0 16px rgba(212,160,23,.5))">
+                  <use href="#fh-lg" transform="scale(.82) translate(3,3)"/>
+                </svg>
+              </div>
+              <div class="arch-panel-name" id="fp-name">Adam</div>
+              <div class="arch-panel-ar" id="fp-ar">آدم عليه السلام</div>
+              <div class="arch-panel-verse" id="fp-verse">
+                "And He taught Adam the names of all things, then He showed them to the angels."
+                <br><span style="font-family:var(--font-cinzel);font-size:.6rem;letter-spacing:.12em;color:var(--gold);opacity:.7">— Quran 2:31</span>
+              </div>
+            </div>
+            <!-- Ground wavy -->
+            <div style="position:absolute;bottom:0;left:0;right:0">
+              <svg viewBox="0 0 200 30" width="100%" height="30" preserveAspectRatio="none">
+                <path d="M0 20 Q50 10 100 20 Q150 30 200 20 L200 30 L0 30Z" fill="rgba(46,90,76,.6)"/>
+                <path d="M10 20 Q15 15 18 20Z" fill="rgba(61,122,101,.7)"/>
+                <path d="M100 18 Q105 13 108 18Z" fill="rgba(61,122,101,.7)"/>
+                <path d="M170 22 Q175 17 178 22Z" fill="rgba(61,122,101,.7)"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Timeline -->
+      <div class="timeline-panel">
+        <div class="timeline-list" id="timeline-list">
+          <!-- Injected by JS -->
+        </div>
+      </div>
+
+    </div>
+
+  </section>
+
+  <!-- ── CRENEL ── -->
+  <div class="crenel-band">
+    <svg viewBox="0 0 1100 28" width="100%" height="28" preserveAspectRatio="none">
+      <path d="M0 28 L0 10 L18 10 L18 0 L36 0 L36 10 L54 10 L54 0 L72 0 L72 10 L90 10 L90 0 L108 0 L108 10 L126 10 L126 0 L144 0 L144 10 L162 10 L162 0 L180 0 L180 10 L198 10 L198 0 L216 0 L216 10 L234 10 L234 0 L252 0 L252 10 L270 10 L270 0 L288 0 L288 10 L306 10 L306 0 L324 0 L324 10 L342 10 L342 0 L360 0 L360 10 L378 10 L378 0 L396 0 L396 10 L414 10 L414 0 L432 0 L432 10 L450 10 L450 0 L468 0 L468 10 L486 10 L486 0 L504 0 L504 10 L522 10 L522 0 L540 0 L540 10 L558 10 L558 0 L576 0 L576 10 L594 10 L594 0 L612 0 L612 10 L630 10 L630 0 L648 0 L648 10 L666 10 L666 0 L684 0 L684 10 L702 10 L702 0 L720 0 L720 10 L738 10 L738 0 L756 0 L756 10 L774 10 L774 0 L792 0 L792 10 L810 10 L810 0 L828 0 L828 10 L846 10 L846 0 L864 0 L864 10 L882 10 L882 0 L900 0 L900 10 L918 10 L918 0 L936 0 L936 10 L954 10 L954 0 L972 0 L972 10 L990 10 L990 0 L1008 0 L1008 10 L1026 10 L1026 0 L1044 0 L1044 10 L1062 10 L1062 0 L1080 0 L1080 10 L1100 10 L1100 28Z"
+        fill="rgba(13,26,58,.9)" stroke="rgba(212,160,23,.2)" stroke-width=".8"/>
+    </svg>
+  </div>
+
+  <!-- ── VERSE OF THE DAY ── -->
+  <section id="verse-section">
+    <div class="section-header fade-in-up" style="position:relative;z-index:1">
+      <div class="section-eyebrow">Daily Illumination</div>
+      <h2 class="section-title">Verse of <span style="color:var(--gold-lt)">the Day</span></h2>
+      <div class="section-title-ar">آية اليوم</div>
+    </div>
+
+    <div class="verse-container fade-in-up">
+      <div class="verse-arch-border">
+        <!-- Hanging lamp top centre -->
+        <div style="display:flex;justify-content:center;margin-bottom:var(--sp4)">
+          <svg width="18" height="28" style="filter:drop-shadow(0 0 8px rgba(212,160,23,.5))">
+            <use href="#lamp"/>
+          </svg>
+        </div>
+        <div class="verse-text-ar">
+          وَمَا أَرْسَلْنَا مِنْ قَبْلِكَ مِنْ رَسُولٍ إِلَّا نُوحِي إِلَيْهِ أَنَّهُ لَا إِلَٰهَ إِلَّا أَنَا فَاعْبُدُونِ
+        </div>
+        <div class="verse-text-en">
+          "And We did not send any messenger before you except that We revealed to him that there is no deity except Me — so worship Me."
+        </div>
+        <div class="verse-reference">Surah Al-Anbiya · 21:25 · سورة الأنبياء</div>
+        <div style="display:flex;justify-content:center;gap:var(--sp3);margin-top:var(--sp4)">
+          <button class="cta-btn cta-secondary" style="font-size:.62rem" onclick="showToast('Verse Saved', 'Surah Al-Anbiya 21:25 added to your collection.')">
+            ✦ Save Verse
+          </button>
+          <button class="cta-btn cta-secondary" style="font-size:.62rem" onclick="showToast('Next Verse', 'A new verse is illuminated each dawn.')">
+            Next Verse ›
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── FOOTER ── -->
+  <footer id="footer">
+    <div class="footer-emblem">
+      <svg viewBox="0 0 80 80" width="60" height="60" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="40" cy="40" r="36" fill="none" stroke="rgba(212,160,23,.3)" stroke-width="1"/>
+        <polygon points="40,8 44,24 60,24 47,34 52,50 40,40 28,50 33,34 20,24 36,24" fill="none" stroke="rgba(212,160,23,.5)" stroke-width="1"/>
+        <circle cx="40" cy="40" r="10" fill="none" stroke="rgba(212,160,23,.4)" stroke-width=".8"/>
+        <circle cx="40" cy="40" r="3" fill="#d4a017" opacity=".7"/>
+        <line x1="40" y1="4" x2="40" y2="76" stroke="rgba(212,160,23,.15)" stroke-width=".5"/>
+        <line x1="4" y1="40" x2="76" y2="40" stroke="rgba(212,160,23,.15)" stroke-width=".5"/>
+      </svg>
+    </div>
+    <div class="footer-title">Qisas al-Anbiya · Ilkhanid Archive</div>
+    <div class="footer-ar">قصص الأنبياء · المخطوطة الإيلخانية · تبريز</div>
+    <div class="footer-links">
+      <span class="footer-link" onclick="showToast('About', 'The Ilkhanid manuscript tradition flourished in 14th century Tabriz.')">About</span>
+      <span class="footer-link" onclick="showToast('Sources', 'Primary manuscripts from the British Library and Topkapi collections.')">Sources</span>
+      <span class="footer-link" onclick="showToast('Contact', 'Reach the archivists at the Institute of Islamic Studies.')">Contact</span>
+      <span class="footer-link" onclick="showToast('Privacy', 'Your reading history is kept private.')">Privacy</span>
+    </div>
+    <div class="footer-copy">© 1327 AH · Rendered in the Tabriz School · All Rights Reserved</div>
+  </footer>
+
+</main>
+
+<!-- ═══════════════════════════════════════
+     JAVASCRIPT
+═══════════════════════════════════════ -->
+<script>
+/* ── DATA ── */
+const prophets = [
+  {
+    id: 1, name: 'Adam', ar: 'آدم عليه السلام', title: 'Father of Humanity',
+    body: 'The first of mankind, shaped from clay and breathed into by the divine breath. He was taught the names of all things.',
+    tags: ['First Prophet', 'Garden of Eden', 'Pre-Flood'],
+    category: 'pre-flood', element: 'Earth',
+    miracles: ['Named all things by divine gift', 'Formed from sacred clay', 'Given the celestial knowledge'],
+    verse: '"And He taught Adam the names of all things." — 2:31',
+    verseAr: 'وَعَلَّمَ آدَمَ الْأَسْمَاءَ كُلَّهَا'
+  },
+  {
+    id: 2, name: 'Nuh', ar: 'نوح عليه السلام', title: 'Survivor of the Flood',
+    body: 'Builder of the great ark who carried the covenant through the deluge, replenishing the earth by divine command.',
+    tags: ['The Ark', 'Flood', 'Pre-Flood'],
+    category: 'pre-flood', element: 'Water',
+    miracles: ['Built the great ark by revelation', 'Gathered creatures two by two', 'Survived the great deluge'],
+    verse: '"And We carried him on a vessel of planks and nails." — 54:13',
+    verseAr: 'وَحَمَلْنَاهُ عَلَىٰ ذَاتِ أَلْوَاحٍ وَدُسُرٍ'
+  },
+  {
+    id: 3, name: 'Ibrahim', ar: 'إبراهيم عليه السلام', title: 'Friend of God — Khalilullah',
+    body: 'He smashed the idols, walked unburned through Nimrod\'s fire, and was commanded to sacrifice his son. The father of nations.',
+    tags: ['Patriarch', 'Khalilullah', 'Mecca'],
+    category: 'patriarch', element: 'Fire',
+    miracles: ['Fire turned cool upon him', 'Rebuilt the Holy Kaaba', 'Raised the dead birds by command'],
+    verse: '"And Allah took Ibrahim as a close friend." — 4:125',
+    verseAr: 'وَاتَّخَذَ اللَّهُ إِبْرَاهِيمَ خَلِيلًا'
+  },
+  {
+    id: 4, name: 'Musa', ar: 'موسى عليه السلام', title: 'He Who Spoke to God',
+    body: 'He who parted the sea with his staff, received the Torah upon the mount, and led the Children of Israel from bondage.',
+    tags: ['Staff', 'Torah', 'Israelite'],
+    category: 'israelite', element: 'Water',
+    miracles: ['Parted the Red Sea', 'Received the Divine Tablets', 'Staff turned to serpent'],
+    verse: '"And to Musa Allah spoke directly." — 4:164',
+    verseAr: 'وَكَلَّمَ اللَّهُ مُوسَىٰ تَكْلِيمًا'
+  },
+  {
+    id: 5, name: 'Dawud', ar: 'داود عليه السلام', title: 'King and Psalmist',
+    body: 'Warrior-king who slew Jalut with a single stone, to whom iron was made soft, and the Psalms were divinely revealed.',
+    tags: ['Zabur', 'King', 'Israelite'],
+    category: 'israelite', element: 'Earth',
+    miracles: ['Iron made pliable in his hands', 'Birds and mountains sang with him', 'Given the Psalms of David'],
+    verse: '"And We gave Dawud the Psalms." — 17:55',
+    verseAr: 'وَآتَيْنَا دَاوُودَ زَبُورًا'
+  },
+  {
+    id: 6, name: 'Sulayman', ar: 'سليمان عليه السلام', title: 'King of Jinn and Men',
+    body: 'His throne was borne upon the wind, the birds spoke to him in counsel, and the jinn built for him temples of lapis and gold.',
+    tags: ['Jinn', 'Wind', 'Israelite'],
+    category: 'israelite', element: 'Wind',
+    miracles: ['Commanded the jinn', 'Understood the speech of birds', 'Throne transported by the wind'],
+    verse: '"So We subjected to him the wind, blowing gently at his command." — 38:36',
+    verseAr: 'فَسَخَّرْنَا لَهُ الرِّيحَ تَجْرِي بِأَمْرِهِ'
+  },
+  {
+    id: 7, name: 'Isa', ar: 'عيسى عليه السلام', title: 'Spirit of God — Ruhullah',
+    body: 'Born of a virgin, he gave life to birds of clay, healed the blind and the leper, and raised the dead by divine permission.',
+    tags: ['Injil', 'Ruhullah', 'Final Age'],
+    category: 'final', element: 'Light',
+    miracles: ['Fashioned birds from clay and breathed life', 'Healed the blind and lepers', 'Raised the dead by permission'],
+    verse: '"The Messiah, Isa son of Maryam, was the Messenger of Allah and His word." — 4:171',
+    verseAr: 'الْمَسِيحُ عِيسَى ابْنُ مَرْيَمَ رَسُولُ اللَّهِ وَكَلِمَتُهُ'
+  },
+  {
+    id: 8, name: 'Muhammad', ar: 'مُحَمَّد ﷺ', title: 'Seal of the Prophets',
+    body: 'He ascended through the seven heavens on the Night Journey, received the final revelation, and completed the chain of prophecy for all humanity.',
+    tags: ['Quran', 'Isra wal Miraj', 'Final Age'],
+    category: 'final', element: 'Light',
+    miracles: ['The Night Journey and Ascension', 'The Quran revealed over 23 years', 'The splitting of the moon'],
+    verse: '"Muhammad is not the father of any of your men, but the Messenger of Allah and the Seal of the Prophets." — 33:40',
+    verseAr: 'مَا كَانَ مُحَمَّدٌ أَبَا أَحَدٍ مِنْ رِجَالِكُمْ وَلَٰكِنْ رَسُولَ اللَّهِ وَخَاتَمَ النَّبِيِّينَ'
+  }
+];
+
+/* ── RENDER PROPHET CARDS ── */
+function renderCards(data) {
+  const grid = document.getElementById('prophets-grid');
+  grid.innerHTML = data.map((p, i) => `
+    <div class="prophet-card fade-in-up" style="transition-delay:${i * 0.07}s" onclick="openModal(${p.id})">
+      <div class="pc-sky">
+        <div class="pc-sky-stars">
+          <svg width="12" height="10"><use href="#star6" transform="scale(.85)"/></svg>
+          <svg width="14" height="18"><use href="#crescent" transform="scale(.8)"/></svg>
+          <svg width="12" height="10"><use href="#star6" transform="scale(.85)"/></svg>
+        </div>
+        <span class="pc-number">Nabi #${String(p.id).padStart(2,'0')}</span>
+        <div class="pc-halo-wrap">
+          <svg width="28" height="28"><use href="#fh-sm"/></svg>
+        </div>
+      </div>
+      <div class="pc-scene">
+        <div class="pc-prophet-name">${p.name}</div>
+        <div class="pc-prophet-ar">${p.ar}</div>
+        <div class="pc-prophet-title">${p.title}</div>
+        <p class="pc-body">${p.body}</p>
+        <div class="pc-tags">
+          ${p.tags.map(t => `<span class="pc-tag">${t}</span>`).join('')}
+        </div>
+      </div>
+      <div class="pc-ground">
+        <span class="pc-ground-label">${p.element} · ${p.category}</span>
+        <span class="pc-ground-read">
+          Read Scroll
+          <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+            <path d="M1 4h8M6 1l3 3-3 3" stroke="#d4a017" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+      </div>
+    </div>
+  `).join('');
+  observeFadeIns();
+}
+
+renderCards(prophets);
+
+/* ── RENDER TIMELINE ── */
+function renderTimeline(activeId = 1) {
+  const list = document.getElementById('timeline-list');
+  const tlData = prophets.slice(0, 6);
+  list.innerHTML = tlData.map((p, i) => `
+    <div>
+      <div class="tl-item ${p.id === activeId ? 'active' : ''}" onclick="selectTimeline(${p.id})" id="tl-${p.id}">
+        <div class="tl-marker">
+          <svg width="24" height="24"><use href="#fh-sm" transform="scale(.85) translate(1,1)"/></svg>
+        </div>
+        <div class="tl-content">
+          <div class="tl-prophet">${p.name}</div>
+          <div class="tl-ar">${p.ar}</div>
+          <div class="tl-desc">${p.body.substring(0, 80)}…</div>
+        </div>
+      </div>
+      ${i < tlData.length - 1 ? `
+      <div class="cloud-sep">
+        <svg width="28" height="24" viewBox="0 0 36 30"><ellipse cx="18" cy="18" rx="16" ry="10" fill="white" opacity=".1"/><ellipse cx="24" cy="12" rx="12" ry="8" fill="white" opacity=".08"/></svg>
+        <svg width="28" height="24" viewBox="0 0 36 30"><ellipse cx="18" cy="18" rx="16" ry="10" fill="white" opacity=".08"/></svg>
+        <svg width="28" height="24" viewBox="0 0 36 30"><ellipse cx="18" cy="18" rx="16" ry="10" fill="white" opacity=".1"/></svg>
+      </div>` : ''}
+    </div>
+  `).join('');
+}
+renderTimeline(1);
+
+function selectTimeline(id) {
+  const p = prophets.find(x => x.id === id);
+  if (!p) return;
+  document.getElementById('fp-name').textContent = p.name;
+  document.getElementById('fp-ar').textContent   = p.ar;
+  document.getElementById('fp-verse').innerHTML  = `"${p.verse.split('—')[0]}"<br><span style="font-family:var(--font-cinzel);font-size:.6rem;letter-spacing:.12em;color:var(--gold);opacity:.7">— ${p.verse.split('—')[1] || ''}</span>`;
+  document.querySelectorAll('.tl-item').forEach(el => el.classList.remove('active'));
+  const el = document.getElementById(`tl-${id}`);
+  if (el) el.classList.add('active');
+}
+
+/* ── MODAL ── */
+function openModal(id) {
+  const p = prophets.find(x => x.id === id);
+  if (!p) return;
+  document.getElementById('modal-label').textContent = `Prophet · ${p.name}`;
+  document.getElementById('modal-content').innerHTML = `
+    <div style="display:flex;justify-content:center;margin-bottom:var(--sp4)">
+      <svg width="72" height="72" style="filter:drop-shadow(0 0 16px rgba(212,160,23,.5))">
+        <use href="#fh-lg" transform="scale(.82) translate(3,3)"/>
+      </svg>
+    </div>
+    <div class="modal-prophet-title">${p.name}</div>
+    <div class="modal-prophet-ar">${p.ar}</div>
+    <p class="modal-desc">${p.body} ${p.body}</p>
+    <div class="modal-miracle-label">Signs & Miracles · المعجزات</div>
+    ${p.miracles.map(m => `<div class="modal-miracle">✦ ${m}</div>`).join('')}
+    <div style="margin-top:var(--sp4);padding:var(--sp4);background:rgba(212,160,23,.05);border:1px solid rgba(212,160,23,.2)">
+      <div style="font-family:var(--font-ar);font-size:1.15rem;color:var(--gold-lt);direction:rtl;margin-bottom:var(--sp2);line-height:1.8">${p.verseAr}</div>
+      <div style="font-style:italic;font-size:.9rem;color:var(--linen-warm);line-height:1.65">"${p.verse.split('—')[0]}"</div>
+      <div style="font-family:var(--font-cinzel);font-size:.55rem;letter-spacing:.15em;color:var(--gold);text-transform:uppercase;margin-top:var(--sp2);opacity:.7">— ${(p.verse.split('—')[1]||'').trim()}</div>
+    </div>
+    <div style="display:flex;gap:var(--sp3);margin-top:var(--sp4);flex-wrap:wrap">
+      <button class="cta-btn cta-primary" onclick="showToast('Bookmarked','${p.name} added to your collection.');closeModal()">✦ Save Scroll</button>
+      <button class="cta-btn cta-secondary" onclick="showToast('Share','Share the story of ${p.name} with others.')">↗ Share</button>
+    </div>
+  `;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function closeModal(e) {
+  if (!e || e.target === document.getElementById('modal-overlay')) {
+    document.getElementById('modal-overlay').classList.remove('open');
+  }
+}
+
+/* ── FILTER ── */
+function filterCards(cat, btn) {
+  document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const filtered = cat === 'all' ? prophets : prophets.filter(p => p.category === cat);
+  renderCards(filtered);
+}
+
+/* ── SEARCH ── */
+function handleSearch(q) {
+  const lq = q.toLowerCase();
+  const res = lq.length < 2 ? prophets : prophets.filter(p =>
+    p.name.toLowerCase().includes(lq) ||
+    p.ar.includes(q) ||
+    p.body.toLowerCase().includes(lq) ||
+    p.tags.some(t => t.toLowerCase().includes(lq))
+  );
+  renderCards(res);
+  if (res.length === 0) {
+    document.getElementById('prophets-grid').innerHTML = `
+      <div style="grid-column:1/-1;text-align:center;padding:var(--sp7);border:1px dashed rgba(212,160,23,.2)">
+        <svg width="50" height="50" style="margin:0 auto var(--sp3);display:block">
+          <use href="#fh-sm" transform="scale(1.8) translate(0,2)"/>
+        </svg>
+        <div style="font-family:var(--font-cinzel);font-size:.7rem;letter-spacing:.15em;color:var(--gold);text-transform:uppercase;margin-bottom:var(--sp2)">No Scrolls Found</div>
+        <p style="font-style:italic;color:var(--silver);font-size:.9rem">The archive holds no record matching <em>"${q}"</em>.<br>The outcrop waits beneath a crescent moon.</p>
+      </div>`;
+  }
+}
+
+/* ── TOAST ── */
+let toastTimer;
+function showToast(title, body) {
+  document.getElementById('toast-title').textContent = title;
+  document.getElementById('toast-body').textContent  = body;
+  const t = document.getElementById('toast');
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+/* ── SIDEBAR TOGGLE ── */
+let sidebarOpen = true;
+function toggleSidebar() {
+  sidebarOpen = !sidebarOpen;
+  const sb = document.getElementById('sidebar');
+  const main = document.getElementById('main');
+  if (window.innerWidth < 769) {
+    sb.classList.toggle('open');
+  } else {
+    sb.classList.toggle('collapsed');
+    main.classList.toggle('expanded');
+  }
+}
+
+/* ── SCROLL TO ── */
+function scrollToSection(id) {
+  const el = document.getElementById(id);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/* ── CUSTOM CURSOR ── */
+const cursor = document.getElementById('cursor');
+document.addEventListener('mousemove', e => {
+  cursor.style.left = e.clientX + 'px';
+  cursor.style.top  = e.clientY + 'px';
+});
+document.addEventListener('mousedown', () => cursor.style.transform = 'translate(-50%,-50%) scale(.7)');
+document.addEventListener('mouseup',   () => cursor.style.transform = 'translate(-50%,-50%) scale(1)');
+document.querySelectorAll('a,button,.prophet-card,.nav-item,.filter-tab,.tl-item,.stat-cell').forEach(el => {
+  el.addEventListener('mouseenter', () => cursor.style.transform = 'translate(-50%,-50%) scale(1.5)');
+  el.addEventListener('mouseleave', () => cursor.style.transform = 'translate(-50%,-50%) scale(1)');
+});
+
+/* ── STARFIELD ── */
+(function() {
+  const sf = document.getElementById('starfield');
+  for (let i = 0; i < 120; i++) {
+    const s = document.createElement('div');
+    s.className = 'star';
+    const sz = Math.random() * 2 + .5;
+    s.style.cssText = `
+      left:${Math.random()*100}%;
+      top:${Math.random()*100}%;
+      width:${sz}px;height:${sz}px;
+      --dur:${2+Math.random()*4}s;
+      --delay:${Math.random()*4}s;
+      --lo:${.05+Math.random()*.15};
+      --hi:${.4+Math.random()*.6};
+    `;
+    sf.appendChild(s);
+  }
+})();
+
+/* ── COUNTER ANIMATION ── */
+function animateCounter(el) {
+  const target = parseInt(el.dataset.target);
+  if (isNaN(target)) return;
+  let current = 0;
+  const step  = Math.ceil(target / 60);
+  const timer = setInterval(() => {
+    current = Math.min(current + step, target);
+    el.textContent = current.toLocaleString();
+    if (current >= target) clearInterval(timer);
+  }, 20);
+}
+const counterObs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) { animateCounter(e.target); counterObs.unobserve(e.target); }
+  });
+}, { threshold: 0.5 });
+document.querySelectorAll('.stat-num[data-target]').forEach(el => counterObs.observe(el));
+
+/* ── FADE IN ON SCROLL ── */
+function observeFadeIns() {
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); }
+    });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.fade-in-up:not(.visible)').forEach(el => obs.observe(el));
+}
+observeFadeIns();
+
+/* ── KEYBOARD ESC TO CLOSE MODAL ── */
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal({}); });
+
+/* ── RESPONSIVE SIDEBAR ── */
+if (window.innerWidth < 769) {
+  sidebarOpen = false;
+}
+</script>
+</body>
+</html>
