@@ -1,0 +1,642 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&display=swap');
+  :root {
+    --wine: #722F37; --lute: #8B5A2B; --parchment: #F5E6D3;
+    --ink: #1C1A1A; --silver: #B0B5B9; --gold: #D4AF37;
+    --curtain: #1E3A5F; --parchment-dark: #E8D5BC;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Amiri', Georgia, serif; background: var(--parchment); color: var(--ink); }
+  
+  .page-frame {
+    background: var(--parchment);
+    border: 2px solid var(--lute);
+    border-radius: 2px;
+    padding: 0;
+    position: relative;
+    overflow: hidden;
+  }
+  .page-frame::before {
+    content: '';
+    position: absolute; inset: 6px;
+    border: 1px solid var(--gold);
+    pointer-events: none;
+    z-index: 10;
+    border-radius: 1px;
+  }
+
+  .header-band {
+    background: var(--curtain);
+    padding: 18px 32px 14px;
+    text-align: center;
+    position: relative;
+  }
+  .header-band::after {
+    content: '';
+    display: block;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, var(--gold), var(--gold), transparent);
+    margin-top: 10px;
+  }
+  .header-title { font-size: 26px; color: var(--gold); letter-spacing: 2px; font-weight: 700; }
+  .header-sub { font-size: 13px; color: var(--silver); letter-spacing: 1px; margin-top: 4px; }
+
+  .oud-divider {
+    display: flex; align-items: center; gap: 0;
+    padding: 8px 32px; background: var(--parchment-dark);
+  }
+  .oud-neck { flex: 1; height: 2px; background: repeating-linear-gradient(90deg, var(--lute) 0px, var(--lute) 12px, transparent 12px, transparent 18px); position: relative; }
+  .oud-body { width: 28px; height: 22px; flex-shrink: 0; }
+  .beat-divider { display: flex; gap: 6px; padding: 0 12px; align-items: center; }
+  .beat { width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid var(--lute); }
+  .beat.filled { background: var(--lute); }
+
+  .content-area { padding: 16px 28px 24px; }
+
+  .section-label {
+    font-size: 11px; letter-spacing: 2px; color: var(--lute);
+    text-transform: uppercase; margin-bottom: 12px; font-family: Georgia, serif;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .section-label::before, .section-label::after {
+    content: ''; flex: 1; height: 0.5px; background: var(--lute); opacity: 0.4;
+  }
+
+  /* Song cards grid */
+  .catalog-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px;
+  }
+  .song-card {
+    background: #fff8f0;
+    border: 1px solid var(--lute);
+    border-radius: 2px;
+    padding: 14px 14px 12px;
+    position: relative;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .song-card:hover { border-color: var(--gold); }
+  .song-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: var(--wine);
+    border-radius: 2px 2px 0 0;
+  }
+  .card-arch {
+    width: 100%; height: 28px; position: relative; margin-bottom: 8px; overflow: visible;
+  }
+  .card-title { font-size: 15px; color: var(--gold); font-weight: 700; margin-bottom: 3px; line-height: 1.3; }
+  .card-poet { font-size: 12px; color: var(--wine); margin-bottom: 2px; }
+  .card-composer { font-size: 11px; color: var(--lute); margin-bottom: 10px; }
+
+  .card-tags { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 10px; }
+  .maqam-badge {
+    font-size: 10px; padding: 2px 8px;
+    border-radius: 10px; font-family: Georgia, serif;
+    font-weight: 700; letter-spacing: 0.5px;
+  }
+  .maqam-rast   { background: #1E3A5F; color: #D4AF37; }
+  .maqam-bayati { background: #722F37; color: #F5E6D3; }
+  .maqam-hijaz  { background: #5C3A1E; color: #D4AF37; }
+  .maqam-saba   { background: #2E4A2E; color: #A8D5A2; }
+  .iqa-badge {
+    font-size: 10px; padding: 2px 7px;
+    border: 1px solid var(--silver); color: var(--ink);
+    border-radius: 10px; font-family: Georgia, serif;
+    background: transparent;
+  }
+
+  .card-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; }
+  .play-btn {
+    width: 34px; height: 34px; border: none; cursor: pointer;
+    background: transparent; padding: 0; display: flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+    transition: transform 0.15s;
+  }
+  .play-btn:hover { transform: scale(1.1); }
+  .play-btn svg { width: 34px; height: 34px; }
+
+  .card-era { font-size: 10px; color: var(--silver); font-style: italic; }
+
+  /* Iqa circles widget */
+  .iqa-widget {
+    background: #fff8f0; border: 1px solid var(--lute);
+    border-radius: 2px; padding: 14px 16px; margin-bottom: 20px;
+  }
+  .iqa-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .iqa-label { font-size: 12px; color: var(--lute); width: 72px; flex-shrink: 0; }
+  .iqa-circles { display: flex; gap: 7px; align-items: center; }
+  .iqa-beat {
+    width: 20px; height: 20px; border-radius: 50%;
+    border: 2px solid var(--lute);
+    display: inline-block; position: relative;
+  }
+  .iqa-beat.dum { background: var(--wine); border-color: var(--wine); }
+  .iqa-beat.tek { background: var(--lute); border-color: var(--lute); }
+  .iqa-beat.rest { background: transparent; }
+  .iqa-beat.playing { animation: pulse-beat 0.5s ease-in-out infinite alternate; }
+  @keyframes pulse-beat {
+    from { box-shadow: 0 0 0 0px var(--gold); }
+    to   { box-shadow: 0 0 0 5px rgba(212,175,55,0.2); }
+  }
+
+  /* Now playing performance scene */
+  .now-playing {
+    background: var(--curtain); border-radius: 2px; padding: 0;
+    border: 1px solid var(--gold); overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .np-header {
+    display: flex; align-items: center; gap: 10px; padding: 10px 16px 8px;
+    border-bottom: 1px solid rgba(212,175,55,0.3);
+  }
+  .np-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gold); animation: glow 1.2s ease-in-out infinite alternate; }
+  @keyframes glow { from { opacity: 0.4; } to { opacity: 1; } }
+  .np-label { font-size: 11px; color: var(--silver); letter-spacing: 1.5px; text-transform: uppercase; }
+  .np-body { display: flex; gap: 0; }
+  .np-scene { width: 180px; flex-shrink: 0; position: relative; overflow: hidden; }
+  .np-scene svg { display: block; }
+  .np-info { flex: 1; padding: 14px 16px; }
+  .np-title { font-size: 18px; color: var(--gold); font-weight: 700; margin-bottom: 4px; }
+  .np-poet { font-size: 12px; color: var(--silver); margin-bottom: 12px; }
+  .np-lyrics {
+    font-size: 13px; color: #D4C4A8; line-height: 2;
+    font-style: italic; border-left: 2px solid var(--wine);
+    padding-left: 12px; margin-bottom: 12px;
+  }
+  .np-verse-num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--gold); color: var(--curtain);
+    font-size: 9px; font-weight: 700; margin-right: 6px;
+    font-style: normal;
+  }
+  .np-waveform { display: flex; align-items: flex-end; gap: 2px; height: 30px; margin-bottom: 12px; }
+  .np-waveform span {
+    width: 3px; border-radius: 2px; background: var(--wine);
+    animation: wave 0.8s ease-in-out infinite alternate;
+    display: block;
+  }
+
+  /* Transmission chain */
+  .chain-section { margin-bottom: 20px; }
+  .chain-container { display: flex; align-items: center; gap: 0; flex-wrap: wrap; }
+  .chain-node {
+    background: #fff8f0; border: 1px solid var(--lute);
+    border-radius: 20px; padding: 5px 14px;
+    font-size: 12px; color: var(--ink);
+    white-space: nowrap;
+  }
+  .chain-link {
+    display: flex; flex-direction: column; align-items: center; padding: 0 4px;
+  }
+  .chain-link-line { width: 24px; height: 1px; border-top: 1.5px dotted var(--lute); }
+  .chain-link-label { font-size: 9px; color: var(--silver); margin-top: 2px; white-space: nowrap; }
+  .chain-role { font-size: 9px; color: var(--wine); display: block; margin-top: 2px; }
+
+  /* Biography medallion */
+  .bio-row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .bio-medallion {
+    background: #fff8f0; border: 1px solid var(--lute);
+    border-radius: 50%; width: 90px; height: 90px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 8px; cursor: pointer;
+    transition: border-color 0.2s, transform 0.2s;
+    position: relative;
+  }
+  .bio-medallion:hover { border-color: var(--gold); transform: scale(1.05); }
+  .bio-instrument { font-size: 20px; margin-bottom: 4px; line-height: 1; }
+  .bio-name { font-size: 9.5px; color: var(--wine); font-weight: 700; line-height: 1.2; }
+  .bio-era { font-size: 8.5px; color: var(--silver); }
+
+  /* Maqam selector */
+  .maqam-selector { margin-bottom: 20px; }
+  .maqam-dials { display: flex; gap: 10px; flex-wrap: wrap; }
+  .maqam-dial {
+    display: flex; flex-direction: column; align-items: center;
+    cursor: pointer; gap: 5px;
+  }
+  .maqam-dial svg { transition: transform 0.2s; }
+  .maqam-dial:hover svg { transform: rotate(30deg) scale(1.05); }
+  .maqam-dial-label { font-size: 10px; color: var(--lute); text-align: center; }
+  .maqam-dial.active .maqam-dial-label { color: var(--gold); font-weight: 700; }
+
+  /* Song page detail */
+  .song-page {
+    background: #fff8f0; border: 1px solid var(--lute);
+    border-radius: 2px; padding: 16px 20px; margin-bottom: 20px;
+    display: none;
+  }
+  .song-page.visible { display: block; }
+  .sp-title { font-size: 20px; color: var(--gold); font-weight: 700; margin-bottom: 6px; }
+  .sp-meta { font-size: 12px; color: var(--lute); margin-bottom: 12px; }
+  .sp-tags { display: flex; gap: 6px; margin-bottom: 14px; }
+  .sp-lyrics { font-style: italic; line-height: 2.2; font-size: 14px; color: var(--ink); text-align: center; margin-bottom: 14px; border: 1px solid var(--parchment-dark); padding: 12px; background: var(--parchment); }
+  .sp-anecdote { font-size: 12px; color: var(--lute); font-style: italic; line-height: 1.8; border-left: 3px solid var(--wine); padding-left: 12px; margin-bottom: 14px; }
+  .sp-close { float: right; background: none; border: 1px solid var(--lute); color: var(--lute); padding: 4px 12px; cursor: pointer; font-family: Georgia, serif; font-size: 12px; border-radius: 2px; }
+  .sp-close:hover { background: var(--parchment-dark); }
+</style>
+
+<div class="page-frame">
+  <div class="header-band">
+    <div class="header-title">كِتَابُ الْأَغَانِي</div>
+    <div class="header-sub">The Book of Songs — Abu al-Faraj al-Isfahani · Compiled 967 CE</div>
+  </div>
+
+  <div class="oud-divider">
+    <div class="beat-divider">
+      <div class="beat filled"></div><div class="beat"></div>
+      <div class="beat filled"></div><div class="beat filled"></div><div class="beat"></div>
+    </div>
+    <svg class="oud-body" viewBox="0 0 28 22" fill="none">
+      <ellipse cx="14" cy="13" rx="10" ry="8" fill="#8B5A2B" opacity="0.8"/>
+      <line x1="14" y1="5" x2="14" y2="1" stroke="#8B5A2B" stroke-width="2" stroke-linecap="round"/>
+      <line x1="11" y1="3" x2="17" y2="3" stroke="#B0B5B9" stroke-width="1"/>
+      <ellipse cx="14" cy="13" rx="2.5" ry="2" fill="#5A3A1A"/>
+    </svg>
+    <div class="oud-neck" style="flex:1"></div>
+    <div class="beat-divider">
+      <div class="beat filled"></div><div class="beat"></div>
+      <div class="beat filled"></div><div class="beat"></div><div class="beat filled"></div>
+    </div>
+  </div>
+
+  <div class="content-area">
+
+    <!-- Now Playing -->
+    <div class="now-playing">
+      <div class="np-header">
+        <div class="np-dot"></div>
+        <div class="np-label">Now Performing</div>
+      </div>
+      <div class="np-body">
+        <div class="np-scene">
+          <svg viewBox="0 0 180 160" width="180" height="160">
+            <!-- Arch frame -->
+            <path d="M10,160 L10,60 Q90,10 170,60 L170,160 Z" fill="#1A2F50" stroke="#D4AF37" stroke-width="1.5" fill-opacity="0.9"/>
+            <!-- Curtain side drape -->
+            <path d="M10,60 Q25,90 20,160" stroke="#722F37" stroke-width="12" fill="none" stroke-linecap="round"/>
+            <path d="M170,60 Q155,90 160,160" stroke="#722F37" stroke-width="12" fill="none" stroke-linecap="round"/>
+            <!-- Cushion -->
+            <ellipse cx="90" cy="138" rx="40" ry="10" fill="#722F37"/>
+            <ellipse cx="90" cy="135" rx="40" ry="8" fill="#8B2030"/>
+            <!-- Singer figure (stylized) -->
+            <ellipse cx="90" cy="95" rx="18" ry="20" fill="#2A3F5F"/>
+            <!-- Head with veil suggestion -->
+            <circle cx="90" cy="72" r="11" fill="#C4956A"/>
+            <path d="M79,72 Q90,58 101,72" fill="#1C1A1A" opacity="0.7"/>
+            <!-- Oud held at angle -->
+            <ellipse cx="110" cy="105" rx="12" ry="9" fill="#8B5A2B" transform="rotate(-20,110,105)"/>
+            <line x1="110" y1="97" x2="118" y2="82" stroke="#8B5A2B" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="115" y1="84" x2="121" y2="84" stroke="#B0B5B9" stroke-width="1"/>
+            <!-- Wine cup on right -->
+            <path d="M148,128 L152,128 L151,138 L149,138 Z" fill="#D4AF37"/>
+            <ellipse cx="150" cy="128" rx="5" ry="3" fill="#D4AF37"/>
+            <!-- Attendant fan left -->
+            <path d="M42,90 Q35,80 48,88" stroke="#D4AF37" stroke-width="1.5" fill="none"/>
+            <path d="M42,90 Q33,85 46,86" stroke="#D4AF37" stroke-width="1.5" fill="none"/>
+            <!-- Stars in arch -->
+            <circle cx="50" cy="40" r="1.5" fill="#D4AF37" opacity="0.6"/>
+            <circle cx="90" cy="30" r="2" fill="#D4AF37" opacity="0.8"/>
+            <circle cx="130" cy="40" r="1.5" fill="#D4AF37" opacity="0.6"/>
+            <circle cx="70" cy="50" r="1" fill="#D4AF37" opacity="0.4"/>
+            <circle cx="110" cy="48" r="1" fill="#D4AF37" opacity="0.4"/>
+            <!-- Animated waveform at bottom -->
+            <g id="waveform">
+              <rect x="60" y="148" width="3" height="6" rx="1" fill="#D4AF37" opacity="0.6"/>
+              <rect x="66" y="145" width="3" height="9" rx="1" fill="#D4AF37" opacity="0.8"/>
+              <rect x="72" y="148" width="3" height="6" rx="1" fill="#D4AF37" opacity="0.6"/>
+              <rect x="78" y="146" width="3" height="8" rx="1" fill="#D4AF37" opacity="0.7"/>
+              <rect x="84" y="149" width="3" height="5" rx="1" fill="#D4AF37" opacity="0.5"/>
+              <rect x="90" y="144" width="3" height="10" rx="1" fill="#D4AF37" opacity="0.9"/>
+              <rect x="96" y="147" width="3" height="7" rx="1" fill="#D4AF37" opacity="0.7"/>
+              <rect x="102" y="148" width="3" height="6" rx="1" fill="#D4AF37" opacity="0.6"/>
+              <rect x="108" y="145" width="3" height="9" rx="1" fill="#D4AF37" opacity="0.8"/>
+              <rect x="114" y="149" width="3" height="5" rx="1" fill="#D4AF37" opacity="0.5"/>
+            </g>
+          </svg>
+        </div>
+        <div class="np-info">
+          <div class="np-title">Lahn al-Shawq</div>
+          <div class="np-poet">Poem by Ibrahim ibn al-Mahdi · Music by Ziryab</div>
+          <div class="np-lyrics">
+            <span class="np-verse-num">١</span>Oh thou who art gone, yet thy memory lingers<br>
+            <span class="np-verse-num">٢</span>Like the reed's cry at the river's bend at dawn
+          </div>
+          <div class="np-waveform" id="waveformBars"></div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <span class="maqam-badge maqam-bayati">Bayati</span>
+            <span class="iqa-badge">Maqsum</span>
+            <span style="font-size:10px; color:var(--silver); margin-left:auto;">Abbasid Era · 9th c.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Song Page Detail (expandable) -->
+    <div class="song-page" id="songPage">
+      <button class="sp-close" onclick="document.getElementById('songPage').classList.remove('visible')">× close</button>
+      <div class="sp-title" id="sp-title-text"></div>
+      <div class="sp-meta" id="sp-meta-text"></div>
+      <div class="sp-tags" id="sp-tags"></div>
+      <div class="sp-lyrics" id="sp-lyrics-text"></div>
+      <div class="sp-anecdote" id="sp-anecdote-text"></div>
+    </div>
+
+    <!-- Catalog Grid -->
+    <div class="section-label">Song Catalog — Four Entries</div>
+    <div class="catalog-grid" id="catalogGrid"></div>
+
+    <!-- Iqa Rhythm Widget -->
+    <div class="section-label">Iqa' — Rhythmic Cycles</div>
+    <div class="iqa-widget">
+      <div class="iqa-row">
+        <div class="iqa-label">Maqsum</div>
+        <div class="iqa-circles" id="iqaMaqsum"></div>
+      </div>
+      <div class="iqa-row">
+        <div class="iqa-label">Masmudi</div>
+        <div class="iqa-circles" id="iqaMasmudi"></div>
+      </div>
+      <div class="iqa-row">
+        <div class="iqa-label">Ayoub</div>
+        <div class="iqa-circles" id="iqaAyoub"></div>
+      </div>
+      <div class="iqa-row">
+        <div class="iqa-label">Sa'idi</div>
+        <div class="iqa-circles" id="iqaSaidi"></div>
+      </div>
+    </div>
+
+    <!-- Maqam Selector -->
+    <div class="section-label">Maqam — Musical Modes</div>
+    <div class="maqam-selector">
+      <div class="maqam-dials" id="maqamDials"></div>
+    </div>
+
+    <!-- Transmission Chain -->
+    <div class="section-label">Isnad — Chain of Transmission</div>
+    <div class="chain-section">
+      <div class="chain-container" id="chainContainer"></div>
+    </div>
+
+    <!-- Biography Medallions -->
+    <div class="section-label">Portraits of the Musicians</div>
+    <div class="bio-row" id="bioRow"></div>
+
+  </div>
+
+  <!-- Footer divider -->
+  <div class="oud-divider" style="justify-content:center; padding:10px 32px;">
+    <div style="font-size:10px; color:var(--lute); letter-spacing:2px; font-style:italic;">
+      ⬥ compiled by Abu al-Faraj al-Isfahani · 967 CE ⬥
+    </div>
+  </div>
+</div>
+
+<script>
+const songs = [
+  {
+    title: "Lahn al-Shawq",
+    titleAr: "لحن الشوق",
+    poet: "Ibrahim ibn al-Mahdi",
+    composer: "Ziryab",
+    maqam: "Bayati",
+    maqamClass: "maqam-bayati",
+    iqa: "Maqsum",
+    era: "Abbasid, 9th c.",
+    lyrics: "Oh thou who art gone, yet thy memory lingers\nLike the reed's cry at the river's bend at dawn\nMy heart is a lute with one string broken\nWhose sorrow fills the garden of my longing",
+    anecdote: "It is said that when Ziryab first performed this lahn in the court of Harun al-Rashid, three ladies of the harem were moved to tears, and the Caliph himself struck his hand upon his knee in admiration, declaring it the finest composition of the age.",
+    chain: ["Ibrahim ibn al-Mahdi", "Ziryab", "Ibn al-Mawsili", "Abu al-Faraj"]
+  },
+  {
+    title: "Qasida al-Andalus",
+    titleAr: "قصيدة الأندلس",
+    poet: "Ibn Hazm al-Andalusi",
+    composer: "al-Mansur ibn Abi Amir",
+    maqam: "Hijaz",
+    maqamClass: "maqam-hijaz",
+    iqa: "Masmudi",
+    era: "Andalusian, 10th c.",
+    lyrics: "Granada blooms in fire and in shade\nThe Alhambra weeps in water's cascade\nWe who loved beyond all earthly measure\nAre exiled now from paradise's treasure",
+    anecdote: "This qasida was composed on the night of the Feast of Roses, performed by three qiyan who had been trained in the Andalusian style. The maqam Hijaz was chosen for its quality of yearning and exile.",
+    chain: ["Ibn Hazm", "al-Mansur", "Yahya al-Ghazal", "Abu al-Faraj"]
+  },
+  {
+    title: "Nashid al-Bayt",
+    titleAr: "نشيد البيت",
+    poet: "al-Mutanabbi",
+    composer: "Ibrahim al-Mawsili",
+    maqam: "Rast",
+    maqamClass: "maqam-rast",
+    iqa: "Ayoub",
+    era: "Abbasid, 10th c.",
+    lyrics: "The sword and the pen are one in the hand of glory\nThe poet kings all nations in his story\nTime bows before the verse of the undying\nWhat tongue has God but this, in his replying?",
+    anecdote: "al-Mutanabbi composed this nashid for the court of Sayf al-Dawla al-Hamdani. Ibrahim al-Mawsili set it in Maqam Rast for its quality of nobility and resolution, befitting a poem addressed to a warrior-prince.",
+    chain: ["al-Mutanabbi", "Ibrahim al-Mawsili", "Ishaq al-Mawsili", "Abu al-Faraj"]
+  },
+  {
+    title: "Mawwal al-Nil",
+    titleAr: "موال النيل",
+    poet: "Ibn al-Rumi",
+    composer: "Yahya ibn Khaldun",
+    maqam: "Saba",
+    maqamClass: "maqam-saba",
+    iqa: "Sa'idi",
+    era: "Abbasid, 9th c.",
+    lyrics: "River of black water, river of life and death\nYou take the breath of pharaohs on your breath\nI am a fisherman who casts no net\nOnly this song in waters I have not left",
+    anecdote: "Transmitted by Yahya ibn Khaldun, who heard it from a blind singer in the markets of Fustat. The mawwal tradition employs Maqam Saba, associated with sorrow and longing, always performed without percussion in the first strophe.",
+    chain: ["Ibn al-Rumi", "Yahya ibn Khaldun", "al-Fustat singer", "Abu al-Faraj"]
+  }
+];
+
+const maqams = [
+  { name: "Rast", color: "#1E3A5F", emotion: "Nobility", textColor: "#D4AF37" },
+  { name: "Bayati", color: "#722F37", emotion: "Sorrow", textColor: "#F5E6D3" },
+  { name: "Hijaz", color: "#5C3A1E", emotion: "Yearning", textColor: "#D4AF37" },
+  { name: "Saba", color: "#2E4A2E", emotion: "Grief", textColor: "#A8D5A2" },
+  { name: "Nahawand", color: "#3A2E5C", emotion: "Longing", textColor: "#C8B5F5" }
+];
+
+const iqaPatterns = {
+  Maqsum:  ["dum","rest","tek","tek","dum","rest","tek","rest"],
+  Masmudi: ["dum","dum","rest","tek","rest","dum","rest","tek","tek","rest","dum","rest"],
+  Ayoub:   ["dum","rest","tek","rest"],
+  "Sa'idi":["dum","tek","dum","dum","tek"]
+};
+
+const bios = [
+  { name: "Ziryab", era: "9th c.", icon: "♪" },
+  { name: "Ibrahim al-Mawsili", era: "8th-9th c.", icon: "♩" },
+  { name: "Ishaq al-Mawsili", era: "9th c.", icon: "♫" },
+  { name: "Ibn Hazm", era: "10th-11th c.", icon: "✦" },
+  { name: "al-Mutanabbi", era: "10th c.", icon: "✒" }
+];
+
+function buildCatalog() {
+  const grid = document.getElementById('catalogGrid');
+  songs.forEach((s, i) => {
+    const card = document.createElement('div');
+    card.className = 'song-card';
+    card.innerHTML = `
+      <div class="card-title">${s.title}</div>
+      <div style="font-size:11px; color:var(--lute); margin-bottom:1px; font-style:italic;">${s.titleAr}</div>
+      <div class="card-poet">Poem: ${s.poet}</div>
+      <div class="card-composer">Music: ${s.composer}</div>
+      <div class="card-tags">
+        <span class="maqam-badge ${s.maqamClass}">${s.maqam}</span>
+        <span class="iqa-badge">${s.iqa}</span>
+      </div>
+      <div class="card-footer">
+        <span class="card-era">${s.era}</span>
+        <button class="play-btn" title="Open song page">
+          <svg viewBox="0 0 34 34" fill="none">
+            <ellipse cx="17" cy="22" rx="11" ry="8" fill="#8B5A2B"/>
+            <ellipse cx="17" cy="20" rx="11" ry="8" fill="#A0693A"/>
+            <line x1="17" y1="12" x2="17" y2="5" stroke="#8B5A2B" stroke-width="2" stroke-linecap="round"/>
+            <line x1="14" y1="7" x2="20" y2="7" stroke="#B0B5B9" stroke-width="1.2"/>
+            <ellipse cx="17" cy="20" rx="3" ry="2.5" fill="#5A3A1A"/>
+            <path d="M13 18 L22 20 L13 22 Z" fill="#D4AF37" opacity="0.8"/>
+          </svg>
+        </button>
+      </div>
+    `;
+    card.querySelector('.play-btn').addEventListener('click', () => openSongPage(i));
+    grid.appendChild(card);
+  });
+}
+
+function openSongPage(i) {
+  const s = songs[i];
+  document.getElementById('sp-title-text').textContent = s.title + ' — ' + s.titleAr;
+  document.getElementById('sp-meta-text').textContent = `Poem by ${s.poet} · Music by ${s.composer} · ${s.era}`;
+  document.getElementById('sp-tags').innerHTML = `<span class="maqam-badge ${s.maqamClass}">${s.maqam}</span><span class="iqa-badge">${s.iqa}</span>`;
+  document.getElementById('sp-lyrics-text').innerHTML = s.lyrics.split('\n').map((l,j) => `<span class="np-verse-num">${['١','٢','٣','٤'][j]||''}</span>${l}<br>`).join('');
+  document.getElementById('sp-anecdote-text').innerHTML = `<strong style="color:var(--wine)">Anecdote:</strong> ${s.anecdote}`;
+  const page = document.getElementById('songPage');
+  page.classList.add('visible');
+  page.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function buildIqa() {
+  Object.entries(iqaPatterns).forEach(([name, pattern]) => {
+    const id = 'iqa' + name.replace("'",'').replace(' ','');
+    const container = document.getElementById(id);
+    if (!container) return;
+    pattern.forEach(beat => {
+      const el = document.createElement('div');
+      el.className = 'iqa-beat ' + beat;
+      container.appendChild(el);
+    });
+  });
+  animateIqa();
+}
+
+function animateIqa() {
+  let beats = 0;
+  setInterval(() => {
+    beats++;
+    document.querySelectorAll('.iqa-beat').forEach(el => el.classList.remove('playing'));
+    const allRows = [
+      { id: 'iqaMaqsum', pattern: iqaPatterns['Maqsum'] },
+      { id: 'iqaMasmudi', pattern: iqaPatterns['Masmudi'] },
+      { id: 'iqaAyoub', pattern: iqaPatterns['Ayoub'] },
+      { id: "iqaSaidi", pattern: iqaPatterns["Sa'idi"] }
+    ];
+    allRows.forEach(row => {
+      const container = document.getElementById(row.id);
+      if (!container) return;
+      const idx = beats % row.pattern.length;
+      const beatEl = container.children[idx];
+      if (beatEl && row.pattern[idx] !== 'rest') beatEl.classList.add('playing');
+    });
+  }, 420);
+}
+
+function buildMaqam() {
+  const container = document.getElementById('maqamDials');
+  maqams.forEach((m, i) => {
+    const dial = document.createElement('div');
+    dial.className = 'maqam-dial' + (i === 0 ? ' active' : '');
+    const size = 62;
+    const r = 26;
+    const segments = 12;
+    let paths = '';
+    for (let s = 0; s < segments; s++) {
+      const a1 = (s / segments) * 2 * Math.PI - Math.PI/2;
+      const a2 = ((s + 0.75) / segments) * 2 * Math.PI - Math.PI/2;
+      const x1 = 31 + r * Math.cos(a1), y1 = 31 + r * Math.sin(a1);
+      const x2 = 31 + r * Math.cos(a2), y2 = 31 + r * Math.sin(a2);
+      const opacity = s < (i + 3) ? 1 : 0.18;
+      paths += `<path d="M31,31 L${x1.toFixed(1)},${y1.toFixed(1)} A${r},${r} 0 0,1 ${x2.toFixed(1)},${y2.toFixed(1)} Z" fill="${m.color}" opacity="${opacity}" stroke="none"/>`;
+    }
+    dial.innerHTML = `
+      <svg width="${size}" height="${size}" viewBox="0 0 62 62">
+        <circle cx="31" cy="31" r="30" fill="${m.color}" opacity="0.08" stroke="${m.color}" stroke-width="0.5"/>
+        ${paths}
+        <circle cx="31" cy="31" r="16" fill="#F5E6D3"/>
+        <text x="31" y="35" text-anchor="middle" font-size="9" font-family="Georgia,serif" fill="${m.color}" font-weight="700">${m.name}</text>
+      </svg>
+      <div class="maqam-dial-label">${m.emotion}</div>
+    `;
+    dial.addEventListener('click', () => {
+      document.querySelectorAll('.maqam-dial').forEach(d => d.classList.remove('active'));
+      dial.classList.add('active');
+    });
+    container.appendChild(dial);
+  });
+}
+
+function buildChain() {
+  const chain = ["Abu Haris al-Gharid", "Yahya al-Mawsili", "Ibrahim al-Mawsili", "Ishaq al-Mawsili", "Abu al-Faraj"];
+  const roles = ["performed for", "transmitted to", "rearranged by", "heard by", "recorded by"];
+  const container = document.getElementById('chainContainer');
+  chain.forEach((name, i) => {
+    const node = document.createElement('div');
+    node.className = 'chain-node';
+    node.innerHTML = `${name}<span class="chain-role">${i === 0 ? 'original' : i === chain.length-1 ? 'compiler' : 'transmitter'}</span>`;
+    container.appendChild(node);
+    if (i < chain.length - 1) {
+      const link = document.createElement('div');
+      link.className = 'chain-link';
+      link.innerHTML = `<div class="chain-link-line"></div><div class="chain-link-label">${roles[i]}</div>`;
+      container.appendChild(link);
+    }
+  });
+}
+
+function buildBios() {
+  const container = document.getElementById('bioRow');
+  bios.forEach(b => {
+    const m = document.createElement('div');
+    m.className = 'bio-medallion';
+    m.innerHTML = `<div class="bio-instrument" style="font-size:22px;">${b.icon}</div><div class="bio-name">${b.name}</div><div class="bio-era">${b.era}</div>`;
+    container.appendChild(m);
+  });
+}
+
+function buildWaveform() {
+  const container = document.getElementById('waveformBars');
+  const heights = [8,14,10,18,7,22,12,16,9,20,11,15,8,19,13];
+  heights.forEach((h, i) => {
+    const bar = document.createElement('span');
+    bar.style.cssText = `height:${h}px; animation-delay:${i*0.08}s; animation-duration:${0.5 + Math.random()*0.4}s;`;
+    container.appendChild(bar);
+  });
+
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes wave { from { height: 4px; } to { height: 100%; } }
+    #waveformBars span { background: var(--wine); }
+  `;
+  document.head.appendChild(style);
+}
+
+buildCatalog();
+buildIqa();
+buildMaqam();
+buildChain();
+buildBios();
+buildWaveform();
+</script>

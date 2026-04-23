@@ -1,0 +1,480 @@
+
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --cr:#6B0F0F;--cr2:#8B1A1A;--cr3:#A52020;
+    --gd:#C9A227;--gd2:#D4AF37;--gd3:#E8CC6A;--gd4:#F0DC8A;
+    --em:#0F3328;--iv:#F2EBD9;--lp:#152D6E;
+    --iv6:rgba(242,235,217,0.06);--iv12:rgba(242,235,217,0.12);
+    --iv25:rgba(242,235,217,0.25);--iv50:rgba(242,235,217,0.5);
+    --gd08:rgba(201,162,39,0.08);--gd15:rgba(201,162,39,0.15);
+    --gd30:rgba(201,162,39,0.3);--gd50:rgba(201,162,39,0.5);
+    --gd70:rgba(201,162,39,0.7);
+  }
+
+  .wrap{background:#180808;color:var(--iv);font-family:'Georgia',serif;line-height:1.6}
+
+  /* ── HEADER ── */
+  .hdr{
+    background:var(--cr);
+    border-bottom:2px solid var(--gd);
+    display:grid;grid-template-columns:auto 1fr auto;
+    align-items:center;gap:0;
+    position:relative;overflow:hidden;
+  }
+  .hdr::after{
+    content:'';position:absolute;inset:0;
+    background:repeating-linear-gradient(45deg,transparent,transparent 24px,var(--iv6) 24px,var(--iv6) 25px);
+    pointer-events:none;
+  }
+  .hdr-left{padding:1.25rem 1.5rem;border-right:1px solid var(--gd30)}
+  .hdr-center{padding:1rem 1.5rem;text-align:center}
+  .hdr-right{padding:1.25rem 1.5rem;border-left:1px solid var(--gd30);text-align:right}
+
+  .hdr-wordmark{font-size:22px;font-weight:400;color:var(--gd2);letter-spacing:.18em;line-height:1}
+  .hdr-sub{font-size:10px;color:var(--gd70);letter-spacing:.28em;margin-top:3px}
+  .hdr-rank{font-size:10px;color:var(--gd70);letter-spacing:.2em;margin-bottom:6px}
+
+  /* ── BEYZE BADGE ── */
+  .bz{
+    display:inline-flex;align-items:center;justify-content:center;
+    padding:3px 14px;border-radius:20px;
+    font-size:10px;letter-spacing:.12em;
+    border:1px solid var(--gd);color:var(--gd2);
+    position:relative;
+  }
+  .bz::before,.bz::after{
+    content:'◆';position:absolute;top:50%;transform:translateY(-50%);
+    font-size:5px;color:var(--gd50);
+  }
+  .bz::before{left:-9px}.bz::after{right:-9px}
+  .bz.pending{border-color:var(--gd30);color:var(--gd50)}
+  .bz.revoked{border-color:rgba(180,50,50,.5);color:rgba(200,80,80,.8)}
+  .bz.emerald{border-color:rgba(60,160,100,.5);color:rgba(80,180,120,.9)}
+
+  /* ── NAV ── */
+  .nav{
+    background:#0E0303;
+    border-bottom:1px solid var(--gd30);
+    display:flex;align-items:stretch;
+  }
+  .ni{
+    display:flex;align-items:center;gap:10px;
+    padding:.65rem 1.2rem;
+    font-size:11px;letter-spacing:.14em;color:var(--iv50);
+    cursor:pointer;border-bottom:2px solid transparent;
+    transition:color .2s,border-color .2s;position:relative;
+  }
+  .ni:hover,.ni.on{color:var(--gd2);border-bottom-color:var(--gd)}
+  .tug{display:flex;flex-direction:column;align-items:center;gap:2px}
+  .tug span{
+    display:block;width:2px;background:currentColor;border-radius:1px;
+    transition:height .35s cubic-bezier(.25,.46,.45,.94);
+  }
+  .tug span:nth-child(1){height:14px}
+  .tug span:nth-child(2){height:18px}
+  .tug span:nth-child(3){height:12px}
+  .ni:hover .tug span:nth-child(1),.ni.on .tug span:nth-child(1){height:20px}
+  .ni:hover .tug span:nth-child(2),.ni.on .tug span:nth-child(2){height:26px}
+  .ni:hover .tug span:nth-child(3),.ni.on .tug span:nth-child(3){height:18px}
+
+  /* ── LAYOUT ── */
+  .body{display:grid;grid-template-columns:200px 1fr;min-height:0}
+  .side{background:#100404;border-right:1px solid var(--gd15);padding:1.2rem .9rem}
+  .main{background:#150505;padding:1.4rem 1.6rem}
+
+  /* ── SECTION LABEL ── */
+  .sec{
+    font-size:9px;letter-spacing:.24em;color:var(--gd50);
+    display:flex;align-items:center;gap:8px;margin-bottom:.9rem;margin-top:1.4rem;
+  }
+  .sec:first-child{margin-top:0}
+  .sec::after{content:'';flex:1;height:1px;background:var(--gd15)}
+
+  /* ── PROFILE ── */
+  .prof{
+    display:flex;align-items:center;gap:10px;
+    background:var(--gd08);border:1px solid var(--gd15);
+    border-radius:6px;padding:.75rem;margin-bottom:1.2rem;
+  }
+  .prof-name{font-size:13px;color:var(--gd3);letter-spacing:.06em}
+  .prof-role{font-size:10px;color:var(--iv50);letter-spacing:.05em;margin-top:2px}
+
+  /* ── TUĞ HOVER BARS ── */
+  .tug-demo{display:flex;gap:14px;align-items:flex-end;padding:0 .5rem}
+  .tb{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer}
+  .tb-bar{
+    width:3px;border-radius:2px 2px 0 0;background:var(--gd50);
+    transition:height .35s cubic-bezier(.25,.46,.45,.94),background .2s;
+    position:relative;
+  }
+  .tb-bar::after{
+    content:'';position:absolute;bottom:-4px;left:50%;
+    transform:translateX(-50%) rotate(45deg);
+    width:5px;height:5px;
+    border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;
+    color:var(--gd50);transition:color .2s;
+  }
+  .tb:hover .tb-bar{background:var(--gd2)}
+  .tb:hover .tb-bar::after{color:var(--gd2)}
+  .tb-lbl{font-size:9px;color:var(--gd50);letter-spacing:.1em}
+
+  /* ── HERO ── */
+  .hero{
+    background:var(--cr);border:1px solid var(--gd30);border-radius:8px;
+    padding:2rem 1.5rem;text-align:center;position:relative;overflow:hidden;
+    margin-bottom:1.4rem;
+  }
+  .hero::before{
+    content:'';position:absolute;top:-60px;left:50%;
+    transform:translateX(-50%);
+    width:300px;height:120px;border-radius:50%;
+    background:var(--gd08);
+  }
+  .hero-hl{font-size:18px;color:var(--gd3);letter-spacing:.22em;margin-top:.8rem;margin-bottom:.3rem}
+  .hero-sub{font-size:10px;color:var(--gd70);letter-spacing:.2em}
+
+  /* ── BUTTONS ── */
+  .btn-row{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:1.4rem;align-items:center}
+  .btn{
+    display:inline-flex;align-items:center;gap:8px;
+    background:transparent;border:1px solid var(--gd);
+    color:var(--gd2);font-family:'Georgia',serif;
+    font-size:11px;letter-spacing:.14em;
+    padding:.5rem 1.2rem;cursor:pointer;border-radius:3px;
+    position:relative;transition:background .25s;
+    overflow:hidden;
+  }
+  .btn::after{
+    content:'';position:absolute;bottom:0;left:50%;
+    transform:translateX(-50%);width:0;height:1.5px;
+    background:var(--gd2);transition:width .4s cubic-bezier(.25,.46,.45,.94);
+    border-radius:1px;
+  }
+  .btn:hover{background:var(--gd08)}
+  .btn:hover::after{width:70%}
+  .btn:active{transform:scale(.98)}
+  .btn.sec-btn{border-color:var(--gd30);color:var(--gd50)}
+  .btn.rev-btn{border-color:rgba(160,50,50,.5);color:rgba(200,80,80,.75)}
+
+  /* ── GRID ── */
+  .g2{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;margin-bottom:1.4rem}
+
+  /* ── FORM PANEL ── */
+  .panel{
+    background:var(--gd08);border:1px solid var(--gd15);
+    border-radius:6px;padding:1.1rem;
+  }
+  .fi{
+    width:100%;background:transparent;border:none;
+    border-bottom:1px solid var(--gd30);
+    color:var(--iv);font-family:'Georgia',serif;font-size:12px;
+    padding:5px 0;outline:none;letter-spacing:.05em;margin-bottom:.8rem;
+    transition:border-color .2s;
+  }
+  .fi:focus{border-bottom-color:var(--gd2)}
+  .fi::placeholder{color:var(--iv25)}
+  .sig-out{
+    display:none;align-items:center;gap:10px;
+    padding-top:.8rem;border-top:1px solid var(--gd15);margin-top:.4rem;
+  }
+  .sig-out.show{display:flex}
+  .sig-lbl{font-size:9px;color:var(--gd50);letter-spacing:.2em}
+  .sig-name{font-size:12px;color:var(--gd3);letter-spacing:.07em;margin-top:2px}
+
+  /* ── EMPTY ── */
+  .empty{
+    background:var(--gd08);border:1px solid var(--gd15);
+    border-radius:6px;padding:1.8rem 1rem;
+    display:flex;flex-direction:column;align-items:center;gap:8px;
+  }
+  .empty-lbl{font-size:10px;color:var(--gd30);letter-spacing:.18em;text-align:center}
+
+  /* ── LOADING ── */
+  .loading{
+    display:flex;align-items:center;gap:14px;
+    background:var(--gd08);border:1px solid var(--gd15);
+    border-radius:6px;padding:1rem 1.1rem;margin-bottom:1.4rem;
+  }
+  .load-txt{font-size:11px;color:var(--gd70);letter-spacing:.15em}
+  .load-hint{font-size:9px;color:var(--gd30);letter-spacing:.1em;margin-top:3px}
+
+  /* ── CERT ── */
+  .cert{
+    border:1.5px solid var(--gd);border-radius:8px;
+    padding:1.4rem;position:relative;background:rgba(107,15,15,.2);
+  }
+  .cert::before{
+    content:'';position:absolute;inset:5px;
+    border:1px solid var(--gd15);border-radius:5px;pointer-events:none;
+  }
+  .cert-wm{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);opacity:.035;pointer-events:none}
+  .cert-title{font-size:13px;color:var(--gd3);letter-spacing:.2em;text-align:center;margin-bottom:.8rem}
+  .cert-body{font-size:11px;color:var(--iv50);line-height:1.8;text-align:center;letter-spacing:.04em;max-width:340px;margin:0 auto}
+  .cert-seal{display:flex;justify-content:center;margin-top:.9rem}
+
+  /* ── DIVIDER ── */
+  .div-wrap{background:var(--cr);padding:2px 0;overflow:hidden;height:24px}
+
+  @keyframes s1{0%,10%{stroke-dashoffset:70}40%,100%{stroke-dashoffset:0}}
+  @keyframes s2{0%,22%{stroke-dashoffset:80}52%,100%{stroke-dashoffset:0}}
+  @keyframes s3{0%,34%{stroke-dashoffset:70}64%,100%{stroke-dashoffset:0}}
+  @keyframes lp{0%,50%{stroke-dashoffset:160}85%,100%{stroke-dashoffset:0}}
+  @keyframes inn{0%,80%{opacity:0}100%{opacity:1}}
+  @keyframes pulse{0%,100%{opacity:.45}50%{opacity:1}}
+  @keyframes fdots{0%,100%{content:''}33%{content:'.'}66%{content:'..'}99%{content:'...'}}
+  .ldots::after{animation:fdots 1.4s steps(1) infinite}
+</style>
+
+<div class="wrap">
+
+  <div class="hdr">
+    <div class="hdr-left">
+      <div class="hdr-wordmark">بَابُ العَالِي</div>
+      <div class="hdr-sub">Bāb-ı Âlî · Imperial Registry</div>
+    </div>
+
+    <div class="hdr-center">
+      <svg viewBox="0 0 180 220" width="90" height="110" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <filter id="gf" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="b"/>
+            <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+        <g filter="url(#gf)">
+          <ellipse cx="90" cy="125" rx="78" ry="88" fill="none" stroke="#C9A227" stroke-width="1.2" opacity=".35"/>
+          <ellipse cx="90" cy="125" rx="72" ry="82" fill="none" stroke="#C9A227" stroke-width=".5" opacity=".18"/>
+          <circle cx="47" cy="42" r="2.5" fill="#C9A227" opacity=".5"/>
+          <circle cx="90" cy="32" r="3" fill="#C9A227" opacity=".6"/>
+          <circle cx="133" cy="42" r="2.5" fill="#C9A227" opacity=".5"/>
+          <circle cx="28" cy="125" r="2" fill="#C9A227" opacity=".35"/>
+          <circle cx="152" cy="125" r="2" fill="#C9A227" opacity=".35"/>
+          <ellipse cx="55" cy="170" rx="13" ry="18" fill="none" stroke="#C9A227" stroke-width="1.4"/>
+          <ellipse cx="90" cy="174" rx="18" ry="22" fill="none" stroke="#C9A227" stroke-width="1.8"/>
+          <ellipse cx="125" cy="170" rx="13" ry="18" fill="none" stroke="#C9A227" stroke-width="1.4"/>
+          <line x1="55" y1="152" x2="55" y2="52" stroke="#C9A227" stroke-width="2.2" stroke-linecap="round"/>
+          <line x1="90" y1="152" x2="90" y2="30" stroke="#C9A227" stroke-width="3" stroke-linecap="round"/>
+          <line x1="125" y1="152" x2="125" y2="52" stroke="#C9A227" stroke-width="2.2" stroke-linecap="round"/>
+          <path d="M55 52 Q44 38 50 28 Q57 18 66 26" fill="none" stroke="#C9A227" stroke-width="1.4" stroke-linecap="round"/>
+          <path d="M90 30 Q78 14 84 4 Q90 -3 98 5" fill="none" stroke="#C9A227" stroke-width="1.8" stroke-linecap="round"/>
+          <path d="M125 52 Q136 38 130 28 Q123 18 114 26" fill="none" stroke="#C9A227" stroke-width="1.4" stroke-linecap="round"/>
+          <path d="M22 108 Q17 88 28 78 Q46 64 72 78 Q90 89 108 78 Q134 64 152 80 Q163 92 155 110 Q140 130 108 118 Q90 112 72 118 Q44 128 22 108Z" fill="none" stroke="#C9A227" stroke-width="1.8"/>
+          <line x1="32" y1="90" x2="100" y2="72" stroke="#C9A227" stroke-width=".8" opacity=".55" stroke-linecap="round"/>
+          <line x1="34" y1="100" x2="104" y2="84" stroke="#C9A227" stroke-width=".5" opacity=".35" stroke-linecap="round"/>
+          <text x="90" y="102" text-anchor="middle" font-size="8" fill="#C9A227" opacity=".85" font-family="Georgia,serif" letter-spacing="3">سُلَيْمَان خَان</text>
+          <text x="90" y="113" text-anchor="middle" font-size="6" fill="#C9A227" opacity=".55" font-family="Georgia,serif" letter-spacing="2">ابن سليم</text>
+        </g>
+      </svg>
+    </div>
+
+    <div class="hdr-right">
+      <div class="hdr-rank">Grand Vizier</div>
+      <div class="bz" style="margin-bottom:6px">Verified</div>
+      <div style="font-size:9px;color:var(--gd30);letter-spacing:.12em;margin-top:6px">932 H. · 1526 CE</div>
+    </div>
+  </div>
+
+  <div class="div-wrap">
+    <svg viewBox="0 0 680 24" width="100%" height="24" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+      <path d="M0 12 Q170 4 340 12 Q510 20 650 10 L666 12" fill="none" stroke="#C9A227" stroke-width=".8" opacity=".45"/>
+      <path d="M661 7 Q675 12 661 17" fill="none" stroke="#C9A227" stroke-width="1" opacity=".65"/>
+      <circle cx="676" cy="12" r="2.5" fill="none" stroke="#C9A227" stroke-width=".7" opacity=".45"/>
+      <circle cx="676" cy="12" r=".8" fill="#C9A227" opacity=".5"/>
+    </svg>
+  </div>
+
+  <nav class="nav">
+    <div class="ni on" onclick="navClick(this)"><div class="tug"><span></span><span></span><span></span></div>Sultanate</div>
+    <div class="ni" onclick="navClick(this)"><div class="tug"><span></span><span></span><span></span></div>Decrees</div>
+    <div class="ni" onclick="navClick(this)"><div class="tug"><span></span><span></span><span></span></div>Registers</div>
+    <div class="ni" onclick="navClick(this)"><div class="tug"><span></span><span></span><span></span></div>Envoys</div>
+    <div class="ni" onclick="navClick(this)"><div class="tug"><span></span><span></span><span></span></div>Archives</div>
+    <div style="flex:1"></div>
+    <div class="ni" onclick="navClick(this)"><div class="tug"><span></span><span></span><span></span></div>Seal</div>
+  </nav>
+
+  <div class="body">
+    <aside class="side">
+
+      <div class="sec">session</div>
+      <div class="prof">
+        <svg viewBox="0 0 52 64" width="42" height="52" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="17" cy="52" rx="7" ry="9" fill="none" stroke="#C9A227" stroke-width="1"/>
+          <ellipse cx="26" cy="55" rx="9.5" ry="12" fill="none" stroke="#C9A227" stroke-width="1.3"/>
+          <ellipse cx="36" cy="52" rx="7" ry="9" fill="none" stroke="#C9A227" stroke-width="1"/>
+          <line x1="17" y1="43" x2="17" y2="14" stroke="#C9A227" stroke-width="1.6" stroke-linecap="round"/>
+          <line x1="26" y1="43" x2="26" y2="6" stroke="#C9A227" stroke-width="2" stroke-linecap="round"/>
+          <line x1="36" y1="43" x2="36" y2="14" stroke="#C9A227" stroke-width="1.6" stroke-linecap="round"/>
+          <path d="M17 14 Q12 7 15 3 Q18 0 22 3" fill="none" stroke="#C9A227" stroke-width="1" stroke-linecap="round"/>
+          <path d="M26 6 Q20 0 23 -3 Q26 -6 30 -2" fill="none" stroke="#C9A227" stroke-width="1.2" stroke-linecap="round"/>
+          <path d="M36 14 Q41 7 38 3 Q35 0 31 3" fill="none" stroke="#C9A227" stroke-width="1" stroke-linecap="round"/>
+          <path d="M7 32 Q5 26 9 22 Q14 18 20 23 Q26 28 32 23 Q38 18 43 24 Q47 30 41 35 Q30 40 18 36 Q11 33 7 32Z" fill="none" stroke="#C9A227" stroke-width="1"/>
+          <text x="27" y="32" text-anchor="middle" font-size="5.5" fill="#C9A227" opacity=".85" font-family="Georgia">SQ</text>
+        </svg>
+        <div>
+          <div class="prof-name">Sultan Qadir</div>
+          <div class="prof-role">Grand Vizier</div>
+        </div>
+      </div>
+
+      <div class="sec">rank & status</div>
+      <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:1rem">
+        <div class="bz" style="font-size:9px;padding:2px 10px">Imperial</div>
+        <div class="bz emerald" style="font-size:9px;padding:2px 10px">Active</div>
+        <div class="bz pending" style="font-size:9px;padding:2px 10px">Pending</div>
+        <div class="bz revoked" style="font-size:9px;padding:2px 10px">Revoked</div>
+      </div>
+
+      <div class="sec" style="margin-top:1rem">tuğ — hover</div>
+      <div class="tug-demo">
+        <div class="tb"><div class="tb-bar" style="height:32px"></div><div class="tb-lbl">alif</div></div>
+        <div class="tb"><div class="tb-bar" style="height:42px"></div><div class="tb-lbl">lam</div></div>
+        <div class="tb"><div class="tb-bar" style="height:36px"></div><div class="tb-lbl">mim</div></div>
+        <div class="tb"><div class="tb-bar" style="height:28px"></div><div class="tb-lbl">nun</div></div>
+        <div class="tb"><div class="tb-bar" style="height:46px"></div><div class="tb-lbl">qaf</div></div>
+        <div class="tb"><div class="tb-bar" style="height:38px"></div><div class="tb-lbl">ra</div></div>
+      </div>
+
+    </aside>
+
+    <main class="main">
+
+      <div class="sec">hero</div>
+      <div class="hero">
+        <svg viewBox="0 0 240 80" width="240" height="80" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto">
+          <line x1="50" y1="10" x2="50" y2="72" stroke="#C9A227" stroke-width="1.5" stroke-linecap="round" opacity=".4"/>
+          <line x1="120" y1="4" x2="120" y2="72" stroke="#C9A227" stroke-width="2" stroke-linecap="round" opacity=".5"/>
+          <line x1="190" y1="10" x2="190" y2="72" stroke="#C9A227" stroke-width="1.5" stroke-linecap="round" opacity=".4"/>
+          <path d="M20 44 Q16 36 22 31 Q34 24 56 33 Q80 42 100 33 Q122 23 142 33 Q162 42 188 33 Q204 25 218 34 Q226 41 220 50 Q204 60 180 52 Q158 44 140 52 Q118 62 98 52 Q76 44 54 52 Q34 60 20 44Z" fill="none" stroke="#C9A227" stroke-width="1.4" opacity=".7"/>
+          <text x="120" y="40" text-anchor="middle" font-size="7" fill="#C9A227" opacity=".7" font-family="Georgia" letter-spacing="2.5">سُلَيْمَان · خَان · شَاه</text>
+        </svg>
+        <div class="hero-hl">By Imperial Decree</div>
+        <div class="hero-sub">The Seal of the Sublime Porte · est. 932 H.</div>
+      </div>
+
+      <div class="sec">signature actions</div>
+      <div class="btn-row">
+        <button class="btn" onclick="this.style.transform='scale(.97)';setTimeout(()=>this.style.transform='',180)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><line x1="8" y1="1" x2="8" y2="10" stroke="#C9A227" stroke-width="1.4" stroke-linecap="round"/><path d="M4 7 Q3 5 4 4 Q6 2.5 7.5 4" fill="none" stroke="#C9A227" stroke-width="1" stroke-linecap="round"/><path d="M2 11 Q5 9.5 8 11 Q11 12.5 13 10 Q14 9 13 8" fill="none" stroke="#C9A227" stroke-width="1" stroke-linecap="round"/><ellipse cx="8" cy="13.5" rx="4" ry="2.5" fill="none" stroke="#C9A227" stroke-width="1"/></svg>
+          Endorse decree
+        </button>
+        <button class="btn sec-btn" onclick="this.style.transform='scale(.97)';setTimeout(()=>this.style.transform='',180)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><line x1="8" y1="1" x2="8" y2="10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><ellipse cx="8" cy="13" rx="4" ry="2.5" fill="none" stroke="currentColor" stroke-width="1"/></svg>
+          Submit petition
+        </button>
+        <button class="btn rev-btn" onclick="this.style.transform='scale(.97)';setTimeout(()=>this.style.transform='',180)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><line x1="8" y1="1" x2="8" y2="10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><line x1="4" y1="13" x2="12" y2="13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          Revoke order
+        </button>
+      </div>
+
+      <div class="g2">
+        <div>
+          <div class="sec">digital seal</div>
+          <div class="panel">
+            <input class="fi" id="sn" type="text" placeholder="Your name…" oninput="updSig()"/>
+            <input class="fi" id="sr" type="text" placeholder="Title or rank…"/>
+            <button class="btn" style="width:100%;justify-content:center;margin-top:.3rem" onclick="doSig()">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><line x1="7" y1="1" x2="7" y2="9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><ellipse cx="7" cy="11.5" rx="3.5" ry="2" fill="none" stroke="currentColor" stroke-width="1"/></svg>
+              Affix imperial seal
+            </button>
+            <div class="sig-out" id="so">
+              <div id="st" style="width:36px;height:44px;flex-shrink:0"></div>
+              <div>
+                <div class="sig-lbl">Sealed by</div>
+                <div class="sig-name" id="sn2"></div>
+              </div>
+              <div class="bz" style="margin-left:auto;font-size:9px;padding:2px 9px">Sealed</div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="sec">empty state</div>
+          <div class="empty">
+            <svg viewBox="0 0 90 110" width="70" height="86" xmlns="http://www.w3.org/2000/svg">
+              <ellipse cx="25" cy="88" rx="9" ry="11" fill="none" stroke="rgba(201,162,39,.18)" stroke-width="1.5" stroke-dasharray="4 3"/>
+              <ellipse cx="45" cy="91" rx="12" ry="14" fill="none" stroke="rgba(201,162,39,.18)" stroke-width="1.5" stroke-dasharray="4 3"/>
+              <ellipse cx="65" cy="88" rx="9" ry="11" fill="none" stroke="rgba(201,162,39,.18)" stroke-width="1.5" stroke-dasharray="4 3"/>
+              <line x1="25" y1="77" x2="25" y2="22" stroke="rgba(201,162,39,.12)" stroke-width="1.8" stroke-dasharray="5 4"/>
+              <line x1="45" y1="77" x2="45" y2="10" stroke="rgba(201,162,39,.16)" stroke-width="2" stroke-dasharray="5 4"/>
+              <line x1="65" y1="77" x2="65" y2="22" stroke="rgba(201,162,39,.12)" stroke-width="1.8" stroke-dasharray="5 4"/>
+              <path d="M10 52 Q8 44 13 40 Q20 35 28 40 Q36 45 45 40 Q54 35 62 40 Q70 45 78 40 Q84 36 86 43 Q88 50 80 55 Q68 62 56 57 Q45 52 34 57 Q22 63 10 52Z" fill="none" stroke="rgba(201,162,39,.14)" stroke-width="1.5" stroke-dasharray="5 4"/>
+            </svg>
+            <div class="empty-lbl">Awaiting the<br>imperial seal</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sec">loading</div>
+      <div class="loading">
+        <svg viewBox="0 0 44 56" width="44" height="56" xmlns="http://www.w3.org/2000/svg">
+          <line x1="14" y1="48" x2="14" y2="12" stroke="#C9A227" stroke-width="1.6" stroke-linecap="round" stroke-dasharray="70" stroke-dashoffset="70" style="animation:s1 2.2s ease-in-out infinite"/>
+          <line x1="22" y1="48" x2="22" y2="4" stroke="#C9A227" stroke-width="2" stroke-linecap="round" stroke-dasharray="80" stroke-dashoffset="80" style="animation:s2 2.2s ease-in-out infinite"/>
+          <line x1="30" y1="48" x2="30" y2="12" stroke="#C9A227" stroke-width="1.6" stroke-linecap="round" stroke-dasharray="70" stroke-dashoffset="70" style="animation:s3 2.2s ease-in-out infinite"/>
+          <path d="M6 30 Q4 24 7 20 Q12 16 18 20 Q22 24 26 20 Q32 16 38 21 Q42 27 38 32 Q30 38 22 34 Q14 30 6 30Z" fill="none" stroke="#C9A227" stroke-width="1.2" stroke-dasharray="160" stroke-dashoffset="160" style="animation:lp 2.2s ease-in-out infinite"/>
+          <text x="22" y="29" text-anchor="middle" font-size="4.5" fill="#C9A227" opacity="0" font-family="Georgia" style="animation:inn 2.2s ease-in-out infinite">سليمان</text>
+        </svg>
+        <div>
+          <div class="load-txt">Inscribing the royal seal<span class="ldots"></span></div>
+          <div class="load-hint">Shafts · loop · inner script · flourish</div>
+        </div>
+      </div>
+
+      <div class="sec">certificate</div>
+      <div class="cert">
+        <svg class="cert-wm" viewBox="0 0 140 190" width="140" height="190" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="70" cy="105" rx="62" ry="80" fill="none" stroke="#C9A227" stroke-width="3"/>
+          <ellipse cx="46" cy="158" rx="14" ry="18" fill="none" stroke="#C9A227" stroke-width="2.5"/>
+          <ellipse cx="70" cy="162" rx="18" ry="22" fill="none" stroke="#C9A227" stroke-width="3"/>
+          <ellipse cx="94" cy="158" rx="14" ry="18" fill="none" stroke="#C9A227" stroke-width="2.5"/>
+          <line x1="46" y1="140" x2="46" y2="38" stroke="#C9A227" stroke-width="3"/>
+          <line x1="70" y1="140" x2="70" y2="22" stroke="#C9A227" stroke-width="4"/>
+          <line x1="94" y1="140" x2="94" y2="38" stroke="#C9A227" stroke-width="3"/>
+          <path d="M18 95 Q14 78 22 69 Q36 58 54 68 Q70 78 86 68 Q104 57 118 70 Q128 81 122 96 Q108 114 86 104 Q70 96 54 104 Q36 114 18 95Z" fill="none" stroke="#C9A227" stroke-width="3"/>
+        </svg>
+        <div class="cert-title">Imperial Certificate of Authenticity</div>
+        <div class="cert-body">This document bears the tughra of the Ottoman Imperial Registry and is hereby certified as genuine and authorised under the seal of the Sublime Porte, in the year nine hundred and thirty-two of the Hijri calendar.</div>
+        <div class="cert-seal" style="margin-top:1rem">
+          <div class="bz" style="font-size:10px;padding:4px 16px">Authentic · 932 H.</div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script>
+function navClick(el){
+  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('on'));
+  el.classList.add('on');
+}
+
+function updSig(){
+  if(!document.getElementById('sn').value.trim())
+    document.getElementById('so').classList.remove('show');
+}
+
+function doSig(){
+  const name=document.getElementById('sn').value.trim();
+  if(!name)return;
+  const ini=name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,3);
+  document.getElementById('sn2').textContent=name;
+  document.getElementById('st').innerHTML=miniTughra(ini);
+  document.getElementById('so').classList.add('show');
+}
+
+function miniTughra(ini){
+  return `<svg viewBox="0 0 36 44" width="36" height="44" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="11" cy="36" rx="5.5" ry="7" fill="none" stroke="#C9A227" stroke-width="1"/>
+    <ellipse cx="18" cy="38" rx="7.5" ry="9" fill="none" stroke="#C9A227" stroke-width="1.2"/>
+    <ellipse cx="26" cy="36" rx="5.5" ry="7" fill="none" stroke="#C9A227" stroke-width="1"/>
+    <line x1="11" y1="29" x2="11" y2="9" stroke="#C9A227" stroke-width="1.4" stroke-linecap="round" stroke-dasharray="25" stroke-dashoffset="25" style="animation:s1 .7s ease-out forwards"/>
+    <line x1="18" y1="29" x2="18" y2="3" stroke="#C9A227" stroke-width="1.8" stroke-linecap="round" stroke-dasharray="30" stroke-dashoffset="30" style="animation:s2 .9s ease-out forwards"/>
+    <line x1="26" y1="29" x2="26" y2="9" stroke="#C9A227" stroke-width="1.4" stroke-linecap="round" stroke-dasharray="25" stroke-dashoffset="25" style="animation:s3 .8s ease-out forwards"/>
+    <path d="M5 21 Q3 17 6 14 Q10 11 14 14 Q18 17 22 14 Q26 11 30 14 Q33 17 31 21 Q26 26 18 23 Q11 21 5 21Z" fill="none" stroke="#C9A227" stroke-width=".9" stroke-dasharray="100" stroke-dashoffset="100" style="animation:lp 1.1s ease-out forwards"/>
+    <text x="18" y="21" text-anchor="middle" font-size="4" fill="#C9A227" opacity="0" font-family="Georgia" style="animation:inn 1.3s ease-out forwards">${ini}</text>
+  </svg>`;
+}
+</script>

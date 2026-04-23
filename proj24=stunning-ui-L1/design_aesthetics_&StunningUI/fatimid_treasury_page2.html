@@ -1,0 +1,978 @@
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400;1,700&family=Noto+Naskh+Arabic:wght@400;700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --g:#C8A84B;--g2:#A8893A;--g3:#E8CC7A;--g4:#F5E9C0;--g5:#7A6228;
+  --ru:#7A1520;--ru2:#4A0B12;--ru3:#B02030;--ru4:#F0C0C8;
+  --em:#163C30;--em2:#0A2018;--em3:#24664E;--em4:#B0D8C8;
+  --la:#142870;--la2:#081848;--la3:#2848A8;--la4:#B0C4F0;
+  --am:#7A4A08;--am2:#FAC060;--am3:#F5E0A0;
+  --iv:#EDE0C8;--iv2:#D8C8A8;--iv3:#FBF5E8;--iv4:#C8B890;
+  --ink:#180C06;--ink2:#342010;--ink3:#5A3820;--ink4:#8A6040;
+  --pg:#EEE0C4;--pg2:#E0D0B0;--pg3:#FAF4E8;--pg4:#F5ECD8;
+  --night:#0A0604;
+}
+body{background:var(--pg);font-family:'Amiri',Georgia,serif;color:var(--ink)}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+
+/* ═══ PAGE SHELL ═══ */
+.folio{background:var(--pg3);min-height:100vh;position:relative;overflow:hidden}
+
+/* textile BG pattern — two overlaid grids */
+.folio::before{
+  content:'';position:absolute;inset:0;
+  background-image:
+    repeating-linear-gradient(0deg,rgba(200,168,75,.07) 0,rgba(200,168,75,.07) 1px,transparent 1px,transparent 24px),
+    repeating-linear-gradient(90deg,rgba(200,168,75,.07) 0,rgba(200,168,75,.07) 1px,transparent 1px,transparent 24px),
+    repeating-linear-gradient(45deg,rgba(200,168,75,.04) 0,rgba(200,168,75,.04) 1px,transparent 1px,transparent 17px),
+    repeating-linear-gradient(-45deg,rgba(200,168,75,.04) 0,rgba(200,168,75,.04) 1px,transparent 1px,transparent 17px);
+  pointer-events:none;
+}
+
+/* ═══ OUTER FRAME ═══ */
+.frame-outer{margin:14px;border:2px solid var(--g);position:relative;padding-bottom:20px}
+.frame-inner{position:absolute;inset:6px;border:0.5px solid rgba(200,168,75,.3);pointer-events:none}
+.frame-inner2{position:absolute;inset:10px;border:0.5px solid rgba(200,168,75,.15);pointer-events:none}
+
+/* corner rosettes */
+.rosette{position:absolute;width:32px;height:32px;z-index:5}
+.rosette svg{width:32px;height:32px}
+.r-tl{top:-2px;left:-2px}.r-tr{top:-2px;right:-2px}.r-bl{bottom:-2px;left:-2px}.r-br{bottom:-2px;right:-2px}
+
+/* ═══ HEADER / ILLUMINATED TITLE ═══ */
+.hdr{text-align:center;padding:22px 20px 16px;position:relative;border-bottom:1.5px solid var(--g2)}
+.hdr-rule{height:1px;margin:0 32px;opacity:.5;background:var(--g)}
+.hdr-rule.thin{opacity:.2;margin-top:2px}
+.hdr-folio{
+  font-size:10px;letter-spacing:.2em;color:var(--g2);
+  font-family:'Amiri',serif;margin-bottom:8px;
+  text-transform:uppercase;
+}
+.hdr-arabic{
+  font-family:'Noto Naskh Arabic','Amiri',serif;
+  font-size:28px;color:var(--ink);direction:rtl;
+  line-height:1.4;letter-spacing:.03em;
+  margin:6px 0 3px;
+}
+.hdr-latin{font-size:13px;letter-spacing:.06em;color:var(--ink3);font-style:italic}
+.hdr-sub{font-size:11px;color:var(--ink4);margin-top:4px}
+
+/* illuminated drop-cap column flanks */
+.hdr-flanks{display:flex;align-items:center;justify-content:center;gap:12px;margin:10px 0 4px}
+.flank-orn{flex-shrink:0}
+
+/* stats ribbon */
+.stats-ribbon{
+  display:grid;grid-template-columns:repeat(4,1fr);
+  border-top:0.5px solid rgba(200,168,75,.4);
+  border-bottom:0.5px solid rgba(200,168,75,.4);
+}
+.stat-cell{
+  text-align:center;padding:10px 8px;
+  border-right:0.5px solid rgba(200,168,75,.3);
+}
+.stat-cell:last-child{border-right:none}
+.stat-num{font-size:18px;font-weight:700;color:var(--g2);line-height:1;font-family:'Amiri',serif}
+.stat-lbl{font-size:10px;color:var(--ink4);letter-spacing:.08em;margin-top:3px;text-transform:uppercase}
+
+/* ═══ MODE SWITCHER ═══ */
+.mode-bar{
+  display:flex;gap:0;border-bottom:1.5px solid var(--g2);
+  background:rgba(200,168,75,.06);
+}
+.mmode{
+  flex:1;padding:9px 6px;text-align:center;
+  font-size:11px;letter-spacing:.06em;
+  font-family:'Amiri',serif;color:var(--ink3);
+  cursor:pointer;border-right:0.5px solid rgba(200,168,75,.3);
+  border-bottom:none;transition:background .18s,color .18s;
+  text-transform:uppercase;
+}
+.mmode:last-child{border-right:none}
+.mmode.on{background:var(--ink);color:var(--g);font-weight:700}
+.mmode:hover:not(.on){background:rgba(200,168,75,.14);color:var(--ink2)}
+
+/* ═══ PANELS ═══ */
+.panel{display:none}.panel.on{display:block}
+
+/* ═══ PANEL 1: FULL CATALOG (3-col) ═══ */
+.cat3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;padding:16px}
+
+/* ═══ TREASURE CARD v3 ═══ */
+.tc3{
+  background:var(--pg4);
+  border:1.5px solid var(--g2);
+  position:relative;cursor:pointer;
+  transition:border-color .2s;overflow:hidden;
+}
+.tc3::before{content:'';position:absolute;inset:5px;border:0.5px solid rgba(200,168,75,.2);pointer-events:none;z-index:0}
+.tc3:hover{border-color:var(--g3)}
+.tc3.royal{border-color:var(--g);border-width:2px}
+.tc3.royal::after{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:repeating-linear-gradient(90deg,var(--g) 0,var(--g) 6px,var(--ru) 6px,var(--ru) 12px,var(--la) 12px,var(--la) 18px,var(--em) 18px,var(--em) 24px);
+}
+
+/* arch frame overlay for royal */
+.arch-overlay{
+  position:absolute;top:0;left:0;right:0;bottom:0;
+  pointer-events:none;z-index:1;
+}
+
+/* object stage */
+.stage3{height:155px;display:flex;align-items:center;justify-content:center;position:relative;z-index:2}
+
+/* halo ring */
+.halo{
+  position:absolute;
+  border:0.8px dashed rgba(200,168,75,.5);
+  border-radius:50%;
+}
+
+/* provenance tag (top-right corner) */
+.prov-tag{
+  position:absolute;top:7px;right:7px;
+  background:var(--ink);color:var(--g);
+  font-size:9px;letter-spacing:.07em;padding:2px 7px;
+  font-family:'Amiri',serif;z-index:3;text-transform:uppercase;
+}
+
+/* label block */
+.label3{padding:9px 10px 12px;border-top:1px solid rgba(200,168,75,.35);z-index:2;position:relative;background:var(--pg3)}
+.t3-name{font-size:12.5px;font-weight:700;color:var(--ink);line-height:1.3}
+.t3-ar{font-family:'Noto Naskh Arabic','Amiri',serif;font-size:11px;color:var(--g2);direction:rtl;margin-top:1px}
+.t3-chain{font-size:10px;color:var(--ink4);font-style:italic;margin-top:5px;line-height:1.7}
+.t3-chain b{color:var(--ink2);font-style:normal}
+.arrow-r{color:var(--g);margin:0 3px}
+
+/* value badge */
+.vb3{
+  display:inline-flex;align-items:center;gap:4px;
+  margin-top:7px;padding:3px 9px;
+  font-size:10.5px;font-weight:700;letter-spacing:.03em;
+  font-family:'Amiri',serif;
+  border:1px solid;
+}
+.vb-r{background:var(--ru);color:var(--g3);border-color:var(--ru2)}
+.vb-l{background:var(--la);color:var(--g3);border-color:var(--la2)}
+.vb-e{background:var(--em);color:var(--g3);border-color:var(--em2)}
+.vb-a{background:var(--am);color:var(--g3);border-color:#4A2A04}
+.pd{width:4px;height:4px;background:var(--g3);border-radius:50%;flex-shrink:0}
+
+/* marginal note on hover */
+.marg3{
+  position:absolute;left:0;top:0;bottom:0;width:0;overflow:hidden;
+  transition:width .28s ease;z-index:10;
+}
+.marg3-inner{
+  width:60px;height:100%;
+  background:var(--iv);border-right:0.5px solid var(--g2);
+  padding:10px 5px;
+  font-size:9.5px;font-style:italic;color:var(--ink3);
+  writing-mode:vertical-lr;line-height:1.6;
+  overflow:hidden;
+}
+.tc3:hover .marg3{width:60px}
+
+/* ═══ PANEL 2: SINGLE FOLIO VIEW ═══ */
+.folio-view{padding:20px;display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.folio-left{border:1.5px solid var(--g);background:var(--pg3);position:relative;padding:20px}
+.folio-left::before{content:'';position:absolute;inset:7px;border:0.5px solid rgba(200,168,75,.25);pointer-events:none}
+.folio-art{display:flex;align-items:center;justify-content:center;padding:10px 0 16px}
+.folio-caption{text-align:center;border-top:1px solid rgba(200,168,75,.35);padding-top:10px}
+.fc-title{font-size:14px;font-weight:700;color:var(--ink)}
+.fc-ar{font-family:'Noto Naskh Arabic','Amiri',serif;font-size:12px;color:var(--g2);direction:rtl;margin-top:2px}
+.fc-chain{font-size:11px;font-style:italic;color:var(--ink3);margin-top:6px;line-height:1.8}
+.fc-chain b{color:var(--ink2);font-style:normal}
+
+.folio-right{display:flex;flex-direction:column;gap:14px}
+
+/* provenance block */
+.prov-block{border:1.5px solid var(--g2);background:var(--iv3);padding:14px 16px;position:relative}
+.prov-block::before{content:'II';position:absolute;top:8px;left:10px;font-size:22px;font-weight:700;color:rgba(200,168,75,.2);font-family:'Amiri',serif;line-height:1}
+.prov-head{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--g2);margin-bottom:8px;font-family:'Amiri',serif}
+.prov-row{display:flex;gap:8px;font-size:11.5px;margin-bottom:4px;line-height:1.6}
+.prov-key{color:var(--ink4);width:70px;flex-shrink:0;font-style:italic}
+.prov-val{color:var(--ink2)}
+.prov-val.gold{color:var(--g2);font-weight:700}
+.marg-block{
+  border-left:2.5px solid var(--g);
+  padding:8px 12px;
+  background:rgba(200,168,75,.06);
+  font-size:11px;font-style:italic;color:var(--ink3);line-height:1.8;
+  margin-top:4px;
+}
+.marg-block b{color:var(--g2);font-style:normal}
+
+/* selector strip */
+.sel-strip{display:flex;gap:0;border:1.5px solid var(--g2);overflow:hidden}
+.sel-item{
+  flex:1;padding:7px 4px;text-align:center;
+  font-size:10px;cursor:pointer;color:var(--ink3);
+  border-right:0.5px solid rgba(200,168,75,.3);
+  transition:background .15s;font-family:'Amiri',serif;
+  letter-spacing:.03em;
+}
+.sel-item:last-child{border-right:none}
+.sel-item.on{background:var(--g);color:var(--ink2);font-weight:700}
+.sel-item:hover:not(.on){background:rgba(200,168,75,.15)}
+
+/* ═══ PANEL 3: TRADE NETWORK ═══ */
+.network-wrap{padding:16px}
+.network-canvas{position:relative;height:420px;background:var(--pg4);border:1.5px solid var(--g2);overflow:hidden}
+.net-bg{position:absolute;inset:0;pointer-events:none}
+.net-node{
+  position:absolute;transform:translate(-50%,-50%);
+  text-align:center;cursor:pointer;
+  transition:opacity .2s;
+}
+.node-circle{
+  width:52px;height:52px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  border:2px solid;margin:0 auto 4px;
+  font-size:11px;font-weight:700;font-family:'Amiri',serif;
+  transition:transform .2s;
+}
+.node-circle:hover{transform:scale(1.1)}
+.node-label{font-size:10px;color:var(--ink2);font-style:italic;white-space:nowrap;line-height:1.3}
+.nc-cairo{background:var(--ink);color:var(--g);border-color:var(--g)}
+.nc-byz{background:var(--la2);color:var(--la4);border-color:var(--la3)}
+.nc-bagh{background:var(--ru2);color:var(--ru4);border-color:var(--ru3)}
+.nc-cord{background:var(--em2);color:var(--em4);border-color:var(--em3)}
+.nc-arm{background:var(--am);color:var(--am3);border-color:var(--am2)}
+.nc-ind{background:#2A1A48;color:#C8B8E8;border-color:#6850A8}
+.nc-nubia{background:#2A1808;color:#D8B870;border-color:#7A5020}
+
+/* SVG edges */
+.net-svg{position:absolute;inset:0;width:100%;height:100%}
+
+/* gift tooltip */
+.net-tip{
+  position:absolute;background:var(--ink);color:var(--g);
+  font-size:10.5px;font-family:'Amiri',serif;
+  padding:6px 10px;border:1px solid var(--g2);
+  pointer-events:none;z-index:20;display:none;
+  max-width:160px;line-height:1.6;
+}
+.net-legend{
+  display:flex;gap:14px;flex-wrap:wrap;padding:10px 14px;
+  border-top:0.5px solid rgba(200,168,75,.3);
+  font-size:10px;color:var(--ink3);font-style:italic;
+}
+.leg-item{display:flex;align-items:center;gap:5px}
+.leg-line{width:24px;height:2px}
+
+/* ═══ PANEL 4: AUCTION LEDGER ═══ */
+.ledger{padding:16px}
+.ledger-head{
+  display:grid;grid-template-columns:3fr 2fr 2fr 1.5fr 1.5fr;
+  background:var(--ink);color:var(--g);
+  font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-family:'Amiri',serif;
+}
+.lh-cell{padding:8px 10px;border-right:0.5px solid rgba(200,168,75,.3)}
+.lh-cell:last-child{border-right:none;text-align:right}
+.ledger-row{
+  display:grid;grid-template-columns:3fr 2fr 2fr 1.5fr 1.5fr;
+  border-bottom:0.5px solid rgba(200,168,75,.2);
+  cursor:pointer;transition:background .15s;
+}
+.ledger-row:hover{background:rgba(200,168,75,.1)}
+.ledger-row.selected{background:rgba(200,168,75,.18);border-left:3px solid var(--g)}
+.lr-cell{padding:7px 10px;font-size:11px;color:var(--ink2);border-right:0.5px solid rgba(200,168,75,.12);line-height:1.5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lr-cell:last-child{border-right:none;text-align:right;color:var(--ru);font-weight:700}
+.lr-cell.obj{font-style:italic;color:var(--ink)}
+.lr-cell.mat span{
+  display:inline-block;padding:1px 6px;font-size:9.5px;
+  border:0.5px solid;margin:1px 2px 0 0;
+}
+.mat-gold{background:rgba(200,168,75,.15);color:var(--g5);border-color:rgba(200,168,75,.4)}
+.mat-crystal{background:rgba(100,140,220,.12);color:var(--la2);border-color:rgba(100,140,220,.35)}
+.mat-ivory{background:rgba(200,180,140,.18);color:#4A3010;border-color:rgba(200,180,140,.4)}
+.mat-enamel{background:rgba(30,80,60,.12);color:var(--em2);border-color:rgba(30,80,60,.35)}
+.mat-pearl{background:rgba(240,235,220,.8);color:#3A2A10;border-color:rgba(200,168,75,.3)}
+.mat-ruby{background:rgba(140,20,40,.1);color:var(--ru2);border-color:rgba(140,20,40,.3)}
+
+/* auction total bar */
+.auction-bar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 14px;border-top:1.5px solid var(--g2);
+  background:rgba(200,168,75,.06);
+  flex-wrap:wrap;gap:8px;
+}
+.auc-total{font-size:17px;font-weight:700;color:var(--g2);font-family:'Amiri',serif;font-variant-numeric:tabular-nums}
+.auc-label{font-size:10px;color:var(--ink4);letter-spacing:.08em;text-transform:uppercase;margin-bottom:2px}
+.auc-btn{
+  padding:6px 16px;background:var(--ru);color:var(--g3);
+  border:1px solid var(--ru2);font-family:'Amiri',serif;
+  font-size:11px;font-weight:700;letter-spacing:.06em;
+  cursor:pointer;text-transform:uppercase;
+  transition:background .15s;
+}
+.auc-btn:hover{background:var(--ru2)}
+.auc-btn2{
+  padding:6px 14px;background:var(--em);color:var(--g3);
+  border:1px solid var(--em2);font-family:'Amiri',serif;
+  font-size:11px;font-weight:700;letter-spacing:.06em;cursor:pointer;
+  text-transform:uppercase;transition:background .15s;
+}
+.auc-btn2:hover{background:var(--em2)}
+
+/* selected item detail */
+.sel-detail{
+  display:none;
+  padding:14px 16px;border-top:0.5px solid rgba(200,168,75,.3);
+  background:var(--iv3);border:1.5px solid var(--g2);margin:0 16px 16px;
+}
+.sel-detail.on{display:block}
+.sd-inner{display:grid;grid-template-columns:140px 1fr;gap:16px;align-items:start}
+.sd-art{display:flex;align-items:center;justify-content:center;padding:8px;border:1px solid rgba(200,168,75,.3);background:var(--pg4)}
+
+/* ═══ PEARL DIVIDER ═══ */
+.pdiv{display:flex;align-items:center;margin:0;gap:0}
+.pln{flex:1;height:1px;background:repeating-linear-gradient(90deg,var(--g) 0,var(--g) 5px,transparent 5px,transparent 10px)}
+.pgm{width:18px;height:18px;border:1.5px solid var(--g);border-radius:50%;background:var(--pg3);display:flex;align-items:center;justify-content:center;margin:0 8px;flex-shrink:0}
+.pgm::after{content:'';width:6px;height:6px;background:var(--g);border-radius:50%}
+
+/* ═══ FILTER BAR ═══ */
+.fbar{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  padding:10px 16px;border-top:0.5px solid rgba(200,168,75,.3);
+  border-bottom:0.5px solid rgba(200,168,75,.3);
+  background:rgba(200,168,75,.04);
+}
+.fsrch{
+  flex:1;min-width:120px;padding:4px 10px;
+  background:var(--pg3);border:1px solid var(--g2);
+  color:var(--ink);font-family:'Amiri',serif;font-size:11px;outline:none;
+}
+.fsrch::placeholder{color:var(--ink4);font-style:italic}
+.fsrch:focus{border-color:var(--g)}
+.chip3{
+  padding:3px 10px;font-size:10px;font-family:'Amiri',serif;
+  letter-spacing:.04em;border:1px solid var(--g2);
+  background:transparent;color:var(--ink3);cursor:pointer;
+  transition:background .15s,color .15s;
+}
+.chip3.on,.chip3:hover{background:var(--g);color:var(--ink2);border-color:var(--g2)}
+
+/* ═══ EMPTY STATE ═══ */
+.empty3{
+  display:none;flex-direction:column;align-items:center;
+  padding:36px 20px;gap:10px;text-align:center;
+  border:1.5px dashed var(--g2);margin:0 16px;
+}
+.empty3.on{display:flex}
+.ef{width:70px;height:85px;border:1.5px solid var(--g);position:relative}
+.ef::before{content:'';position:absolute;inset:5px;border:0.5px dashed rgba(200,168,75,.35)}
+.et{font-size:13px;font-weight:700;color:var(--ink)}
+.es{font-size:11px;font-style:italic;color:var(--ink4)}
+
+/* ═══ FOOTER ═══ */
+.footer{
+  text-align:center;padding:10px 16px 16px;
+  border-top:1px solid rgba(200,168,75,.3);
+  font-size:10px;color:var(--ink4);font-style:italic;letter-spacing:.04em;
+}
+</style>
+
+<h2 class="sr-only">Fatimid Treasury — Page II: expanded catalog with folio detail view, trade network map, and auction ledger</h2>
+
+<div class="folio">
+<div class="frame-outer" id="frameOuter">
+  <div class="frame-inner"></div>
+  <div class="frame-inner2"></div>
+
+  <!-- Corner rosettes -->
+  <div class="rosette r-tl"><svg viewBox="0 0 32 32" fill="none"><path d="M0 0L32 0L32 6Q20 6 16 16Q12 6 0 6Z" fill="#C8A84B"/><circle cx="16" cy="4" r="3" fill="#FAF4E8"/><circle cx="4" cy="4" r="2" fill="#A8893A"/><circle cx="28" cy="4" r="2" fill="#A8893A"/><path d="M0 6Q4 8 4 16Q4 8 0 8" fill="#A8893A" opacity=".4"/><path d="M32 6Q28 8 28 16Q28 8 32 8" fill="#A8893A" opacity=".4"/></svg></div>
+  <div class="rosette r-tr"><svg viewBox="0 0 32 32" fill="none"><path d="M0 0L32 0L32 6Q20 6 16 16Q12 6 0 6Z" fill="#C8A84B" transform="scale(-1,1) translate(-32,0)"/><circle cx="16" cy="4" r="3" fill="#FAF4E8"/><circle cx="4" cy="4" r="2" fill="#A8893A"/><circle cx="28" cy="4" r="2" fill="#A8893A"/></svg></div>
+  <div class="rosette r-bl"><svg viewBox="0 0 32 32" fill="none"><path d="M0 32L32 32L32 26Q20 26 16 16Q12 26 0 26Z" fill="#C8A84B"/><circle cx="16" cy="28" r="3" fill="#FAF4E8"/><circle cx="4" cy="28" r="2" fill="#A8893A"/><circle cx="28" cy="28" r="2" fill="#A8893A"/></svg></div>
+  <div class="rosette r-br"><svg viewBox="0 0 32 32" fill="none"><path d="M0 32L32 32L32 26Q20 26 16 16Q12 26 0 26Z" fill="#C8A84B" transform="scale(-1,1) translate(-32,0)"/><circle cx="16" cy="28" r="3" fill="#FAF4E8"/><circle cx="4" cy="28" r="2" fill="#A8893A"/><circle cx="28" cy="28" r="2" fill="#A8893A"/></svg></div>
+
+  <!-- ══ HEADER ══ -->
+  <div class="hdr">
+    <div class="hdr-folio">Folio II · The Second Treasury Chamber</div>
+    <div class="hdr-rule"></div><div class="hdr-rule thin"></div>
+    <div class="hdr-flanks">
+      <div class="flank-orn"><svg width="60" height="28" viewBox="0 0 60 28" fill="none"><path d="M2 14Q10 4 20 10Q30 16 40 8Q50 2 58 14Q50 24 40 18Q30 12 20 20Q10 26 2 14Z" stroke="#C8A84B" stroke-width="1" fill="rgba(200,168,75,.07)"/><circle cx="2" cy="14" r="2.5" fill="#C8A84B"/><circle cx="30" cy="14" r="2" fill="#8B1A28"/><circle cx="58" cy="14" r="2.5" fill="#C8A84B"/></svg></div>
+      <div class="hdr-arabic">كِتَابُ الهَدَايَا وَالتُّحَف — الجُزءُ الثَّانِي</div>
+      <div class="flank-orn"><svg width="60" height="28" viewBox="0 0 60 28" fill="none"><path d="M2 14Q10 4 20 10Q30 16 40 8Q50 2 58 14Q50 24 40 18Q30 12 20 20Q10 26 2 14Z" stroke="#C8A84B" stroke-width="1" fill="rgba(200,168,75,.07)"/><circle cx="2" cy="14" r="2.5" fill="#C8A84B"/><circle cx="30" cy="14" r="2" fill="#8B1A28"/><circle cx="58" cy="14" r="2.5" fill="#C8A84B"/></svg></div>
+    </div>
+    <div class="hdr-latin">Kitāb al-Hadāyā wa al-Tuḥaf · Second Fascicle · Dār al-Kutub, Cairo</div>
+    <div class="hdr-sub">Gifts exchanged between sovereign courts · 3rd–5th centuries AH</div>
+    <div class="hdr-rule thin" style="margin-top:10px"></div><div class="hdr-rule" style="margin-top:2px"></div>
+  </div>
+
+  <!-- STATS RIBBON -->
+  <div class="stats-ribbon">
+    <div class="stat-cell"><div class="stat-num" id="sTotal">31,550</div><div class="stat-lbl">Total dīnārs</div></div>
+    <div class="stat-cell"><div class="stat-num">6</div><div class="stat-lbl">Donor courts</div></div>
+    <div class="stat-cell"><div class="stat-num">6</div><div class="stat-lbl">Treasures</div></div>
+    <div class="stat-cell"><div class="stat-num">8</div><div class="stat-lbl">Materials</div></div>
+  </div>
+
+  <!-- MODE BAR -->
+  <div class="mode-bar">
+    <div class="mmode on" onclick="setMode('catalog',this)">Treasury Catalog</div>
+    <div class="mmode" onclick="setMode('folio',this)">Folio View</div>
+    <div class="mmode" onclick="setMode('network',this)">Trade Network</div>
+    <div class="mmode" onclick="setMode('ledger',this)">Auction Ledger</div>
+  </div>
+
+  <!-- ══════ PANEL 1: CATALOG ══════ -->
+  <div class="panel on" id="pCatalog">
+    <div class="fbar">
+      <input class="fsrch" type="text" placeholder="Search donor, object, material…" id="srch3" oninput="doSearch3(this.value)">
+      <button class="chip3 on" onclick="filterMat3('',this)">All</button>
+      <button class="chip3" onclick="filterMat3('gold',this)">Gold</button>
+      <button class="chip3" onclick="filterMat3('crystal',this)">Crystal</button>
+      <button class="chip3" onclick="filterMat3('ivory',this)">Ivory</button>
+      <button class="chip3" onclick="filterMat3('enamel',this)">Enamel</button>
+      <button class="chip3" onclick="filterMat3('pearl',this)">Pearl</button>
+      <button class="chip3" onclick="filterMat3('silk',this)">Silk</button>
+    </div>
+
+    <div class="empty3" id="empty3"><div class="ef"></div><div class="et">No rare gift recorded</div><div class="es">The treasury holds no record matching this query</div></div>
+
+    <div class="cat3" id="cat3grid">
+
+      <!-- CARD A: Crown -->
+      <div class="tc3 royal" data-mat="gold ruby" data-donor="byzantium" onclick="selectFolio(0)">
+        <div class="prov-tag">Byzantine</div>
+        <div class="marg3"><div class="marg3-inner">Appraised 487 AH — Ibn al-Zubayr: "no equal in the Dār al-Khalīfa"</div></div>
+        <div class="stage3">
+          <div class="halo" style="width:112px;height:112px;top:22px;left:50%;transform:translateX(-50%)"></div>
+          <svg width="96" height="132" viewBox="0 0 96 132" fill="none">
+            <path d="M6 128Q6 52 48 18Q90 52 90 128" stroke="#C8A84B" stroke-width=".7" fill="none" opacity=".35"/>
+            <rect x="14" y="98" width="68" height="13" fill="#A8893A" stroke="#C8A84B" stroke-width="1"/>
+            <path d="M14 98L21 66L32 86L41 48L48 72L55 48L64 86L75 66L82 98Z" fill="#C8A84B" stroke="#A8893A" stroke-width=".9"/>
+            <ellipse cx="21" cy="68" rx="5" ry="4" fill="#7A1520"/><ellipse cx="21" cy="68" rx="2" ry="1.5" fill="rgba(255,180,180,.4)"/>
+            <ellipse cx="48" cy="50" rx="6" ry="5" fill="#142870"/><ellipse cx="48" cy="50" rx="2.5" ry="2" fill="rgba(150,180,255,.4)"/>
+            <ellipse cx="75" cy="68" rx="5" ry="4" fill="#163C30"/><ellipse cx="75" cy="68" rx="2" ry="1.5" fill="rgba(100,220,160,.3)"/>
+            <circle cx="32" cy="86" r="3.5" fill="#7A1520"/>
+            <circle cx="64" cy="86" r="3.5" fill="#7A1520"/>
+            <circle cx="20" cy="105" r="2.8" fill="#F5EDD8" stroke="#C8A84B" stroke-width=".6"/>
+            <circle cx="32" cy="105" r="2.8" fill="#F5EDD8" stroke="#C8A84B" stroke-width=".6"/>
+            <circle cx="48" cy="105" r="2.8" fill="#F5EDD8" stroke="#C8A84B" stroke-width=".6"/>
+            <circle cx="64" cy="105" r="2.8" fill="#F5EDD8" stroke="#C8A84B" stroke-width=".6"/>
+            <circle cx="76" cy="105" r="2.8" fill="#F5EDD8" stroke="#C8A84B" stroke-width=".6"/>
+            <line x1="48" y1="41" x2="48" y2="33" stroke="#C8A84B" stroke-width="1.5"/>
+            <line x1="43" y1="37" x2="53" y2="37" stroke="#C8A84B" stroke-width="1.5"/>
+            <circle cx="48" cy="33" r="3.5" fill="#E8CC7A"/>
+          </svg>
+        </div>
+        <div class="label3">
+          <div class="t3-name">Crown of Seven Peaks</div>
+          <div class="t3-ar">تاجُ السَّبعِ ذُرا</div>
+          <div class="t3-chain"><b>Basil II, Byzantium</b><span class="arrow-r">→</span><b>Al-Mustanṣir</b></div>
+          <div><span class="vb3 vb-r"><span class="pd"></span><span class="amt3" data-v="12000">12,000 dīnārs</span><span class="pd"></span></span></div>
+        </div>
+      </div>
+
+      <!-- CARD B: Crystal Goblet -->
+      <div class="tc3" data-mat="crystal gold" data-donor="fatimid" onclick="selectFolio(1)">
+        <div class="prov-tag">Fatimid</div>
+        <div class="marg3"><div class="marg3-inner">Rim repaired in granulated gold — steward's note, Muḥarram 466</div></div>
+        <div class="stage3">
+          <div class="halo" style="width:106px;height:106px;top:25px;left:50%;transform:translateX(-50%)"></div>
+          <svg width="84" height="130" viewBox="0 0 84 130" fill="none">
+            <path d="M8 22h68l-14 60H22z" fill="rgba(170,200,240,.2)" stroke="#C8A84B" stroke-width="1.1"/>
+            <line x1="18" y1="22" x2="13" y2="82" stroke="#C8A84B" stroke-width=".5" opacity=".45"/>
+            <line x1="34" y1="20" x2="29" y2="82" stroke="#C8A84B" stroke-width=".5" opacity=".4"/>
+            <line x1="42" y1="19" x2="42" y2="82" stroke="#C8A84B" stroke-width=".55" opacity=".45"/>
+            <line x1="50" y1="20" x2="55" y2="82" stroke="#C8A84B" stroke-width=".5" opacity=".4"/>
+            <line x1="66" y1="22" x2="71" y2="82" stroke="#C8A84B" stroke-width=".5" opacity=".45"/>
+            <ellipse cx="42" cy="48" rx="8" ry="6" fill="#142870"/><ellipse cx="42" cy="48" rx="3" ry="2.2" fill="rgba(150,180,255,.5)"/>
+            <circle cx="10" cy="22" r="2.5" fill="#F5EDD8" stroke="#C8A84B" stroke-width=".6"/>
+            <circle cx="24" cy="17" r="2.5" fill="#F5EDD8" stroke="#C8A84B" stroke-width=".6"/>
+            <circle cx="42" cy="15" r="2.5" fill="#F5EDD8" stroke="#C8A84B" stroke-width=".6"/>
+            <circle cx="60" cy="17" r="2.5" fill="#F5EDD8" stroke="#C8A84B" stroke-width=".6"/>
+            <circle cx="74" cy="22" r="2.5" fill="#F5EDD8" stroke="#C8A84B" stroke-width=".6"/>
+            <rect x="39" y="82" width="6" height="24" fill="#C8A84B"/>
+            <ellipse cx="42" cy="94" rx="8" ry="4" fill="#A8893A" stroke="#C8A84B" stroke-width=".7"/>
+            <ellipse cx="42" cy="94" rx="3.5" ry="1.8" fill="#7A1520"/>
+            <ellipse cx="42" cy="108" rx="18" ry="6" fill="#A8893A" stroke="#C8A84B" stroke-width=".9"/>
+          </svg>
+        </div>
+        <div class="label3">
+          <div class="t3-name">Goblet of Mountain Crystal</div>
+          <div class="t3-ar">كَأسُ البُلُّورِ الجَبَلِي</div>
+          <div class="t3-chain"><b>Fatimid Treasury</b><span class="arrow-r">→</span><b>Vizier Badr</b></div>
+          <div><span class="vb3 vb-l"><span class="pd"></span><span class="amt3" data-v="4500">4,500 dīnārs</span><span class="pd"></span></span></div>
+        </div>
+      </div>
+
+      <!-- CARD C: Enameled Ewer -->
+      <div class="tc3 royal" data-mat="gold enamel" data-donor="abbasid" onclick="selectFolio(2)">
+        <div class="prov-tag">Abbasid</div>
+        <div class="marg3"><div class="marg3-inner">Three masters named on foot — unique among known Abbasid ewers</div></div>
+        <div class="stage3">
+          <div class="halo" style="width:108px;height:108px;top:24px;left:50%;transform:translateX(-50%)"></div>
+          <svg width="90" height="135" viewBox="0 0 90 135" fill="none">
+            <path d="M6 132Q6 55 45 20Q84 55 84 132" stroke="#C8A84B" stroke-width=".7" fill="none" opacity=".3"/>
+            <path d="M30 125L24 46Q24 24 45 22Q66 24 66 46L60 125Z" fill="#A8893A" fill-opacity=".3" stroke="#C8A84B" stroke-width="1.1"/>
+            <rect x="27" y="52" width="36" height="10" fill="#7A1520" rx=".5" opacity=".85"/>
+            <rect x="27" y="68" width="36" height="10" fill="#163C30" rx=".5" opacity=".85"/>
+            <rect x="27" y="84" width="36" height="10" fill="#142870" rx=".5" opacity=".85"/>
+            <text x="45" y="60" text-anchor="middle" font-family="serif" font-size="6" fill="#E8CC7A">❧ ✦ ✦ ❧</text>
+            <text x="45" y="76" text-anchor="middle" font-family="serif" font-size="6" fill="#E8CC7A">✦ ✦ ✦ ✦</text>
+            <text x="45" y="92" text-anchor="middle" font-family="serif" font-size="6" fill="#E8CC7A">❧ ✦ ✦ ❧</text>
+            <path d="M38 22Q38 12 45 9Q52 12 52 22" fill="#A8893A" stroke="#C8A84B" stroke-width=".8"/>
+            <circle cx="45" cy="8" r="4.5" fill="#C8A84B" stroke="#A8893A"/>
+            <circle cx="45" cy="8" r="2.2" fill="#7A1520"/>
+            <path d="M62 44Q76 52 76 64Q76 76 62 82" stroke="#C8A84B" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+            <path d="M24 46Q10 40 8 34Q12 28 18 34Q22 38 24 44" fill="#A8893A" stroke="#C8A84B" stroke-width=".8"/>
+            <ellipse cx="45" cy="126" rx="18" ry="5" fill="#A8893A" stroke="#C8A84B" stroke-width=".9"/>
+            <path d="M30 108L45 102L60 108L45 114Z" stroke="#C8A84B" stroke-width=".5" fill="rgba(200,168,75,.1)"/>
+          </svg>
+        </div>
+        <div class="label3">
+          <div class="t3-name">Ewer of Enameled Gold</div>
+          <div class="t3-ar">إِبريقُ الذَّهَبِ المُمَوَّه</div>
+          <div class="t3-chain"><b>Al-Qādir, Baghdad</b><span class="arrow-r">→</span><b>Al-ʿAzīz</b></div>
+          <div><span class="vb3 vb-e"><span class="pd"></span><span class="amt3" data-v="8750">8,750 dīnārs</span><span class="pd"></span></span></div>
+        </div>
+      </div>
+
+      <!-- CARD D: Ivory Casket -->
+      <div class="tc3" data-mat="ivory gold" data-donor="cordoba" onclick="selectFolio(3)">
+        <div class="prov-tag">Andalusian</div>
+        <div class="marg3"><div class="marg3-inner">Craftsman Khalaf named in base inscription — investiture gift</div></div>
+        <div class="stage3">
+          <div class="halo" style="width:114px;height:114px;top:20px;left:50%;transform:translateX(-50%)"></div>
+          <svg width="106" height="130" viewBox="0 0 106 130" fill="none">
+            <rect x="8" y="74" width="90" height="46" fill="#D8C8A0" stroke="#C8A84B" stroke-width="1.1"/>
+            <rect x="13" y="79" width="80" height="36" fill="none" stroke="#C8A84B" stroke-width=".5" stroke-dasharray="2,2"/>
+            <path d="M8 74Q8 52 53 52Q98 52 98 74L98 80Q98 60 53 60Q8 60 8 80Z" fill="#EDE0C8" stroke="#C8A84B" stroke-width="1.1"/>
+            <rect x="14" y="80" width="32" height="34" fill="none" stroke="#C8A84B" stroke-width=".7"/>
+            <rect x="50" y="80" width="32" height="34" fill="none" stroke="#C8A84B" stroke-width=".7"/>
+            <text x="30" y="102" text-anchor="middle" font-family="serif" font-size="16" fill="#C8A84B" opacity=".7">✦</text>
+            <text x="66" y="102" text-anchor="middle" font-family="serif" font-size="16" fill="#7A1520" opacity=".8">✦</text>
+            <ellipse cx="88" cy="97" rx="6.5" ry="5" fill="#163C30" stroke="#C8A84B" stroke-width=".7"/>
+            <ellipse cx="88" cy="97" rx="3" ry="2.2" fill="#C8A84B"/>
+            <circle cx="12" cy="61" r="2.8" fill="#F5EDD8" stroke="#C8A84B" stroke-width=".6"/>
+            <circle cx="24" cy="56" r="2.8" fill="#F5EDD8" stroke="#C8A84B" stroke-width=".6"/>
+            <circle cx="38" cy="54" r="2.8" fill="#F5EDD8" stroke="#C8A84B" stroke-width=".6"/>
+            <circle cx="53" cy="53" r="2.8" fill="#F5EDD8" stroke="#C8A84B" stroke-width=".6"/>
+            <circle cx="68" cy="54" r="2.8" fill="#F5EDD8" stroke="#C8A84B" stroke-width=".6"/>
+            <circle cx="82" cy="56" r="2.8" fill="#F5EDD8" stroke="#C8A84B" stroke-width=".6"/>
+            <circle cx="94" cy="61" r="2.8" fill="#F5EDD8" stroke="#C8A84B" stroke-width=".6"/>
+            <circle cx="16" cy="119" r="2.5" fill="#F5EDD8" stroke="#C8A84B" stroke-width=".6"/>
+            <circle cx="30" cy="119" r="2.5" fill="#F5EDD8" stroke="#C8A84B" stroke-width=".6"/>
+            <circle cx="53" cy="119" r="2.5" fill="#F5EDD8" stroke="#C8A84B" stroke-width=".6"/>
+            <circle cx="76" cy="119" r="2.5" fill="#F5EDD8" stroke="#C8A84B" stroke-width=".6"/>
+            <circle cx="90" cy="119" r="2.5" fill="#F5EDD8" stroke="#C8A84B" stroke-width=".6"/>
+            <text x="53" y="70" text-anchor="middle" font-family="serif" font-size="7" fill="#C8A84B" opacity=".6">❧  ✦  ✦  ✦  ❧</text>
+            <line x1="8" y1="88" x2="98" y2="88" stroke="#C8A84B" stroke-width=".3" opacity=".35"/>
+          </svg>
+        </div>
+        <div class="label3">
+          <div class="t3-name">Ivory Casket of al-Zahrāʾ</div>
+          <div class="t3-ar">صُندُوقُ العَاجِ</div>
+          <div class="t3-chain"><b>ʿAbd al-Raḥmān III</b><span class="arrow-r">→</span><b>Al-Muʿizz</b></div>
+          <div><span class="vb3 vb-r"><span class="pd"></span><span class="amt3" data-v="6300">6,300 dīnārs</span><span class="pd"></span></span></div>
+        </div>
+      </div>
+
+      <!-- CARD E: Pearl Saddle -->
+      <div class="tc3 royal" data-mat="pearl gold silk" data-donor="nubia" onclick="selectFolio(4)">
+        <div class="prov-tag">Nubian</div>
+        <div class="marg3"><div class="marg3-inner">Carried by six slaves into the throne room — witnessed by al-Maqrīzī</div></div>
+        <div class="stage3">
+          <div class="halo" style="width:110px;height:110px;top:22px;left:50%;transform:translateX(-50%)"></div>
+          <svg width="100" height="128" viewBox="0 0 100 128" fill="none">
+            <ellipse cx="50" cy="88" rx="42" ry="18" fill="#A8893A" fill-opacity=".25" stroke="#C8A84B" stroke-width="1.1"/>
+            <ellipse cx="50" cy="86" rx="34" ry="13" fill="#D8C8A0" stroke="#C8A84B" stroke-width=".8"/>
+            <path d="M20 86Q20 55 50 38Q80 55 80 86" fill="#C8A84B" fill-opacity=".18" stroke="#C8A84B" stroke-width="1.1"/>
+            <path d="M34 60Q34 42 50 36Q66 42 66 60" fill="#A8893A" fill-opacity=".4" stroke="#C8A84B" stroke-width=".9"/>
+            <circle cx="50" cy="52" r="8" fill="#163C30" stroke="#C8A84B" stroke-width=".8"/>
+            <circle cx="50" cy="52" r="4" fill="#C8A84B"/>
+            <circle cx="50" cy="52" r="2" fill="#7A1520"/>
+            <!-- pearl row on saddle rim -->
+            <circle cx="24" cy="86" r="2.5" fill="#F5EDD8" stroke="#C8A84B" stroke-width=".6"/>
+            <circle cx="34" cy="80" r="2.5" fill="#F5EDD8" stroke="#C8A84B" stroke-width=".6"/>
+            <circle cx="50" cy="77" r="2.5" fill="#F5EDD8" stroke="#C8A84B" stroke-width=".6"/>
+            <circle cx="66" cy="80" r="2.5" fill="#F5EDD8" stroke="#C8A84B" stroke-width=".6"/>
+            <circle cx="76" cy="86" r="2.5" fill="#F5EDD8" stroke="#C8A84B" stroke-width=".6"/>
+            <!-- decorative studded border -->
+            <circle cx="26" cy="92" r="1.8" fill="#C8A84B"/>
+            <circle cx="36" cy="96" r="1.8" fill="#C8A84B"/>
+            <circle cx="50" cy="98" r="1.8" fill="#C8A84B"/>
+            <circle cx="64" cy="96" r="1.8" fill="#C8A84B"/>
+            <circle cx="74" cy="92" r="1.8" fill="#C8A84B"/>
+            <!-- stirrups -->
+            <line x1="28" y1="93" x2="18" y2="112" stroke="#A8893A" stroke-width="1.5"/>
+            <line x1="72" y1="93" x2="82" y2="112" stroke="#A8893A" stroke-width="1.5"/>
+            <rect x="12" y="110" width="12" height="6" fill="none" stroke="#C8A84B" stroke-width="1"/>
+            <rect x="76" y="110" width="12" height="6" fill="none" stroke="#C8A84B" stroke-width="1"/>
+          </svg>
+        </div>
+        <div class="label3">
+          <div class="t3-name">Pearl-Studded Royal Saddle</div>
+          <div class="t3-ar">سَرجُ اللُّؤلُؤ المَلَكِي</div>
+          <div class="t3-chain"><b>King of Nubia</b><span class="arrow-r">→</span><b>Al-Mustanṣir</b></div>
+          <div><span class="vb3 vb-a"><span class="pd"></span><span class="amt3" data-v="7200">7,200 dīnārs</span><span class="pd"></span></span></div>
+        </div>
+      </div>
+
+      <!-- CARD F: Embroidered Robe -->
+      <div class="tc3" data-mat="silk gold" data-donor="armenia" onclick="selectFolio(5)">
+        <div class="prov-tag">Armenian</div>
+        <div class="marg3"><div class="marg3-inner">Kufic inscription at hem names the weaver: Yūsuf ibn Ibrāhīm</div></div>
+        <div class="stage3">
+          <div class="halo" style="width:106px;height:106px;top:24px;left:50%;transform:translateX(-50%)"></div>
+          <svg width="90" height="126" viewBox="0 0 90 126" fill="none">
+            <path d="M22 14L45 26L68 14L78 28V116H12V28Z" fill="rgba(200,168,75,.1)" stroke="#C8A84B" stroke-width="1.1"/>
+            <line x1="12" y1="28" x2="78" y2="28" stroke="#C8A84B" stroke-width=".8"/>
+            <!-- collar -->
+            <path d="M36 14Q36 6 45 5Q54 6 54 14" fill="rgba(200,168,75,.2)" stroke="#C8A84B" stroke-width=".8"/>
+            <circle cx="45" cy="5" r="3.5" fill="#7A1520"/>
+            <!-- embroidery bands -->
+            <rect x="14" y="35" width="62" height="5" fill="rgba(200,168,75,.25)" stroke="#C8A84B" stroke-width=".4"/>
+            <text x="45" y="39" text-anchor="middle" font-family="serif" font-size="5" fill="#C8A84B">✦ ❧ ✦ ❧ ✦ ❧ ✦ ❧ ✦</text>
+            <rect x="14" y="65" width="62" height="5" fill="rgba(200,168,75,.25)" stroke="#C8A84B" stroke-width=".4"/>
+            <text x="45" y="69" text-anchor="middle" font-family="serif" font-size="5" fill="#C8A84B">❧ ✦ ❧ ✦ ❧ ✦ ❧ ✦ ❧</text>
+            <rect x="14" y="95" width="62" height="5" fill="rgba(200,168,75,.25)" stroke="#C8A84B" stroke-width=".4"/>
+            <text x="45" y="99" text-anchor="middle" font-family="serif" font-size="5" fill="#C8A84B">✦ ❧ ✦ ❧ ✦ ❧ ✦ ❧ ✦</text>
+            <!-- geometric front panels -->
+            <rect x="22" y="42" width="18" height="20" fill="none" stroke="#C8A84B" stroke-width=".5"/>
+            <text x="31" y="55" text-anchor="middle" font-family="serif" font-size="10" fill="#7A1520" opacity=".7">✦</text>
+            <rect x="50" y="42" width="18" height="20" fill="none" stroke="#C8A84B" stroke-width=".5"/>
+            <text x="59" y="55" text-anchor="middle" font-family="serif" font-size="10" fill="#142870" opacity=".7">✦</text>
+            <!-- hem inscription -->
+            <text x="45" y="114" text-anchor="middle" font-family="'Noto Naskh Arabic',serif" font-size="7" fill="#A8893A" direction="rtl">يوسف بن إبراهيم</text>
+          </svg>
+        </div>
+        <div class="label3">
+          <div class="t3-name">Silk Robe of Honour</div>
+          <div class="t3-ar">خِلعَةُ الحَرِيرِ الذَّهَبِيّ</div>
+          <div class="t3-chain"><b>King Gagik II, Armenia</b><span class="arrow-r">→</span><b>Al-Ẓāhir</b></div>
+          <div><span class="vb3 vb-a"><span class="pd"></span><span class="amt3" data-v="5800">5,800 dīnārs</span><span class="pd"></span></span></div>
+        </div>
+      </div>
+
+    </div><!-- /cat3grid -->
+
+    <div class="pdiv" style="margin:0 16px"><div class="pln"></div><div class="pgm"></div><div class="pln"></div></div>
+    <div style="display:flex;gap:10px;padding:12px 16px;align-items:center;flex-wrap:wrap">
+      <button class="auc-btn" onclick="runCounter3()">Open Appraisal</button>
+      <button class="auc-btn2" onclick="resetCatalog3()">Reset</button>
+      <span style="font-size:10.5px;color:var(--ink4);font-style:italic">Grand total:&ensp;</span>
+      <span style="font-size:14px;font-weight:700;color:var(--g2);font-family:'Amiri',serif;font-variant-numeric:tabular-nums" id="grandTotal">44,550 dīnārs</span>
+    </div>
+  </div>
+
+  <!-- ══════ PANEL 2: FOLIO VIEW ══════ -->
+  <div class="panel" id="pFolio">
+    <div class="sel-strip" id="folioStrip">
+      <div class="sel-item on" onclick="selectFolio(0,true)">Crown</div>
+      <div class="sel-item" onclick="selectFolio(1,true)">Goblet</div>
+      <div class="sel-item" onclick="selectFolio(2,true)">Ewer</div>
+      <div class="sel-item" onclick="selectFolio(3,true)">Casket</div>
+      <div class="sel-item" onclick="selectFolio(4,true)">Saddle</div>
+      <div class="sel-item" onclick="selectFolio(5,true)">Robe</div>
+    </div>
+    <div class="folio-view" id="folioView"></div>
+  </div>
+
+  <!-- ══════ PANEL 3: NETWORK ══════ -->
+  <div class="panel" id="pNetwork">
+    <div class="network-wrap">
+      <div class="network-canvas" id="netCanvas">
+        <svg class="net-svg" id="netSvg" viewBox="0 0 640 420" xmlns="http://www.w3.org/2000/svg">
+          <!-- Background lozenge grid -->
+          <defs>
+            <pattern id="loz" x="0" y="0" width="28" height="28" patternUnits="userSpaceOnUse">
+              <path d="M14 0L28 14L14 28L0 14Z" fill="none" stroke="rgba(200,168,75,0.1)" stroke-width=".5"/>
+            </pattern>
+          </defs>
+          <rect width="640" height="420" fill="url(#loz)"/>
+          <!-- Edges: weighted by value, colored by era -->
+          <!-- Byzantium → Cairo -->
+          <line x1="130" y1="100" x2="320" y2="210" stroke="#2848A8" stroke-width="2.5" opacity=".6"/>
+          <text x="210" y="145" text-anchor="middle" font-family="Amiri,serif" font-size="9" fill="#C8A84B">12,000 d.</text>
+          <!-- Baghdad → Cairo -->
+          <line x1="510" y1="100" x2="320" y2="210" stroke="#B02030" stroke-width="2" opacity=".6"/>
+          <text x="430" y="143" text-anchor="middle" font-family="Amiri,serif" font-size="9" fill="#C8A84B">8,750 d.</text>
+          <!-- Córdoba → Cairo -->
+          <line x1="90" y1="300" x2="320" y2="210" stroke="#24664E" stroke-width="1.8" opacity=".6"/>
+          <text x="188" y="268" text-anchor="middle" font-family="Amiri,serif" font-size="9" fill="#C8A84B">6,300 d.</text>
+          <!-- Nubia → Cairo -->
+          <line x1="320" y1="370" x2="320" y2="210" stroke="#7A5020" stroke-width="1.8" opacity=".6"/>
+          <text x="340" y="296" font-family="Amiri,serif" font-size="9" fill="#C8A84B">7,200 d.</text>
+          <!-- Armenia → Cairo -->
+          <line x1="510" y1="320" x2="320" y2="210" stroke="#6850A8" stroke-width="1.6" opacity=".6"/>
+          <text x="430" y="278" text-anchor="middle" font-family="Amiri,serif" font-size="9" fill="#C8A84B">5,800 d.</text>
+          <!-- Cairo → Vizier (internal) -->
+          <line x1="320" y1="210" x2="180" y2="210" stroke="#C8A84B" stroke-width="1.2" stroke-dasharray="4,3" opacity=".5"/>
+          <text x="252" y="205" text-anchor="middle" font-family="Amiri,serif" font-size="9" fill="#A8893A">4,500 d.</text>
+        </svg>
+        <!-- Nodes positioned absolutely -->
+        <div class="net-node" style="left:20%;top:24%">
+          <div class="node-circle nc-byz">BYZ</div>
+          <div class="node-label">Byzantium<br>Constantinople</div>
+        </div>
+        <div class="net-node" style="left:50%;top:50%">
+          <div class="node-circle nc-cairo" style="width:64px;height:64px;font-size:13px">CAIRO</div>
+          <div class="node-label" style="font-size:11px;font-weight:700;color:var(--g2)">Fatimid<br>Caliphate</div>
+        </div>
+        <div class="net-node" style="left:80%;top:24%">
+          <div class="node-circle nc-bagh">ABB</div>
+          <div class="node-label">Abbasid<br>Baghdad</div>
+        </div>
+        <div class="net-node" style="left:14%;top:72%">
+          <div class="node-circle nc-cord">AND</div>
+          <div class="node-label">Andalusia<br>Córdoba</div>
+        </div>
+        <div class="net-node" style="left:50%;top:88%">
+          <div class="node-circle nc-nubia">NUB</div>
+          <div class="node-label">Nubian<br>Kingdom</div>
+        </div>
+        <div class="net-node" style="left:80%;top:76%">
+          <div class="node-circle nc-arm">ARM</div>
+          <div class="node-label">Armenian<br>Kingdom</div>
+        </div>
+        <div class="net-node" style="left:28%;top:50%">
+          <div class="node-circle nc-cairo" style="background:#2A1808;border-color:#7A5020;color:#D8B870;width:42px;height:42px;font-size:9px">VIZ</div>
+          <div class="node-label">Vizier Badr<br>al-Jamālī</div>
+        </div>
+        <div class="net-tip" id="netTip"></div>
+      </div>
+      <div class="net-legend">
+        <div class="leg-item"><div class="leg-line" style="background:#2848A8;height:2.5px"></div><span>Byzantine gift</span></div>
+        <div class="leg-item"><div class="leg-line" style="background:#B02030"></div><span>Abbasid gift</span></div>
+        <div class="leg-item"><div class="leg-line" style="background:#24664E"></div><span>Andalusian gift</span></div>
+        <div class="leg-item"><div class="leg-line" style="background:#7A5020"></div><span>Nubian tribute</span></div>
+        <div class="leg-item"><div class="leg-line" style="background:#6850A8"></div><span>Armenian gift</span></div>
+        <div class="leg-item"><div class="leg-line" style="background:#C8A84B;height:1px"></div><span>Internal distribution</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════ PANEL 4: LEDGER ══════ -->
+  <div class="panel" id="pLedger">
+    <div class="ledger">
+      <div class="ledger-head">
+        <div class="lh-cell">Object</div>
+        <div class="lh-cell">Donor court</div>
+        <div class="lh-cell">Recipient</div>
+        <div class="lh-cell">Materials</div>
+        <div class="lh-cell">Value</div>
+      </div>
+      <div class="ledger-row" onclick="selectRow(this,0)">
+        <div class="lr-cell obj">Crown of Seven Peaks</div>
+        <div class="lr-cell">Byzantium · 427 AH</div>
+        <div class="lr-cell">Al-Mustanṣir Billāh</div>
+        <div class="lr-cell mat"><span class="mat-gold">gold</span><span class="mat-ruby">ruby</span></div>
+        <div class="lr-cell">12,000 d.</div>
+      </div>
+      <div class="ledger-row" onclick="selectRow(this,2)">
+        <div class="lr-cell obj">Ewer of Enameled Gold</div>
+        <div class="lr-cell">Abbasid · 358 AH</div>
+        <div class="lr-cell">Al-ʿAzīz Billāh</div>
+        <div class="lr-cell mat"><span class="mat-gold">gold</span><span class="mat-enamel">enamel</span></div>
+        <div class="lr-cell">8,750 d.</div>
+      </div>
+      <div class="ledger-row" onclick="selectRow(this,4)">
+        <div class="lr-cell obj">Pearl-Studded Royal Saddle</div>
+        <div class="lr-cell">Nubia · 440 AH</div>
+        <div class="lr-cell">Al-Mustanṣir Billāh</div>
+        <div class="lr-cell mat"><span class="mat-pearl">pearl</span><span class="mat-gold">gold</span></div>
+        <div class="lr-cell">7,200 d.</div>
+      </div>
+      <div class="ledger-row" onclick="selectRow(this,3)">
+        <div class="lr-cell obj">Ivory Casket of al-Zahrāʾ</div>
+        <div class="lr-cell">Córdoba · 341 AH</div>
+        <div class="lr-cell">Al-Muʿizz li-Dīn Allāh</div>
+        <div class="lr-cell mat"><span class="mat-ivory">ivory</span><span class="mat-gold">gold</span></div>
+        <div class="lr-cell">6,300 d.</div>
+      </div>
+      <div class="ledger-row" onclick="selectRow(this,5)">
+        <div class="lr-cell obj">Silk Robe of Honour</div>
+        <div class="lr-cell">Armenia · 418 AH</div>
+        <div class="lr-cell">Al-Ẓāhir li-Iʿzāz</div>
+        <div class="lr-cell mat"><span class="mat-enamel">silk</span><span class="mat-gold">gold</span></div>
+        <div class="lr-cell">5,800 d.</div>
+      </div>
+      <div class="ledger-row" onclick="selectRow(this,1)">
+        <div class="lr-cell obj">Goblet of Mountain Crystal</div>
+        <div class="lr-cell">Fatimid · 466 AH</div>
+        <div class="lr-cell">Vizier Badr al-Jamālī</div>
+        <div class="lr-cell mat"><span class="mat-crystal">crystal</span></div>
+        <div class="lr-cell">4,500 d.</div>
+      </div>
+    </div>
+
+    <div class="sel-detail" id="selDetail">
+      <div class="sd-inner" id="sdInner"></div>
+    </div>
+
+    <div class="auction-bar">
+      <div>
+        <div class="auc-label">Grand treasury total</div>
+        <div class="auc-total" id="ledgerTotal">44,550 dīnārs</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="auc-btn" onclick="runLedgerCounter()">Appraise all</button>
+        <button class="auc-btn2" onclick="clearSel()">Clear selection</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="pdiv" style="margin:16px 16px 0"><div class="pln"></div><div class="pgm"></div><div class="pln"></div></div>
+  <div class="footer">Compiled in the chancery of Al-Mustanṣir Billāh · Transcribed by ʿAlī ibn Muḥammad al-Qaddūmī · Dār al-Kutub MS 2183</div>
+
+</div>
+</div>
+
+<script>
+const ITEMS=[
+{name:"Crown of Seven Peaks",ar:"تاجُ السَّبعِ ذُرا",donor:"Emperor Basil II, Byzantium",rec:"Al-Mustanṣir Billāh",year:"427 AH / 1035 CE",mat:"Gold, rubies, lapis lazuli, emerald",origin:"Constantinople",val:12000,note:"Appraised by Ibn al-Zubayr in 487 AH as peerless among all crowns of the Dār al-Khalīfa. No equal found in the entire treasury.",vbc:"vb-r",
+svgS:`<svg width="130" height="155" viewBox="0 0 130 155" fill="none"><path d="M8 150Q8 62 65 22Q122 62 122 150" stroke="#C8A84B" stroke-width=".8" fill="none" opacity=".38"/><rect x="18" y="118" width="94" height="16" fill="#A8893A" stroke="#C8A84B" stroke-width="1.2"/><path d="M18 118L29 74L45 106L57 52L65 86L73 52L85 106L101 74L112 118Z" fill="#C8A84B" stroke="#A8893A" stroke-width="1.1"/><ellipse cx="29" cy="76" rx="7" ry="5.5" fill="#7A1520"/><ellipse cx="29" cy="76" rx="2.8" ry="2.2" fill="rgba(255,180,180,.4)"/><ellipse cx="65" cy="54" rx="8.5" ry="7" fill="#142870"/><ellipse cx="65" cy="54" rx="3.5" ry="2.8" fill="rgba(150,180,255,.4)"/><ellipse cx="101" cy="76" rx="7" ry="5.5" fill="#163C30"/><ellipse cx="101" cy="76" rx="2.8" ry="2.2" fill="rgba(100,220,160,.3)"/><circle cx="45" cy="106" r="5" fill="#7A1520"/><circle cx="85" cy="106" r="5" fill="#7A1520"/><circle cx="28" cy="130" r="4" fill="#F5EDD8" stroke="#C8A84B" stroke-width=".8"/><circle cx="44" cy="130" r="4" fill="#F5EDD8" stroke="#C8A84B" stroke-width=".8"/><circle cx="65" cy="130" r="4" fill="#F5EDD8" stroke="#C8A84B" stroke-width=".8"/><circle cx="86" cy="130" r="4" fill="#F5EDD8" stroke="#C8A84B" stroke-width=".8"/><circle cx="102" cy="130" r="4" fill="#F5EDD8" stroke="#C8A84B" stroke-width=".8"/><line x1="65" y1="44" x2="65" y2="32" stroke="#C8A84B" stroke-width="2"/><line x1="58" y1="38" x2="72" y2="38" stroke="#C8A84B" stroke-width="2"/><circle cx="65" cy="32" r="5" fill="#E8CC7A"/></svg>`
+},
+{name:"Goblet of Mountain Crystal",ar:"كَأسُ البُلُّورِ الجَبَلِي",donor:"Fatimid Treasury, Cairo",rec:"Vizier Badr al-Jamālī",year:"466 AH / 1073 CE",mat:"Rock crystal, granulated gold, ruby",origin:"Fatimid workshops, Cairo",val:4500,note:"The cracked rim was repaired with a band of granulated gold — recorded in the palace steward's inventory, month of Muḥarram, 466 AH.",vbc:"vb-l",
+svgS:`<svg width="110" height="155" viewBox="0 0 110 155" fill="none"><path d="M8 28h94l-18 74H26z" fill="rgba(170,200,240,.22)" stroke="#C8A84B" stroke-width="1.3"/><line x1="22" y1="28" x2="15" y2="102" stroke="#C8A84B" stroke-width=".55" opacity=".45"/><line x1="40" y1="24" x2="33" y2="102" stroke="#C8A84B" stroke-width=".5" opacity=".4"/><line x1="55" y1="22" x2="55" y2="102" stroke="#C8A84B" stroke-width=".6" opacity=".45"/><line x1="70" y1="24" x2="77" y2="102" stroke="#C8A84B" stroke-width=".5" opacity=".4"/><line x1="88" y1="28" x2="95" y2="102" stroke="#C8A84B" stroke-width=".55" opacity=".45"/><ellipse cx="55" cy="60" rx="11" ry="8" fill="#142870"/><ellipse cx="55" cy="60" rx="4.5" ry="3.2" fill="rgba(150,180,255,.5)"/><circle cx="10" cy="28" r="3" fill="#F5EDD8" stroke="#C8A84B" stroke-width=".7"/><circle cx="28" cy="22" r="3" fill="#F5EDD8" stroke="#C8A84B" stroke-width=".7"/><circle cx="55" cy="19" r="3" fill="#F5EDD8" stroke="#C8A84B" stroke-width=".7"/><circle cx="82" cy="22" r="3" fill="#F5EDD8" stroke="#C8A84B" stroke-width=".7"/><circle cx="100" cy="28" r="3" fill="#F5EDD8" stroke="#C8A84B" stroke-width=".7"/><rect x="51" y="102" width="8" height="30" fill="#C8A84B"/><ellipse cx="55" cy="117" rx="11" ry="5.5" fill="#A8893A" stroke="#C8A84B" stroke-width=".8"/><ellipse cx="55" cy="117" rx="5" ry="2.5" fill="#7A1520"/><ellipse cx="55" cy="135" rx="24" ry="8" fill="#A8893A" stroke="#C8A84B" stroke-width="1.1"/></svg>`
+},
+{name:"Ewer of Enameled Gold",ar:"إِبريقُ الذَّهَبِ المُمَوَّه",donor:"Al-Qādir Billāh, Baghdad",rec:"Al-ʿAzīz Billāh, Cairo",year:"358 AH / 969 CE",mat:"Gold, polychrome Byzantine enamel",origin:"Abbasid Treasury, Baghdad",val:8750,note:"Three masters of enamel are named in the inscription on the foot-ring. No other ewer of this workshop is known to survive the destruction of 656 AH.",vbc:"vb-e",
+svgS:`<svg width="118" height="158" viewBox="0 0 118 158" fill="none"><path d="M8 155Q8 65 59 22Q110 65 110 155" stroke="#C8A84B" stroke-width=".8" fill="none" opacity=".3"/><path d="M38 148L30 52Q30 26 59 23Q88 26 88 52L80 148Z" fill="#A8893A" fill-opacity=".3" stroke="#C8A84B" stroke-width="1.3"/><rect x="34" y="60" width="50" height="13" fill="#7A1520" rx=".5" opacity=".85"/><rect x="34" y="80" width="50" height="13" fill="#163C30" rx=".5" opacity=".85"/><rect x="34" y="100" width="50" height="13" fill="#142870" rx=".5" opacity=".85"/><text x="59" y="69.5" text-anchor="middle" font-family="serif" font-size="7.5" fill="#E8CC7A">❧ ✦ ✦ ✦ ❧</text><text x="59" y="89.5" text-anchor="middle" font-family="serif" font-size="7.5" fill="#E8CC7A">✦ ✦ ✦ ✦ ✦</text><text x="59" y="109.5" text-anchor="middle" font-family="serif" font-size="7.5" fill="#E8CC7A">❧ ✦ ✦ ✦ ❧</text><path d="M46 23Q46 11 59 8Q72 11 72 23" fill="#A8893A" stroke="#C8A84B" stroke-width="1"/><circle cx="59" cy="8" r="6" fill="#C8A84B" stroke="#A8893A"/><circle cx="59" cy="8" r="3" fill="#7A1520"/><path d="M84 56Q104 65 104 82Q104 99 84 106" stroke="#C8A84B" stroke-width="3.5" fill="none" stroke-linecap="round"/><path d="M30 58Q12 52 10 42Q15 34 22 42Q26 48 30 56" fill="#A8893A" stroke="#C8A84B" stroke-width="1"/><ellipse cx="59" cy="149" rx="24" ry="7" fill="#A8893A" stroke="#C8A84B" stroke-width="1.1"/><path d="M38 128L59 120L80 128L59 136Z" stroke="#C8A84B" stroke-width=".6" fill="rgba(200,168,75,.1)"/></svg>`
+},
+{name:"Ivory Casket of al-Zahrāʾ",ar:"صُندُوقُ العَاجِ مِن مَدِينَةِ الزَّهرَاء",donor:"ʿAbd al-Raḥmān III, Córdoba",rec:"Al-Muʿizz li-Dīn Allāh",year:"341 AH / 952 CE",mat:"African ivory, emerald, gold fittings",origin:"Madīnat al-Zahrāʾ, Córdoba",val:6300,note:"The casket bears an inscription naming the craftsman Khalaf and the date of carving in the royal workshops of Córdoba. Presented at investiture ceremonies of the Imam.",vbc:"vb-r",
+svgS:`<svg width="138" height="148" viewBox="0 0 138 148" fill="none"><rect x="10" y="84" width="118" height="56" fill="#D8C8A0" stroke="#C8A84B" stroke-width="1.3"/><rect x="16" y="90" width="106" height="44" fill="none" stroke="#C8A84B" stroke-width=".5" stroke-dasharray="2,2"/><path d="M10 84Q10 60 69 60Q128 60 128 84L128 92Q128 68 69 68Q10 68 10 92Z" fill="#EDE0C8" stroke="#C8A84B" stroke-width="1.3"/><rect x="16" y="91" width="42" height="43" fill="none" stroke="#C8A84B" stroke-width=".8"/><rect x="62" y="91" width="42" height="43" fill="none" stroke="#C8A84B" stroke-width=".8"/><text x="37" y="118" text-anchor="middle" font-family="serif" font-size="22" fill="#C8A84B" opacity=".72">✦</text><text x="83" y="118" text-anchor="middle" font-family="serif" font-size="22" fill="#7A1520" opacity=".82">✦</text><ellipse cx="114" cy="112" rx="9" ry="7" fill="#163C30" stroke="#C8A84B" stroke-width=".9"/><ellipse cx="114" cy="112" rx="4" ry="3.2" fill="#C8A84B"/><circle cx="14" cy="70" r="3.5" fill="#F5EDD8" stroke="#C8A84B" stroke-width=".7"/><circle cx="29" cy="64" r="3.5" fill="#F5EDD8" stroke="#C8A84B" stroke-width=".7"/><circle cx="48" cy="62" r="3.5" fill="#F5EDD8" stroke="#C8A84B" stroke-width=".7"/><circle cx="69" cy="61" r="3.5" fill="#F5EDD8" stroke="#C8A84B" stroke-width=".7"/><circle cx="90" cy="62" r="3.5" fill="#F5EDD8" stroke="#C8A84B" stroke-width=".7"/><circle cx="109" cy="64" r="3.5" fill="#F5EDD8" stroke="#C8A84B" stroke-width=".7"/><circle cx="124" cy="70" r="3.5" fill="#F5EDD8" stroke="#C8A84B" stroke-width=".7"/><circle cx="18" cy="139" r="3" fill="#F5EDD8" stroke="#C8A84B" stroke-width=".7"/><circle cx="38" cy="139" r="3" fill="#F5EDD8" stroke="#C8A84B" stroke-width=".7"/><circle cx="69" cy="139" r="3" fill="#F5EDD8" stroke="#C8A84B" stroke-width=".7"/><circle cx="100" cy="139" r="3" fill="#F5EDD8" stroke="#C8A84B" stroke-width=".7"/><circle cx="120" cy="139" r="3" fill="#F5EDD8" stroke="#C8A84B" stroke-width=".7"/><text x="69" y="79" text-anchor="middle" font-family="serif" font-size="9" fill="#C8A84B" opacity=".6">❧  ✦  ✦  ✦  ✦  ❧</text><line x1="10" y1="101" x2="128" y2="101" stroke="#C8A84B" stroke-width=".35" opacity=".35"/></svg>`
+},
+{name:"Pearl-Studded Royal Saddle",ar:"سَرجُ اللُّؤلُؤ المَلَكِي",donor:"King of Nubia",rec:"Al-Mustanṣir Billāh, Cairo",year:"440 AH / 1048 CE",mat:"Pearls, gold studs, tooled leather, silk",origin:"Nubian royal workshops",val:7200,note:"Carried by six slaves into the throne room of the Fatimid palace. Witnessed and recorded by al-Maqrīzī in his Khiṭaṭ as among the finest tributes ever received.",vbc:"vb-a",
+svgS:`<svg width="130" height="148" viewBox="0 0 130 148" fill="none"><ellipse cx="65" cy="108" rx="56" ry="24" fill="#A8893A" fill-opacity=".22" stroke="#C8A84B" stroke-width="1.2"/><ellipse cx="65" cy="105" rx="44" ry="17" fill="#D8C8A0" stroke="#C8A84B" stroke-width=".9"/><path d="M24 105Q24 65 65 44Q106 65 106 105" fill="rgba(200,168,75,.15)" stroke="#C8A84B" stroke-width="1.2"/><path d="M42 72Q42 48 65 40Q88 48 88 72" fill="#A8893A" fill-opacity=".35" stroke="#C8A84B" stroke-width=".9"/><circle cx="65" cy="62" r="11" fill="#163C30" stroke="#C8A84B" stroke-width=".9"/><circle cx="65" cy="62" r="5.5" fill="#C8A84B"/><circle cx="65" cy="62" r="2.5" fill="#7A1520"/><circle cx="30" cy="104" r="3.2" fill="#F5EDD8" stroke="#C8A84B" stroke-width=".7"/><circle cx="44" cy="96" r="3.2" fill="#F5EDD8" stroke="#C8A84B" stroke-width=".7"/><circle cx="65" cy="93" r="3.2" fill="#F5EDD8" stroke="#C8A84B" stroke-width=".7"/><circle cx="86" cy="96" r="3.2" fill="#F5EDD8" stroke="#C8A84B" stroke-width=".7"/><circle cx="100" cy="104" r="3.2" fill="#F5EDD8" stroke="#C8A84B" stroke-width=".7"/><circle cx="32" cy="112" r="2.2" fill="#C8A84B"/><circle cx="46" cy="117" r="2.2" fill="#C8A84B"/><circle cx="65" cy="119" r="2.2" fill="#C8A84B"/><circle cx="84" cy="117" r="2.2" fill="#C8A84B"/><circle cx="98" cy="112" r="2.2" fill="#C8A84B"/><line x1="34" y1="114" x2="22" y2="136" stroke="#A8893A" stroke-width="1.8"/><line x1="96" y1="114" x2="108" y2="136" stroke="#A8893A" stroke-width="1.8"/><rect x="14" y="134" width="16" height="8" fill="none" stroke="#C8A84B" stroke-width="1.1"/><rect x="100" y="134" width="16" height="8" fill="none" stroke="#C8A84B" stroke-width="1.1"/></svg>`
+},
+{name:"Silk Robe of Honour",ar:"خِلعَةُ الحَرِيرِ الذَّهَبِيّ",donor:"King Gagik II, Armenia",rec:"Al-Ẓāhir li-Iʿzāz Dīn Allāh",year:"418 AH / 1027 CE",mat:"Crimson silk, gold thread, ruby buttons",origin:"Armenian royal looms, Ani",val:5800,note:"The hem bears a Kufic inscription naming the weaver: Yūsuf ibn Ibrāhīm al-Armānī. Presented at the spring reception in the Hall of Gold.",vbc:"vb-a",
+svgS:`<svg width="118" height="152" viewBox="0 0 118 152" fill="none"><path d="M28 16L59 32L90 16L104 34V144H14V34Z" fill="rgba(200,168,75,.1)" stroke="#C8A84B" stroke-width="1.2"/><line x1="14" y1="34" x2="104" y2="34" stroke="#C8A84B" stroke-width=".9"/><path d="M46 16Q46 6 59 5Q72 6 72 16" fill="rgba(200,168,75,.2)" stroke="#C8A84B" stroke-width=".9"/><circle cx="59" cy="5" r="4.5" fill="#7A1520"/><rect x="16" y="42" width="86" height="7" fill="rgba(200,168,75,.22)" stroke="#C8A84B" stroke-width=".4"/><text x="59" y="47.5" text-anchor="middle" font-family="serif" font-size="6.5" fill="#C8A84B">✦ ❧ ✦ ❧ ✦ ❧ ✦ ❧ ✦ ❧</text><rect x="16" y="78" width="86" height="7" fill="rgba(200,168,75,.22)" stroke="#C8A84B" stroke-width=".4"/><text x="59" y="83.5" text-anchor="middle" font-family="serif" font-size="6.5" fill="#C8A84B">❧ ✦ ❧ ✦ ❧ ✦ ❧ ✦ ❧ ✦</text><rect x="16" y="114" width="86" height="7" fill="rgba(200,168,75,.22)" stroke="#C8A84B" stroke-width=".4"/><text x="59" y="119.5" text-anchor="middle" font-family="serif" font-size="6.5" fill="#C8A84B">✦ ❧ ✦ ❧ ✦ ❧ ✦ ❧ ✦ ❧</text><rect x="26" y="52" width="24" height="22" fill="none" stroke="#C8A84B" stroke-width=".55"/><text x="38" y="67" text-anchor="middle" font-family="serif" font-size="13" fill="#7A1520" opacity=".75">✦</text><rect x="68" y="52" width="24" height="22" fill="none" stroke="#C8A84B" stroke-width=".55"/><text x="80" y="67" text-anchor="middle" font-family="serif" font-size="13" fill="#142870" opacity=".75">✦</text><text x="59" y="140" text-anchor="middle" font-family="'Noto Naskh Arabic',serif" font-size="8.5" fill="#A8893A">يوسف بن إبراهيم الأرمانِي</text></svg>`
+}
+];
+
+let curFolio=0;
+
+function setMode(mode,el){
+  document.querySelectorAll('.mmode').forEach(m=>m.classList.remove('on'));
+  el.classList.add('on');
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
+  const map={catalog:'pCatalog',folio:'pFolio',network:'pNetwork',ledger:'pLedger'};
+  document.getElementById(map[mode]).classList.add('on');
+  if(mode==='folio') renderFolio(curFolio);
+}
+
+function selectFolio(i,fromStrip){
+  curFolio=i;
+  if(!fromStrip){
+    setMode('folio',document.querySelectorAll('.mmode')[1]);
+  }
+  renderFolio(i);
+  document.querySelectorAll('#folioStrip .sel-item').forEach((s,j)=>s.classList.toggle('on',j===i));
+}
+
+function renderFolio(i){
+  const d=ITEMS[i];
+  const fv=document.getElementById('folioView');
+  fv.innerHTML=`
+  <div class="folio-left">
+    <div class="folio-art">${d.svgS}</div>
+    <div class="folio-caption">
+      <div class="fc-title">${d.name}</div>
+      <div class="fc-ar">${d.ar}</div>
+      <div class="fc-chain"><b>${d.donor}</b> <span style="color:var(--g);margin:0 4px">→</span> <b>${d.rec}</b></div>
+      <div style="margin-top:8px"><span class="vb3 ${d.vbc}"><span class="pd"></span>${d.val.toLocaleString()} dīnārs<span class="pd"></span></span></div>
+    </div>
+  </div>
+  <div class="folio-right">
+    <div class="prov-block">
+      <div class="prov-head">Treasury Provenance Record</div>
+      <div class="prov-row"><span class="prov-key">Object</span><span class="prov-val">${d.name}</span></div>
+      <div class="prov-row"><span class="prov-key">Material</span><span class="prov-val">${d.mat}</span></div>
+      <div class="prov-row"><span class="prov-key">Donor</span><span class="prov-val">${d.donor}</span></div>
+      <div class="prov-row"><span class="prov-key">Recipient</span><span class="prov-val">${d.rec}</span></div>
+      <div class="prov-row"><span class="prov-key">Dated</span><span class="prov-val">${d.year}</span></div>
+      <div class="prov-row"><span class="prov-key">Origin</span><span class="prov-val">${d.origin}</span></div>
+      <div class="prov-row"><span class="prov-key">Value</span><span class="prov-val gold">${d.val.toLocaleString()} dīnārs</span></div>
+      <div class="marg-block"><b>Marginal note —</b> ${d.note}</div>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="auc-btn" onclick="selectFolio(${(i+5)%6},true)">← Prev treasure</button>
+      <button class="auc-btn2" onclick="selectFolio(${(i+1)%6},true)">Next treasure →</button>
+    </div>
+  </div>`;
+}
+
+function doSearch3(v){
+  const q=v.toLowerCase().trim();
+  let vis=0;
+  document.querySelectorAll('#cat3grid .tc3').forEach(c=>{
+    const show=!q||c.innerText.toLowerCase().includes(q);
+    c.style.display=show?'':'none';
+    if(show)vis++;
+  });
+  document.getElementById('empty3').classList.toggle('on',vis===0);
+}
+
+function filterMat3(m,el){
+  document.querySelectorAll('.fbar .chip3').forEach(x=>x.classList.remove('on'));
+  el.classList.add('on');
+  let vis=0;
+  document.querySelectorAll('#cat3grid .tc3').forEach(c=>{
+    const show=!m||c.dataset.mat.includes(m);
+    c.style.display=show?'':'none';
+    if(show)vis++;
+  });
+  document.getElementById('empty3').classList.toggle('on',vis===0);
+}
+
+function cnt(el,target,ms){
+  const t0=performance.now();
+  (function step(now){
+    const p=Math.min((now-t0)/ms,1),e=1-Math.pow(1-p,3);
+    el.textContent=Math.round(target*e).toLocaleString()+' dīnārs';
+    if(p<1)requestAnimationFrame(step);
+  })(t0);
+}
+
+function runCounter3(){
+  cnt(document.getElementById('grandTotal'),44550,2400);
+  document.querySelectorAll('.amt3').forEach(el=>cnt(el,parseInt(el.dataset.v),2200));
+}
+
+function resetCatalog3(){
+  document.querySelectorAll('#cat3grid .tc3').forEach(c=>c.style.display='');
+  document.querySelectorAll('.fbar .chip3').forEach((c,i)=>c.classList.toggle('on',i===0));
+  document.getElementById('srch3').value='';
+  document.getElementById('empty3').classList.remove('on');
+  document.getElementById('grandTotal').textContent='44,550 dīnārs';
+  document.querySelectorAll('.amt3').forEach(el=>{el.textContent=parseInt(el.dataset.v).toLocaleString()+' dīnārs'});
+}
+
+function selectRow(el,i){
+  document.querySelectorAll('.ledger-row').forEach(r=>r.classList.remove('selected'));
+  el.classList.add('selected');
+  const d=ITEMS[i];
+  const sd=document.getElementById('selDetail');
+  const si=document.getElementById('sdInner');
+  si.innerHTML=`<div class="sd-art">${d.svgS}</div>
+  <div>
+    <div style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:3px">${d.name}</div>
+    <div style="font-family:'Noto Naskh Arabic','Amiri',serif;font-size:12px;color:var(--g2);direction:rtl;margin-bottom:8px">${d.ar}</div>
+    <div class="prov-row"><span class="prov-key">Material</span><span class="prov-val">${d.mat}</span></div>
+    <div class="prov-row"><span class="prov-key">Donor</span><span class="prov-val">${d.donor}</span></div>
+    <div class="prov-row"><span class="prov-key">Dated</span><span class="prov-val">${d.year}</span></div>
+    <div class="prov-row"><span class="prov-key">Value</span><span class="prov-val gold">${d.val.toLocaleString()} dīnārs</span></div>
+    <div class="marg-block" style="margin-top:8px"><b>Note —</b> ${d.note}</div>
+  </div>`;
+  sd.classList.add('on');
+}
+
+function clearSel(){
+  document.querySelectorAll('.ledger-row').forEach(r=>r.classList.remove('selected'));
+  document.getElementById('selDetail').classList.remove('on');
+}
+
+function runLedgerCounter(){
+  cnt(document.getElementById('ledgerTotal'),44550,2400);
+}
+
+renderFolio(0);
+</script>
