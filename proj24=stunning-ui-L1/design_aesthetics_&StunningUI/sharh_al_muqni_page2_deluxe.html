@@ -1,0 +1,750 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --sand:#C8A96E;--sand-l:#E8D5A8;--sand-d:#8B6A30;
+  --ink:#2C1810;--crimson:#8B1A1A;--gold:#C9933A;
+  --wood:#7A4E2A;--parch:#F7EDD8;--lapis:#1A3A6B;
+  --jade:#1A5A3A;--ochre:#C47A1A;
+  --r:var(--border-radius-md);--rl:var(--border-radius-lg)
+}
+
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+
+.pg{padding:0 0 2rem}
+
+.hero{
+  background:var(--color-background-secondary);
+  border:0.5px solid var(--color-border-tertiary);
+  border-radius:var(--rl);
+  padding:1.25rem 1.5rem 1rem;
+  margin-bottom:1.25rem;
+  text-align:center;
+  position:relative;
+  overflow:hidden
+}
+.hero::before{
+  content:'';position:absolute;inset:0;
+  background:repeating-linear-gradient(45deg,transparent,transparent 18px,rgba(201,147,58,.06) 18px,rgba(201,147,58,.06) 19px);
+  pointer-events:none
+}
+.hero-title{font-size:22px;font-weight:500;color:var(--color-text-primary);letter-spacing:.02em;font-family:var(--font-serif,serif)}
+.hero-ar{font-size:28px;color:#C9933A;font-family:serif;direction:rtl;margin-bottom:4px}
+.hero-sub{font-size:12px;color:var(--color-text-secondary);margin-top:6px;line-height:1.6}
+.hero-pills{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px}
+.pill{font-size:11px;padding:3px 10px;border-radius:20px;border:0.5px solid;font-weight:500}
+.pill-gold{border-color:#C9933A;color:#7A4E0A;background:#FBF0DC}
+.pill-lapis{border-color:#1A3A6B;color:#0A2040;background:#E0EAF8}
+.pill-jade{border-color:#1A5A3A;color:#0A3020;background:#DCF0E8}
+
+.nav{display:flex;gap:4px;margin-bottom:1.25rem;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--rl);padding:6px;flex-wrap:wrap}
+.nav-btn{
+  flex:1;min-width:90px;padding:8px 6px;font-size:12px;font-weight:500;
+  border:0.5px solid transparent;border-radius:var(--r);cursor:pointer;
+  background:transparent;color:var(--color-text-secondary);
+  transition:all .18s;text-align:center;line-height:1.3
+}
+.nav-btn.on{background:var(--color-background-primary);border-color:var(--color-border-secondary);color:var(--color-text-primary)}
+.nav-btn:hover:not(.on){background:var(--color-background-primary);color:var(--color-text-primary)}
+.nav-icon{display:block;font-size:16px;margin-bottom:3px}
+
+.sec{display:none}
+.sec.on{display:block}
+
+/* ── FINGER RECKONER ───────────────────────────────────── */
+.finger-page{display:grid;grid-template-columns:1fr 180px 1fr;gap:1rem;align-items:start}
+.hand-card{background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--rl);padding:1rem;text-align:center}
+.hand-ttl{font-size:12px;font-weight:500;color:var(--color-text-secondary);margin-bottom:8px;text-transform:none}
+.hand-svg{width:100%;max-width:200px;height:260px;cursor:default}
+.jt{cursor:pointer;transition:.15s}
+.jt circle{transition:.15s}
+.jt:hover circle{r:10}
+.jt.lit circle{fill:#8B1A1A!important}
+.jt.lit text{fill:#fff!important}
+
+.mid-panel{display:flex;flex-direction:column;gap:10px;align-items:center;padding-top:.5rem}
+.num-display{
+  background:var(--color-background-primary);border:1px solid var(--color-border-secondary);
+  border-radius:var(--rl);padding:1rem;text-align:center;width:100%;
+  position:relative
+}
+.num-big{font-size:40px;font-weight:500;color:var(--color-text-primary);font-family:var(--font-mono,monospace);line-height:1}
+.num-ar{font-size:22px;color:#C9933A;direction:rtl;margin-top:4px;font-family:serif}
+.num-lbl{font-size:11px;color:var(--color-text-secondary);margin-top:4px}
+.mid-input{width:100%}
+.mid-input input{width:100%;font-size:15px;text-align:center}
+
+.legend-mini{display:flex;flex-direction:column;gap:5px;width:100%}
+.leg-row{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-text-secondary)}
+.leg-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;border:1.5px solid}
+
+/* ── TAKHT (DUST BOARD) ────────────────────────────────── */
+.takht-outer{background:#6B4020;border-radius:10px;padding:10px;width:fit-content;margin:0 auto}
+.takht-inner{background:#C8A96E;border-radius:6px;padding:4px;display:grid;gap:3px}
+.tk{
+  width:44px;height:44px;background:#E8D5A8;border-radius:4px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;font-family:var(--font-mono,monospace);
+  color:#2C1810;cursor:pointer;border:1px solid #B8986A;
+  transition:.1s;font-weight:500;user-select:none
+}
+.tk:hover{background:#D4BB88}
+.tk.sel{background:#FFF8EC;border-color:#8B1A1A;border-width:2px}
+.tk.res{background:#F0E0B8;color:#8B1A1A;font-weight:700}
+.tk.dim{opacity:.35}
+.tk.op-label{
+  background:transparent;border:none;color:var(--color-text-secondary);
+  font-size:13px;font-weight:500;cursor:default
+}
+.tk.row-label{
+  background:transparent;border:none;color:var(--color-text-secondary);
+  font-size:11px;cursor:default;justify-content:flex-end;padding-right:6px;width:36px
+}
+
+.takht-controls{display:flex;gap:8px;margin-top:.75rem;flex-wrap:wrap;justify-content:center}
+.takht-info{text-align:center;font-size:13px;color:var(--color-text-secondary);margin-top:.5rem;min-height:22px}
+
+/* ── LATTICE ───────────────────────────────────────────── */
+.lat-controls{display:flex;gap:10px;align-items:center;justify-content:center;margin-bottom:1rem;flex-wrap:wrap}
+.lat-controls input{width:90px;font-size:18px;text-align:center;font-family:var(--font-mono,monospace)}
+.lat-wrap{overflow-x:auto}
+#lat-canvas{display:block;margin:0 auto}
+.lat-result{text-align:center;margin-top:.75rem;font-size:20px;font-weight:500;color:var(--color-text-primary)}
+.lat-steps{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:.5rem}
+.lat-step-pill{font-size:11px;padding:3px 8px;border-radius:12px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);color:var(--color-text-secondary)}
+
+/* ── GALLEY ────────────────────────────────────────────── */
+.gal-controls{display:flex;gap:10px;align-items:center;justify-content:center;margin-bottom:1rem;flex-wrap:wrap}
+.gal-controls input{width:120px;font-size:16px;text-align:center}
+.gal-board{background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--rl);padding:1rem;font-family:var(--font-mono,monospace);font-size:15px;overflow-x:auto}
+.gal-row{display:flex;gap:4px;align-items:center;min-height:28px;flex-wrap:wrap}
+.gal-cell{
+  width:28px;height:28px;display:flex;align-items:center;justify-content:center;
+  font-size:15px;border-radius:4px;position:relative;transition:.2s
+}
+.gal-cell.active-d{background:#FFF8EC;border:1px solid #C9933A;color:#5A2A00}
+.gal-cell.scratched{text-decoration:line-through;color:var(--color-text-secondary)}
+.gal-cell.result-d{color:#1A5A3A;font-weight:500}
+.gal-cell.divisor-d{color:#8B1A1A;font-weight:500}
+.gal-step-info{margin-top:.5rem;font-size:13px;color:var(--color-text-secondary);font-family:var(--font-sans,sans-serif);text-align:center}
+.gal-nav{display:flex;gap:8px;justify-content:center;margin-top:.75rem}
+.gal-progress{display:flex;gap:4px;justify-content:center;margin-top:.5rem;flex-wrap:wrap}
+.gal-dot{width:8px;height:8px;border-radius:50%;background:var(--color-border-secondary);transition:.2s}
+.gal-dot.on{background:#8B1A1A}
+
+/* ── REF TABLE ─────────────────────────────────────────── */
+.ref-wrap{overflow-x:auto}
+.ref-tbl{width:100%;border-collapse:collapse;font-size:13px}
+.ref-tbl th{
+  background:var(--color-background-secondary);padding:8px 10px;
+  text-align:left;font-weight:500;font-size:11px;color:var(--color-text-secondary);
+  border-bottom:1px solid var(--color-border-secondary);white-space:nowrap
+}
+.ref-tbl td{padding:7px 10px;border-bottom:0.5px solid var(--color-border-tertiary);color:var(--color-text-primary);vertical-align:middle}
+.ref-tbl tr:hover td{background:var(--color-background-secondary)}
+.n-badge{
+  display:inline-flex;align-items:center;justify-content:center;
+  background:#8B1A1A;color:#fff;padding:2px 7px;border-radius:4px;
+  font-weight:500;font-size:12px;min-width:38px;font-family:var(--font-mono,monospace)
+}
+.ar-num{font-size:20px;font-family:serif;color:#C9933A;direction:rtl}
+.hand-badge{font-size:11px;padding:2px 7px;border-radius:10px;font-weight:500}
+.hb-l{background:#E0EAF8;color:#0A2040;border:0.5px solid #85B7EB}
+.hb-r{background:#FCEBEB;color:#501313;border:0.5px solid #F09595}
+
+/* ── MERCHANT ──────────────────────────────────────────── */
+.merchant-hero{
+  border:1px solid var(--color-border-secondary);border-radius:var(--rl);
+  padding:1.25rem;margin-bottom:1rem;
+  background:var(--color-background-secondary);
+  position:relative;overflow:hidden
+}
+.merchant-hero::after{
+  content:'';position:absolute;top:-20px;right:-20px;
+  width:100px;height:100px;border-radius:50%;
+  border:20px solid rgba(201,147,58,.1);pointer-events:none
+}
+.prob-text{font-size:15px;color:var(--color-text-primary);font-style:italic;line-height:1.7;margin:.5rem 0}
+.method-tabs{display:flex;gap:6px;margin-bottom:1rem;flex-wrap:wrap}
+.mth-btn{padding:7px 14px;font-size:13px;border:0.5px solid var(--color-border-secondary);border-radius:var(--r);cursor:pointer;background:var(--color-background-primary);color:var(--color-text-secondary);transition:.15s;font-weight:500}
+.mth-btn.on{background:#FBF0DC;border-color:#C9933A;color:#5A2A00}
+.method-body{
+  background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);
+  border-radius:var(--r);padding:1rem;font-size:13px;line-height:1.8;color:var(--color-text-primary);
+  white-space:pre-wrap;font-family:var(--font-mono,monospace);min-height:100px
+}
+.gen-section{background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--rl);padding:1rem}
+.gen-ttl{font-size:14px;font-weight:500;color:var(--color-text-primary);margin-bottom:.75rem}
+.diff-row{display:flex;gap:8px;margin-bottom:.75rem;flex-wrap:wrap}
+.diff-btn{padding:6px 16px;font-size:12px;border:0.5px solid var(--color-border-secondary);border-radius:20px;cursor:pointer;background:var(--color-background-primary);color:var(--color-text-secondary);transition:.15s}
+.diff-btn:hover{border-color:var(--color-border-primary);color:var(--color-text-primary)}
+.gen-out{font-size:13px;color:var(--color-text-primary);line-height:1.7;min-height:60px;padding:.5rem 0}
+
+/* ── RESPONSIVE ─────────────────────────────────────────── */
+@media(max-width:560px){
+  .finger-page{grid-template-columns:1fr;gap:.75rem}
+  .mid-panel{flex-direction:row;flex-wrap:wrap;padding-top:0}
+  .num-display{width:auto;flex:1;min-width:140px}
+}
+</style>
+
+<h2 class="sr-only">Sharh al-Muqni' fi al-Hisab — interactive arithmetic interface with finger reckoning, dust board, lattice multiplier, galley division, reference table, and merchant problems.</h2>
+
+<div class="pg">
+
+<div class="hero">
+  <div class="hero-ar">شرح المقنع في الحساب</div>
+  <div class="hero-title">Sharh al-Muqni' fi al-Hisab</div>
+  <div class="hero-sub">Ibn al-Ha'im al-Ishbili · Andalusia / Morocco · 13th century<br>The definitive manual on finger reckoning and dust-board arithmetic</div>
+  <div class="hero-pills">
+    <span class="pill pill-gold">Hisab al-'uqūd</span>
+    <span class="pill pill-lapis">Takht arithmetic</span>
+    <span class="pill pill-jade">Merchant mathematics</span>
+  </div>
+</div>
+
+<div class="nav">
+  <button class="nav-btn on" onclick="switchSec('fingers',this)"><span class="nav-icon">✋</span>Finger reckoner</button>
+  <button class="nav-btn" onclick="switchSec('takht',this)"><span class="nav-icon">▦</span>Dust board</button>
+  <button class="nav-btn" onclick="switchSec('lattice',this)"><span class="nav-icon">⊞</span>Lattice 47×83</button>
+  <button class="nav-btn" onclick="switchSec('galley',this)"><span class="nav-icon">÷</span>Galley division</button>
+  <button class="nav-btn" onclick="switchSec('reftable',this)"><span class="nav-icon">📋</span>Reference</button>
+  <button class="nav-btn" onclick="switchSec('merchant',this)"><span class="nav-icon">⚖</span>Merchant</button>
+</div>
+
+<!-- ═══════════════════ FINGER RECKONER ═══════════════════ -->
+<div id="sec-fingers" class="sec on">
+  <div class="finger-page">
+
+    <div class="hand-card">
+      <div class="hand-ttl">Left hand · ones &amp; tens</div>
+      <svg class="hand-svg" viewBox="0 0 180 260" id="lh">
+        <rect x="30" y="145" width="120" height="100" rx="22" fill="var(--color-background-primary)" stroke="var(--color-border-secondary)" stroke-width="1"/>
+        <rect x="10" y="128" width="30" height="50" rx="10" fill="var(--color-background-primary)" stroke="var(--color-border-secondary)" stroke-width="1"/>
+        <rect x="45" y="48" width="28" height="108" rx="11" fill="var(--color-background-primary)" stroke="var(--color-border-secondary)" stroke-width="1"/>
+        <rect x="78" y="33" width="28" height="123" rx="11" fill="var(--color-background-primary)" stroke="var(--color-border-secondary)" stroke-width="1"/>
+        <rect x="111" y="48" width="26" height="108" rx="11" fill="var(--color-background-primary)" stroke="var(--color-border-secondary)" stroke-width="1"/>
+        <rect x="139" y="72" width="23" height="84" rx="10" fill="var(--color-background-primary)" stroke="var(--color-border-secondary)" stroke-width="1"/>
+        <g class="jt" data-h="L" data-v="1" onclick="tJ(this)"><circle cx="25" cy="136" r="9" fill="var(--color-background-primary)" stroke="#C8A96E" stroke-width="1.5"/><text x="25" y="140" text-anchor="middle" font-size="10" fill="var(--color-text-primary)" font-weight="500" font-family="serif">١</text></g>
+        <g class="jt" data-h="L" data-v="2" onclick="tJ(this)"><circle cx="25" cy="158" r="9" fill="var(--color-background-primary)" stroke="#C8A96E" stroke-width="1.5"/><text x="25" y="162" text-anchor="middle" font-size="10" fill="var(--color-text-primary)" font-weight="500" font-family="serif">٢</text></g>
+        <g class="jt" data-h="L" data-v="3" onclick="tJ(this)"><circle cx="59" cy="57" r="9" fill="var(--color-background-primary)" stroke="#C8A96E" stroke-width="1.5"/><text x="59" y="61" text-anchor="middle" font-size="10" fill="var(--color-text-primary)" font-weight="500" font-family="serif">٣</text></g>
+        <g class="jt" data-h="L" data-v="4" onclick="tJ(this)"><circle cx="59" cy="92" r="9" fill="var(--color-background-primary)" stroke="#C8A96E" stroke-width="1.5"/><text x="59" y="96" text-anchor="middle" font-size="10" fill="var(--color-text-primary)" font-weight="500" font-family="serif">٤</text></g>
+        <g class="jt" data-h="L" data-v="5" onclick="tJ(this)"><circle cx="92" cy="42" r="9" fill="var(--color-background-primary)" stroke="#C8A96E" stroke-width="1.5"/><text x="92" y="46" text-anchor="middle" font-size="10" fill="var(--color-text-primary)" font-weight="500" font-family="serif">٥</text></g>
+        <g class="jt" data-h="L" data-v="6" onclick="tJ(this)"><circle cx="92" cy="76" r="9" fill="var(--color-background-primary)" stroke="#C8A96E" stroke-width="1.5"/><text x="92" y="80" text-anchor="middle" font-size="10" fill="var(--color-text-primary)" font-weight="500" font-family="serif">٦</text></g>
+        <g class="jt" data-h="L" data-v="7" onclick="tJ(this)"><circle cx="124" cy="57" r="9" fill="var(--color-background-primary)" stroke="#C8A96E" stroke-width="1.5"/><text x="124" y="61" text-anchor="middle" font-size="10" fill="var(--color-text-primary)" font-weight="500" font-family="serif">٧</text></g>
+        <g class="jt" data-h="L" data-v="8" onclick="tJ(this)"><circle cx="124" cy="92" r="9" fill="var(--color-background-primary)" stroke="#C8A96E" stroke-width="1.5"/><text x="124" y="96" text-anchor="middle" font-size="10" fill="var(--color-text-primary)" font-weight="500" font-family="serif">٨</text></g>
+        <g class="jt" data-h="L" data-v="9" onclick="tJ(this)"><circle cx="150" cy="81" r="9" fill="var(--color-background-primary)" stroke="#C8A96E" stroke-width="1.5"/><text x="150" y="85" text-anchor="middle" font-size="10" fill="var(--color-text-primary)" font-weight="500" font-family="serif">٩</text></g>
+        <g class="jt" data-h="L" data-v="10" onclick="tJ(this)"><circle cx="59" cy="126" r="9" fill="var(--color-background-primary)" stroke="#C9933A" stroke-width="1.5"/><text x="59" y="130" text-anchor="middle" font-size="8" fill="var(--color-text-primary)" font-weight="500">10</text></g>
+        <g class="jt" data-h="L" data-v="20" onclick="tJ(this)"><circle cx="92" cy="122" r="9" fill="var(--color-background-primary)" stroke="#C9933A" stroke-width="1.5"/><text x="92" y="126" text-anchor="middle" font-size="8" fill="var(--color-text-primary)" font-weight="500">20</text></g>
+        <g class="jt" data-h="L" data-v="30" onclick="tJ(this)"><circle cx="124" cy="126" r="9" fill="var(--color-background-primary)" stroke="#C9933A" stroke-width="1.5"/><text x="124" y="130" text-anchor="middle" font-size="8" fill="var(--color-text-primary)" font-weight="500">30</text></g>
+        <g class="jt" data-h="L" data-v="40" onclick="tJ(this)"><circle cx="150" cy="130" r="9" fill="var(--color-background-primary)" stroke="#C9933A" stroke-width="1.5"/><text x="150" y="134" text-anchor="middle" font-size="8" fill="var(--color-text-primary)" font-weight="500">40</text></g>
+        <text x="90" y="208" text-anchor="middle" font-size="11" fill="var(--color-text-secondary)">ones · tens</text>
+      </svg>
+    </div>
+
+    <div class="mid-panel">
+      <div class="num-display">
+        <div class="num-big" id="fd">0</div>
+        <div class="num-ar" id="fd-ar">٠</div>
+        <div class="num-lbl" id="fd-lbl">tap joints to build a number</div>
+      </div>
+      <div class="mid-input">
+        <input type="number" id="ni" min="1" max="9999" placeholder="Type 1–9999" oninput="n2f(+this.value)">
+      </div>
+      <button onclick="clearF()" style="width:100%;font-size:12px">clear all joints</button>
+      <div class="legend-mini">
+        <div class="leg-row"><div class="leg-dot" style="background:#C8A96E;border-color:#C8A96E"></div><span>ones 1–9</span></div>
+        <div class="leg-row"><div class="leg-dot" style="background:#C9933A;border-color:#C9933A"></div><span>tens 10–40</span></div>
+        <div class="leg-row"><div class="leg-dot" style="background:#8B1A1A;border-color:#8B1A1A"></div><span>hundreds 100–700</span></div>
+        <div class="leg-row"><div class="leg-dot" style="background:#1A3A6B;border-color:#1A3A6B"></div><span>thousands 1000–4000</span></div>
+      </div>
+    </div>
+
+    <div class="hand-card">
+      <div class="hand-ttl">Right hand · hundreds &amp; thousands</div>
+      <svg class="hand-svg" viewBox="0 0 180 260" id="rh">
+        <rect x="30" y="145" width="120" height="100" rx="22" fill="var(--color-background-primary)" stroke="var(--color-border-secondary)" stroke-width="1"/>
+        <rect x="140" y="128" width="30" height="50" rx="10" fill="var(--color-background-primary)" stroke="var(--color-border-secondary)" stroke-width="1"/>
+        <rect x="107" y="48" width="28" height="108" rx="11" fill="var(--color-background-primary)" stroke="var(--color-border-secondary)" stroke-width="1"/>
+        <rect x="74" y="33" width="28" height="123" rx="11" fill="var(--color-background-primary)" stroke="var(--color-border-secondary)" stroke-width="1"/>
+        <rect x="43" y="48" width="26" height="108" rx="11" fill="var(--color-background-primary)" stroke="var(--color-border-secondary)" stroke-width="1"/>
+        <rect x="18" y="72" width="23" height="84" rx="10" fill="var(--color-background-primary)" stroke="var(--color-border-secondary)" stroke-width="1"/>
+        <g class="jt" data-h="R" data-v="100" onclick="tJ(this)"><circle cx="121" cy="57" r="9" fill="var(--color-background-primary)" stroke="#8B1A1A" stroke-width="1.5"/><text x="121" y="61" text-anchor="middle" font-size="8" fill="var(--color-text-primary)" font-weight="500">100</text></g>
+        <g class="jt" data-h="R" data-v="200" onclick="tJ(this)"><circle cx="121" cy="92" r="9" fill="var(--color-background-primary)" stroke="#8B1A1A" stroke-width="1.5"/><text x="121" y="96" text-anchor="middle" font-size="8" fill="var(--color-text-primary)" font-weight="500">200</text></g>
+        <g class="jt" data-h="R" data-v="300" onclick="tJ(this)"><circle cx="88" cy="42" r="9" fill="var(--color-background-primary)" stroke="#8B1A1A" stroke-width="1.5"/><text x="88" y="46" text-anchor="middle" font-size="8" fill="var(--color-text-primary)" font-weight="500">300</text></g>
+        <g class="jt" data-h="R" data-v="400" onclick="tJ(this)"><circle cx="88" cy="76" r="9" fill="var(--color-background-primary)" stroke="#8B1A1A" stroke-width="1.5"/><text x="88" y="80" text-anchor="middle" font-size="8" fill="var(--color-text-primary)" font-weight="500">400</text></g>
+        <g class="jt" data-h="R" data-v="500" onclick="tJ(this)"><circle cx="56" cy="57" r="9" fill="var(--color-background-primary)" stroke="#8B1A1A" stroke-width="1.5"/><text x="56" y="61" text-anchor="middle" font-size="8" fill="var(--color-text-primary)" font-weight="500">500</text></g>
+        <g class="jt" data-h="R" data-v="600" onclick="tJ(this)"><circle cx="56" cy="92" r="9" fill="var(--color-background-primary)" stroke="#8B1A1A" stroke-width="1.5"/><text x="56" y="96" text-anchor="middle" font-size="8" fill="var(--color-text-primary)" font-weight="500">600</text></g>
+        <g class="jt" data-h="R" data-v="700" onclick="tJ(this)"><circle cx="29" cy="81" r="9" fill="var(--color-background-primary)" stroke="#8B1A1A" stroke-width="1.5"/><text x="29" y="85" text-anchor="middle" font-size="8" fill="var(--color-text-primary)" font-weight="500">700</text></g>
+        <g class="jt" data-h="R" data-v="1000" onclick="tJ(this)"><circle cx="155" cy="136" r="9" fill="var(--color-background-primary)" stroke="#1A3A6B" stroke-width="1.5"/><text x="155" y="140" text-anchor="middle" font-size="7" fill="var(--color-text-primary)" font-weight="500">1K</text></g>
+        <g class="jt" data-h="R" data-v="2000" onclick="tJ(this)"><circle cx="121" cy="126" r="9" fill="var(--color-background-primary)" stroke="#1A3A6B" stroke-width="1.5"/><text x="121" y="130" text-anchor="middle" font-size="7" fill="var(--color-text-primary)" font-weight="500">2K</text></g>
+        <g class="jt" data-h="R" data-v="3000" onclick="tJ(this)"><circle cx="88" cy="122" r="9" fill="var(--color-background-primary)" stroke="#1A3A6B" stroke-width="1.5"/><text x="88" y="126" text-anchor="middle" font-size="7" fill="var(--color-text-primary)" font-weight="500">3K</text></g>
+        <g class="jt" data-h="R" data-v="4000" onclick="tJ(this)"><circle cx="56" cy="126" r="9" fill="var(--color-background-primary)" stroke="#1A3A6B" stroke-width="1.5"/><text x="56" y="130" text-anchor="middle" font-size="7" fill="var(--color-text-primary)" font-weight="500">4K</text></g>
+        <text x="90" y="208" text-anchor="middle" font-size="11" fill="var(--color-text-secondary)">hundreds · thousands</text>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ TAKHT ═══════════════════════════ -->
+<div id="sec-takht" class="sec">
+  <div style="font-size:13px;color:var(--color-text-secondary);text-align:center;margin-bottom:.75rem">
+    Click a cell · type a digit · arrow keys to navigate · erase with backspace
+  </div>
+  <div class="takht-outer">
+    <div class="takht-inner" id="tk-grid" style="grid-template-columns:repeat(10,44px)"></div>
+  </div>
+  <div class="takht-controls">
+    <button onclick="clrTk()">Erase all</button>
+    <button onclick="loadEx('add')">357 + 468</button>
+    <button onclick="loadEx('sub')">821 − 347</button>
+    <button onclick="loadEx('mul')">47 × 83</button>
+  </div>
+  <div class="takht-info" id="tk-info"></div>
+</div>
+
+<!-- ═══════════════════ LATTICE ════════════════════════ -->
+<div id="sec-lattice" class="sec">
+  <div class="lat-controls">
+    <input type="number" id="la" value="47" min="1" max="9999">
+    <span style="font-size:22px;color:var(--color-text-secondary);font-weight:500">×</span>
+    <input type="number" id="lb" value="83" min="1" max="9999">
+    <button onclick="drawLat()" style="padding:8px 18px;font-size:14px">Compute ↗</button>
+  </div>
+  <div class="lat-wrap"><canvas id="lat-canvas" width="480" height="300"></canvas></div>
+  <div class="lat-result" id="lat-ans"></div>
+  <div class="lat-steps" id="lat-diag-pills"></div>
+</div>
+
+<!-- ═══════════════════ GALLEY ═════════════════════════ -->
+<div id="sec-galley" class="sec">
+  <div class="gal-controls">
+    <input type="number" id="gd" value="3901" placeholder="Dividend">
+    <span style="font-size:22px;color:var(--color-text-secondary)">÷</span>
+    <input type="number" id="gv" value="47" placeholder="Divisor">
+    <button onclick="buildGalley()" style="padding:8px 18px;font-size:14px">Divide ↗</button>
+  </div>
+  <div class="gal-board" id="gal-board"></div>
+  <div class="gal-step-info" id="gal-info"></div>
+  <div class="gal-nav">
+    <button onclick="galStep(-1)">← prev</button>
+    <button onclick="galStep(1)">next →</button>
+    <button onclick="galStep(999)">finish</button>
+  </div>
+  <div class="gal-progress" id="gal-dots"></div>
+</div>
+
+<!-- ═══════════════════ REF TABLE ══════════════════════ -->
+<div id="sec-reftable" class="sec">
+  <div class="ref-wrap">
+    <table class="ref-tbl" id="ref-tbl">
+      <thead><tr>
+        <th>Value</th><th>Ghubar</th><th>Hand</th><th>Finger</th><th>Joint</th><th>Merchant context</th>
+      </tr></thead>
+      <tbody id="ref-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══════════════════ MERCHANT ═══════════════════════ -->
+<div id="sec-merchant" class="sec">
+  <div class="merchant-hero">
+    <div style="font-size:12px;font-weight:500;color:var(--color-text-secondary);margin-bottom:4px">Classic problem from the manuscript</div>
+    <div class="prob-text">"A merchant buys 47 cubits of Andalusian silk at 83 dirhams per cubit. What is the total price?"</div>
+    <div style="font-size:12px;color:var(--color-text-secondary)">Choose a method to see the working:</div>
+    <div class="method-tabs" style="margin-top:.5rem">
+      <button class="mth-btn on" onclick="showM('finger',this)">Finger reckoning</button>
+      <button class="mth-btn" onclick="showM('lattice',this)">Lattice grid</button>
+      <button class="mth-btn" onclick="showM('modern',this)">Modern long multiplication</button>
+    </div>
+    <div class="method-body" id="m-body"></div>
+  </div>
+
+  <div class="gen-section">
+    <div class="gen-ttl">Practice problems — generate a new merchant scenario</div>
+    <div class="diff-row">
+      <button class="diff-btn" onclick="genP(2)">Easy · 2-digit</button>
+      <button class="diff-btn" onclick="genP(3)">Medium · 3-digit</button>
+      <button class="diff-btn" onclick="genP(4)">Hard · 4-digit</button>
+    </div>
+    <div class="gen-out" id="gen-out">Select a difficulty above to generate a problem.</div>
+  </div>
+</div>
+
+</div>
+
+<script>
+const AR=['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];
+function toAr(n){return String(n).split('').map(d=>/\d/.test(d)?AR[+d]:d).join('')}
+
+function switchSec(id,btn){
+  document.querySelectorAll('.sec').forEach(s=>s.classList.remove('on'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('on'));
+  document.getElementById('sec-'+id).classList.add('on');
+  btn.classList.add('on');
+  if(id==='lattice')setTimeout(drawLat,60);
+  if(id==='takht')initTk();
+  if(id==='reftable')buildRef();
+  if(id==='galley')buildGalley();
+  if(id==='merchant')showM('finger',document.querySelector('.mth-btn'));
+}
+
+/* ── FINGER ── */
+let aJ={};
+function tJ(el){
+  const v=+el.dataset.v,h=el.dataset.h,k=h+v;
+  if(aJ[k]){delete aJ[k];el.classList.remove('lit');
+    el.querySelector('circle').setAttribute('fill','var(--color-background-primary)');
+    el.querySelector('text').setAttribute('fill','var(--color-text-primary)')}
+  else{aJ[k]=v;el.classList.add('lit');
+    el.querySelector('circle').setAttribute('fill','#8B1A1A');
+    el.querySelector('text').setAttribute('fill','#fff')}
+  updF();
+}
+function updF(){
+  let t=0;for(const k in aJ)t+=aJ[k];
+  document.getElementById('fd').textContent=t||'0';
+  document.getElementById('fd-ar').textContent=toAr(t||0);
+  const c=Object.keys(aJ).length;
+  document.getElementById('fd-lbl').textContent=c?`${c} joint${c>1?'s':''} active`:'tap joints to build a number';
+}
+function clearF(){
+  aJ={};
+  document.querySelectorAll('.jt').forEach(el=>{
+    el.classList.remove('lit');
+    el.querySelector('circle').setAttribute('fill','var(--color-background-primary)');
+    el.querySelector('text').setAttribute('fill','var(--color-text-primary)');
+  });
+  document.getElementById('ni').value='';updF();
+}
+const vMap={1:'L1',2:'L2',3:'L3',4:'L4',5:'L5',6:'L6',7:'L7',8:'L8',9:'L9',10:'L10',20:'L20',30:'L30',40:'L40',100:'R100',200:'R200',300:'R300',400:'R400',500:'R500',600:'R600',700:'R700',1000:'R1000',2000:'R2000',3000:'R3000',4000:'R4000'};
+function n2f(n){
+  if(!n||n<1||n>9999)return;
+  clearF();
+  const parts=[n%10,Math.floor((n%100)/10)*10,Math.floor((n%1000)/100)*100,Math.floor(n/1000)*1000];
+  parts.forEach(v=>{
+    if(!v)return;
+    const key=vMap[v];if(!key)return;
+    const el=document.querySelector(`.jt[data-h="${key[0]}"][data-v="${key.slice(1)}"]`);
+    if(el)tJ(el);
+  });
+}
+
+/* ── TAKHT ── */
+let tkD=Array(6).fill(null).map(()=>Array(10).fill(''));
+let selC=null;
+const ROWS=6,COLS=10;
+const rowLabels=['A','B','C','','=',''];
+const opMap={3:'+'};
+
+function initTk(){
+  const g=document.getElementById('tk-grid');
+  g.innerHTML='';
+  for(let r=0;r<ROWS;r++){
+    const lbl=document.createElement('div');
+    lbl.className='tk row-label';lbl.textContent=rowLabels[r]||'';g.appendChild(lbl);
+    for(let c=0;c<COLS;c++){
+      const d=document.createElement('div');
+      d.className='tk';d.dataset.r=r;d.dataset.c=c;
+      d.textContent=tkD[r][c]||'';
+      if(r===3){d.className='tk dim'}
+      if(r===4){d.className='tk res'}
+      d.onclick=()=>selTk(r,c);
+      g.appendChild(d);
+    }
+  }
+  if(selC)selTk(selC.r,selC.c);
+}
+function selTk(r,c){
+  selC={r,c};
+  document.querySelectorAll('.tk').forEach(el=>el.classList.remove('sel'));
+  const all=document.querySelectorAll('.tk');
+  const idx=r*(COLS+1)+c+1;
+  if(all[idx])all[idx].classList.add('sel');
+}
+document.addEventListener('keydown',e=>{
+  if(!selC||!document.getElementById('sec-takht').classList.contains('on'))return;
+  const{r,c}=selC;
+  if(e.key>='0'&&e.key<='9'){tkD[r][c]=e.key;initTk();selTk(r,c);}
+  else if(e.key==='Backspace'||e.key==='Delete'){tkD[r][c]='';initTk();selTk(r,c);}
+  else if(e.key==='ArrowRight'&&c<COLS-1)selTk(r,c+1);
+  else if(e.key==='ArrowLeft'&&c>0)selTk(r,c-1);
+  else if(e.key==='ArrowDown'&&r<ROWS-1)selTk(r+1,c);
+  else if(e.key==='ArrowUp'&&r>0)selTk(r-1,c);
+});
+function clrTk(){tkD=Array(ROWS).fill(null).map(()=>Array(COLS).fill(''));selC=null;initTk();document.getElementById('tk-info').textContent='';}
+function loadEx(t){
+  clrTk();
+  if(t==='add'){
+    [3,5,7].forEach((d,i)=>tkD[0][4+i]=String(d));
+    [4,6,8].forEach((d,i)=>tkD[1][4+i]=String(d));
+    tkD[3][4]='+'
+    ;[8,2,5].forEach((d,i)=>tkD[4][4+i]=String(d));
+    document.getElementById('tk-info').textContent='357 + 468 = 825 · result in row = ';
+  }else if(t==='sub'){
+    [8,2,1].forEach((d,i)=>tkD[0][4+i]=String(d));
+    [3,4,7].forEach((d,i)=>tkD[1][4+i]=String(d));
+    [4,7,4].forEach((d,i)=>tkD[4][4+i]=String(d));
+    document.getElementById('tk-info').textContent='821 − 347 = 474 · result in row =';
+  }else if(t==='mul'){
+    [4,7].forEach((d,i)=>tkD[0][5+i]=String(d));
+    [8,3].forEach((d,i)=>tkD[1][5+i]=String(d));
+    [3,9,0,1].forEach((d,i)=>tkD[4][3+i]=String(d));
+    document.getElementById('tk-info').textContent='47 × 83 = 3,901 · computed via lattice method below';
+  }
+  initTk();
+}
+initTk();
+
+/* ── LATTICE ── */
+function drawLat(){
+  const a=+(document.getElementById('la').value)||47;
+  const b=+(document.getElementById('lb').value)||83;
+  const aS=String(a),bS=String(b);
+  const C=aS.length,R=bS.length;
+  const cell=72,mL=40,mT=40,mR=30,mB=60;
+  const W=C*cell+mL+mR,H=R*cell+mT+mB;
+  const canvas=document.getElementById('lat-canvas');
+  canvas.width=Math.min(W,560);canvas.height=Math.min(H,380);
+  const sc=Math.min(canvas.width/W,canvas.height/H);
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.save();ctx.scale(sc,sc);
+
+  const dk=matchMedia('(prefers-color-scheme:dark)').matches;
+  const bg=dk?'#3A2E1A':'#D4B896';
+  const cf=dk?'#2A2010':'#F5E6D3';
+  const bd=dk?'#8A6830':'#8B5A2B';
+  const dg=dk?'#9A7840':'#7A4E2A';
+  const nc=dk?'#F0E0C0':'#2C1810';
+  const tc=dk?'#FAC775':'#C9933A';
+  const sc2=dk?'#F09595':'#8B1A1A';
+  const resC=dk?'#FAC775':'#5A2A00';
+
+  ctx.fillStyle=bg;
+  ctx.beginPath();ctx.roundRect(mL-6,mT-6,C*cell+12,R*cell+12,6);ctx.fill();
+
+  const diags=Array(C+R).fill(0);
+  for(let r=0;r<R;r++){
+    for(let c=0;c<C;c++){
+      const x=mL+c*cell,y=mT+r*cell;
+      const p=+aS[c] * +bS[r];
+      const top=Math.floor(p/10),bot=p%10;
+      ctx.fillStyle=cf;ctx.strokeStyle=bd;ctx.lineWidth=0.8;
+      ctx.fillRect(x,y,cell,cell);ctx.strokeRect(x,y,cell,cell);
+      ctx.strokeStyle=dg;ctx.lineWidth=0.6;
+      ctx.beginPath();ctx.moveTo(x,y+cell);ctx.lineTo(x+cell,y);ctx.stroke();
+      ctx.fillStyle=nc;ctx.font=`bold ${Math.round(cell*.3)}px monospace`;ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(String(top),x+cell*.32,y+cell*.3);
+      ctx.fillText(String(bot),x+cell*.68,y+cell*.7);
+      const di=(C-1-c)+r;
+      diags[di]+=bot;
+      if(di+1<diags.length)diags[di+1]+=top;
+    }
+  }
+  for(let i=0;i<diags.length-1;i++){if(diags[i]>=10){diags[i+1]+=Math.floor(diags[i]/10);diags[i]%=10;}}
+
+  ctx.fillStyle=tc;ctx.font=`bold ${Math.round(cell*.42)}px monospace`;ctx.textAlign='center';ctx.textBaseline='middle';
+  for(let c=0;c<C;c++)ctx.fillText(aS[c],mL+c*cell+cell/2,mT-18);
+  ctx.fillStyle=sc2;
+  for(let r=0;r<R;r++)ctx.fillText(bS[r],mL+C*cell+20,mT+r*cell+cell/2);
+
+  ctx.fillStyle=resC;ctx.font=`bold ${Math.round(cell*.28)}px monospace`;
+  const pills=[];
+  for(let i=0;i<diags.length;i++){
+    const gx=mL+(C-i-0.5)*cell;
+    ctx.fillText(String(diags[i]),gx<mL?mL-20:gx,mT+R*cell+28);
+    pills.push(diags[i]);
+  }
+
+  ctx.restore();
+  const res=a*b;
+  document.getElementById('lat-ans').textContent=`${a.toLocaleString()} × ${b.toLocaleString()} = ${res.toLocaleString()}`;
+  const dp=document.getElementById('lat-diag-pills');
+  dp.innerHTML=pills.slice().reverse().map((d,i)=>
+    `<span class="lat-step-pill" style="${i===0?'border-color:#C9933A;color:#5A2A00':''}">${d}</span>`
+  ).join('→');
+}
+setTimeout(drawLat,80);
+
+/* ── GALLEY ── */
+let galSteps=[],galIdx=0;
+function buildGalley(){
+  const dividend=+(document.getElementById('gd').value)||3901;
+  const divisor=+(document.getElementById('gv').value)||47;
+  if(!divisor){return;}
+  galSteps=[];galIdx=0;
+
+  galSteps.push({type:'setup',dividend,divisor,label:'Write the dividend on the dust board, divisor below'});
+  let rem=dividend,quot=0;
+  const dS=String(dividend);
+  let pos=dS.length-String(divisor).length;
+  while(pos>=0){
+    const shift=Math.pow(10,pos);
+    const d=Math.floor(rem/(divisor*shift));
+    if(d>0){
+      const sub=d*divisor*shift;
+      galSteps.push({type:'step',rem,divisor,d,sub,shift,pos,newRem:rem-sub,quot:quot+d*shift,
+        label:`Fit ${d} × ${divisor.toLocaleString()} × ${shift} = ${sub.toLocaleString()} into ${rem.toLocaleString()}`});
+      rem-=sub;quot+=d*shift;
+    }
+    pos--;
+  }
+  galSteps.push({type:'result',quot,rem,dividend,divisor,label:`Done: ${dividend.toLocaleString()} ÷ ${divisor.toLocaleString()} = ${quot.toLocaleString()} remainder ${rem}`});
+
+  const dots=document.getElementById('gal-dots');
+  dots.innerHTML=galSteps.map((_,i)=>`<div class="gal-dot" id="gd${i}"></div>`).join('');
+  renderGalley();
+}
+function galStep(d){
+  galIdx=d===999?galSteps.length-1:Math.max(0,Math.min(galSteps.length-1,galIdx+d));
+  renderGalley();
+}
+function renderGalley(){
+  if(!galSteps.length)return;
+  const step=galSteps[galIdx];
+  const board=document.getElementById('gal-board');
+  document.getElementById('gal-info').textContent=step.label||'';
+  document.querySelectorAll('.gal-dot').forEach((d,i)=>{d.classList.toggle('on',i<=galIdx);});
+
+  let html='';
+  if(step.type==='setup'){
+    html=`<div class="gal-row" style="margin-bottom:8px">${String(step.dividend).split('').map(d=>`<div class="gal-cell active-d">${d}</div>`).join('')}</div>`;
+    html+=`<div class="gal-row">${String(step.divisor).split('').map(d=>`<div class="gal-cell divisor-d">${d}</div>`).join('')}</div>`;
+  }else if(step.type==='step'){
+    const remS=String(step.rem).padStart(String(step.dividend).length,'0');
+    const subS=String(step.sub).padStart(String(step.dividend).length,'0');
+    const newS=String(step.newRem).padStart(String(step.dividend).length,'0');
+    html=`<div class="gal-row" style="margin-bottom:4px">${remS.split('').map(d=>`<div class="gal-cell active-d">${d}</div>`).join('')}</div>`;
+    html+=`<div class="gal-row" style="margin-bottom:4px">${subS.split('').map((d,i)=>`<div class="gal-cell${d!=='0'?' divisor-d':''}">${d!=='0'?'−'+d:''}</div>`).join('')}</div>`;
+    html+=`<div class="gal-row">${newS.split('').map(d=>`<div class="gal-cell result-d">${d}</div>`).join('')}</div>`;
+    html+=`<div style="font-size:12px;color:var(--color-text-secondary);margin-top:6px;font-family:var(--font-sans)">Quotient so far: ${step.quot.toLocaleString()}</div>`;
+  }else{
+    html=`<div class="gal-row"><div style="font-size:16px;font-weight:500;color:#1A5A3A">Quotient: ${step.quot.toLocaleString()}</div></div>`;
+    html+=`<div class="gal-row" style="margin-top:6px"><div style="font-size:14px;color:var(--color-text-secondary)">Remainder: ${step.rem}</div></div>`;
+    html+=`<div style="font-size:12px;color:var(--color-text-secondary);margin-top:8px;font-family:var(--font-sans)">Verify: ${step.divisor.toLocaleString()} × ${step.quot.toLocaleString()} + ${step.rem} = ${(step.divisor*step.quot+step.rem).toLocaleString()}</div>`;
+  }
+  board.innerHTML=html;
+}
+buildGalley();
+
+/* ── REF TABLE ── */
+const refD=[
+  [1,'١','Left','Thumb','Tip bent','Price: 1 dirham'],
+  [2,'٢','Left','Thumb','Base joint','2 cubits of cloth'],
+  [3,'٣','Left','Index','Tip joint','3 mithqal of spice'],
+  [4,'٤','Left','Index','Middle joint','4 bags of grain'],
+  [5,'٥','Left','Middle','Tip joint','5th market day'],
+  [6,'٦','Left','Middle','Middle joint','6 camel loads'],
+  [7,'٧','Left','Ring','Tip joint','7 days' wages'],
+  [8,'٨','Left','Ring','Middle joint','8 bales of linen'],
+  [9,'٩','Left','Pinky','Tip bent','9 gold dinars'],
+  [10,'١٠','Left','Index','Lower joint','10 dirhams tax'],
+  [20,'٢٠','Left','Middle','Lower joint','20-day journey'],
+  [30,'٣٠','Left','Ring','Lower joint','30 cubits of silk'],
+  [40,'٤٠','Left','Pinky','Lower joint','40 head of livestock'],
+  [100,'١٠٠','Right','Index','Tip joint','100-dinar estate'],
+  [200,'٢٠٠','Right','Index','Middle joint','200-dinar dowry'],
+  [300,'٣٠٠','Right','Middle','Tip joint','300-load cargo'],
+  [400,'٤٠٠','Right','Middle','Middle joint','400-cubit land'],
+  [500,'٥٠٠','Right','Ring','Tip joint','500-dirham house'],
+  [700,'٧٠٠','Right','Pinky','Bent','700 dinars tribute'],
+  [1000,'١٠٠٠','Right','Thumb','Tip bent','Major trade: 1000 dinars'],
+  [2000,'٢٠٠٠','Right','Index','Lower joint','Large estate: 2000'],
+];
+function buildRef(){
+  const b=document.getElementById('ref-body');
+  if(b.children.length)return;
+  refD.forEach(([n,ar,h,f,j,m])=>{
+    const tr=document.createElement('tr');
+    const hb=h==='Left'?'hb-l':'hb-r';
+    tr.innerHTML=`<td><span class="n-badge">${n}</span></td>
+      <td><span class="ar-num">${ar}</span></td>
+      <td><span class="hand-badge ${hb}">${h}</span></td>
+      <td style="color:var(--color-text-secondary)">${f}</td>
+      <td>${j}</td>
+      <td style="font-size:12px;color:var(--color-text-secondary);font-style:italic">${m}</td>`;
+    b.appendChild(tr);
+  });
+}
+
+/* ── MERCHANT ── */
+const mText={
+  finger:`Hisab al-'uqūd method (finger reckoning):
+
+Step 1 — Set 47 on left hand:
+  • Ring finger lower joint → 40
+  • Pinky tip → 7
+  Left hand now holds 47.
+
+Step 2 — Multiply 40 × 83 in the mind:
+  • 40 × 80 = 3,200
+  • 40 × 3  =   120
+  Subtotal  = 3,320
+
+Step 3 — Multiply 7 × 83:
+  • 7 × 80 = 560
+  • 7 × 3  =  21
+  Subtotal =  581
+
+Step 4 — Sum on the dust board:
+  3,320 + 581 = 3,901 dirhams`,
+  lattice:`Lattice (shabaka) method — see the Lattice tab for the full grid:
+
+  Grid: 2 × 2 cells (tens × units for each factor)
+        4    7
+      ┌────┬────┐
+   8  │ 3│2 │ 5│6 │
+      │  2│  6 │
+      ├────┼────┤
+   3  │ 1│2 │ 2│1 │
+      │  2│  1 │
+      └────┴────┘
+
+  Diagonal sums (right to left):
+  Ones:      6+1 = 7
+  Tens:      5+2+2 = 9  (carry 0)
+  Hundreds:  2+1+3 = 6  (carry 0)
+  Thousands: 3
+
+  Read across: 3 · 9 · 0 · 1 = 3,901 dirhams`,
+  modern:`Long multiplication (modern style):
+
+      47
+    × 83
+    ────
+     141   (47 × 3)
+  +3760    (47 × 80)
+    ────
+    3901
+
+  The merchant owes 3,901 dirhams
+  for 47 cubits of Andalusian silk.
+  
+  At the rate of the Almohad dirham,
+  this would fill an entire camel pack.`
+};
+function showM(k,btn){
+  document.querySelectorAll('.mth-btn').forEach(b=>b.classList.remove('on'));
+  if(btn)btn.classList.add('on');
+  const el=document.getElementById('m-body');
+  el.style.whiteSpace='pre-wrap';
+  el.textContent=mText[k]||'';
+}
+showM('finger',document.querySelector('.mth-btn'));
+
+const goods=['Andalusian silk','Egyptian linen','Persian saffron','Moroccan leather','Yemeni incense','Indian pepper','Tunisian olive oil','Damascene steel'];
+const units=['cubits','mithqal','ratl','bales','jars','bolts'];
+const cur=['dirhams','dinars','fals'];
+function genP(digits){
+  const lo=Math.pow(10,digits-1),hi=Math.pow(10,digits)-1;
+  const a=lo+Math.floor(Math.random()*(hi-lo));
+  const b=10+Math.floor(Math.random()*89);
+  const g=goods[Math.floor(Math.random()*goods.length)];
+  const u=units[Math.floor(Math.random()*units.length)];
+  const c=cur[Math.floor(Math.random()*cur.length)];
+  const tot=a*b;
+  document.getElementById('gen-out').textContent=
+    `Problem:\nA merchant buys ${a.toLocaleString()} ${u} of ${g}\nat ${b} ${c} per ${u.slice(0,-1)}.\nWhat is the total cost?\n\nAnswer: ${a.toLocaleString()} × ${b} = ${tot.toLocaleString()} ${c}\n\nTry it: open the Lattice tab and enter ${a} × ${b}.`;
+}
+</script>

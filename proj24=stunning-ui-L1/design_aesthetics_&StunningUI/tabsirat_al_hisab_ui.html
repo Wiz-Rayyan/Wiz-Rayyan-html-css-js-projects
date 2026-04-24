@@ -1,0 +1,444 @@
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#1A1A1A;--rubricate:#C23B22;--parchment:#F5E6D3;--parchment2:#EDD9BC;--comment:#6B7280;
+  --border:rgba(26,26,26,0.15);--border2:rgba(26,26,26,0.3);
+}
+@media(prefers-color-scheme:dark){
+  :root{--ink:#E8DDD0;--parchment:#2A2118;--parchment2:#352B1F;--border:rgba(232,221,208,0.15);--border2:rgba(232,221,208,0.3);--comment:#9CA3AF}
+}
+body{font-family:'Amiri',Georgia,serif;color:var(--ink);background:transparent}
+.page{padding:24px 20px;max-width:680px}
+.title-band{text-align:center;margin-bottom:20px;padding-bottom:16px;border-bottom:1.5px solid var(--rubricate)}
+.title-ar{font-size:22px;font-weight:700;color:var(--rubricate);letter-spacing:0.04em;direction:rtl}
+.title-en{font-size:13px;color:var(--comment);font-style:italic;margin-top:4px}
+.section{margin-bottom:20px;background:var(--parchment);border:0.5px solid var(--border2);border-radius:10px;padding:16px}
+.section-title{font-size:13px;font-weight:700;color:var(--rubricate);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.dots-divider{display:flex;align-items:center;gap:8px;margin:10px 0;justify-content:center}
+.dots-divider::before,.dots-divider::after{content:'';flex:1;height:0.5px;background:var(--border2)}
+.dots-eq{font-size:18px;color:var(--rubricate);letter-spacing:4px;line-height:1}
+
+/* Equation Editor */
+.eq-buttons{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.eq-btn{background:var(--parchment2);border:0.5px solid var(--border2);border-radius:6px;padding:5px 10px;cursor:pointer;font-family:'Amiri',serif;font-size:13px;color:var(--ink);transition:all 0.15s;white-space:nowrap}
+.eq-btn:hover{background:var(--rubricate);color:#fff;border-color:var(--rubricate)}
+.eq-btn.op{color:var(--rubricate);font-weight:700}
+.eq-display{background:var(--parchment2);border:0.5px solid var(--border2);border-radius:8px;padding:14px;min-height:80px;margin-bottom:8px;position:relative}
+.eq-ar{font-size:22px;text-align:center;direction:rtl;color:var(--ink);letter-spacing:0.05em;min-height:32px;line-height:1.5}
+.eq-ar .var-x{color:var(--rubricate);font-weight:700}
+.eq-ar .op-sym{color:var(--rubricate);font-size:16px}
+.eq-modern{font-size:13px;text-align:center;color:var(--comment);font-style:italic;margin-top:6px;min-height:18px}
+.eq-controls{display:flex;gap:8px;margin-top:8px}
+.eq-controls button{flex:1;padding:7px;border-radius:6px;border:0.5px solid var(--border2);background:transparent;cursor:pointer;font-size:12px;color:var(--ink);font-family:'Amiri',serif}
+.eq-controls button:first-child{color:var(--rubricate);border-color:var(--rubricate)}
+.eq-controls button:hover{background:var(--border)}
+.notation-toggle{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--comment);margin-top:8px}
+.toggle-pill{display:flex;background:var(--parchment2);border:0.5px solid var(--border2);border-radius:20px;overflow:hidden}
+.toggle-pill button{padding:4px 10px;border:none;background:transparent;cursor:pointer;font-size:11px;color:var(--comment);font-family:'Amiri',serif;transition:all 0.15s}
+.toggle-pill button.active{background:var(--rubricate);color:#fff}
+
+/* Step-by-step solver */
+.step-list{list-style:none;display:flex;flex-direction:column;gap:8px}
+.step-item{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;background:var(--parchment2);border-radius:6px;border-left:2.5px solid var(--rubricate)}
+.step-num{font-size:11px;color:var(--rubricate);font-weight:700;min-width:18px;line-height:1.7}
+.step-text{font-size:14px;line-height:1.6}
+.step-text .highlight{color:var(--rubricate);font-weight:700}
+.step-eq{font-size:13px;color:var(--comment);font-style:italic;margin-top:2px}
+.solver-controls{display:flex;gap:8px;margin-bottom:10px}
+.solver-btn{padding:6px 14px;border-radius:6px;border:0.5px solid var(--border2);background:transparent;cursor:pointer;font-size:12px;color:var(--ink);font-family:'Amiri',serif}
+.solver-btn.active{background:var(--rubricate);color:#fff;border-color:var(--rubricate)}
+.solver-btn:hover:not(.active){background:var(--border)}
+.result-box{margin-top:10px;padding:10px 14px;border:1px solid var(--rubricate);border-radius:8px;text-align:center}
+.result-label{font-size:11px;color:var(--comment);margin-bottom:4px}
+.result-val{font-size:22px;color:var(--rubricate);font-weight:700}
+
+/* Inheritance calculator */
+.estate-row{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+.estate-input{flex:1;padding:7px 10px;border-radius:6px;border:0.5px solid var(--border2);background:var(--parchment2);color:var(--ink);font-family:'Amiri',serif;font-size:14px}
+.estate-input:focus{outline:none;border-color:var(--rubricate)}
+.heir-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.heir-card{background:var(--parchment2);border:0.5px solid var(--border2);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:2px}
+.heir-name{font-size:13px;font-weight:700;color:var(--ink)}
+.heir-frac{font-size:18px;color:var(--rubricate);line-height:1.2;text-align:center}
+.heir-frac-bar{display:flex;flex-direction:column;align-items:center;gap:0}
+.heir-frac-num{font-size:16px;font-weight:700;line-height:1}
+.heir-frac-line{width:28px;height:1.5px;background:var(--rubricate);margin:2px 0}
+.heir-frac-den{font-size:14px;line-height:1}
+.heir-amount{font-size:12px;color:var(--comment);margin-top:4px;text-align:center}
+
+/* Fraction tree SVG */
+.fraction-tree{width:100%;overflow:visible}
+
+/* Flashcards */
+.flashcard-wrap{perspective:600px;height:120px;cursor:pointer}
+.flashcard{width:100%;height:100%;position:relative;transform-style:preserve-3d;transition:transform 0.5s}
+.flashcard.flipped{transform:rotateY(180deg)}
+.flashcard-face{position:absolute;inset:0;border-radius:10px;border:0.5px solid var(--border2);background:var(--parchment2);display:flex;flex-direction:column;align-items:center;justify-content:center;backface-visibility:hidden;gap:6px;padding:12px}
+.flashcard-back{transform:rotateY(180deg)}
+.fc-symbol{font-size:32px;color:var(--rubricate);font-weight:700}
+.fc-label{font-size:12px;color:var(--comment)}
+.fc-modern{font-size:18px;color:var(--ink)}
+.fc-hint{font-size:11px;color:var(--border2);margin-top:4px}
+.flashcard-nav{display:flex;gap:8px;justify-content:center;margin-top:8px}
+.fc-dot{width:8px;height:8px;border-radius:50%;background:var(--border2);border:none;cursor:pointer;padding:0}
+.fc-dot.active{background:var(--rubricate)}
+
+/* Root visualizer */
+.root-vis{display:flex;flex-direction:column;align-items:center;gap:6px}
+.root-nested{border:1.5px solid var(--rubricate);border-radius:3px;display:flex;align-items:center;justify-content:center;position:relative;color:var(--ink)}
+.root-label{font-size:11px;color:var(--comment);position:absolute;top:-8px;left:6px;background:var(--parchment);padding:0 2px}
+.root-symbol{font-size:20px;color:var(--rubricate)}
+.root-value{font-size:13px;color:var(--ink)}
+.root-arrow{color:var(--comment);font-size:14px}
+</style>
+
+<div class="page">
+  <div class="title-band">
+    <div class="title-ar">تبصرة الحساب</div>
+    <div class="title-en">Tabsirat al-Hisab — The Clarification of Reckoning · ʿAlī ibn ʿAmr al-Qalasādī (fl. 1460)</div>
+  </div>
+
+  <!-- EQUATION BUILDER -->
+  <div class="section">
+    <div class="section-title">⊕ Equation Builder — بناء المعادلة</div>
+    <div class="eq-buttons" id="eq-btns">
+      <button class="eq-btn" onclick="addToken('shay')">شيء <span style="color:var(--comment);font-size:11px">(x)</span></button>
+      <button class="eq-btn" onclick="addToken('mal')">مال <span style="color:var(--comment);font-size:11px">(x²)</span></button>
+      <button class="eq-btn" onclick="addToken('kab')">كعب <span style="color:var(--comment);font-size:11px">(x³)</span></button>
+      <button class="eq-btn" onclick="addToken('jadhr')">جذر <span style="color:var(--comment);font-size:11px">(√)</span></button>
+      <button class="eq-btn op" onclick="addToken('wa')">و <span style="color:var(--comment);font-size:11px">(+)</span></button>
+      <button class="eq-btn op" onclick="addToken('illa')">إلا <span style="color:var(--comment);font-size:11px">(−)</span></button>
+      <button class="eq-btn op" onclick="addToken('yusawi')">⋯ <span style="color:var(--comment);font-size:11px">(=)</span></button>
+      <button class="eq-btn" onclick="addToken('1')">١</button>
+      <button class="eq-btn" onclick="addToken('2')">٢</button>
+      <button class="eq-btn" onclick="addToken('3')">٣</button>
+      <button class="eq-btn" onclick="addToken('4')">٤</button>
+      <button class="eq-btn" onclick="addToken('5')">٥</button>
+      <button class="eq-btn" onclick="addToken('6')">٦</button>
+      <button class="eq-btn" onclick="addToken('24')">٢٤</button>
+    </div>
+    <div class="eq-display">
+      <div class="eq-ar" id="eq-ar-display">ضع معادلة</div>
+      <div class="eq-modern" id="eq-modern-display">Place an equation</div>
+    </div>
+    <div class="notation-toggle">
+      <span>Notation:</span>
+      <div class="toggle-pill">
+        <button class="active" id="btn-qalasadi" onclick="setNotation('q')">al-Qalasādī</button>
+        <button id="btn-modern" onclick="setNotation('m')">Modern</button>
+      </div>
+    </div>
+    <div class="eq-controls">
+      <button onclick="clearEq()" style="color:var(--rubricate)">✕ Clear</button>
+      <button onclick="backspaceEq()">← Backspace</button>
+      <button onclick="loadSample()">Load sample: مال ＋ ٥ شيء ＝ ٢٤</button>
+    </div>
+    <div class="dots-divider"><span class="dots-eq">⋯⋯⋯</span></div>
+  </div>
+
+  <!-- STEP-BY-STEP SOLVER -->
+  <div class="section">
+    <div class="section-title">∑ Step-by-Step Solver — al-Qalasādī's Method</div>
+    <div class="solver-controls">
+      <button class="solver-btn active" onclick="selectEq('quad')">x² + 5x = 24</button>
+      <button class="solver-btn" onclick="selectEq('lin')">3x = 12</button>
+      <button class="solver-btn" onclick="selectEq('cub')">x³ = 8</button>
+    </div>
+    <div id="solver-steps"></div>
+    <div class="dots-divider"><span class="dots-eq">⋯</span></div>
+  </div>
+
+  <!-- INHERITANCE CALCULATOR -->
+  <div class="section">
+    <div class="section-title">⅓ Inheritance Calculator — حساب المواريث</div>
+    <div class="estate-row">
+      <span style="font-size:14px;color:var(--comment)">Estate (tirkah):</span>
+      <input class="estate-input" type="number" id="estate-val" value="12000" oninput="calcInheritance()">
+      <span style="font-size:13px;color:var(--comment)">dirhams</span>
+    </div>
+    <div class="heir-grid" id="heir-grid"></div>
+    <svg class="fraction-tree" id="frac-tree" viewBox="0 0 640 200" style="margin-top:8px"></svg>
+    <div class="dots-divider"><span class="dots-eq">⋯</span></div>
+  </div>
+
+  <!-- FLASHCARDS -->
+  <div class="section">
+    <div class="section-title">◈ Algebraic Flashcards — البطاقات التعليمية</div>
+    <p style="font-size:12px;color:var(--comment);margin-bottom:10px">Tap card to reveal the modern equivalent</p>
+    <div class="flashcard-wrap" onclick="flipCard()">
+      <div class="flashcard" id="flashcard">
+        <div class="flashcard-face flashcard-front" id="fc-front">
+          <div class="fc-label">al-Qalasādī notation</div>
+          <div class="fc-symbol" id="fc-sym">مال</div>
+          <div class="fc-label" id="fc-ar-name">māl</div>
+        </div>
+        <div class="flashcard-face flashcard-back" id="fc-back">
+          <div class="fc-label">modern equivalent</div>
+          <div class="fc-modern" id="fc-mod">x²</div>
+          <div class="fc-label" id="fc-meaning">property — the square of the unknown</div>
+        </div>
+      </div>
+    </div>
+    <div class="flashcard-nav" id="fc-dots"></div>
+    <div style="display:flex;gap:8px;justify-content:center;margin-top:8px">
+      <button style="padding:5px 14px;border-radius:6px;border:0.5px solid var(--border2);background:transparent;cursor:pointer;font-family:'Amiri',serif;font-size:12px;color:var(--ink)" onclick="prevCard()">← Prev</button>
+      <button style="padding:5px 14px;border-radius:6px;border:0.5px solid var(--border2);background:transparent;cursor:pointer;font-family:'Amiri',serif;font-size:12px;color:var(--ink)" onclick="nextCard()">Next →</button>
+    </div>
+    <div class="dots-divider"><span class="dots-eq">⋯</span></div>
+  </div>
+
+  <!-- ROOT VISUALIZER -->
+  <div class="section">
+    <div class="section-title">√ Root Extraction — استخراج الجذر</div>
+    <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px">
+      <span style="font-size:13px;color:var(--comment)">Number:</span>
+      <input class="estate-input" type="number" id="root-input" value="256" style="width:100px" oninput="updateRoot()">
+      <span style="font-size:13px;color:var(--comment)">depth:</span>
+      <input type="range" min="1" max="4" value="3" id="root-depth" style="width:80px" oninput="updateRoot()">
+      <span id="root-depth-label" style="font-size:12px;color:var(--comment)">3</span>
+    </div>
+    <div class="root-vis" id="root-vis"></div>
+  </div>
+
+</div>
+
+<script>
+// ── Equation Builder ──────────────────────────────────────────
+const tokenMap = {
+  shay: {ar:'شيء', modern:'x', cls:'var-x'},
+  mal:  {ar:'مال', modern:'x²', cls:'var-x'},
+  kab:  {ar:'كعب', modern:'x³', cls:'var-x'},
+  jadhr:{ar:'جذر', modern:'√', cls:'var-x'},
+  wa:   {ar:' و ', modern:' + ', cls:'op-sym'},
+  illa: {ar:' إلا ', modern:' − ', cls:'op-sym'},
+  yusawi:{ar:' ⋯ ', modern:' = ', cls:'op-sym'},
+  '1':'١','2':'٢','3':'٣','4':'٤','5':'٥','6':'٦','24':'٢٤',
+};
+
+let tokens = [];
+let notationMode = 'q';
+
+function toEastern(n){return String(n).replace(/[0-9]/g,d=>'٠١٢٣٤٥٦٧٨٩'[d])}
+
+function addToken(t){
+  tokens.push(t);
+  renderEq();
+}
+function clearEq(){tokens=[];renderEq();}
+function backspaceEq(){tokens.pop();renderEq();}
+function loadSample(){tokens=['mal','wa','5','shay','yusawi','24'];renderEq();}
+function setNotation(m){
+  notationMode=m;
+  document.getElementById('btn-qalasadi').classList.toggle('active',m==='q');
+  document.getElementById('btn-modern').classList.toggle('active',m==='m');
+  renderEq();
+}
+function renderEq(){
+  const arD=document.getElementById('eq-ar-display');
+  const modD=document.getElementById('eq-modern-display');
+  if(!tokens.length){
+    arD.innerHTML='<span style="color:var(--rubricate);opacity:0.6">ضع معادلة</span>';
+    modD.textContent='Place an equation';
+    return;
+  }
+  let arHtml='',modStr='';
+  for(const t of tokens){
+    const tm=tokenMap[t];
+    if(typeof tm==='string'){arHtml+=tm;modStr+=tm==='٢٤'?'24':String('١٢٣٤٥٦٧٨٩'.indexOf(tm)+1)||tm;}
+    else if(tm){
+      if(tm.cls==='var-x') arHtml+=`<span class="var-x">${tm.ar}</span>`;
+      else if(tm.cls==='op-sym') arHtml+=`<span class="op-sym">${tm.ar}</span>`;
+      modStr+=tm.modern;
+    }
+  }
+  arD.innerHTML=notationMode==='q'?arHtml:`<span style="font-family:monospace;font-size:18px;direction:ltr">${modStr}</span>`;
+  modD.textContent=notationMode==='q'?`Modern: ${modStr}`:`al-Qalasādī: ${tokens.map(t=>{const m=tokenMap[t];return typeof m==='string'?m:m?m.ar:t}).join('')}`;
+}
+
+// ── Solver ────────────────────────────────────────────────────
+const solverEqs = {
+  quad:{
+    title:'مال + ٥ شيء = ٢٤',
+    subtitle:'x² + 5x = 24 (al-Qalasādī, Method of Completing)',
+    steps:[
+      {n:'١',text:'State the equation in al-Qalasādī notation:',eq:'مال ⋯ ٥ شيء ＝ ٢٤  →  x² + 5x = 24'},
+      {n:'٢',text:'Take half the coefficient of the <span class="highlight">شيء</span> (the number with x):',eq:'نصف ٥ = ٢½  →  half of 5 = 2½'},
+      {n:'٣',text:'Square the half-coefficient:',eq:'(٢½)² = ٦¼  →  (2.5)² = 6.25'},
+      {n:'٤',text:'Add this to the <span class="highlight">عدد</span> (constant):',eq:'٢٤ + ٦¼ = ٣٠¼  →  24 + 6.25 = 30.25'},
+      {n:'٥',text:'Extract the <span class="highlight">جذر</span> (square root):',eq:'جذر ٣٠¼ = ٥½  →  √30.25 = 5.5'},
+      {n:'٦',text:'Subtract the half-coefficient — this is the <span class="highlight">شيء</span>:',eq:'٥½ − ٢½ = ٣  →  x = 5.5 − 2.5 = 3'},
+    ],
+    answer:'x = ٣ (3)',
+  },
+  lin:{
+    title:'٣ شيء = ١٢',
+    subtitle:'3x = 12 (linear — divide by coefficient)',
+    steps:[
+      {n:'١',text:'State: <span class="highlight">٣ شيء</span> equals <span class="highlight">١٢ عدد</span>',eq:'3x = 12'},
+      {n:'٢',text:'Divide the <span class="highlight">عدد</span> by the coefficient of <span class="highlight">شيء</span>:',eq:'١٢ ÷ ٣ = ٤'},
+      {n:'٣',text:'The <span class="highlight">شيء</span> is the quotient:',eq:'x = 4'},
+    ],
+    answer:'x = ٤ (4)',
+  },
+  cub:{
+    title:'كعب = ٨',
+    subtitle:'x³ = 8 (cubic — extract cube root)',
+    steps:[
+      {n:'١',text:'State: <span class="highlight">كعب</span> (cube) equals <span class="highlight">٨ عدد</span>',eq:'x³ = 8'},
+      {n:'٢',text:'Find the number whose cube is ٨:',eq:'٢ × ٢ × ٢ = ٨'},
+      {n:'٣',text:'The <span class="highlight">كعب</span> root (جذر الكعب) is:',eq:'x = 2'},
+    ],
+    answer:'x = ٢ (2)',
+  },
+};
+let curEq='quad';
+function selectEq(e){
+  curEq=e;
+  document.querySelectorAll('.solver-btn').forEach((b,i)=>b.classList.toggle('active',[...document.querySelectorAll('.solver-btn')].indexOf(b)===(['quad','lin','cub'].indexOf(e))));
+  renderSolver();
+}
+function renderSolver(){
+  const eq=solverEqs[curEq];
+  let html=`<div style="margin-bottom:8px;padding:6px 10px;background:var(--parchment2);border-radius:6px;font-size:14px;direction:rtl;text-align:right;color:var(--rubricate)">${eq.title}</div>`;
+  html+=`<div style="font-size:11px;color:var(--comment);margin-bottom:8px;font-style:italic">${eq.subtitle}</div>`;
+  html+=`<ul class="step-list">`;
+  for(const s of eq.steps){
+    html+=`<li class="step-item"><span class="step-num">${s.n}</span><div><div class="step-text">${s.text}</div><div class="step-eq">${s.eq}</div></div></li>`;
+  }
+  html+=`</ul>`;
+  html+=`<div class="result-box"><div class="result-label">Solution — الجواب</div><div class="result-val">${eq.answer}</div></div>`;
+  document.getElementById('solver-steps').innerHTML=html;
+  document.querySelectorAll('.solver-btn').forEach((b,i)=>{b.classList.toggle('active',['quad','lin','cub'][i]===curEq)});
+}
+renderSolver();
+
+// ── Inheritance Calculator ────────────────────────────────────
+const HEIRS=[
+  {name:'Husband — زوج', nameEn:'Husband', num:1, den:4, islamic:'1/4 (wife exists, children exist)'},
+  {name:'Mother — أم', nameEn:'Mother', num:1, den:6, islamic:'1/6 (son exists)'},
+  {name:'Son — ابن', nameEn:'Son', num:null, den:null, islamic:'residue × 2/3'},
+  {name:'Daughter — بنت', nameEn:'Daughter', num:null, den:null, islamic:'residue × 1/3'},
+];
+
+function calcInheritance(){
+  const estate=parseFloat(document.getElementById('estate-val').value)||12000;
+  const hGrid=document.getElementById('heir-grid');
+  const fixed=[1/4,1/6];
+  const fixedAmt=fixed.reduce((a,f)=>a+f*estate,0);
+  const residue=estate-fixedAmt;
+  const shares=[estate/4, estate/6, residue*(2/3), residue*(1/3)];
+  const fracs=[{n:1,d:4},{n:1,d:6},null,null];
+  let html='';
+  const names=['Husband','Mother','Son','Daughter'];
+  const arNames=['زوج','أم','ابن','بنت'];
+  for(let i=0;i<4;i++){
+    const amt=Math.round(shares[i]);
+    const pct=((shares[i]/estate)*100).toFixed(1);
+    let fracHtml='';
+    if(fracs[i]){
+      fracHtml=`<div class="heir-frac-bar"><div class="heir-frac-num">${fracs[i].n}</div><div class="heir-frac-line"></div><div class="heir-frac-den">${fracs[i].d}</div></div>`;
+    } else {
+      const rd=i===2?3:3,rn=i===2?2:1;
+      fracHtml=`<div class="heir-frac-bar" style="font-size:11px"><div class="heir-frac-num">${rn}</div><div class="heir-frac-line" style="width:20px"></div><div class="heir-frac-den">${rd}</div><div style="font-size:10px;color:var(--comment);margin-top:2px">of residue</div></div>`;
+    }
+    html+=`<div class="heir-card">
+      <div class="heir-name" style="direction:rtl">${arNames[i]} · ${names[i]}</div>
+      ${fracHtml}
+      <div class="heir-amount">${toEastern(amt)} dirhams (${pct}%)</div>
+    </div>`;
+  }
+  hGrid.innerHTML=html;
+  drawFracTree(estate,shares,names,arNames);
+}
+function drawFracTree(estate,shares,names,arNames){
+  const svg=document.getElementById('frac-tree');
+  const rubr='#C23B22';
+  const ink=window.matchMedia('(prefers-color-scheme:dark)').matches?'#E8DDD0':'#1A1A1A';
+  const comment=window.matchMedia('(prefers-color-scheme:dark)').matches?'#9CA3AF':'#6B7280';
+  const parch=window.matchMedia('(prefers-color-scheme:dark)').matches?'#352B1F':'#EDD9BC';
+  const parchL=window.matchMedia('(prefers-color-scheme:dark)').matches?'#2A2118':'#F5E6D3';
+  const W=640,rootX=320,rootY=20,rootW=160,rootH=30;
+  const leafY=140,leafW=120,leafH=44;
+  const leafXs=[40,185,335,480];
+  let out=``;
+  // root
+  out+=`<rect x="${rootX-rootW/2}" y="${rootY}" width="${rootW}" height="${rootH}" rx="6" fill="${parchL}" stroke="${rubr}" stroke-width="1"/>`;
+  out+=`<text x="${rootX}" y="${rootY+rootH/2+5}" text-anchor="middle" font-family="Amiri,serif" font-size="12" fill="${rubr}" font-weight="700">تركة · ${Number(estate).toLocaleString()} dir.</text>`;
+  // branches
+  const midY=90;
+  for(let i=0;i<4;i++){
+    const lx=leafXs[i]+leafW/2;
+    out+=`<path d="M${rootX},${rootY+rootH} L${rootX},${midY} L${lx},${midY} L${lx},${leafY}" fill="none" stroke="${rubr}" stroke-width="0.75" stroke-dasharray="3 2"/>`;
+    // leaf
+    out+=`<rect x="${leafXs[i]}" y="${leafY}" width="${leafW}" height="${leafH}" rx="6" fill="${parch}" stroke="${rubr}" stroke-width="0.75"/>`;
+    out+=`<text x="${leafXs[i]+leafW/2}" y="${leafY+14}" text-anchor="middle" font-family="Amiri,serif" font-size="10" fill="${ink}" font-weight="700">${arNames[i]}</text>`;
+    const pct=((shares[i]/estate)*100).toFixed(0);
+    out+=`<text x="${leafXs[i]+leafW/2}" y="${leafY+27}" text-anchor="middle" font-family="Amiri,serif" font-size="11" fill="${rubr}">${Math.round(shares[i]).toLocaleString()}</text>`;
+    out+=`<text x="${leafXs[i]+leafW/2}" y="${leafY+40}" text-anchor="middle" font-family="Amiri,serif" font-size="9" fill="${comment}">${pct}%</text>`;
+  }
+  svg.innerHTML=out;
+}
+calcInheritance();
+
+// ── Flashcards ────────────────────────────────────────────────
+const cards=[
+  {sym:'شيء',arName:'shayʾ',modern:'x',meaning:'thing — the unknown quantity'},
+  {sym:'مال',arName:'māl',modern:'x²',meaning:'property — square of unknown'},
+  {sym:'كعب',arName:'kaʿb',modern:'x³',meaning:'cube — third power'},
+  {sym:'جذر',arName:'jadhr',modern:'√',meaning:'root — square root'},
+  {sym:'و',arName:'wa (elevated dot)',modern:'+',meaning:'and — addition operator'},
+  {sym:'إلا',arName:'illā (small circle)',modern:'−',meaning:'except — subtraction'},
+  {sym:'⋯',arName:'yuswī (three dots)',modern:'=',meaning:'equals — equation separator'},
+  {sym:'عدد',arName:'ʿadad',modern:'n',meaning:'number — constant term'},
+];
+let curCard=1,flipped=false;
+function renderFC(){
+  const c=cards[curCard];
+  document.getElementById('fc-sym').textContent=c.sym;
+  document.getElementById('fc-ar-name').textContent=c.arName;
+  document.getElementById('fc-mod').textContent=c.modern;
+  document.getElementById('fc-meaning').textContent=c.meaning;
+  document.getElementById('flashcard').classList.remove('flipped');
+  flipped=false;
+  const dots=document.getElementById('fc-dots');
+  dots.innerHTML=cards.map((_,i)=>`<button class="fc-dot${i===curCard?' active':''}" onclick="goCard(${i})"></button>`).join('');
+}
+function flipCard(){const fc=document.getElementById('flashcard');flipped=!flipped;fc.classList.toggle('flipped',flipped);}
+function nextCard(){curCard=(curCard+1)%cards.length;renderFC();}
+function prevCard(){curCard=(curCard-1+cards.length)%cards.length;renderFC();}
+function goCard(i){curCard=i;renderFC();}
+renderFC();
+
+// ── Root Visualizer ───────────────────────────────────────────
+function updateRoot(){
+  const n=parseFloat(document.getElementById('root-input').value)||256;
+  const depth=parseInt(document.getElementById('root-depth').value)||3;
+  document.getElementById('root-depth-label').textContent=depth;
+  const vis=document.getElementById('root-vis');
+  let html='';
+  let cur=n;
+  const sizes=[200,160,130,105];
+  const pads=[20,18,16,14];
+  for(let d=0;d<depth;d++){
+    const sz=sizes[d]||90;
+    const pd=pads[d]||12;
+    const rt=Math.pow(cur,1/2);
+    const rtFmt=Number.isInteger(rt)?rt.toFixed(0):rt.toFixed(3);
+    const curFmt=Number.isInteger(cur)?cur.toFixed(0):cur.toFixed(4);
+    if(d>0) html+=`<div class="root-arrow">↓ √</div>`;
+    html+=`<div class="root-nested" style="width:${sz}px;height:${sz}px;padding:${pd}px">
+      <div class="root-label">√</div>
+      <div style="text-align:center">
+        <div style="font-size:22px;color:var(--rubricate);font-weight:700;direction:ltr">${curFmt}</div>
+        <div style="font-size:11px;color:var(--comment);margin-top:4px">جذر = ${rtFmt}</div>
+      </div>
+    </div>`;
+    cur=rt;
+    if(cur<=1.0001) break;
+  }
+  vis.innerHTML=html;
+}
+updateRoot();
+</script>

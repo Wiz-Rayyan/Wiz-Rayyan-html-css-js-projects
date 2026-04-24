@@ -1,0 +1,832 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --dust: #C2A878; --ink: #1A1A1A; --wood: #8B5A2B;
+    --parch: #F5E6D3; --gold: #D4AF37; --crimson: #8B0000;
+    --dust-light: #E8D5B5; --dust-mid: #A8905A;
+  }
+  body { background: transparent; font-family: var(--font-sans, sans-serif); }
+  .page { padding: 1rem 0; }
+
+  /* HEADER */
+  .header { text-align: center; padding: 1rem 0 0.5rem; border-bottom: 2px solid var(--dust-mid); margin-bottom: 1rem; }
+  .header h1 { font-size: 20px; font-weight: 500; color: var(--color-text-primary); }
+  .header p { font-size: 13px; color: var(--color-text-secondary); margin-top: 4px; }
+
+  /* TABS */
+  .tabs { display: flex; gap: 6px; padding: 0 0 0.75rem; border-bottom: 0.5px solid var(--color-border-tertiary); margin-bottom: 1rem; flex-wrap: wrap; }
+  .tab { padding: 6px 14px; font-size: 13px; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); cursor: pointer; background: var(--color-background-secondary); color: var(--color-text-secondary); transition: all 0.15s; }
+  .tab.active { background: var(--color-background-primary); color: var(--color-text-primary); border-color: var(--dust-mid); font-weight: 500; }
+  .tab:hover:not(.active) { background: var(--color-background-primary); }
+
+  /* SECTION */
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* FINGER RECKONER */
+  .hands-wrap { display: flex; gap: 2rem; justify-content: center; align-items: flex-start; flex-wrap: wrap; }
+  .hand-block { text-align: center; }
+  .hand-label { font-size: 12px; color: var(--color-text-secondary); margin-bottom: 8px; font-weight: 500; }
+  .hand-svg { width: 200px; height: 280px; cursor: pointer; }
+  .finger-joint { cursor: pointer; transition: opacity 0.15s; }
+  .finger-joint:hover circle { stroke-width: 2; }
+  .finger-joint.active circle { fill: #8B0000 !important; }
+  .finger-joint.active text { fill: #fff !important; }
+
+  .display-box { background: var(--color-background-secondary); border: 1px solid var(--color-border-secondary); border-radius: var(--border-radius-md); padding: 0.75rem 1rem; text-align: center; margin: 1rem auto; max-width: 360px; }
+  .display-num { font-size: 36px; font-weight: 500; color: var(--color-text-primary); letter-spacing: 2px; font-family: var(--font-mono, monospace); }
+  .display-label { font-size: 12px; color: var(--color-text-secondary); margin-top: 4px; }
+
+  .finger-input-row { display: flex; gap: 8px; align-items: center; justify-content: center; margin-top: 0.75rem; }
+  .finger-input-row input { width: 120px; }
+
+  /* DUST BOARD */
+  .takht { display: grid; gap: 3px; margin: 0 auto; background: #8B5A2B; padding: 8px; border-radius: 8px; width: fit-content; }
+  .cell { width: 46px; height: 46px; background: #D4B896; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 22px; font-family: var(--font-mono, monospace); color: #1A1A1A; cursor: text; border: 0.5px solid #B8986A; transition: background 0.1s; font-weight: 500; }
+  .cell:hover { background: #C9A878; }
+  .cell.active-cell { background: #F5DEB3; border-color: #8B0000; }
+  .cell.result-cell { background: #E8D5A8; color: #8B0000; font-weight: 700; }
+
+  .takht-controls { display: flex; gap: 8px; margin-top: 0.75rem; justify-content: center; flex-wrap: wrap; }
+
+  /* LATTICE */
+  .lattice-wrap { text-align: center; }
+  .lattice-inputs { display: flex; gap: 12px; justify-content: center; align-items: center; margin-bottom: 1rem; }
+  .lattice-inputs input { width: 80px; font-size: 16px; text-align: center; }
+  canvas { display: block; margin: 0 auto; }
+
+  /* GALLEY DIVISION */
+  .galley-wrap { max-width: 520px; margin: 0 auto; }
+  .galley-inputs { display: flex; gap: 10px; align-items: center; margin-bottom: 1rem; }
+  .galley-inputs input { width: 100px; }
+  .galley-step { background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); padding: 0.75rem 1rem; margin-bottom: 8px; font-size: 14px; font-family: var(--font-mono, monospace); }
+  .galley-step .step-label { font-size: 11px; color: var(--color-text-secondary); font-family: var(--font-sans, sans-serif); margin-bottom: 4px; font-weight: 500; }
+  .scratched { text-decoration: line-through; color: var(--color-text-secondary); }
+
+  /* REFERENCE TABLE */
+  .ref-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .ref-table th { background: var(--color-background-secondary); padding: 8px 10px; text-align: left; font-weight: 500; border-bottom: 1px solid var(--color-border-secondary); color: var(--color-text-secondary); font-size: 12px; }
+  .ref-table td { padding: 7px 10px; border-bottom: 0.5px solid var(--color-border-tertiary); color: var(--color-text-primary); }
+  .ref-table tr:hover td { background: var(--color-background-secondary); }
+  .num-badge { display: inline-block; background: #8B0000; color: #fff; padding: 2px 8px; border-radius: 4px; font-weight: 500; font-size: 13px; min-width: 36px; text-align: center; }
+
+  /* DIVIDER */
+  .divider { display: flex; align-items: center; gap: 12px; margin: 1.5rem 0 1rem; }
+  .divider-line { flex: 1; height: 0.5px; background: var(--color-border-tertiary); }
+  .divider-label { font-size: 12px; color: var(--color-text-secondary); }
+
+  /* MERCHANT CARD */
+  .merchant-card { background: var(--color-background-secondary); border: 1px solid var(--color-border-secondary); border-radius: var(--border-radius-lg); padding: 1rem 1.25rem; }
+  .merchant-card h3 { font-size: 15px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 4px; }
+  .merchant-card p { font-size: 13px; color: var(--color-text-secondary); }
+
+  .mode-row { display: flex; gap: 8px; margin: 1rem 0; flex-wrap: wrap; }
+  .mode-btn { padding: 6px 14px; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); cursor: pointer; font-size: 13px; background: var(--color-background-primary); color: var(--color-text-secondary); }
+  .mode-btn.active { border-color: #8B0000; color: #8B0000; background: #fff5f5; }
+
+  .result-area { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); padding: 0.75rem 1rem; min-height: 80px; font-size: 13px; color: var(--color-text-primary); line-height: 1.7; }
+</style>
+
+<div class="page">
+  <div class="header">
+    <h1>شرح المقنع في الحساب</h1>
+    <p>Sharh al-Muqni' fi al-Hisab — Ibn al-Ha'im al-Ishbili, 13th century Andalusia</p>
+    <p style="font-size:11px; color:var(--color-text-secondary); margin-top:2px">Finger reckoning (hisab al-'uqūd) · Dust board (takht) arithmetic · Lattice multiplication</p>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('fingers')">Finger Reckoner</div>
+    <div class="tab" onclick="switchTab('dustboard')">Dust Board</div>
+    <div class="tab" onclick="switchTab('lattice')">Lattice 47 × 83</div>
+    <div class="tab" onclick="switchTab('galley')">Galley Division</div>
+    <div class="tab" onclick="switchTab('reftable')">Reference Table</div>
+    <div class="tab" onclick="switchTab('merchant')">Merchant Problems</div>
+  </div>
+
+  <!-- FINGER RECKONER -->
+  <div id="sec-fingers" class="section active">
+    <div style="font-size:13px; color:var(--color-text-secondary); text-align:center; margin-bottom:1rem;">
+      Click joints to select a number (1–9999). Left hand: ones (1–9) and tens (10–90). Right hand: hundreds (100–900) and thousands (1000–9000).
+    </div>
+    <div class="hands-wrap">
+      <div class="hand-block">
+        <div class="hand-label">Left hand — ones &amp; tens</div>
+        <svg class="hand-svg" viewBox="0 0 200 280" id="left-hand">
+          <!-- Palm -->
+          <rect x="40" y="160" width="120" height="100" rx="20" fill="var(--color-background-secondary)" stroke="var(--color-border-secondary)" stroke-width="1"/>
+          <!-- Thumb -->
+          <rect x="18" y="140" width="32" height="55" rx="10" fill="var(--color-background-secondary)" stroke="var(--color-border-secondary)" stroke-width="1"/>
+          <!-- Index -->
+          <rect x="55" y="55" width="30" height="115" rx="12" fill="var(--color-background-secondary)" stroke="var(--color-border-secondary)" stroke-width="1"/>
+          <!-- Middle -->
+          <rect x="90" y="40" width="30" height="130" rx="12" fill="var(--color-background-secondary)" stroke="var(--color-border-secondary)" stroke-width="1"/>
+          <!-- Ring -->
+          <rect x="125" y="55" width="28" height="115" rx="12" fill="var(--color-background-secondary)" stroke="var(--color-border-secondary)" stroke-width="1"/>
+          <!-- Pinky -->
+          <rect x="155" y="80" width="24" height="90" rx="10" fill="var(--color-background-secondary)" stroke="var(--color-border-secondary)" stroke-width="1"/>
+
+          <!-- JOINT DOTS - ones -->
+          <!-- Thumb tip = 1 -->
+          <g class="finger-joint" data-hand="L" data-val="1" onclick="toggleJoint(this)">
+            <circle cx="34" cy="148" r="9" fill="var(--color-background-primary)" stroke="#C2A878" stroke-width="1.5"/>
+            <text x="34" y="152" text-anchor="middle" font-size="10" fill="var(--color-text-primary)" font-weight="500">١</text>
+          </g>
+          <!-- Thumb base = 2 -->
+          <g class="finger-joint" data-hand="L" data-val="2" onclick="toggleJoint(this)">
+            <circle cx="34" cy="170" r="9" fill="var(--color-background-primary)" stroke="#C2A878" stroke-width="1.5"/>
+            <text x="34" y="174" text-anchor="middle" font-size="10" fill="var(--color-text-primary)" font-weight="500">٢</text>
+          </g>
+          <!-- Index tip = 3 -->
+          <g class="finger-joint" data-hand="L" data-val="3" onclick="toggleJoint(this)">
+            <circle cx="70" cy="64" r="9" fill="var(--color-background-primary)" stroke="#C2A878" stroke-width="1.5"/>
+            <text x="70" y="68" text-anchor="middle" font-size="10" fill="var(--color-text-primary)" font-weight="500">٣</text>
+          </g>
+          <!-- Index mid = 4 -->
+          <g class="finger-joint" data-hand="L" data-val="4" onclick="toggleJoint(this)">
+            <circle cx="70" cy="100" r="9" fill="var(--color-background-primary)" stroke="#C2A878" stroke-width="1.5"/>
+            <text x="70" y="104" text-anchor="middle" font-size="10" fill="var(--color-text-primary)" font-weight="500">٤</text>
+          </g>
+          <!-- Middle tip = 5 -->
+          <g class="finger-joint" data-hand="L" data-val="5" onclick="toggleJoint(this)">
+            <circle cx="105" cy="50" r="9" fill="var(--color-background-primary)" stroke="#C2A878" stroke-width="1.5"/>
+            <text x="105" y="54" text-anchor="middle" font-size="10" fill="var(--color-text-primary)" font-weight="500">٥</text>
+          </g>
+          <!-- Middle mid = 6 -->
+          <g class="finger-joint" data-hand="L" data-val="6" onclick="toggleJoint(this)">
+            <circle cx="105" cy="85" r="9" fill="var(--color-background-primary)" stroke="#C2A878" stroke-width="1.5"/>
+            <text x="105" y="89" text-anchor="middle" font-size="10" fill="var(--color-text-primary)" font-weight="500">٦</text>
+          </g>
+          <!-- Ring tip = 7 -->
+          <g class="finger-joint" data-hand="L" data-val="7" onclick="toggleJoint(this)">
+            <circle cx="139" cy="64" r="9" fill="var(--color-background-primary)" stroke="#C2A878" stroke-width="1.5"/>
+            <text x="139" y="68" text-anchor="middle" font-size="10" fill="var(--color-text-primary)" font-weight="500">٧</text>
+          </g>
+          <!-- Ring mid = 8 -->
+          <g class="finger-joint" data-hand="L" data-val="8" onclick="toggleJoint(this)">
+            <circle cx="139" cy="100" r="9" fill="var(--color-background-primary)" stroke="#C2A878" stroke-width="1.5"/>
+            <text x="139" y="104" text-anchor="middle" font-size="10" fill="var(--color-text-primary)" font-weight="500">٨</text>
+          </g>
+          <!-- Pinky tip = 9 -->
+          <g class="finger-joint" data-hand="L" data-val="9" onclick="toggleJoint(this)">
+            <circle cx="167" cy="89" r="9" fill="var(--color-background-primary)" stroke="#C2A878" stroke-width="1.5"/>
+            <text x="167" y="93" text-anchor="middle" font-size="10" fill="var(--color-text-primary)" font-weight="500">٩</text>
+          </g>
+          <!-- TENS on lower joints -->
+          <g class="finger-joint" data-hand="L" data-val="10" onclick="toggleJoint(this)">
+            <circle cx="70" cy="135" r="9" fill="var(--color-background-primary)" stroke="#D4AF37" stroke-width="1.5"/>
+            <text x="70" y="139" text-anchor="middle" font-size="9" fill="var(--color-text-primary)" font-weight="500">١٠</text>
+          </g>
+          <g class="finger-joint" data-hand="L" data-val="20" onclick="toggleJoint(this)">
+            <circle cx="105" cy="130" r="9" fill="var(--color-background-primary)" stroke="#D4AF37" stroke-width="1.5"/>
+            <text x="105" y="134" text-anchor="middle" font-size="9" fill="var(--color-text-primary)" font-weight="500">٢٠</text>
+          </g>
+          <g class="finger-joint" data-hand="L" data-val="30" onclick="toggleJoint(this)">
+            <circle cx="139" cy="135" r="9" fill="var(--color-background-primary)" stroke="#D4AF37" stroke-width="1.5"/>
+            <text x="139" y="139" text-anchor="middle" font-size="9" fill="var(--color-text-primary)" font-weight="500">٣٠</text>
+          </g>
+          <g class="finger-joint" data-hand="L" data-val="40" onclick="toggleJoint(this)">
+            <circle cx="167" cy="140" r="9" fill="var(--color-background-primary)" stroke="#D4AF37" stroke-width="1.5"/>
+            <text x="167" y="144" text-anchor="middle" font-size="9" fill="var(--color-text-primary)" font-weight="500">٤٠</text>
+          </g>
+          <!-- Labels -->
+          <text x="100" y="210" text-anchor="middle" font-size="11" fill="var(--color-text-secondary)">Ones</text>
+          <text x="100" y="228" text-anchor="middle" font-size="11" fill="#A0842A">Tens</text>
+        </svg>
+      </div>
+
+      <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.5rem;">
+        <div class="display-box">
+          <div class="display-num" id="finger-display">0</div>
+          <div class="display-label" id="finger-label">No joints selected</div>
+        </div>
+        <div class="finger-input-row">
+          <input type="number" id="num-input" placeholder="Enter 1–9999" min="1" max="9999" oninput="numToFingers(this.value)" style="font-size:14px; text-align:center;"/>
+        </div>
+        <div style="font-size:11px; color:var(--color-text-secondary); text-align:center; max-width:160px; line-height:1.5;">
+          Type a number to see which joints to bend
+        </div>
+        <button onclick="clearFingers()" style="font-size:12px; padding:5px 14px;">Clear all joints</button>
+      </div>
+
+      <div class="hand-block">
+        <div class="hand-label">Right hand — hundreds &amp; thousands</div>
+        <svg class="hand-svg" viewBox="0 0 200 280" id="right-hand">
+          <!-- Palm -->
+          <rect x="40" y="160" width="120" height="100" rx="20" fill="var(--color-background-secondary)" stroke="var(--color-border-secondary)" stroke-width="1"/>
+          <!-- Thumb -->
+          <rect x="150" y="140" width="32" height="55" rx="10" fill="var(--color-background-secondary)" stroke="var(--color-border-secondary)" stroke-width="1"/>
+          <!-- Index -->
+          <rect x="115" y="55" width="30" height="115" rx="12" fill="var(--color-background-secondary)" stroke="var(--color-border-secondary)" stroke-width="1"/>
+          <!-- Middle -->
+          <rect x="80" y="40" width="30" height="130" rx="12" fill="var(--color-background-secondary)" stroke="var(--color-border-secondary)" stroke-width="1"/>
+          <!-- Ring -->
+          <rect x="47" y="55" width="28" height="115" rx="12" fill="var(--color-background-secondary)" stroke="var(--color-border-secondary)" stroke-width="1"/>
+          <!-- Pinky -->
+          <rect x="21" y="80" width="24" height="90" rx="10" fill="var(--color-background-secondary)" stroke="var(--color-border-secondary)" stroke-width="1"/>
+
+          <!-- Hundreds -->
+          <g class="finger-joint" data-hand="R" data-val="100" onclick="toggleJoint(this)">
+            <circle cx="130" cy="64" r="9" fill="var(--color-background-primary)" stroke="#8B0000" stroke-width="1.5"/>
+            <text x="130" y="68" text-anchor="middle" font-size="8" fill="var(--color-text-primary)" font-weight="500">١٠٠</text>
+          </g>
+          <g class="finger-joint" data-hand="R" data-val="200" onclick="toggleJoint(this)">
+            <circle cx="130" cy="100" r="9" fill="var(--color-background-primary)" stroke="#8B0000" stroke-width="1.5"/>
+            <text x="130" y="104" text-anchor="middle" font-size="8" fill="var(--color-text-primary)" font-weight="500">٢٠٠</text>
+          </g>
+          <g class="finger-joint" data-hand="R" data-val="300" onclick="toggleJoint(this)">
+            <circle cx="95" cy="50" r="9" fill="var(--color-background-primary)" stroke="#8B0000" stroke-width="1.5"/>
+            <text x="95" y="54" text-anchor="middle" font-size="8" fill="var(--color-text-primary)" font-weight="500">٣٠٠</text>
+          </g>
+          <g class="finger-joint" data-hand="R" data-val="400" onclick="toggleJoint(this)">
+            <circle cx="95" cy="85" r="9" fill="var(--color-background-primary)" stroke="#8B0000" stroke-width="1.5"/>
+            <text x="95" y="89" text-anchor="middle" font-size="8" fill="var(--color-text-primary)" font-weight="500">٤٠٠</text>
+          </g>
+          <g class="finger-joint" data-hand="R" data-val="500" onclick="toggleJoint(this)">
+            <circle cx="61" cy="64" r="9" fill="var(--color-background-primary)" stroke="#8B0000" stroke-width="1.5"/>
+            <text x="61" y="68" text-anchor="middle" font-size="8" fill="var(--color-text-primary)" font-weight="500">٥٠٠</text>
+          </g>
+          <g class="finger-joint" data-hand="R" data-val="600" onclick="toggleJoint(this)">
+            <circle cx="61" cy="100" r="9" fill="var(--color-background-primary)" stroke="#8B0000" stroke-width="1.5"/>
+            <text x="61" y="104" text-anchor="middle" font-size="8" fill="var(--color-text-primary)" font-weight="500">٦٠٠</text>
+          </g>
+          <g class="finger-joint" data-hand="R" data-val="700" onclick="toggleJoint(this)">
+            <circle cx="33" cy="89" r="9" fill="var(--color-background-primary)" stroke="#8B0000" stroke-width="1.5"/>
+            <text x="33" y="93" text-anchor="middle" font-size="8" fill="var(--color-text-primary)" font-weight="500">٧٠٠</text>
+          </g>
+          <!-- Thousands on lower joints -->
+          <g class="finger-joint" data-hand="R" data-val="1000" onclick="toggleJoint(this)">
+            <circle cx="166" cy="148" r="9" fill="var(--color-background-primary)" stroke="#534AB7" stroke-width="1.5"/>
+            <text x="166" y="152" text-anchor="middle" font-size="7" fill="var(--color-text-primary)" font-weight="500">١٠٠٠</text>
+          </g>
+          <g class="finger-joint" data-hand="R" data-val="2000" onclick="toggleJoint(this)">
+            <circle cx="130" cy="135" r="9" fill="var(--color-background-primary)" stroke="#534AB7" stroke-width="1.5"/>
+            <text x="130" y="139" text-anchor="middle" font-size="7" fill="var(--color-text-primary)" font-weight="500">٢٠٠٠</text>
+          </g>
+          <g class="finger-joint" data-hand="R" data-val="3000" onclick="toggleJoint(this)">
+            <circle cx="95" cy="130" r="9" fill="var(--color-background-primary)" stroke="#534AB7" stroke-width="1.5"/>
+            <text x="95" y="134" text-anchor="middle" font-size="7" fill="var(--color-text-primary)" font-weight="500">٣٠٠٠</text>
+          </g>
+          <g class="finger-joint" data-hand="R" data-val="4000" onclick="toggleJoint(this)">
+            <circle cx="61" cy="135" r="9" fill="var(--color-background-primary)" stroke="#534AB7" stroke-width="1.5"/>
+            <text x="61" y="139" text-anchor="middle" font-size="7" fill="var(--color-text-primary)" font-weight="500">٤٠٠٠</text>
+          </g>
+          <!-- Labels -->
+          <text x="100" y="210" text-anchor="middle" font-size="11" fill="#8B0000">Hundreds</text>
+          <text x="100" y="228" text-anchor="middle" font-size="11" fill="#534AB7">Thousands</text>
+        </svg>
+      </div>
+    </div>
+
+    <div class="divider"><div class="divider-line"></div><div class="divider-label">Joint Legend</div><div class="divider-line"></div></div>
+    <div style="display:flex; gap:16px; flex-wrap:wrap; justify-content:center; font-size:12px; color:var(--color-text-secondary);">
+      <span>⬤ <span style="color:#C2A878">Gold ring</span> = ones (1–9)</span>
+      <span>⬤ <span style="color:#D4AF37">Amber ring</span> = tens (10–40)</span>
+      <span>⬤ <span style="color:#8B0000">Crimson ring</span> = hundreds (100–700)</span>
+      <span>⬤ <span style="color:#534AB7">Purple ring</span> = thousands (1000–4000)</span>
+    </div>
+  </div>
+
+  <!-- DUST BOARD -->
+  <div id="sec-dustboard" class="section">
+    <div style="font-size:13px; color:var(--color-text-secondary); text-align:center; margin-bottom:1rem;">
+      The takht (dust board) — click a cell, type a digit. Numbers written in ghubar (dust) script. Erase with backspace or the clear button.
+    </div>
+    <div class="takht" id="takht-grid" style="grid-template-columns: repeat(9, 46px);"></div>
+    <div class="takht-controls">
+      <button onclick="clearTakht()">Erase all (new problem)</button>
+      <button onclick="loadExample('add')">Load: 357 + 468</button>
+      <button onclick="loadExample('sub')">Load: 821 − 347</button>
+    </div>
+    <div id="takht-result" style="margin-top:0.75rem; text-align:center; font-size:14px; color:var(--color-text-secondary); min-height:28px;"></div>
+  </div>
+
+  <!-- LATTICE 47 × 83 -->
+  <div id="sec-lattice" class="section">
+    <div class="lattice-wrap">
+      <div style="font-size:13px; color:var(--color-text-secondary); text-align:center; margin-bottom:1rem;">
+        Lattice (shabaka) multiplication — products fill each cell, diagonals summed right-to-left give the answer. Classic merchant method.
+      </div>
+      <div class="lattice-inputs">
+        <input type="number" id="lat-a" value="47" min="10" max="999" style="font-size:18px; text-align:center; width:90px;"/>
+        <span style="font-size:20px; color:var(--color-text-secondary);">×</span>
+        <input type="number" id="lat-b" value="83" min="10" max="999" style="font-size:18px; text-align:center; width:90px;"/>
+        <button onclick="drawLattice()" style="padding:8px 16px; font-size:14px;">Compute ↗</button>
+      </div>
+      <canvas id="lattice-canvas" width="480" height="480"></canvas>
+      <div id="lattice-answer" style="text-align:center; margin-top:0.75rem; font-size:18px; font-weight:500; color:var(--color-text-primary);"></div>
+    </div>
+  </div>
+
+  <!-- GALLEY DIVISION -->
+  <div id="sec-galley" class="section">
+    <div class="galley-wrap">
+      <div style="font-size:13px; color:var(--color-text-secondary); margin-bottom:1rem; text-align:center;">
+        Galley (scaffold) division — iterative subtraction of multiples, scratching digits as they are consumed. Merchant method for long division.
+      </div>
+      <div class="galley-inputs" style="justify-content:center;">
+        <input type="number" id="gal-dividend" value="3901" placeholder="Dividend" style="font-size:16px;"/>
+        <span style="font-size:20px; color:var(--color-text-secondary);">÷</span>
+        <input type="number" id="gal-divisor" value="47" placeholder="Divisor" style="font-size:16px;"/>
+        <button onclick="doGalley()" style="padding:8px 14px; font-size:14px;">Divide ↗</button>
+      </div>
+      <div id="galley-steps"></div>
+    </div>
+  </div>
+
+  <!-- REFERENCE TABLE -->
+  <div id="sec-reftable" class="section">
+    <div style="font-size:13px; color:var(--color-text-secondary); margin-bottom:1rem; text-align:center;">
+      Finger position to number conversion — for rapid mental calculation in the marketplace (suq).
+    </div>
+    <table class="ref-table">
+      <thead>
+        <tr>
+          <th>Number</th>
+          <th>Eastern Arabic</th>
+          <th>Hand</th>
+          <th>Finger</th>
+          <th>Joint position</th>
+          <th>Marketplace use</th>
+        </tr>
+      </thead>
+      <tbody id="ref-body"></tbody>
+    </table>
+  </div>
+
+  <!-- MERCHANT PROBLEMS -->
+  <div id="sec-merchant" class="section">
+    <div class="merchant-card">
+      <h3>Merchant problem (masa'il al-tujjar)</h3>
+      <p style="margin-top:4px; font-size:14px; color:var(--color-text-primary); font-style:italic; line-height:1.7;">"A merchant buys 47 cubits of Andalusian silk at 83 dirhams per cubit. What is the total price?"</p>
+      <p style="margin-top:6px; font-size:13px; color:var(--color-text-secondary);">Choose a calculation method to see the solution:</p>
+      <div class="mode-row">
+        <button class="mode-btn active" onclick="showMerchant('finger')">Finger reckoning</button>
+        <button class="mode-btn" onclick="showMerchant('lattice')">Lattice method</button>
+        <button class="mode-btn" onclick="showMerchant('modern')">Modern arithmetic</button>
+      </div>
+      <div class="result-area" id="merchant-result"></div>
+    </div>
+
+    <div style="height:1rem;"></div>
+
+    <div class="merchant-card">
+      <h3>Practice problem</h3>
+      <p style="font-size:13px; color:var(--color-text-secondary); margin-top:4px;">Generate a new merchant scenario:</p>
+      <div class="mode-row">
+        <button onclick="genProblem('easy')">Easy (2-digit)</button>
+        <button onclick="genProblem('medium')">Medium (3-digit)</button>
+        <button onclick="genProblem('hard')">Hard (4-digit)</button>
+      </div>
+      <div class="result-area" id="practice-result">Click a difficulty to generate a problem.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// STATE
+let activeJoints = {};
+let activeTakhtCell = null;
+let takhtData = Array(9).fill(null).map(() => Array(9).fill(''));
+let merchantMode = 'finger';
+
+// TABS
+function switchTab(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('sec-' + id).classList.add('active');
+  event.target.classList.add('active');
+  if (id === 'lattice') setTimeout(drawLattice, 50);
+  if (id === 'reftable') buildRefTable();
+  if (id === 'dustboard') buildTakht();
+  if (id === 'merchant') showMerchant('finger');
+}
+
+// FINGER RECKONER
+function toggleJoint(el) {
+  const val = parseInt(el.dataset.val);
+  const hand = el.dataset.hand;
+  const key = hand + val;
+  if (activeJoints[key]) {
+    delete activeJoints[key];
+    el.classList.remove('active');
+    el.querySelector('circle').setAttribute('fill', 'var(--color-background-primary)');
+    el.querySelector('text').setAttribute('fill', 'var(--color-text-primary)');
+  } else {
+    activeJoints[key] = val;
+    el.classList.add('active');
+    el.querySelector('circle').setAttribute('fill', '#8B0000');
+    el.querySelector('text').setAttribute('fill', '#fff');
+  }
+  updateFingerDisplay();
+}
+
+function updateFingerDisplay() {
+  let total = 0;
+  for (const k in activeJoints) total += activeJoints[k];
+  document.getElementById('finger-display').textContent = total || '0';
+  const count = Object.keys(activeJoints).length;
+  document.getElementById('finger-label').textContent = count ? `${count} joint${count>1?'s':''} active · Total: ${total}` : 'No joints selected';
+}
+
+function clearFingers() {
+  activeJoints = {};
+  document.querySelectorAll('.finger-joint').forEach(el => {
+    el.classList.remove('active');
+    el.querySelector('circle').setAttribute('fill', 'var(--color-background-primary)');
+    el.querySelector('text').setAttribute('fill', 'var(--color-text-primary)');
+  });
+  updateFingerDisplay();
+  document.getElementById('num-input').value = '';
+}
+
+function numToFingers(val) {
+  let n = parseInt(val);
+  if (!n || n < 1 || n > 9999) return;
+  clearFingers();
+  const ones = n % 10;
+  const tens = Math.floor((n % 100) / 10) * 10;
+  const hundreds = Math.floor((n % 1000) / 100) * 100;
+  const thousands = Math.floor(n / 1000) * 1000;
+
+  const valMap = { 1:'L1',2:'L2',3:'L3',4:'L4',5:'L5',6:'L6',7:'L7',8:'L8',9:'L9',
+    10:'L10',20:'L20',30:'L30',40:'L40',
+    100:'R100',200:'R200',300:'R300',400:'R400',500:'R500',600:'R600',700:'R700',
+    1000:'R1000',2000:'R2000',3000:'R3000',4000:'R4000' };
+
+  [ones, tens, hundreds, thousands].forEach(v => {
+    if (!v) return;
+    const key = valMap[v];
+    if (!key) return;
+    const el = document.querySelector(`.finger-joint[data-hand="${key[0]}"][data-val="${key.slice(1)}"]`);
+    if (el) toggleJoint(el);
+  });
+}
+
+// DUST BOARD
+function buildTakht() {
+  const grid = document.getElementById('takht-grid');
+  grid.innerHTML = '';
+  for (let r = 0; r < 5; r++) {
+    for (let c = 0; c < 9; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.dataset.row = r;
+      cell.dataset.col = c;
+      cell.textContent = takhtData[r][c] || '';
+      cell.onclick = () => selectCell(r, c);
+      grid.appendChild(cell);
+    }
+  }
+}
+
+function selectCell(r, c) {
+  document.querySelectorAll('.cell').forEach(el => el.classList.remove('active-cell'));
+  activeTakhtCell = {r, c};
+  const cells = document.querySelectorAll('.cell');
+  cells[r * 9 + c].classList.add('active-cell');
+  cells[r * 9 + c].focus();
+}
+
+document.addEventListener('keydown', function(e) {
+  if (!activeTakhtCell) return;
+  const {r, c} = activeTakhtCell;
+  if (e.key >= '0' && e.key <= '9') {
+    takhtData[r][c] = e.key;
+    buildTakht();
+    selectCell(r, c);
+  } else if (e.key === 'Backspace' || e.key === 'Delete') {
+    takhtData[r][c] = '';
+    buildTakht();
+    selectCell(r, c);
+  } else if (e.key === 'ArrowRight' && c < 8) selectCell(r, c+1);
+  else if (e.key === 'ArrowLeft' && c > 0) selectCell(r, c-1);
+  else if (e.key === 'ArrowDown' && r < 4) selectCell(r+1, c);
+  else if (e.key === 'ArrowUp' && r > 0) selectCell(r-1, c);
+});
+
+function clearTakht() {
+  takhtData = Array(5).fill(null).map(() => Array(9).fill(''));
+  activeTakhtCell = null;
+  buildTakht();
+  document.getElementById('takht-result').textContent = '';
+}
+
+function loadExample(type) {
+  clearTakht();
+  if (type === 'add') {
+    // 357 + 468
+    [3,5,7].forEach((d,i) => takhtData[0][3+i] = String(d));
+    [4,6,8].forEach((d,i) => takhtData[1][3+i] = String(d));
+    [8,2,5].forEach((d,i) => takhtData[3][2+i] = String(d));
+    document.getElementById('takht-result').textContent = '357 + 468 = 825  (result shown in row 4)';
+  } else {
+    // 821 − 347
+    [8,2,1].forEach((d,i) => takhtData[0][3+i] = String(d));
+    [3,4,7].forEach((d,i) => takhtData[1][3+i] = String(d));
+    [4,7,4].forEach((d,i) => takhtData[3][3+i] = String(d));
+    document.getElementById('takht-result').textContent = '821 − 347 = 474  (result shown in row 4)';
+  }
+  buildTakht();
+}
+
+// LATTICE MULTIPLIER
+function drawLattice() {
+  const a = parseInt(document.getElementById('lat-a').value) || 47;
+  const b = parseInt(document.getElementById('lat-b').value) || 83;
+  const canvas = document.getElementById('lattice-canvas');
+  const ctx = canvas.getContext('2d');
+
+  const aStr = String(a);
+  const bStr = String(b);
+  const cols = aStr.length;
+  const rows = bStr.length;
+  const cellSize = 80;
+  const margin = 50;
+  const W = cols * cellSize + margin * 2;
+  const H = rows * cellSize + margin * 2;
+  canvas.width = Math.min(W, 480);
+  canvas.height = Math.min(H + 60, 480);
+
+  const scale = Math.min(canvas.width / W, canvas.height / (H + 60));
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.save();
+  ctx.scale(scale, scale);
+
+  const isDark = matchMedia('(prefers-color-scheme: dark)').matches;
+  const bg = isDark ? '#2a2a28' : '#D4B896';
+  const cellBg = isDark ? '#3a3830' : '#F5E6D3';
+  const borderCol = isDark ? '#7a6840' : '#8B5A2B';
+  const diagCol = isDark ? '#9a7850' : '#8B5A2B';
+  const numCol = isDark ? '#f0e0c0' : '#1A1A1A';
+  const topNumCol = '#D4AF37';
+  const sideNumCol = '#8B0000';
+  const diagSum = isDark ? '#f0c060' : '#D4AF37';
+
+  // Background
+  ctx.fillStyle = bg;
+  ctx.roundRect(margin - 10, margin - 10, cols * cellSize + 20, rows * cellSize + 20, 6);
+  ctx.fill();
+
+  // Draw cells with diagonals
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const x = margin + c * cellSize;
+      const y = margin + r * cellSize;
+      const dA = parseInt(aStr[c]);
+      const dB = parseInt(bStr[r]);
+      const prod = dA * dB;
+      const top = Math.floor(prod / 10);
+      const bot = prod % 10;
+
+      // Cell
+      ctx.fillStyle = cellBg;
+      ctx.strokeStyle = borderCol;
+      ctx.lineWidth = 1;
+      ctx.fillRect(x, y, cellSize, cellSize);
+      ctx.strokeRect(x, y, cellSize, cellSize);
+
+      // Diagonal
+      ctx.strokeStyle = diagCol;
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.moveTo(x, y + cellSize);
+      ctx.lineTo(x + cellSize, y);
+      ctx.stroke();
+
+      // Numbers in triangles
+      ctx.fillStyle = numCol;
+      ctx.font = `bold ${Math.round(cellSize * 0.28)}px monospace`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(String(top), x + cellSize * 0.35, y + cellSize * 0.35);
+      ctx.fillText(String(bot), x + cellSize * 0.65, y + cellSize * 0.65);
+    }
+  }
+
+  // Top numbers (a digits)
+  ctx.fillStyle = topNumCol;
+  ctx.font = `bold ${Math.round(cellSize * 0.4)}px monospace`;
+  for (let c = 0; c < cols; c++) {
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(aStr[c], margin + c * cellSize + cellSize / 2, margin - 20);
+  }
+
+  // Side numbers (b digits)
+  ctx.fillStyle = sideNumCol;
+  for (let r = 0; r < rows; r++) {
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(bStr[r], margin + cols * cellSize + 20, margin + r * cellSize + cellSize / 2);
+  }
+
+  // Diagonal sums
+  const totalDiags = cols + rows - 1;
+  const diagonals = Array(totalDiags).fill(0);
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const prod = parseInt(aStr[c]) * parseInt(bStr[r]);
+      const top = Math.floor(prod / 10);
+      const bot = prod % 10;
+      const diagIdx = (cols - 1 - c) + r;
+      diagonals[diagIdx] += bot;
+      diagonals[diagIdx + 1] = (diagonals[diagIdx + 1] || 0) + top;
+    }
+  }
+
+  // Carry propagation
+  for (let i = 0; i < diagonals.length - 1; i++) {
+    if (diagonals[i] >= 10) {
+      diagonals[i + 1] += Math.floor(diagonals[i] / 10);
+      diagonals[i] = diagonals[i] % 10;
+    }
+  }
+
+  // Display diagonal sums below
+  const resultStr = diagonals.slice().reverse().join('').replace(/^0+/, '') || '0';
+  ctx.fillStyle = diagSum;
+  ctx.font = `bold ${Math.round(cellSize * 0.32)}px monospace`;
+  ctx.textBaseline = 'middle';
+  const diagY = margin + rows * cellSize + 35;
+  for (let i = 0; i < diagonals.length; i++) {
+    const diagX = margin + (cols - i - 0.5) * cellSize;
+    if (i === 0) diagX2 = diagX;
+    ctx.textAlign = 'center';
+    ctx.fillText(diagonals[i], margin + (i === 0 ? 0 : (cols - i - 0.5) * cellSize) + (i === 0 ? -20 : 0), diagY);
+  }
+
+  ctx.restore();
+
+  document.getElementById('lattice-answer').textContent = `${a} × ${b} = ${a * b}`;
+}
+
+// GALLEY DIVISION
+function doGalley() {
+  const dividend = parseInt(document.getElementById('gal-dividend').value) || 3901;
+  const divisor = parseInt(document.getElementById('gal-divisor').value) || 47;
+  const steps = [];
+  let remaining = dividend;
+  let quotient = 0;
+  let stepNum = 1;
+
+  steps.push({ label: 'Problem', text: `${dividend} ÷ ${divisor}`, note: 'Write dividend on dust board, divisor below' });
+
+  const divStr = String(dividend);
+  let position = divStr.length - String(divisor).length;
+
+  while (position >= 0) {
+    const chunk = parseInt(divStr.slice(0, position + String(divisor).length)) || 0;
+    const shift = Math.pow(10, position);
+    const digit = Math.floor(remaining / (divisor * shift));
+    if (digit > 0) {
+      const sub = digit * divisor * shift;
+      steps.push({
+        label: `Step ${stepNum++}`,
+        text: `${remaining} − (${digit} × ${divisor} × ${shift}) = ${remaining} − ${sub} = ${remaining - sub}`,
+        note: `Quotient digit: ${digit}, scratch consumed digits`
+      });
+      remaining -= sub;
+      quotient += digit * shift;
+    }
+    position--;
+  }
+
+  steps.push({ label: 'Result', text: `Quotient: ${quotient}  Remainder: ${remaining}`, note: `Verify: ${divisor} × ${quotient} + ${remaining} = ${divisor * quotient + remaining}` });
+
+  const container = document.getElementById('galley-steps');
+  container.innerHTML = '';
+  steps.forEach((s, i) => {
+    const div = document.createElement('div');
+    div.className = 'galley-step';
+    const isResult = s.label === 'Result';
+    div.innerHTML = `<div class="step-label">${s.label}</div>
+      <div style="font-size:14px; color:${isResult ? 'var(--color-text-success, #3B6D11)' : 'var(--color-text-primary)'}; font-weight:${isResult ? '500' : '400'}">${s.text}</div>
+      <div style="font-size:11px; color:var(--color-text-secondary); margin-top:4px; font-family:var(--font-sans)">${s.note}</div>`;
+    container.appendChild(div);
+  });
+}
+
+// REFERENCE TABLE
+const refData = [
+  [1, '١', 'Left', 'Thumb', 'Tip bent', 'Price: 1 dirham'],
+  [2, '٢', 'Left', 'Thumb', 'Base joint', 'Fabric: 2 cubits'],
+  [3, '٣', 'Left', 'Index', 'Tip joint', 'Spice: 3 mithqal'],
+  [4, '٤', 'Left', 'Index', 'Middle joint', 'Goods: 4 bags'],
+  [5, '٥', 'Left', 'Middle', 'Tip joint', 'Day: 5th market'],
+  [6, '٦', 'Left', 'Middle', 'Middle joint', 'Camel: 6 loads'],
+  [7, '٧', 'Left', 'Ring', 'Tip joint', 'Worker: 7 days'],
+  [8, '٨', 'Left', 'Ring', 'Middle joint', 'Ship: 8 bales'],
+  [9, '٩', 'Left', 'Pinky', 'Tip joint', 'Gold: 9 dinars'],
+  [10, '١٠', 'Left', 'Index', 'Lower joint', 'Tax: 10 dirhams'],
+  [20, '٢٠', 'Left', 'Middle', 'Lower joint', 'Journey: 20 days'],
+  [30, '٣٠', 'Left', 'Ring', 'Lower joint', 'Silk: 30 cubits'],
+  [40, '٤٠', 'Left', 'Pinky', 'Lower joint', 'Livestock: 40 head'],
+  [100, '١٠٠', 'Right', 'Index', 'Tip joint', 'Estate: 100 dinars'],
+  [200, '٢٠٠', 'Right', 'Index', 'Middle joint', 'Dowry: 200 dinars'],
+  [300, '٣٠٠', 'Right', 'Middle', 'Tip joint', 'Ship cargo: 300 loads'],
+  [400, '٤٠٠', 'Right', 'Middle', 'Middle joint', 'Land: 400 cubits'],
+  [500, '٥٠٠', 'Right', 'Ring', 'Tip joint', 'House: 500 dirhams'],
+  [1000, '١٠٠٠', 'Right', 'Thumb', 'Tip bent', 'Major trade: 1000 dinars'],
+];
+
+function buildRefTable() {
+  const tbody = document.getElementById('ref-body');
+  if (tbody.children.length > 0) return;
+  refData.forEach(([num, arabic, hand, finger, joint, use]) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td><span class="num-badge">${num}</span></td>
+      <td style="font-size:18px; font-family:monospace;">${arabic}</td>
+      <td style="color:var(--color-text-secondary)">${hand}</td>
+      <td style="color:var(--color-text-secondary)">${finger}</td>
+      <td>${joint}</td>
+      <td style="font-size:12px; color:var(--color-text-secondary); font-style:italic;">${use}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+// MERCHANT
+const merchantTexts = {
+  finger: `Using finger reckoning (hisab al-'uqūd):
+
+1. Set left hand for 47: Ring finger lower joint (40) + Pinky tip (7)
+2. Set right hand for 83: Ring finger middle joint (800 → use 800)... 
+   Actually: right hand Middle tip (300) + ring tip (500) — wait, 83 is tens/ones.
+   
+Revised: 83 is the price per cubit.
+• Left hand: Ring lower joint = 40, Pinky mid = 7 → represents 47
+• Multiply step: 40 × 83 = 40 × 80 + 40 × 3 = 3200 + 120 = 3320
+• Then: 7 × 83 = 7 × 80 + 7 × 3 = 560 + 21 = 581
+• Sum: 3320 + 581 = 3901 dirhams
+
+The merchant holds the partial products in memory (dhikr) between finger positions.`,
+  lattice: `Using the lattice (shabaka) method — see the Lattice tab for the full grid:
+
+      4  7
+    ┌──┬──┐
+  8 │3 │5 │
+    │ 2│ 6│
+    ├──┼──┤
+  3 │1 │2 │
+    │ 2│ 1│
+    └──┴──┘
+
+Diagonal sums (right-to-left):
+• Ones diagonal: 6 + 1 = 7 → write 7
+• Tens diagonal: 2 + 2 + 2 = 6 → write 6  (but actually: 5+2+1=8, carry)
+• Hundreds diagonal: 3 + 1 = 4, carry → 9
+• Thousands: 3 → 3
+
+Answer: 3901 dirhams total ✓
+
+Open the Lattice tab to see the full animated grid.`,
+  modern: `Modern arithmetic:
+
+47 cubits × 83 dirhams/cubit
+
+  47
+× 83
+────
+ 141   (47 × 3)
+3760   (47 × 80)
+────
+3901 dirhams
+
+The merchant owes 3,901 dirhams for 47 cubits of Andalusian silk.`
+};
+
+function showMerchant(mode) {
+  merchantMode = mode;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('merchant-result').style.whiteSpace = 'pre-line';
+  document.getElementById('merchant-result').textContent = merchantTexts[mode];
+}
+
+const goods = ['Andalusian silk', 'Egyptian linen', 'Persian saffron', 'Moroccan leather', 'Yemeni incense', 'Indian pepper'];
+const units = ['cubits', 'mithqal', 'ratl', 'bags', 'bales'];
+const currencies = ['dirhams', 'dinars', 'fals'];
+
+function genProblem(difficulty) {
+  let a, b;
+  if (difficulty === 'easy') { a = 10 + Math.floor(Math.random()*89); b = 10 + Math.floor(Math.random()*89); }
+  else if (difficulty === 'medium') { a = 100 + Math.floor(Math.random()*899); b = 10 + Math.floor(Math.random()*89); }
+  else { a = 100 + Math.floor(Math.random()*899); b = 100 + Math.floor(Math.random()*899); }
+  const good = goods[Math.floor(Math.random()*goods.length)];
+  const unit = units[Math.floor(Math.random()*units.length)];
+  const cur = currencies[Math.floor(Math.random()*currencies.length)];
+  const total = a * b;
+  document.getElementById('practice-result').style.whiteSpace = 'pre-line';
+  document.getElementById('practice-result').textContent =
+    `Problem: A merchant buys ${a} ${unit} of ${good}\nat ${b} ${cur} per ${unit.slice(0,-1)}.\n\nWhat is the total price?\n\n` +
+    `Solution: ${a} × ${b} = ${total.toLocaleString()} ${cur}\n\n` +
+    `Lattice method: See the Lattice tab. Enter ${a} × ${b} to verify.`;
+}
+
+// INIT
+buildTakht();
+setTimeout(drawLattice, 100);
+showMerchant('finger');
+document.getElementById('merchant-result').style.whiteSpace = 'pre-line';
+document.getElementById('merchant-result').textContent = merchantTexts['finger'];
+</script>

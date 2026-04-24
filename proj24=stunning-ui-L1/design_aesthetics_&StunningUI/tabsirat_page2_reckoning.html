@@ -1,0 +1,673 @@
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#1C1008;--r:#C23B22;--p:#F5E6D3;--p2:#EDD9BC;--p3:#E4CFA6;
+  --cm:#7A6650;--bdr:rgba(194,59,34,0.2);--bdr2:rgba(194,59,34,0.4);
+  --gold:#A8833A;--sep:#C23B2240;
+}
+@media(prefers-color-scheme:dark){
+  :root{--ink:#E8D9C4;--p:#1E1508;--p2:#2A1E0E;--p3:#35271A;--cm:#9C8470;--bdr:rgba(194,59,34,0.25);--bdr2:rgba(194,59,34,0.5);--gold:#C9A85C;--sep:#C23B2230}
+}
+body{font-family:'Amiri',Georgia,serif;color:var(--ink);background:transparent;line-height:1.6}
+
+.manuscript{display:grid;grid-template-columns:1fr 3px 1fr;gap:0;padding:0}
+.col{padding:18px 14px}
+.col-divider{background:var(--sep);margin:12px 0}
+
+.folio-header{text-align:center;padding:14px 16px 10px;border-bottom:1.5px solid var(--r);margin-bottom:0;position:relative;background:var(--p)}
+.folio-title{font-size:20px;font-weight:700;color:var(--r);direction:rtl;letter-spacing:0.03em}
+.folio-subtitle{font-size:11px;color:var(--cm);font-style:italic;margin-top:3px}
+.folio-nav{display:flex;align-items:center;justify-content:space-between;padding:6px 16px;background:var(--p2);border-bottom:0.5px solid var(--bdr2)}
+.folio-nav span{font-size:11px;color:var(--cm)}
+.folio-nav button{background:none;border:none;cursor:pointer;font-size:11px;color:var(--r);font-family:'Amiri',serif;padding:2px 8px;border:0.5px solid var(--bdr2);border-radius:4px}
+.folio-nav button:hover{background:var(--r);color:#fff}
+
+.section-head{font-size:11px;font-weight:700;color:var(--r);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:8px;padding-bottom:4px;border-bottom:0.5px solid var(--sep)}
+.rubricated{color:var(--r);font-weight:700}
+.marginal{font-size:11px;color:var(--cm);font-style:italic;line-height:1.5;padding:6px 8px;border-left:2px solid var(--r);margin:8px 0;background:var(--p2)}
+.eq-line{display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 0;direction:rtl;flex-wrap:wrap}
+.eq-term{display:inline-flex;flex-direction:column;align-items:center;gap:0}
+.eq-num{font-size:13px;line-height:1}
+.eq-bar{width:100%;height:1px;background:var(--ink);margin:1px 0}
+.eq-den{font-size:13px;line-height:1}
+.eq-word{font-size:16px}
+.eq-var{font-size:18px;color:var(--r);font-weight:700}
+.eq-op{font-size:14px;color:var(--r)}
+.eq-dots{font-size:14px;color:var(--r);letter-spacing:3px}
+
+.poly-canvas{width:100%;cursor:crosshair;display:block;border-radius:6px;border:0.5px solid var(--bdr2)}
+.control-row{display:flex;gap:6px;align-items:center;margin:8px 0;flex-wrap:wrap}
+.ctrl-label{font-size:11px;color:var(--cm);min-width:48px}
+.ctrl-val{font-size:11px;color:var(--r);min-width:28px;text-align:right}
+input[type=range]{flex:1;min-width:60px;accent-color:var(--r)}
+input[type=number]{width:70px;padding:3px 6px;border:0.5px solid var(--bdr2);border-radius:4px;background:var(--p2);color:var(--ink);font-family:'Amiri',serif;font-size:13px}
+input[type=number]:focus{outline:none;border-color:var(--r)}
+
+.btn-row{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+.btn{padding:5px 10px;border:0.5px solid var(--bdr2);border-radius:5px;background:var(--p2);cursor:pointer;font-size:12px;color:var(--ink);font-family:'Amiri',serif;transition:all 0.15s}
+.btn:hover,.btn.active{background:var(--r);color:#fff;border-color:var(--r)}
+.btn.ghost{background:transparent;border-color:var(--r);color:var(--r)}
+.btn.ghost:hover{background:var(--r);color:#fff}
+
+.result-pill{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;background:var(--p3);border:0.5px solid var(--bdr2);border-radius:20px;font-size:13px}
+.result-pill .val{color:var(--r);font-weight:700;font-size:16px}
+
+.timeline{display:flex;flex-direction:column;gap:0}
+.tl-item{display:flex;gap:10px;padding:6px 0;border-bottom:0.5px solid var(--sep)}
+.tl-item:last-child{border-bottom:none}
+.tl-dot{width:8px;height:8px;border-radius:50%;background:var(--r);flex-shrink:0;margin-top:5px}
+.tl-yr{font-size:11px;color:var(--cm);min-width:38px;margin-top:3px}
+.tl-text{font-size:13px;line-height:1.5}
+
+.matrix-grid{display:grid;gap:2px;margin:8px 0}
+.m-cell{padding:6px 4px;text-align:center;font-size:14px;border-radius:3px;border:0.5px solid var(--bdr)}
+.m-cell.head{background:var(--r);color:#fff;font-weight:700;font-size:11px}
+.m-cell.val{background:var(--p2);color:var(--ink)}
+.m-cell.result{background:var(--p3);color:var(--r);font-weight:700}
+.m-cell.op{background:transparent;color:var(--r);font-size:16px;border-color:transparent}
+
+.proof-box{border:1.5px solid var(--r);border-radius:8px;padding:10px 12px;margin:8px 0;text-align:center;background:var(--p2);position:relative}
+.proof-label{position:absolute;top:-8px;left:50%;transform:translateX(-50%);background:var(--p2);padding:0 6px;font-size:10px;color:var(--r);font-weight:700;letter-spacing:0.08em}
+
+.tab-row{display:flex;gap:0;border-bottom:1.5px solid var(--r);margin-bottom:10px}
+.tab{padding:5px 10px;font-size:12px;cursor:pointer;color:var(--cm);border-bottom:2px solid transparent;margin-bottom:-1.5px;font-family:'Amiri',serif;background:none;border-top:none;border-left:none;border-right:none}
+.tab.active{color:var(--r);border-bottom:2px solid var(--r);font-weight:700}
+.tab-panel{display:none}.tab-panel.active{display:block}
+
+.progress-bar-wrap{background:var(--p2);border-radius:20px;height:6px;overflow:hidden;margin:4px 0}
+.progress-bar{height:100%;background:var(--r);border-radius:20px;transition:width 0.4s}
+
+.kbd{display:inline-block;padding:1px 5px;background:var(--p3);border:0.5px solid var(--bdr2);border-radius:3px;font-size:11px;color:var(--cm)}
+.separator{height:1px;background:var(--sep);margin:10px 0}
+
+.tooltip-wrap{position:relative;display:inline-block}
+.tooltip-wrap:hover .tooltip-body{display:block}
+.tooltip-body{display:none;position:absolute;bottom:120%;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--p);font-size:11px;padding:4px 8px;border-radius:4px;white-space:nowrap;z-index:9;pointer-events:none}
+
+.notation-badge{display:inline-block;padding:1px 7px;border-radius:10px;border:0.5px solid var(--bdr2);font-size:11px;background:var(--p2);color:var(--cm)}
+
+.full-width{grid-column:1/-1;padding:12px 16px;border-top:1.5px solid var(--r)}
+
+.arabic-block{font-size:17px;direction:rtl;text-align:right;line-height:2;color:var(--ink)}
+.arabic-block .r{color:var(--r);font-weight:700}
+
+@keyframes march{to{stroke-dashoffset:-12}}
+.animated-path{stroke-dasharray:4 4;animation:march 0.8s linear infinite}
+</style>
+
+<div style="background:var(--p)">
+
+<div class="folio-header">
+  <div class="folio-title">الورقة الثانية — تبصرة الحساب</div>
+  <div class="folio-subtitle">Leaf II · The Clarification of Reckoning · al-Qalasādī · Granada, c. 1471 CE / 876 AH</div>
+</div>
+<div class="folio-nav">
+  <button onclick="sendPrompt('Tell me about al-Qalasādī and his place in the history of algebra')">← Leaf I ↗</button>
+  <span>Folio 2r — Polynomial Solver · Geometric Proofs · Muʿāmalāt</span>
+  <button onclick="sendPrompt('What innovations in algebraic notation came after al-Qalasādī?')">Leaf III → ↗</button>
+</div>
+
+<div class="manuscript">
+
+<!-- LEFT COLUMN -->
+<div class="col" style="background:var(--p)">
+
+  <div class="section-head">المتعددات — Polynomial Plotter</div>
+  <div class="arabic-block" style="font-size:13px;margin-bottom:8px">
+    ارسم <span class="r">الكعب</span> و<span class="r">المال</span> و<span class="r">الشيء</span> على الصفحة
+  </div>
+
+  <div class="control-row">
+    <span class="ctrl-label">كعب (x³)</span>
+    <input type="range" min="-3" max="3" step="0.5" value="0" id="c3" oninput="plot()">
+    <input type="number" id="c3v" value="0" style="width:50px" oninput="syncSlider('c3','c3v');plot()">
+  </div>
+  <div class="control-row">
+    <span class="ctrl-label">مال (x²)</span>
+    <input type="range" min="-5" max="5" step="0.5" value="1" id="c2" oninput="plot()">
+    <input type="number" id="c2v" value="1" style="width:50px" oninput="syncSlider('c2','c2v');plot()">
+  </div>
+  <div class="control-row">
+    <span class="ctrl-label">شيء (x)</span>
+    <input type="range" min="-10" max="10" step="1" value="5" id="c1" oninput="plot()">
+    <input type="number" id="c1v" value="5" style="width:50px" oninput="syncSlider('c1','c1v');plot()">
+  </div>
+  <div class="control-row">
+    <span class="ctrl-label">عدد (c)</span>
+    <input type="range" min="-24" max="24" step="1" value="-24" id="c0" oninput="plot()">
+    <input type="number" id="c0v" value="-24" style="width:50px" oninput="syncSlider('c0','c0v');plot()">
+  </div>
+
+  <canvas class="poly-canvas" id="plotCanvas" width="290" height="200"></canvas>
+
+  <div style="margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <span style="font-size:12px;color:var(--cm)">Roots:</span>
+    <div class="result-pill" id="roots-display"><span class="val">—</span></div>
+    <span class="notation-badge" id="eq-notation">x² + 5x − 24</span>
+  </div>
+
+  <div class="separator"></div>
+
+  <div class="section-head">الضرب — Lattice Multiplication</div>
+  <div style="font-size:12px;color:var(--cm);margin-bottom:8px">al-Qalasādī's jalī (lattice) grid method for multiplying large numbers</div>
+
+  <div class="control-row">
+    <span class="ctrl-label">First عدد</span>
+    <input type="number" id="lm1" value="37" min="10" max="99" oninput="lattice()">
+    <span class="ctrl-label" style="margin-left:8px">Second</span>
+    <input type="number" id="lm2" value="46" min="10" max="99" oninput="lattice()">
+  </div>
+  <div id="lattice-display"></div>
+
+  <div class="separator"></div>
+
+  <div class="section-head">البرهان الهندسي — Geometric Proof</div>
+  <canvas id="geoCanvas" width="290" height="180" style="width:100%;border-radius:6px;border:0.5px solid var(--bdr2);cursor:pointer" onclick="animateGeo()"></canvas>
+  <div style="font-size:11px;color:var(--cm);margin-top:4px;text-align:center">Visual proof: (a+b)² = a² + 2ab + b²  · tap to animate</div>
+
+  <div class="proof-box" style="margin-top:10px">
+    <div class="proof-label">Q.E.D. — ثبت ما أردنا</div>
+    <div class="eq-line">
+      <span class="eq-var">مال</span>
+      <span class="eq-op">+</span>
+      <span class="eq-word">٢ × شيء × عدد</span>
+      <span class="eq-op">+</span>
+      <span class="eq-var">مال العدد</span>
+      <span class="eq-dots">⋯</span>
+      <span class="eq-var">(شيء + عدد)²</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- DIVIDER -->
+<div class="col-divider"></div>
+
+<!-- RIGHT COLUMN -->
+<div class="col" style="background:var(--p)">
+
+  <div class="section-head">المعاملات — Commercial Mathematics</div>
+
+  <div class="tab-row">
+    <button class="tab active" onclick="showTab('profit')">ربح</button>
+    <button class="tab" onclick="showTab('zakat')">زكاة</button>
+    <button class="tab" onclick="showTab('currency')">صرف</button>
+    <button class="tab" onclick="showTab('partnership')">شركة</button>
+  </div>
+
+  <div class="tab-panel active" id="tab-profit">
+    <div style="font-size:12px;color:var(--cm);margin-bottom:8px">Profit & loss — rule of three (قاعدة الثلاثة)</div>
+    <div class="control-row"><span class="ctrl-label">Cost</span><input type="number" id="cost" value="800" oninput="calcProfit()"> <span class="ctrl-label">dirhams</span></div>
+    <div class="control-row"><span class="ctrl-label">Sell price</span><input type="number" id="sell" value="1100" oninput="calcProfit()"> <span class="ctrl-label">dirhams</span></div>
+    <div id="profit-out"></div>
+    <div class="marginal">Rule of three: if cost × rate = price, then profit = price − cost. al-Qalasādī writes the ratio as a horizontal fraction.</div>
+  </div>
+
+  <div class="tab-panel" id="tab-zakat">
+    <div style="font-size:12px;color:var(--cm);margin-bottom:8px">Zakāt calculation — نصاب and ٢.٥٪ rate</div>
+    <div class="control-row"><span class="ctrl-label">Wealth</span><input type="number" id="zw" value="5000" oninput="calcZakat()"> <span class="ctrl-label">dirhams</span></div>
+    <div class="control-row"><span class="ctrl-label">Nisāb</span><input type="number" id="znisab" value="595" oninput="calcZakat()"> <span class="ctrl-label">dirhams</span></div>
+    <div id="zakat-out"></div>
+    <div class="marginal">Nisāb = value of 595g of silver. Zakāt = ٢.٥٪ of total wealth if held ≥ one lunar year (حول).</div>
+  </div>
+
+  <div class="tab-panel" id="tab-currency">
+    <div style="font-size:12px;color:var(--cm);margin-bottom:8px">Currency exchange — صرف الأموال</div>
+    <div class="control-row"><span class="ctrl-label">Amount</span><input type="number" id="camt" value="100" oninput="calcCurrency()"></div>
+    <div class="control-row">
+      <span class="ctrl-label">From</span>
+      <select id="cfrom" onchange="calcCurrency()" style="flex:1;padding:4px;border:0.5px solid var(--bdr2);border-radius:4px;background:var(--p2);color:var(--ink);font-family:'Amiri',serif;font-size:13px">
+        <option value="1">Dirham (d)</option>
+        <option value="10">Dinar (=10d)</option>
+        <option value="0.1">Daniq (=0.1d)</option>
+        <option value="0.25">Qirat (=0.25d)</option>
+      </select>
+      <span class="ctrl-label" style="margin-left:4px">To</span>
+      <select id="cto" onchange="calcCurrency()" style="flex:1;padding:4px;border:0.5px solid var(--bdr2);border-radius:4px;background:var(--p2);color:var(--ink);font-family:'Amiri',serif;font-size:13px">
+        <option value="10">Dinar (=10d)</option>
+        <option value="1">Dirham (d)</option>
+        <option value="0.1">Daniq (=0.1d)</option>
+        <option value="0.25">Qirat (=0.25d)</option>
+      </select>
+    </div>
+    <div id="currency-out"></div>
+  </div>
+
+  <div class="tab-panel" id="tab-partnership">
+    <div style="font-size:12px;color:var(--cm);margin-bottom:8px">Partnership profit split — شركة الأموال</div>
+    <div id="partner-rows"></div>
+    <div class="btn-row">
+      <button class="btn" onclick="addPartner()">+ شريك Add partner</button>
+      <button class="btn ghost" onclick="calcPartnership()">احسب Calculate</button>
+    </div>
+    <div id="partner-out"></div>
+  </div>
+
+  <div class="separator"></div>
+
+  <div class="section-head">تاريخ — Timeline of Symbolic Notation</div>
+  <div class="timeline">
+    <div class="tl-item"><div class="tl-dot"></div><div class="tl-yr">820</div><div class="tl-text">al-Khwārizmī names <span class="rubricated">māl</span> and <span class="rubricated">shayʾ</span> in prose — no symbols yet</div></div>
+    <div class="tl-item"><div class="tl-dot"></div><div class="tl-yr">1145</div><div class="tl-text">al-Samawʾal introduces syncopated notation with positional columns</div></div>
+    <div class="tl-item"><div class="tl-dot" style="background:var(--gold)"></div><div class="tl-yr" style="color:var(--gold);font-weight:700">1471</div><div class="tl-text"><span class="rubricated">al-Qalasādī</span> — first use of true algebraic <em>symbols</em> for operations and unknowns</div></div>
+    <div class="tl-item"><div class="tl-dot"></div><div class="tl-yr">1557</div><div class="tl-text">Robert Recorde introduces = in <em>The Whetstone of Witte</em></div></div>
+    <div class="tl-item"><div class="tl-dot"></div><div class="tl-yr">1637</div><div class="tl-text">Descartes standardises x, y, z and superscripts for powers</div></div>
+  </div>
+
+  <div class="separator"></div>
+
+  <div class="section-head">الترجمة — Live Notation Translator</div>
+  <div style="font-size:12px;color:var(--cm);margin-bottom:6px">Type a modern expression — see al-Qalasādī's equivalent</div>
+  <input type="text" id="translator-in" placeholder="e.g.  x^2 + 3x - 10 = 0" style="width:100%;padding:7px 10px;border:0.5px solid var(--bdr2);border-radius:6px;background:var(--p2);color:var(--ink);font-family:'Amiri',serif;font-size:14px" oninput="translate(this.value)">
+  <div id="translator-out" style="margin-top:8px;min-height:40px;direction:rtl;text-align:right;font-size:20px;padding:8px;background:var(--p2);border-radius:6px;border:0.5px solid var(--bdr)"></div>
+  <div id="translator-key" style="font-size:11px;color:var(--cm);margin-top:4px"></div>
+
+</div>
+
+<!-- FULL WIDTH BOTTOM -->
+<div class="full-width" style="background:var(--p2);display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+
+  <div>
+    <div class="section-head">الأعداد — Numeral Systems</div>
+    <div id="numeral-convert"></div>
+    <div class="control-row" style="margin-top:8px">
+      <input type="number" id="num-input" value="1471" min="0" max="9999" oninput="convertNumerals()" style="flex:1">
+      <span style="font-size:11px;color:var(--cm)">Hindu-Arabic</span>
+    </div>
+  </div>
+
+  <div>
+    <div class="section-head">الجبر — Identity Cards</div>
+    <div class="btn-row" id="identity-btns"></div>
+    <div id="identity-display"></div>
+  </div>
+
+  <div>
+    <div class="section-head">الخطأين — Method of Two Errors</div>
+    <div style="font-size:12px;color:var(--cm);margin-bottom:6px">Guess-and-correct linear solver (الخطأين)</div>
+    <div class="control-row"><span class="ctrl-label">f(x)=</span><input type="text" id="fx-expr" value="3x+7" style="flex:1;padding:4px 8px;border:0.5px solid var(--bdr2);border-radius:4px;background:var(--p2);color:var(--ink);font-family:'Amiri',serif;font-size:13px"> <span class="ctrl-label">=</span><input type="number" id="fx-target" value="22" style="width:50px;padding:4px 6px;border:0.5px solid var(--bdr2);border-radius:4px;background:var(--p2);color:var(--ink);font-family:'Amiri',serif;font-size:13px"></div>
+    <div class="control-row"><span class="ctrl-label">Guess ١</span><input type="number" id="g1" value="3" oninput="twoErrors()"><span class="ctrl-label" style="margin-left:8px">Guess ٢</span><input type="number" id="g2" value="7" oninput="twoErrors()"></div>
+    <div id="two-errors-out"></div>
+  </div>
+
+</div>
+</div>
+</div>
+
+<script>
+const toE=n=>String(Math.round(n)).replace(/[0-9]/g,d=>'٠١٢٣٤٥٦٧٨٩'[d]);
+const isDark=()=>window.matchMedia('(prefers-color-scheme:dark)').matches;
+const ink=()=>isDark()?'#E8D9C4':'#1C1008';
+const r=()=>'#C23B22';
+const p2=()=>isDark()?'#2A1E0E':'#EDD9BC';
+const p3=()=>isDark()?'#35271A':'#E4CFA6';
+const cm=()=>isDark()?'#9C8470':'#7A6650';
+
+function syncSlider(sid,nid){
+  const s=document.getElementById(sid),n=document.getElementById(nid);
+  if(document.activeElement===n){s.value=n.value;}else{n.value=s.value;}
+}
+
+// ── Polynomial Plotter ───────────────────────────────────────
+function getCoeffs(){
+  ['c3','c2','c1','c0'].forEach((id,i)=>{
+    const s=document.getElementById(id),n=document.getElementById(id+'v');
+    n.value=s.value;
+  });
+  return [parseFloat(document.getElementById('c3').value)||0,
+          parseFloat(document.getElementById('c2').value)||0,
+          parseFloat(document.getElementById('c1').value)||0,
+          parseFloat(document.getElementById('c0').value)||0];
+}
+function evalPoly(c,x){return c[0]*x**3+c[1]*x**2+c[2]*x+c[3];}
+function plot(){
+  const cv=document.getElementById('plotCanvas');
+  const ctx=cv.getContext('2d');
+  const W=cv.width,H=cv.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle=p2();ctx.fillRect(0,0,W,H);
+  const c=getCoeffs();
+  const xs=[];for(let x=-8;x<=8;x+=0.1)xs.push(x);
+  const ys=xs.map(x=>evalPoly(c,x));
+  const ymin=Math.max(-30,Math.min(...ys)),ymax=Math.min(30,Math.max(...ys));
+  const range=Math.max(ymax-ymin,1);
+  const toP=(x,y)=>[(x+8)/(16)*W,(1-(y-ymin)/range)*H];
+  ctx.strokeStyle=p3();ctx.lineWidth=0.5;
+  for(let gx=-8;gx<=8;gx+=2){const px=toP(gx,0);ctx.beginPath();ctx.moveTo(px[0],0);ctx.lineTo(px[0],H);ctx.stroke();}
+  for(let gy=Math.ceil(ymin);gy<=Math.floor(ymax);gy+=Math.ceil(range/6)){const py=toP(0,gy);ctx.beginPath();ctx.moveTo(0,py[1]);ctx.lineTo(W,py[1]);ctx.stroke();}
+  ctx.strokeStyle=cm();ctx.lineWidth=1;
+  const [ax,ay]=toP(-8,0);ctx.beginPath();ctx.moveTo(0,ay);ctx.lineTo(W,ay);ctx.stroke();
+  const [bx,by]=toP(0,ymin);ctx.beginPath();ctx.moveTo(bx,0);ctx.lineTo(bx,H);ctx.stroke();
+  ctx.strokeStyle=r();ctx.lineWidth=2;ctx.beginPath();
+  let started=false;
+  for(let i=0;i<xs.length;i++){
+    const y=evalPoly(c,xs[i]);
+    if(y<ymin-1||y>ymax+1){started=false;continue;}
+    const [px,py]=toP(xs[i],y);
+    if(!started){ctx.moveTo(px,py);started=true;}else{ctx.lineTo(px,py);}
+  }
+  ctx.stroke();
+  const roots=findRoots(c);
+  ctx.fillStyle=r();
+  roots.forEach(rx=>{
+    const [px,py]=toP(rx,0);
+    ctx.beginPath();ctx.arc(px,py,4,0,Math.PI*2);ctx.fill();
+  });
+  const rStr=roots.length?roots.map(r=>toE(Math.round(r*100)/100)).join('، '):'لا جذور';
+  document.getElementById('roots-display').innerHTML=`<span class="val">${rStr}</span>`;
+  const parts=[];
+  if(c[0]!==0)parts.push(`${c[0]}x³`);
+  if(c[1]!==0)parts.push(`${c[1]>0&&parts.length?'+':''}${c[1]}x²`);
+  if(c[2]!==0)parts.push(`${c[2]>0&&parts.length?'+':''}${c[2]}x`);
+  if(c[3]!==0)parts.push(`${c[3]>0&&parts.length?'+':''}${c[3]}`);
+  document.getElementById('eq-notation').textContent=(parts.join(' ')||'0')+' = 0';
+}
+function findRoots(c){
+  const roots=[];
+  for(let x=-8;x<=8;x+=0.05){
+    const y=evalPoly(c,x),y2=evalPoly(c,x+0.05);
+    if(y*y2<0){
+      let lo=x,hi=x+0.05;
+      for(let k=0;k<50;k++){const m=(lo+hi)/2;evalPoly(c,m)*y<0?hi=m:lo=m;}
+      const root=(lo+hi)/2;
+      if(!roots.some(r=>Math.abs(r-root)<0.1))roots.push(Math.round(root*100)/100);
+    }
+    if(Math.abs(y)<0.03)if(!roots.some(r=>Math.abs(r-x)<0.1))roots.push(Math.round(x*100)/100);
+  }
+  return roots;
+}
+plot();
+document.querySelectorAll('#c3,#c2,#c1,#c0').forEach(s=>s.addEventListener('input',()=>{
+  const id=s.id;document.getElementById(id+'v').value=s.value;plot();
+}));
+
+// ── Lattice Multiplication ───────────────────────────────────
+function lattice(){
+  const a=parseInt(document.getElementById('lm1').value)||37;
+  const b=parseInt(document.getElementById('lm2').value)||46;
+  const a1=Math.floor(a/10),a0=a%10;
+  const b1=Math.floor(b/10),b0=b%10;
+  const cells=[[a1*b1,a1*b0],[a0*b1,a0*b0]];
+  const product=a*b;
+  let html=`<div class="matrix-grid" style="grid-template-columns:auto 1fr 1fr">`;
+  html+=`<div class="m-cell op">×</div><div class="m-cell head">${toE(b1)}·</div><div class="m-cell head">${toE(b0)}·</div>`;
+  for(let i=0;i<2;i++){
+    html+=`<div class="m-cell head">${toE(i===0?a1:a0)}·</div>`;
+    for(let j=0;j<2;j++){
+      const v=cells[i][j];
+      const hi=Math.floor(v/10),lo=v%10;
+      html+=`<div class="m-cell val" style="font-size:12px"><span style="color:var(--r)">${toE(hi)}</span>${toE(lo)}</div>`;
+    }
+  }
+  html+=`<div class="m-cell op">=</div><div class="m-cell result" style="grid-column:span 2;font-size:15px">${toE(product)} <span style="font-size:11px;color:var(--cm)">(${product})</span></div>`;
+  html+=`</div>`;
+  document.getElementById('lattice-display').innerHTML=html;
+}
+lattice();
+
+// ── Geometric Proof Canvas ───────────────────────────────────
+let geoPhase=0,geoAnim=null;
+function animateGeo(){
+  clearInterval(geoAnim);geoPhase=0;
+  geoAnim=setInterval(()=>{geoPhase+=0.02;if(geoPhase>=1){clearInterval(geoAnim);geoPhase=1;}drawGeo();},16);
+}
+function drawGeo(){
+  const cv=document.getElementById('geoCanvas');
+  const ctx=cv.getContext('2d');
+  const W=cv.width,H=cv.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle=p2();ctx.fillRect(0,0,W,H);
+  const t=geoPhase;
+  const a=80,b=50,pad=20;
+  const ox=pad,oy=pad;
+  const total=a+b;
+  const scale=Math.min((W-2*pad)/total,(H-2*pad-20)/total);
+  const sa=a*scale,sb=b*scale,st=total*scale;
+  const colors={a2:isDark()?'#4A2010':'#FAECE7',ab:isDark()?'#1A2A10':'#EAF3DE',b2:isDark()?'#10202A':'#E6F1FB'};
+  ctx.fillStyle=isDark()?'#3A2518':'#F5E6D3';ctx.fillRect(ox,oy,st,st);
+  if(t>0){
+    ctx.fillStyle=colors.a2;ctx.fillRect(ox,oy,sa*t,sa*t);
+    ctx.strokeStyle=r();ctx.lineWidth=1;ctx.strokeRect(ox,oy,sa*t,sa*t);
+    ctx.fillStyle=isDark()?'#8B3020':'#C23B22';ctx.font=`bold ${Math.max(10,14*t)}px Amiri,serif`;ctx.textAlign='center';ctx.textBaseline='middle';
+    if(t>0.5)ctx.fillText('a²',ox+sa*t/2,oy+sa*t/2);
+  }
+  if(t>0.2){
+    const tt=(t-0.2)/0.8;
+    ctx.fillStyle=colors.ab;ctx.fillRect(ox+sa,oy,sb*tt,sa);
+    ctx.strokeStyle='#3B6D11';ctx.lineWidth=1;ctx.strokeRect(ox+sa,oy,sb*tt,sa);
+    if(tt>0.6){ctx.fillStyle=isDark()?'#2B5010':'#3B6D11';ctx.font='bold 12px Amiri,serif';ctx.fillText('ab',ox+sa+sb*tt/2,oy+sa/2);}
+  }
+  if(t>0.4){
+    const tt=(t-0.4)/0.6;
+    ctx.fillStyle=colors.ab;ctx.fillRect(ox,oy+sa,sa,sb*tt);
+    ctx.strokeStyle='#3B6D11';ctx.lineWidth=1;ctx.strokeRect(ox,oy+sa,sa,sb*tt);
+    if(tt>0.6){ctx.fillStyle=isDark()?'#2B5010':'#3B6D11';ctx.font='bold 12px Amiri,serif';ctx.fillText('ab',ox+sa/2,oy+sa+sb*tt/2);}
+  }
+  if(t>0.6){
+    const tt=(t-0.6)/0.4;
+    ctx.fillStyle=colors.b2;ctx.fillRect(ox+sa,oy+sa,sb*tt,sb*tt);
+    ctx.strokeStyle='#185FA5';ctx.lineWidth=1;ctx.strokeRect(ox+sa,oy+sa,sb*tt,sb*tt);
+    if(tt>0.7){ctx.fillStyle=isDark()?'#0A3060':'#185FA5';ctx.font='bold 12px Amiri,serif';ctx.fillText('b²',ox+sa+sb*tt/2,oy+sa+sb*tt/2);}
+  }
+  ctx.strokeStyle=cm();ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(ox,oy+st+10);ctx.lineTo(ox+sa,oy+st+10);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(ox+sa,oy+st+10);ctx.lineTo(ox+st,oy+st+10);ctx.stroke();
+  ctx.fillStyle=cm();ctx.font='11px Amiri,serif';ctx.textAlign='center';
+  ctx.fillText('a',ox+sa/2,oy+st+18);ctx.fillText('b',ox+sa+sb/2,oy+st+18);
+}
+drawGeo();
+
+// ── Tab System ───────────────────────────────────────────────
+function showTab(id){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  event.target.classList.add('active');
+  if(id==='profit')calcProfit();
+  if(id==='zakat')calcZakat();
+  if(id==='currency')calcCurrency();
+  if(id==='partnership')renderPartners();
+}
+
+// ── Profit Calculator ────────────────────────────────────────
+function calcProfit(){
+  const cost=parseFloat(document.getElementById('cost').value)||800;
+  const sell=parseFloat(document.getElementById('sell').value)||1100;
+  const profit=sell-cost;
+  const pct=((profit/cost)*100).toFixed(1);
+  const isProfit=profit>=0;
+  document.getElementById('profit-out').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px">
+      <div style="background:var(--p2);border-radius:6px;padding:8px;text-align:center">
+        <div style="font-size:10px;color:var(--cm)">${isProfit?'ربح Profit':'خسارة Loss'}</div>
+        <div style="font-size:20px;color:${isProfit?'#1D9E75':r()};font-weight:700">${toE(Math.abs(profit))}</div>
+        <div style="font-size:10px;color:var(--cm)">dirhams</div>
+      </div>
+      <div style="background:var(--p2);border-radius:6px;padding:8px;text-align:center">
+        <div style="font-size:10px;color:var(--cm)">Rate — نسبة</div>
+        <div style="font-size:20px;color:${isProfit?'#1D9E75':r()};font-weight:700">${pct}%</div>
+        <div class="progress-bar-wrap"><div class="progress-bar" style="width:${Math.min(100,Math.abs(parseFloat(pct)))}%;background:${isProfit?'#1D9E75':r()}"></div></div>
+      </div>
+    </div>`;
+}
+calcProfit();
+
+// ── Zakat ────────────────────────────────────────────────────
+function calcZakat(){
+  const w=parseFloat(document.getElementById('zw').value)||5000;
+  const n=parseFloat(document.getElementById('znisab').value)||595;
+  const eligible=w>=n;
+  const z=eligible?w*0.025:0;
+  document.getElementById('zakat-out').innerHTML=eligible?`
+    <div style="margin-top:8px;padding:10px;background:var(--p2);border-radius:6px;text-align:center;border:0.5px solid var(--bdr2)">
+      <div style="font-size:10px;color:var(--cm)">Zakāt due — زكاة واجبة</div>
+      <div style="font-size:24px;color:var(--r);font-weight:700">${toE(Math.round(z))} <span style="font-size:13px">dirhams</span></div>
+      <div style="font-size:11px;color:var(--cm);margin-top:4px">٢٥ في الألف · 2.5% of ${w.toLocaleString()}</div>
+    </div>`:`<div style="margin-top:8px;padding:8px;background:var(--p2);border-radius:6px;text-align:center;font-size:13px;color:var(--cm)">Wealth below nisāb — no zakāt due (لا زكاة)</div>`;
+}
+calcZakat();
+
+// ── Currency ─────────────────────────────────────────────────
+function calcCurrency(){
+  const amt=parseFloat(document.getElementById('camt').value)||100;
+  const fr=parseFloat(document.getElementById('cfrom').value)||1;
+  const to=parseFloat(document.getElementById('cto').value)||10;
+  const result=(amt*fr)/to;
+  document.getElementById('currency-out').innerHTML=`
+    <div style="margin-top:8px;padding:10px;background:var(--p2);border-radius:6px;text-align:center">
+      <div style="font-size:10px;color:var(--cm)">Equivalent — المعادل</div>
+      <div style="font-size:22px;color:var(--r);font-weight:700">${result.toFixed(4)} <span style="font-size:12px;color:var(--cm)">${document.getElementById('cto').options[document.getElementById('cto').selectedIndex].text}</span></div>
+      <div style="font-size:11px;color:var(--cm);margin-top:3px">Ratio: <span style="color:var(--r)">${fr}</span> ÷ <span style="color:var(--r)">${to}</span></div>
+    </div>`;
+}
+calcCurrency();
+
+// ── Partnership ──────────────────────────────────────────────
+let partners=[{name:'شريك أول',share:3000},{name:'شريك ثاني',share:5000}];
+let totalProfit=2400;
+function renderPartners(){
+  let html=`<div class="control-row"><span class="ctrl-label">Profit</span><input type="number" id="total-profit" value="${totalProfit}" oninput="totalProfit=parseFloat(this.value);calcPartnership()"> <span class="ctrl-label">dirhams</span></div>`;
+  partners.forEach((p,i)=>{
+    html+=`<div class="control-row"><input type="text" value="${p.name}" style="flex:1;padding:4px 8px;border:0.5px solid var(--bdr2);border-radius:4px;background:var(--p2);color:var(--ink);font-family:'Amiri',serif;font-size:13px" oninput="partners[${i}].name=this.value;calcPartnership()"><input type="number" value="${p.share}" style="width:70px;padding:4px 6px;border:0.5px solid var(--bdr2);border-radius:4px;background:var(--p2);color:var(--ink);font-family:'Amiri',serif;font-size:13px" oninput="partners[${i}].share=parseFloat(this.value);calcPartnership()"></div>`;
+  });
+  document.getElementById('partner-rows').innerHTML=html;
+  calcPartnership();
+}
+function addPartner(){partners.push({name:`شريك ${toE(partners.length+1)}`,share:1000});renderPartners();}
+function calcPartnership(){
+  const total=partners.reduce((a,p)=>a+(p.share||0),0);
+  if(!total){document.getElementById('partner-out').innerHTML='';return;}
+  let html='<div style="margin-top:6px;display:flex;flex-direction:column;gap:4px">';
+  partners.forEach(p=>{
+    const pct=((p.share||0)/total);
+    const earn=(pct*totalProfit).toFixed(1);
+    html+=`<div style="display:flex;align-items:center;gap:6px">
+      <span style="font-size:12px;min-width:70px;color:var(--ink)">${p.name}</span>
+      <div class="progress-bar-wrap" style="flex:1"><div class="progress-bar" style="width:${(pct*100).toFixed(1)}%"></div></div>
+      <span style="font-size:12px;color:var(--r);min-width:50px;text-align:right">${toE(Math.round(earn))}</span>
+    </div>`;
+  });
+  html+='</div>';
+  document.getElementById('partner-out').innerHTML=html;
+}
+renderPartners();
+
+// ── Numeral Converter ────────────────────────────────────────
+function convertNumerals(){
+  const n=parseInt(document.getElementById('num-input').value)||1471;
+  const eastern=String(n).replace(/[0-9]/g,d=>'٠١٢٣٤٥٦٧٨٩'[d]);
+  const roman=toRoman(n);
+  const abjad=toAbjad(n);
+  document.getElementById('numeral-convert').innerHTML=`
+    <div style="display:flex;flex-direction:column;gap:4px">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 8px;background:var(--p2);border-radius:4px">
+        <span style="font-size:10px;color:var(--cm)">Eastern Arabic</span>
+        <span style="font-size:18px;color:var(--r);direction:rtl">${eastern}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 8px;background:var(--p2);border-radius:4px">
+        <span style="font-size:10px;color:var(--cm)">Hindu-Arabic</span>
+        <span style="font-size:16px;color:var(--ink)">${n}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 8px;background:var(--p2);border-radius:4px">
+        <span style="font-size:10px;color:var(--cm)">Roman</span>
+        <span style="font-size:14px;color:var(--ink)">${roman}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 8px;background:var(--p2);border-radius:4px">
+        <span style="font-size:10px;color:var(--cm)">Abjad حروف</span>
+        <span style="font-size:14px;color:var(--ink);direction:rtl">${abjad}</span>
+      </div>
+    </div>`;
+}
+function toRoman(n){
+  if(n<=0||n>3999)return '—';
+  const v=[1000,900,500,400,100,90,50,40,10,9,5,4,1];
+  const s=['M','CM','D','CD','C','XC','L','XL','X','IX','V','IV','I'];
+  let r='';v.forEach((val,i)=>{while(n>=val){r+=s[i];n-=val;}});return r;
+}
+function toAbjad(n){
+  const vals=[1000,900,800,700,600,500,400,300,200,100,90,80,70,60,50,40,30,20,10,9,8,7,6,5,4,3,2,1];
+  const chars=['غ','ظ','ض','ذ','خ','ث','ت','ش','ر','ق','ص','ف','ع','س','ن','م','ل','ك','ي','ط','ح','ز','و','ه','د','ج','ب','أ'];
+  let r='';vals.forEach((v,i)=>{while(n>=v){r+=chars[i];n-=v;}});return r||'صفر';
+}
+convertNumerals();
+
+// ── Algebraic Identities ─────────────────────────────────────
+const identities=[
+  {lbl:'(a+b)²',ar:'مال الجمع',lhs:'(a+b)²',rhs:'a² + 2ab + b²',num:1},
+  {lbl:'(a−b)²',ar:'مال الفرق',lhs:'(a−b)²',rhs:'a² − 2ab + b²',num:2},
+  {lbl:'a²−b²',ar:'فرق المربعين',lhs:'a² − b²',rhs:'(a+b)(a−b)',num:3},
+  {lbl:'(a+b)³',ar:'مكعب الجمع',lhs:'(a+b)³',rhs:'a³+3a²b+3ab²+b³',num:4},
+];
+let curId=0;
+function renderIdentities(){
+  document.getElementById('identity-btns').innerHTML=identities.map((id,i)=>
+    `<button class="btn${i===curId?' active':''}" onclick="curId=${i};renderIdentities()">${id.lbl}</button>`).join('');
+  const id=identities[curId];
+  document.getElementById('identity-display').innerHTML=`
+    <div style="padding:10px;background:var(--p2);border-radius:8px;border:0.5px solid var(--bdr2);margin-top:6px;text-align:center">
+      <div style="font-size:13px;color:var(--cm);direction:rtl;margin-bottom:6px">${id.ar}</div>
+      <div style="font-size:18px;color:var(--ink);margin-bottom:4px">${id.lhs}</div>
+      <div style="font-size:13px;color:var(--r)">⋯⋯⋯</div>
+      <div style="font-size:16px;color:var(--ink);margin-top:4px">${id.rhs}</div>
+    </div>`;
+}
+renderIdentities();
+
+// ── Method of Two Errors ─────────────────────────────────────
+function parseLinear(expr){
+  expr=expr.replace(/\s/g,'');
+  const m=expr.match(/^(-?\d*\.?\d*)x([+-]\d*\.?\d*)?$/i);
+  if(!m)return null;
+  const a=parseFloat(m[1]||'1');
+  const b=parseFloat(m[2]||'0');
+  return {a,b};
+}
+function twoErrors(){
+  const expr=document.getElementById('fx-expr').value||'3x+7';
+  const target=parseFloat(document.getElementById('fx-target').value)||22;
+  const g1=parseFloat(document.getElementById('g1').value)||3;
+  const g2=parseFloat(document.getElementById('g2').value)||7;
+  const fn=x=>{const e=expr.replace(/x/gi,`*(${x})`);try{return Function(`return ${e}`)();}catch{return NaN;}};
+  const e1=fn(g1)-target,e2=fn(g2)-target;
+  if(isNaN(e1)||isNaN(e2)){document.getElementById('two-errors-out').innerHTML='<div style="font-size:12px;color:var(--cm)">Use format: 3x+7 or 2x-5</div>';return;}
+  const denom=e1-e2;
+  const x=denom!==0?(g1*e2-g2*e1)/denom:NaN;
+  const steps=[
+    `خطأ ١ (Error 1): f(${g1}) − ${target} = ${fn(g1).toFixed(2)} − ${target} = ${e1.toFixed(2)}`,
+    `خطأ ٢ (Error 2): f(${g2}) − ${target} = ${fn(g2).toFixed(2)} − ${target} = ${e2.toFixed(2)}`,
+    `الحل: x = (${g1}×${e2.toFixed(2)} − ${g2}×${e1.toFixed(2)}) ÷ (${e2.toFixed(2)} − ${e1.toFixed(2)})`,
+  ];
+  let html=`<div style="margin-top:6px;display:flex;flex-direction:column;gap:3px">`;
+  steps.forEach(s=>{html+=`<div style="font-size:11px;color:var(--cm);padding:3px 6px;background:var(--p2);border-radius:3px">${s}</div>`;});
+  if(!isNaN(x)){
+    html+=`<div style="text-align:center;padding:8px;background:var(--p2);border-radius:6px;border:0.5px solid var(--bdr2);margin-top:4px">
+      <div style="font-size:10px;color:var(--cm)">الشيء — x</div>
+      <div style="font-size:22px;color:var(--r);font-weight:700">${toE(Math.round(x*100)/100)} <span style="font-size:12px;color:var(--cm)">(${x.toFixed(4)})</span></div>
+    </div>`;
+  }
+  html+=`</div>`;
+  document.getElementById('two-errors-out').innerHTML=html;
+}
+twoErrors();
+
+// ── Live Notation Translator ─────────────────────────────────
+function translate(val){
+  let out=val.trim();
+  const map=[
+    [/x\^3/gi,'<span style="color:var(--r);font-weight:700">كعب</span>'],
+    [/x\^2/gi,'<span style="color:var(--r);font-weight:700">مال</span>'],
+    [/\bx\b/gi,'<span style="color:var(--r);font-weight:700">شيء</span>'],
+    [/sqrt\(/gi,'<span style="color:var(--r)">جذر(</span>'],
+    [/\+/g,'<span style="color:var(--r)"> و </span>'],
+    [/\-/g,'<span style="color:var(--r)"> إلا </span>'],
+    [/=/g,'<span style="color:var(--r)"> ⋯ </span>'],
+    [/(\d+)/g,(m,n)=>n.replace(/[0-9]/g,d=>'٠١٢٣٤٥٦٧٨٩'[d])],
+  ];
+  map.forEach(([pat,rep])=>{out=out.replace(pat,rep);});
+  document.getElementById('translator-out').innerHTML=out||`<span style="color:var(--cm)">ضع معادلة هنا</span>`;
+  document.getElementById('translator-key').textContent=val?`x²→مال · x³→كعب · x→شيء · +→و · −→إلا · =→⋯`:'';
+}
+translate('x^2 + 5x - 24 = 0');
+</script>

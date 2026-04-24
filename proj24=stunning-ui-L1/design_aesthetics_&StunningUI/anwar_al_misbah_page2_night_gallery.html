@@ -1,0 +1,583 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --gold:#D4AF37;--gold-dim:#8a6e1e;--gold-pale:#f5e6a3;
+  --red:#C23B22;--blue:#1E5A99;--brass:#B8860B;
+  --flame1:#D4AF37;--flame2:#E87A2A;--flame3:#C23B22;
+  --night:#060C18;--night2:#0B1320;--night3:#0d1a2e;
+  --night4:#112240;--night5:#152a4e;
+  --parch:#F5F0E0;--parch2:#d9cba8;
+}
+
+body,.root{background:var(--night);color:var(--parch);font-family:Georgia,serif;width:100%}
+
+@keyframes flk{0%,100%{transform:scaleY(1) scaleX(1) rotate(-1deg)}25%{transform:scaleY(1.18) scaleX(.82) rotate(1deg)}50%{transform:scaleY(.88) scaleX(1.12) rotate(-2deg)}75%{transform:scaleY(1.22) scaleX(.88) rotate(2deg)}}
+@keyframes flk2{0%,100%{transform:scaleY(1) scaleX(1)}30%{transform:scaleY(1.25) scaleX(.8)}60%{transform:scaleY(.85) scaleX(1.15)}}
+@keyframes pulse{0%,100%{opacity:.6}50%{opacity:1}}
+@keyframes shimmer{0%{opacity:.3}50%{opacity:.9}100%{opacity:.3}}
+@keyframes rise{from{transform:translateY(4px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes rotate-slow{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+@keyframes inscribe{from{stroke-dashoffset:600}to{stroke-dashoffset:0}}
+
+.flame{border-radius:50% 50% 20% 20%;transform-origin:bottom center;display:inline-block;animation:flk .75s infinite}
+.flame.f2{animation:flk2 .9s infinite;animation-delay:.15s}
+
+.hdr{background:var(--night);border-bottom:2px solid var(--gold);padding:0;overflow:hidden;position:relative}
+.hdr-inner{display:flex;align-items:center;justify-content:space-between;padding:18px 28px 14px}
+.hdr-ornament{display:flex;gap:10px;align-items:center}
+.hdr-flame-row{display:flex;gap:3px;align-items:flex-end}
+.hdr-title{text-align:center;flex:1}
+.hdr-ar{font-size:24px;color:var(--gold);letter-spacing:3px;line-height:1.2}
+.hdr-en{font-size:10px;color:var(--brass);letter-spacing:4px;text-transform:uppercase;margin-top:3px}
+.hdr-sub{font-size:10px;color:var(--parch);opacity:.4;font-style:italic;margin-top:5px}
+
+.geo-border{height:8px;background:var(--night);border-top:1px solid var(--gold);position:relative;overflow:hidden}
+.geo-border::before{content:'';position:absolute;top:0;left:0;right:0;height:8px;background:repeating-linear-gradient(90deg,var(--gold) 0,var(--gold) 2px,transparent 2px,transparent 10px,var(--red) 10px,var(--red) 12px,transparent 12px,transparent 22px,var(--blue) 22px,var(--blue) 24px,transparent 24px,transparent 34px)}
+
+.tabs{display:flex;background:var(--night2);border-bottom:1px solid #1a2d4a;padding:0 20px}
+.tab{padding:10px 16px;font-size:11px;color:var(--parch);opacity:.45;cursor:pointer;border-bottom:2px solid transparent;letter-spacing:.8px;text-transform:uppercase;font-family:Georgia,serif;white-space:nowrap;transition:all .2s}
+.tab:hover{opacity:.75;color:var(--gold)}
+.tab.on{opacity:1;color:var(--gold);border-bottom-color:var(--gold)}
+
+.filters{display:flex;gap:6px;flex-wrap:wrap;padding:12px 20px;background:var(--night2);border-bottom:1px solid #1a2d4a;align-items:center}
+.fl{font-size:9px;color:var(--brass);letter-spacing:1.5px;text-transform:uppercase;margin-right:2px}
+.fp{padding:4px 12px;border-radius:20px;font-size:10px;font-family:Georgia,serif;border:1px solid;cursor:pointer;transition:all .2s;letter-spacing:.3px}
+.fp-g{border-color:var(--blue);color:#6fb3e8;background:rgba(30,90,153,.18)}
+.fp-g.on{background:rgba(30,90,153,.45);border-color:#6fb3e8;color:#a8d8ff}
+.fp-b{border-color:var(--brass);color:var(--gold);background:rgba(184,134,11,.1)}
+.fp-b.on{background:rgba(184,134,11,.35);color:var(--gold-pale)}
+.fp-s{border-color:#6b4f9e;color:#c39bd3;background:rgba(107,79,158,.1)}
+.fp-m{border-color:#1a7a50;color:#5dcaa5;background:rgba(26,122,80,.1)}
+.fp-m.on{background:rgba(26,122,80,.3);color:#a8ffda}
+.count-badge{margin-left:auto;font-size:10px;color:var(--parch);opacity:.35;font-family:Georgia,serif;letter-spacing:.5px}
+
+.page-two-body{display:grid;grid-template-columns:1fr 320px;min-height:800px}
+
+.gallery-col{padding:0;border-right:1px solid #1a2d4a}
+
+.night-gallery{background:var(--night);padding:18px;position:relative}
+.night-gallery-lbl{font-size:9px;color:var(--brass);letter-spacing:2px;text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:10px}
+.night-gallery-lbl::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--brass),transparent)}
+
+.lamp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+
+.lcard{border:1px solid #1a2d4a;background:var(--night2);cursor:pointer;transition:all .25s;position:relative;overflow:hidden}
+.lcard:hover{border-color:var(--gold);transform:translateY(-3px)}
+.lcard:hover .lcard-glow{opacity:1}
+.lcard:hover .lcard-flames{opacity:1}
+.lcard.sel{border-color:var(--gold);border-width:2px}
+.lcard-glow{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 30%,rgba(212,175,55,.08),transparent 70%);opacity:0;transition:opacity .4s;pointer-events:none}
+
+.arch-wrap{position:relative;padding-top:130%;background:var(--night);overflow:hidden}
+.arch-mask{position:absolute;inset:0;clip-path:polygon(0% 100%,0% 33%,50% 0%,100% 33%,100% 100%);border:0 solid transparent}
+.arch-border{position:absolute;inset:5px;pointer-events:none;z-index:5}
+.arch-border svg{width:100%;height:100%;position:absolute;inset:0}
+.arch-inner2{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column}
+.lcard-flames{position:absolute;top:10px;left:50%;transform:translateX(-50%);display:flex;gap:3px;opacity:0;transition:opacity .3s;z-index:6}
+.lcard-info{padding:8px 10px 10px;border-top:1px solid #1a2d4a}
+.lcard-name{font-size:11px;color:var(--gold);font-weight:700;letter-spacing:.4px;line-height:1.3}
+.lcard-donor{font-size:9px;color:var(--brass);margin-top:2px;font-style:italic}
+.lcard-mosque{font-size:8px;color:var(--parch);opacity:.4;margin-top:1px;letter-spacing:.5px;text-transform:uppercase}
+.lcard-tags{display:flex;gap:4px;margin-top:5px;flex-wrap:wrap}
+.ltag{font-size:8px;padding:2px 5px;border:1px solid #1a3050;border-radius:2px;color:var(--parch);opacity:.5;font-family:monospace}
+
+.featured-badge{position:absolute;top:8px;right:8px;font-size:8px;background:rgba(212,175,55,.2);border:1px solid rgba(212,175,55,.5);color:var(--gold);border-radius:2px;padding:2px 6px;letter-spacing:.8px;text-transform:uppercase;z-index:7}
+
+.detail-col{background:var(--night);padding:0;overflow-y:auto;max-height:800px}
+.detail-col::-webkit-scrollbar{width:3px}
+.detail-col::-webkit-scrollbar-thumb{background:var(--gold);border-radius:2px}
+
+.darch{position:relative;width:100%;min-height:280px;background:var(--night2);display:flex;align-items:center;justify-content:center;overflow:hidden;border-bottom:1px solid #1a2d4a}
+.darch-bg-circles{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.darch-lamp-wrap{position:relative;display:flex;flex-direction:column;align-items:center;z-index:2;padding:30px 0 20px}
+.darch-flames{display:flex;gap:4px;margin-bottom:4px;align-items:flex-end}
+.darch-title{font-size:14px;color:var(--gold);font-weight:700;text-align:center;padding:12px 16px 0;letter-spacing:.5px}
+.darch-ar{font-size:17px;color:var(--gold);text-align:center;direction:rtl;font-family:Georgia,serif;opacity:.75;padding:4px 16px 0;line-height:1.5}
+
+.d-sect{padding:12px 16px}
+.d-sect-lbl{font-size:9px;color:var(--brass);text-transform:uppercase;letter-spacing:1.5px;display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.d-sect-lbl::after{content:'';flex:1;height:1px;background:#1a2d4a}
+
+.inscrip{border:1px solid rgba(212,175,55,.35);border-radius:2px;padding:12px 14px;background:rgba(212,175,55,.03);position:relative;margin-bottom:4px}
+.inscrip-lbl{font-size:9px;color:var(--brass);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.inscrip-ar{font-size:15px;color:var(--gold);direction:rtl;font-family:Georgia,serif;line-height:1.7;margin-bottom:5px}
+.inscrip-tr{font-size:10px;color:var(--parch);opacity:.5;font-style:italic;line-height:1.5}
+.inscrip-reveal{font-size:9px;color:var(--brass);cursor:pointer;margin-top:6px;display:inline-block;border-bottom:1px solid rgba(184,134,11,.3)}
+.inscrip-extra{font-size:10px;color:var(--parch2);line-height:1.5;margin-top:6px;display:none;border-top:1px solid #1a2d4a;padding-top:6px}
+
+.spec-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.sitem{padding:7px 9px;background:var(--night2);border:1px solid #1a2d4a;border-radius:2px}
+.skey{font-size:8px;color:var(--brass);text-transform:uppercase;letter-spacing:.5px}
+.sval{font-size:12px;color:var(--parch);margin-top:2px;font-family:Georgia,serif}
+.sval-gold{color:var(--gold)}
+
+.conv-wrap{background:var(--night2);border:1px solid #1a2d4a;border-radius:2px;padding:10px 12px}
+.conv-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.conv-row:last-child{margin-bottom:0}
+.conv-lbl{font-size:9px;color:var(--brass);width:56px;flex-shrink:0;text-transform:uppercase;letter-spacing:.5px}
+.conv-in{background:var(--night);border:1px solid #1a2d4a;border-radius:2px;color:var(--parch);font-size:11px;font-family:Georgia,serif;padding:4px 8px;width:58px;outline:none}
+.conv-in:focus{border-color:var(--gold)}
+.conv-out{font-size:11px;color:var(--gold);font-family:Georgia,serif}
+
+.donor-card2{background:var(--night2);border:1px solid #1a2d4a;border-radius:2px;padding:10px 12px;display:flex;gap:10px;align-items:flex-start}
+.donor-med{width:38px;height:38px;border-radius:50%;background:rgba(212,175,55,.08);border:1px solid rgba(212,175,55,.4);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.donor-med svg{width:18px;height:18px}
+.donor-nm{font-size:12px;color:var(--gold);font-weight:700;font-family:Georgia,serif}
+.donor-ti{font-size:10px;color:var(--brass);font-style:italic;margin-top:1px}
+.donor-ct{font-size:9px;color:var(--parch);opacity:.4;margin-top:3px}
+
+.timeline{padding-left:14px;position:relative}
+.timeline::before{content:'';position:absolute;left:3px;top:0;bottom:0;width:1px;background:linear-gradient(180deg,var(--gold),#1a2d4a)}
+.te{position:relative;margin-bottom:10px}
+.te::before{content:'';position:absolute;left:-12px;top:5px;width:7px;height:7px;border-radius:50%;background:var(--gold);border:1px solid var(--night)}
+.te-yr{font-size:10px;color:var(--gold);font-weight:700}
+.te-desc{font-size:10px;color:var(--parch);opacity:.5;line-height:1.4;margin-top:1px}
+
+.map-preview{background:var(--night2);border:1px solid #1a2d4a;border-radius:2px;padding:0;overflow:hidden}
+.map-svg-wrap{width:100%;height:120px}
+
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.stat-card{background:var(--night2);border:1px solid #1a2d4a;border-radius:2px;padding:8px 10px;text-align:center}
+.stat-n{font-size:20px;color:var(--gold);font-weight:700;font-family:Georgia,serif}
+.stat-l{font-size:9px;color:var(--parch);opacity:.4;text-transform:uppercase;letter-spacing:.8px;margin-top:2px}
+
+.dot-row{display:flex;gap:5px;justify-content:center;padding:8px 0}
+.dot{width:5px;height:5px;border-radius:50%}
+
+.chain-div2{height:24px;background:var(--night2);border-top:1px solid #1a2d4a;border-bottom:1px solid #1a2d4a;overflow:hidden;display:flex;align-items:center;padding:0 16px;gap:0}
+</style>
+
+<div class="root">
+<h2 style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">Kitab Anwar al-Misbah page 2 — Night of Power gallery, inscription reader, endowment map and interactive converters</h2>
+
+<div class="hdr">
+  <div class="hdr-inner">
+    <div class="hdr-ornament">
+      <div class="hdr-flame-row" id="hfl"></div>
+      <svg width="28" height="36" viewBox="0 0 28 36">
+        <ellipse cx="14" cy="20" rx="7" ry="10" fill="none" stroke="#D4AF37" stroke-width="1"/>
+        <ellipse cx="14" cy="12" rx="4" ry="3" fill="#1E5A99" fill-opacity=".7"/>
+        <line x1="14" y1="2" x2="14" y2="6" stroke="#D4AF37" stroke-width="1.5"/>
+        <ellipse cx="14" cy="5" rx="3.5" ry="2" fill="none" stroke="#D4AF37" stroke-width="1"/>
+        <path d="M9 26 Q14 32 19 26" fill="none" stroke="#D4AF37" stroke-width=".8"/>
+        <ellipse cx="14" cy="12" rx="1.5" ry="2.5" fill="#E87A2A" style="animation:flk .7s infinite;transform-origin:14px 14px"/>
+      </svg>
+    </div>
+    <div class="hdr-title">
+      <div class="hdr-ar">كِتَابُ أَنْوَارِ الْمِصْبَاحِ</div>
+      <div class="hdr-en">Kitab Anwar al-Misbah · Illumination of Lights</div>
+      <div class="hdr-sub">Waqf Catalogue of the Holy Cities · Mamluk Egypt & Syria · 14th Century CE</div>
+    </div>
+    <div class="hdr-ornament" style="justify-content:flex-end">
+      <svg width="28" height="36" viewBox="0 0 28 36">
+        <path d="M8 6 L20 6 L24 18 L22 30 L14 34 L6 30 L4 18 Z" fill="none" stroke="#B8860B" stroke-width="1"/>
+        <line x1="8" y1="6" x2="8" y2="30" stroke="#B8860B" stroke-width=".7"/>
+        <line x1="20" y1="6" x2="20" y2="30" stroke="#B8860B" stroke-width=".7"/>
+        <rect x="10" y="10" width="4" height="6" rx="2" fill="none" stroke="#D4AF37" stroke-width=".8" opacity=".7"/>
+        <rect x="15" y="10" width="4" height="6" rx="2" fill="none" stroke="#D4AF37" stroke-width=".8" opacity=".7"/>
+        <line x1="14" y1="2" x2="14" y2="6" stroke="#D4AF37" stroke-width="1.5"/>
+        <ellipse cx="14" cy="4" rx="2.5" ry="1.5" fill="none" stroke="#D4AF37" stroke-width="1"/>
+        <ellipse cx="14" cy="7" rx="1.2" ry="2" fill="#E87A2A" style="animation:flk2 .8s infinite;transform-origin:14px 9px"/>
+      </svg>
+      <div class="hdr-flame-row" id="hfr"></div>
+    </div>
+  </div>
+  <div class="geo-border"></div>
+</div>
+
+<div class="tabs">
+  <div class="tab on">Night gallery</div>
+  <div class="tab">Inscription reader</div>
+  <div class="tab">Endowment map</div>
+  <div class="tab">Donor registry</div>
+  <div class="tab">3D viewer</div>
+  <div class="tab">Waqf documents</div>
+</div>
+
+<div class="filters">
+  <span class="fl">Material</span>
+  <span class="fp fp-g on" onclick="toggleFP(this)">Glass</span>
+  <span class="fp fp-b" onclick="toggleFP(this)">Brass</span>
+  <span class="fp fp-g" style="border-color:#444;color:#666;background:transparent">Iron</span>
+  <span class="fp fp-g" style="border-color:#444;color:#666;background:transparent">Ceramic</span>
+  <span class="fl" style="margin-left:8px">Type</span>
+  <span class="fp fp-b on" onclick="toggleFP(this)">Mosque lamp</span>
+  <span class="fp fp-b" onclick="toggleFP(this)">Lantern</span>
+  <span class="fp fp-b" onclick="toggleFP(this)">Chandelier</span>
+  <span class="fl" style="margin-left:8px">Mosque</span>
+  <span class="fp fp-m on" onclick="toggleFP(this)">Al-Azhar</span>
+  <span class="fp fp-m" onclick="toggleFP(this)">Umayyad</span>
+  <span class="fp fp-m" onclick="toggleFP(this)">Al-Aqsa</span>
+  <span class="fp fp-s">Sultan</span>
+  <span class="count-badge" id="countBadge">6 entries</span>
+</div>
+
+<div class="page-two-body">
+
+  <div class="gallery-col">
+    <div class="night-gallery">
+      <div class="night-gallery-lbl">Night of Power · Laylat al-Qadr — All lamps lit</div>
+      <div class="lamp-grid" id="lampGrid"></div>
+    </div>
+
+    <div style="padding:14px 18px;border-top:1px solid #1a2d4a;background:var(--night2)">
+      <div class="d-sect-lbl">Collection statistics</div>
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-n" id="st1">134</div><div class="stat-l">Glass lamps</div></div>
+        <div class="stat-card"><div class="stat-n">18</div><div class="stat-l">Brass lanterns</div></div>
+        <div class="stat-card"><div class="stat-n">7</div><div class="stat-l">Chandeliers</div></div>
+      </div>
+    </div>
+
+    <div style="padding:14px 18px;border-top:1px solid #1a2d4a;background:var(--night)">
+      <div class="d-sect-lbl">Endowment geographical reach</div>
+      <div class="map-preview">
+        <svg class="map-svg-wrap" viewBox="0 0 290 120" xmlns="http://www.w3.org/2000/svg">
+          <rect width="290" height="120" fill="#060C18"/>
+          <path d="M20 60 Q60 45 100 55 Q120 58 140 52 Q165 44 180 55 Q200 65 220 55 Q240 48 260 56 L270 58" fill="none" stroke="#1a3050" stroke-width="1.5"/>
+          <path d="M30 75 Q50 70 80 72 Q110 74 130 68 Q155 62 175 70 Q195 76 215 68 L240 65" fill="none" stroke="#1a3050" stroke-width="1"/>
+          <circle cx="145" cy="52" r="5" fill="none" stroke="#D4AF37" stroke-width="1.2"/>
+          <circle cx="145" cy="52" r="2" fill="#D4AF37"/>
+          <text x="148" y="46" font-size="7" fill="#D4AF37" font-family="Georgia,serif">Cairo · Al-Azhar</text>
+          <circle cx="195" cy="48" r="4" fill="none" stroke="#1E5A99" stroke-width="1"/>
+          <circle cx="195" cy="48" r="2" fill="#1E5A99"/>
+          <text x="198" y="43" font-size="7" fill="#6fb3e8" font-family="Georgia,serif">Damascus · Umayyad</text>
+          <circle cx="220" cy="40" r="4" fill="none" stroke="#C23B22" stroke-width="1"/>
+          <circle cx="220" cy="40" r="2" fill="#C23B22"/>
+          <text x="223" y="36" font-size="7" fill="#e87a2a" font-family="Georgia,serif">Jerusalem · Al-Aqsa</text>
+          <circle cx="120" cy="62" r="3" fill="none" stroke="#B8860B" stroke-width="1"/>
+          <circle cx="120" cy="62" r="1.5" fill="#B8860B"/>
+          <text x="100" y="77" font-size="7" fill="#B8860B" font-family="Georgia,serif">Alexandria</text>
+          <circle cx="75" cy="58" r="3" fill="none" stroke="#B8860B" stroke-width="1"/>
+          <circle cx="75" cy="58" r="1.5" fill="#B8860B"/>
+          <text x="55" y="52" font-size="7" fill="#B8860B" font-family="Georgia,serif">Fustat</text>
+          <line x1="145" y1="52" x2="195" y2="48" stroke="#D4AF37" stroke-width=".5" stroke-dasharray="3,3" opacity=".4"/>
+          <line x1="195" y1="48" x2="220" y2="40" stroke="#D4AF37" stroke-width=".5" stroke-dasharray="3,3" opacity=".4"/>
+          <text x="10" y="112" font-size="7" fill="#F5F0E0" opacity=".25" font-family="Georgia,serif">Mamluk Sultanate · waqf routes · 14th century CE</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <div class="detail-col" id="detailCol"></div>
+</div>
+
+<div class="chain-div2" id="chainDiv2"></div>
+</div>
+
+<script>
+const lamps=[
+  {id:1,type:'glass',name:'Misbah al-Nur al-Azhar',nameAr:'مِصْبَاحُ نُورِ الأَزْهَر',donor:'Sultan al-Nasir Muhammad ibn Qalawun',role:'Mamluk Sultan r. 1293–1341 CE',mosque:'Al-Azhar, Cairo',h:'9 spans',w:'5 spans',wicks:6,oil:'3 ratl',qty:48,col:'#1E5A99',rim:'#D4AF37',ins:'اللَّهُ نُورُ السَّمَاوَاتِ وَالأَرْض',insTr:'Allah is the Light of the heavens and the earth',insRef:'Quran 24:35',insDetail:'This verse — Ayat an-Nur — was the most commonly inscribed Quranic text on Mamluk mosque lamps. The full verse continues: "The example of His light is like a niche within which is a lamp, the lamp within glass…"',feat:true},
+  {id:2,type:'glass',name:'Qanadil Bayt al-Muqaddas',nameAr:'قَنَادِيلُ الْبَيْتِ الْمُقَدَّس',donor:'Amir Qawsun al-Nasiri',role:'Grand Amir & Viceroy of Egypt',mosque:'Ibn Tulun Mosque, Cairo',h:'7 spans',w:'4 spans',wicks:4,oil:'2 ratl',qty:36,col:'#C23B22',rim:'#D4AF37',ins:'يَهْدِي اللَّهُ لِنُورِهِ مَن يَشَاء',insTr:'Allah guides to His Light whom He wills',insRef:'Quran 24:35',insDetail:'Amir Qawsun was among the most powerful amirs of the early 14th century. His endowment to Ibn Tulun comprised 36 glass lamps, each carrying this verse in blue and gold enamel around the belly.',feat:false},
+  {id:3,type:'glass',name:'Siraj al-Masjid al-Umawi',nameAr:'سِرَاجُ الْمَسْجِدِ الأُمَوِي',donor:'Merchant Karim al-Din al-Kabir',role:'Karimi merchant & patron',mosque:'Umayyad Mosque, Damascus',h:'8 spans',w:'5 spans',wicks:5,oil:'2.5 ratl',qty:24,col:'#1E5A99',rim:'#C23B22',ins:'كَمِشْكَاةٍ فِيهَا مِصْبَاح',insTr:'Like a niche in which there is a lamp',insRef:'Quran 24:35',insDetail:'One of only a few known examples with the donor inscription in red enamel instead of gold, indicating a Damascene workshop tradition distinct from Egyptian ateliers.',feat:false},
+  {id:4,type:'brass',name:'Fanous al-Sultan al-Muzaffar',nameAr:'فَانُوسُ السُّلْطَانِ الْمُظَفَّر',donor:'Sultan Barquq',role:'First Burji Mamluk Sultan r. 1382–1399 CE',mosque:'Mosque of Sultan Barquq, Cairo',h:'12 spans',w:'6 spans',wicks:8,oil:'5 ratl',qty:12,col:'#B8860B',rim:'#D4AF37',ins:'نُورٌ عَلَى نُور',insTr:'Light upon Light',insRef:'Quran 24:35',insDetail:'Sultan Barquq\'s lanterns are pierced with a 12-pointed star grid — a hallmark of Cairene brass workshops of the late 14th century. Silver wire inlay traces the Kufic inscription bands.',feat:false},
+  {id:5,type:'brass',name:'Fanous Haram al-Sharif',nameAr:'فَانُوسُ الْحَرَمِ الشَّرِيف',donor:'Amir Sayf al-Din Tankiz',role:'Viceroy of Syria 1312–1340 CE',mosque:'Al-Aqsa Mosque, Jerusalem',h:'14 spans',w:'7 spans',wicks:12,oil:'6 ratl',qty:6,col:'#B8860B',rim:'#F5F0E0',ins:'يُسَبِّحُ لَهُ فِيهَا بِالْغُدُوِّ وَالآصَال',insTr:'Glorifying Him therein in the mornings and evenings',insRef:'Quran 24:36',insDetail:'Tankiz al-Husami was the greatest patron of religious architecture in 14th-century Syria. His six lanterns for Al-Aqsa are among the largest extant Mamluk brass objects.',feat:false},
+  {id:6,type:'chandelier',name:'Thurayyat al-Azhar al-Kubra',nameAr:'ثُرَيَّةُ الأَزْهَرِ الْكُبْرَى',donor:"Sultan al-Mu'ayyad Shaykh",role:'Mamluk Sultan r. 1412–1421 CE',mosque:'Al-Azhar Mosque, Cairo',h:'24 spans',w:'16 spans',wicks:36,oil:'18 ratl',qty:3,col:'#D4AF37',rim:'#C23B22',ins:'اللَّهُ وَلِيُّ الَّذِينَ آمَنُوا',insTr:'Allah is the ally of those who believe',insRef:'Quran 2:257',insDetail:"This great chandelier — documented in the waqfiyya of Sultan al-Mu'ayyad's mosque — stood over four meters tall when assembled. Each of its three tiers held twelve glass cups.",feat:false}
+];
+
+let selId=1;
+
+function toggleFP(el){el.classList.toggle('on')}
+
+function makeFlames(n,sz){
+  let h='';
+  const clrs=['#D4AF37','#E87A2A','#C23B22','#D4AF37','#E8A020'];
+  for(let i=0;i<n;i++){
+    const c=clrs[i%clrs.length];
+    const w=sz*(0.85+Math.random()*.3)|0;
+    const hh=sz*1.8*(0.9+Math.random()*.2)|0;
+    const del=(i*0.13).toFixed(2);
+    h+=`<div class="flame" style="width:${w}px;height:${hh}px;background:${c};animation-delay:${del}s"></div>`;
+  }
+  return h;
+}
+
+function glassLampSVG(col,rim,sz){
+  const s=sz||1;
+  return `<svg width="${70*s}" height="${90*s}" viewBox="0 0 70 90" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="35" cy="4" rx="6" ry="3" fill="none" stroke="${rim}" stroke-width="1.5"/>
+    <line x1="35" y1="1" x2="35" y2="8" stroke="${rim}" stroke-width="1.5"/>
+    <path d="M35 8 C49 8 53 19 54 33 L56 56 C58 65 53 74 48 79 L35 84 L22 79 C17 74 12 65 14 56 L16 33 C17 19 21 8 35 8Z" fill="${col}" fill-opacity=".88" stroke="${rim}" stroke-width="1"/>
+    <ellipse cx="35" cy="13" rx="11" ry="3.5" fill="${rim}" fill-opacity=".35"/>
+    <ellipse cx="35" cy="49" rx="20" ry="4" fill="${rim}" fill-opacity=".25"/>
+    <ellipse cx="35" cy="39" rx="18" ry="2.5" fill="#1E5A99" fill-opacity=".35"/>
+    <ellipse cx="35" cy="59" rx="16" ry="2" fill="#C23B22" fill-opacity=".3"/>
+    <ellipse cx="35" cy="79" rx="13" ry="3.5" fill="${rim}" fill-opacity=".35" stroke="${rim}" stroke-width=".7"/>
+    <path d="M28 81 Q35 87 42 81" fill="${rim}" fill-opacity=".2" stroke="${rim}" stroke-width=".6"/>
+    <circle cx="35" cy="9" r="2.5" fill="#E87A2A"/>
+    <path d="M22 26 Q26 36 24 50" fill="none" stroke="white" stroke-width="1" opacity=".12"/>
+    <path d="M46 30 Q50 42 48 54" fill="none" stroke="white" stroke-width=".7" opacity=".07"/>
+    <ellipse cx="35" cy="49" rx="8" ry="1.5" fill="white" fill-opacity=".06"/>
+  </svg>`;
+}
+
+function brassLanternSVG(sz){
+  const s=sz||1;
+  return `<svg width="${60*s}" height="${88*s}" viewBox="0 0 60 88" xmlns="http://www.w3.org/2000/svg">
+    <line x1="30" y1="0" x2="30" y2="7" stroke="#D4AF37" stroke-width="1.5"/>
+    <ellipse cx="30" cy="5" rx="5" ry="2.5" fill="none" stroke="#D4AF37" stroke-width="1.2"/>
+    <polygon points="30,8 25,14 35,14" fill="#B8860B"/>
+    <rect x="26" y="14" width="8" height="3" fill="#D4AF37" rx="1"/>
+    <path d="M21 17 L39 17 L47 33 L47 61 L39 73 L21 73 L13 61 L13 33 Z" fill="#0d1828" stroke="#B8860B" stroke-width="1.2"/>
+    <line x1="21" y1="17" x2="21" y2="73" stroke="#B8860B" stroke-width=".8"/>
+    <line x1="39" y1="17" x2="39" y2="73" stroke="#B8860B" stroke-width=".8"/>
+    <line x1="13" y1="45" x2="47" y2="45" stroke="#D4AF37" stroke-width=".5" opacity=".45"/>
+    <rect x="23" y="23" width="6" height="9" rx="3" fill="none" stroke="#D4AF37" stroke-width=".8" opacity=".7"/>
+    <rect x="31" y="23" width="6" height="9" rx="3" fill="none" stroke="#D4AF37" stroke-width=".8" opacity=".7"/>
+    <rect x="23" y="50" width="6" height="9" rx="3" fill="none" stroke="#D4AF37" stroke-width=".8" opacity=".7"/>
+    <rect x="31" y="50" width="6" height="9" rx="3" fill="none" stroke="#D4AF37" stroke-width=".8" opacity=".7"/>
+    <polygon points="30,33 33,37 37,36 35,40 37,44 30,42 23,44 25,40 23,36 27,37" fill="none" stroke="#D4AF37" stroke-width=".6" opacity=".65"/>
+    <rect x="26" y="73" width="8" height="3" fill="#D4AF37" rx="1"/>
+    <polygon points="30,76 26,81 34,81" fill="#B8860B"/>
+    <line x1="13" y1="33" x2="47" y2="33" stroke="#C0C0C0" stroke-width=".4" opacity=".25"/>
+    <line x1="13" y1="61" x2="47" y2="61" stroke="#C0C0C0" stroke-width=".4" opacity=".25"/>
+    <circle cx="30" cy="9" r="1.5" fill="#E87A2A"/>
+  </svg>`;
+}
+
+function chandelierSVG(sz){
+  return `<svg width="${76*sz}" height="${92*sz}" viewBox="0 0 76 92" xmlns="http://www.w3.org/2000/svg">
+    <line x1="38" y1="0" x2="38" y2="6" stroke="#D4AF37" stroke-width="1.5"/>
+    <ellipse cx="38" cy="9" rx="15" ry="4.5" fill="#B8860B" stroke="#D4AF37" stroke-width="1"/>
+    <line x1="23" y1="9" x2="14" y2="24" stroke="#D4AF37" stroke-width=".9"/>
+    <line x1="38" y1="9" x2="38" y2="24" stroke="#D4AF37" stroke-width=".9"/>
+    <line x1="53" y1="9" x2="62" y2="24" stroke="#D4AF37" stroke-width=".9"/>
+    <ellipse cx="14" cy="28" rx="4.5" ry="6.5" fill="#1E5A99" fill-opacity=".85" stroke="#D4AF37" stroke-width=".8"/>
+    <ellipse cx="38" cy="28" rx="4.5" ry="6.5" fill="#C23B22" fill-opacity=".85" stroke="#D4AF37" stroke-width=".8"/>
+    <ellipse cx="62" cy="28" rx="4.5" ry="6.5" fill="#1E5A99" fill-opacity=".85" stroke="#D4AF37" stroke-width=".8"/>
+    <ellipse cx="14" cy="21" rx="2" ry="3" fill="#E87A2A" style="animation:flk .7s infinite;transform-origin:14px 24px"/>
+    <ellipse cx="38" cy="21" rx="2" ry="3" fill="#D4AF37" style="animation:flk2 .85s infinite;transform-origin:38px 24px"/>
+    <ellipse cx="62" cy="21" rx="2" ry="3" fill="#E87A2A" style="animation:flk .65s .3s infinite;transform-origin:62px 24px"/>
+    <line x1="14" y1="34" x2="8" y2="52" stroke="#B8860B" stroke-width=".7"/>
+    <line x1="38" y1="34" x2="38" y2="52" stroke="#B8860B" stroke-width=".7"/>
+    <line x1="62" y1="34" x2="68" y2="52" stroke="#B8860B" stroke-width=".7"/>
+    <ellipse cx="8" cy="57" rx="3.5" ry="5.5" fill="#B8860B" fill-opacity=".85" stroke="#D4AF37" stroke-width=".7"/>
+    <ellipse cx="38" cy="57" rx="3.5" ry="5.5" fill="#B8860B" fill-opacity=".85" stroke="#D4AF37" stroke-width=".7"/>
+    <ellipse cx="68" cy="57" rx="3.5" ry="5.5" fill="#B8860B" fill-opacity=".85" stroke="#D4AF37" stroke-width=".7"/>
+    <ellipse cx="8" cy="51" rx="1.5" ry="2.2" fill="#E87A2A" style="animation:flk2 .75s .1s infinite;transform-origin:8px 53px"/>
+    <ellipse cx="38" cy="51" rx="1.5" ry="2.2" fill="#D4AF37" style="animation:flk .9s .2s infinite;transform-origin:38px 53px"/>
+    <ellipse cx="68" cy="51" rx="1.5" ry="2.2" fill="#E87A2A" style="animation:flk2 .8s .35s infinite;transform-origin:68px 53px"/>
+    <line x1="38" y1="9" x2="38" y2="68" stroke="#D4AF37" stroke-width=".8"/>
+    <ellipse cx="38" cy="74" rx="6" ry="8" fill="#D4AF37" fill-opacity=".7" stroke="#B8860B" stroke-width=".8"/>
+    <ellipse cx="38" cy="67" rx="2.5" ry="3.5" fill="#E87A2A" style="animation:flk .75s .05s infinite;transform-origin:38px 70px"/>
+  </svg>`;
+}
+
+function getLampSVG(lamp,sz){
+  if(lamp.type==='glass') return glassLampSVG(lamp.col,lamp.rim,sz);
+  if(lamp.type==='brass') return brassLanternSVG(sz);
+  return chandelierSVG(sz);
+}
+
+function archBorderSVG(col){
+  return `<svg viewBox="0 0 100 130" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" style="position:absolute;inset:0;width:100%;height:100%">
+    <path d="M4 128 L4 42 L50 4 L96 42 L96 128" fill="none" stroke="${col}" stroke-width="1.2"/>
+    <circle cx="4" cy="128" r="2" fill="${col}" opacity=".6"/>
+    <circle cx="96" cy="128" r="2" fill="${col}" opacity=".6"/>
+    <circle cx="50" cy="4" r="2" fill="${col}" opacity=".8"/>
+    <circle cx="4" cy="42" r="1.5" fill="${col}" opacity=".5"/>
+    <circle cx="96" cy="42" r="1.5" fill="${col}" opacity=".5"/>
+    <line x1="4" y1="128" x2="96" y2="128" stroke="${col}" stroke-width=".6" opacity=".4"/>
+    <circle cx="18" cy="16" r="1.5" fill="#C23B22" opacity=".6"/>
+    <circle cx="82" cy="16" r="1.5" fill="#1E5A99" opacity=".6"/>
+    <circle cx="8" cy="80" r="1.5" fill="#C23B22" opacity=".5"/>
+    <circle cx="92" cy="80" r="1.5" fill="#1E5A99" opacity=".5"/>
+  </svg>`;
+}
+
+function renderGrid(){
+  document.getElementById('lampGrid').innerHTML=lamps.map(l=>`
+    <div class="lcard ${l.id===selId?'sel':''}" onclick="selLamp(${l.id})">
+      ${l.feat?'<span class="featured-badge">Featured</span>':''}
+      <div class="arch-wrap">
+        <div class="arch-mask">
+          <div class="arch-inner2">${getLampSVG(l,.68)}</div>
+        </div>
+        <div class="arch-border">${archBorderSVG(l.id===selId?'#D4AF37':'#1a3050')}</div>
+        <div class="lcard-flames">${makeFlames(3,5)}</div>
+      </div>
+      <div class="lcard-info">
+        <div class="lcard-name">${l.name}</div>
+        <div class="lcard-donor">${l.donor.split(' ').slice(0,3).join(' ')}</div>
+        <div class="lcard-mosque">${l.mosque.split(',')[0]}</div>
+        <div class="lcard-tags">
+          <span class="ltag">H:${l.h}</span>
+          <span class="ltag">${l.wicks}w</span>
+          <span class="ltag">${l.oil}</span>
+          <span class="ltag">×${l.qty}</span>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function burnTime(oil,wicks){
+  return Math.round(parseFloat(oil)*0.449/(wicks*0.015));
+}
+function lumenEst(wicks){return wicks*12;}
+
+function renderDetail(l){
+  document.getElementById('detailCol').innerHTML=`
+    <div class="darch">
+      <div class="darch-bg-circles">
+        <svg width="260" height="260" viewBox="0 0 260 260" xmlns="http://www.w3.org/2000/svg" style="opacity:.07">
+          <circle cx="130" cy="130" r="110" fill="none" stroke="#D4AF37" stroke-width=".8"/>
+          <circle cx="130" cy="130" r="85" fill="none" stroke="#D4AF37" stroke-width=".5"/>
+          <circle cx="130" cy="130" r="60" fill="none" stroke="#D4AF37" stroke-width=".3"/>
+          ${[0,30,60,90,120,150,180,210,240,270,300,330].map(a=>`<line x1="130" y1="20" x2="130" y2="240" stroke="#D4AF37" stroke-width=".3" transform="rotate(${a},130,130)"/>`).join('')}
+        </svg>
+      </div>
+      <div class="darch-lamp-wrap">
+        <div class="darch-flames">${makeFlames(5,7)}</div>
+        ${getLampSVG(l,1.1)}
+      </div>
+    </div>
+
+    <div class="dot-row">
+      <div class="dot" style="background:#D4AF37"></div>
+      <div class="dot" style="background:#C23B22"></div>
+      <div class="dot" style="background:#1E5A99"></div>
+      <div class="dot" style="background:#D4AF37"></div>
+      <div class="dot" style="background:#C23B22"></div>
+    </div>
+
+    <div class="darch-title">${l.name}</div>
+    <div class="darch-ar">${l.nameAr}</div>
+
+    <div class="d-sect">
+      <div class="d-sect-lbl">Quranic inscription</div>
+      <div class="inscrip">
+        <div class="inscrip-lbl">Ayat an-Nur · ${l.insRef}</div>
+        <div class="inscrip-ar">${l.ins}</div>
+        <div class="inscrip-tr">${l.insTr}</div>
+        <div class="inscrip-reveal" onclick="toggleInsDetail(this)">[read scholarly note +]</div>
+        <div class="inscrip-extra">${l.insDetail}</div>
+      </div>
+    </div>
+
+    <div class="d-sect">
+      <div class="d-sect-lbl">Measurements & material</div>
+      <div class="spec-grid">
+        <div class="sitem"><div class="skey">Height</div><div class="sval">${l.h} · ${(parseFloat(l.h)*22.5).toFixed(1)} cm</div></div>
+        <div class="sitem"><div class="skey">Width</div><div class="sval">${l.w} · ${(parseFloat(l.w)*22.5).toFixed(1)} cm</div></div>
+        <div class="sitem"><div class="skey">Wicks</div><div class="sval sval-gold">${l.wicks} wicks</div></div>
+        <div class="sitem"><div class="skey">Oil capacity</div><div class="sval">${l.oil} · ${(parseFloat(l.oil)*0.449).toFixed(2)} L</div></div>
+        <div class="sitem"><div class="skey">Burn time est.</div><div class="sval sval-gold">${burnTime(l.oil,l.wicks)} hrs</div></div>
+        <div class="sitem"><div class="skey">Lumen est.</div><div class="sval">${lumenEst(l.wicks)} lm</div></div>
+        <div class="sitem"><div class="skey">Endowment qty</div><div class="sval sval-gold">${l.qty} pieces</div></div>
+        <div class="sitem"><div class="skey">Material</div><div class="sval">${l.type==='glass'?'Enameled glass':'Pierced brass'}</div></div>
+      </div>
+    </div>
+
+    <div class="d-sect">
+      <div class="d-sect-lbl">Unit converter</div>
+      <div class="conv-wrap">
+        <div class="conv-row">
+          <span class="conv-lbl">Spans →</span>
+          <input class="conv-in" id="ci_span" type="number" value="1" min=".1" step=".5" oninput="doConv()"/>
+          <span class="conv-out" id="co_span">22.5 cm / 8.9 in</span>
+        </div>
+        <div class="conv-row">
+          <span class="conv-lbl">Ratl →</span>
+          <input class="conv-in" id="ci_ratl" type="number" value="1" min=".1" step=".5" oninput="doConv()"/>
+          <span class="conv-out" id="co_ratl">0.449 L / 0.12 gal</span>
+        </div>
+        <div class="conv-row">
+          <span class="conv-lbl">Wicks →</span>
+          <input class="conv-in" id="ci_wick" type="number" value="${l.wicks}" min="1" step="1" oninput="doConv()"/>
+          <span class="conv-out" id="co_wick">${lumenEst(l.wicks)} lm / ${burnTime(l.oil,l.wicks)} hrs</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="d-sect">
+      <div class="d-sect-lbl">Patron (waqif)</div>
+      <div class="donor-card2">
+        <div class="donor-med">
+          <svg viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+            <path d="M9 1 Q14 4 14 9 Q14 14 9 17 Q4 14 4 9 Q4 4 9 1Z" fill="none" stroke="#D4AF37" stroke-width=".9"/>
+            <path d="M5 9 Q9 5 13 9 Q9 13 5 9Z" fill="#D4AF37" fill-opacity=".3"/>
+          </svg>
+        </div>
+        <div>
+          <div class="donor-nm">${l.donor}</div>
+          <div class="donor-ti">${l.role}</div>
+          <div class="donor-ct">Endowed ${l.qty} identical pieces to ${l.mosque}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="d-sect">
+      <div class="d-sect-lbl">Endowment chain</div>
+      <div class="timeline">
+        <div class="te"><div class="te-yr">c. 1325 CE · 725 AH</div><div class="te-desc">Waqfiyya deed registered at Cairo qadi court</div></div>
+        <div class="te"><div class="te-yr">1382 CE · 784 AH</div><div class="te-desc">Inventory recorded during renovation; lamp moved to mosque treasury</div></div>
+        <div class="te"><div class="te-yr">c. 1880 CE</div><div class="te-desc">Photographed by Prisse d'Avennes expedition; entered European scholarship</div></div>
+        <div class="te"><div class="te-yr">1903 CE</div><div class="te-desc">Transferred to Museum of Islamic Art, Cairo</div></div>
+        <div class="te"><div class="te-yr">Present</div><div class="te-desc">Museum of Islamic Art, Cairo · Inv. No. ${2000+l.id*137}</div></div>
+      </div>
+    </div>
+
+    <div class="d-sect" style="padding-bottom:20px">
+      <div class="d-sect-lbl">Explore further</div>
+      <button onclick="sendPrompt('Tell me more about the Mamluk glass-enameling technique used in ${l.name.replace(/'/g,"\\'")} and which workshops produced these lamps')" style="background:rgba(212,175,55,.08);border:1px solid rgba(212,175,55,.3);color:#D4AF37;border-radius:2px;padding:8px 12px;font-family:Georgia,serif;font-size:11px;cursor:pointer;width:100%;text-align:left;letter-spacing:.3px">How were these lamps made? ↗</button>
+      <button onclick="sendPrompt('Compare the waqf endowments of Sultan al-Nasir Muhammad and Sultan Barquq — who donated more lamps and to which mosques?')" style="background:rgba(30,90,153,.08);border:1px solid rgba(30,90,153,.3);color:#6fb3e8;border-radius:2px;padding:8px 12px;font-family:Georgia,serif;font-size:11px;cursor:pointer;width:100%;text-align:left;letter-spacing:.3px;margin-top:5px">Compare patron endowments ↗</button>
+    </div>
+  `;
+}
+
+function toggleInsDetail(el){
+  const box=el.nextElementSibling;
+  if(box.style.display==='block'){box.style.display='none';el.textContent='[read scholarly note +]';}
+  else{box.style.display='block';el.textContent='[collapse −]';}
+}
+
+function doConv(){
+  const s=parseFloat(document.getElementById('ci_span').value)||0;
+  const r=parseFloat(document.getElementById('ci_ratl').value)||0;
+  const w=parseInt(document.getElementById('ci_wick').value)||1;
+  document.getElementById('co_span').textContent=`${(s*22.5).toFixed(1)} cm / ${(s*8.86).toFixed(1)} in`;
+  document.getElementById('co_ratl').textContent=`${(r*0.449).toFixed(3)} L / ${(r*0.1186).toFixed(4)} gal`;
+  const hrs=Math.round(r*0.449/(w*0.015));
+  document.getElementById('co_wick').textContent=`${w*12} lm / ${hrs} hrs`;
+}
+
+function selLamp(id){
+  selId=id;
+  renderGrid();
+  renderDetail(lamps.find(l=>l.id===id));
+}
+
+function buildHeaderFlames(){
+  ['hfl','hfr'].forEach((id,i)=>{
+    const n=i===0?4:4;
+    let h='';
+    for(let j=0;j<n;j++){
+      const c=['#D4AF37','#E87A2A','#C23B22'][j%3];
+      const sz=[8,10,9,8][j];
+      h+=`<div class="flame" style="width:${sz*.7}px;height:${sz}px;background:${c};animation-delay:${j*.12}s"></div>`;
+    }
+    document.getElementById(id).innerHTML=h;
+  });
+}
+
+function buildChain(){
+  const div=document.getElementById('chainDiv2');
+  let h='';
+  for(let i=0;i<52;i++){
+    if(i%8===4){
+      h+=`<svg width="12" height="18" viewBox="0 0 12 18"><ellipse cx="6" cy="12" rx="4" ry="5" fill="#1E5A99" fill-opacity=".7" stroke="#D4AF37" stroke-width=".8"/><line x1="6" y1="1" x2="6" y2="7" stroke="#D4AF37" stroke-width="1"/><ellipse cx="6" cy="4" rx="2.5" ry="1.5" fill="none" stroke="#D4AF37" stroke-width=".8"/><circle cx="6" cy="7.5" r="1" fill="#E87A2A"/></svg>`;
+    } else {
+      const rot=i%2===0?0:90;
+      h+=`<svg width="12" height="8" viewBox="0 0 12 8" style="transform:rotate(${rot}deg)"><ellipse cx="6" cy="4" rx="5" ry="3" fill="none" stroke="#B8860B" stroke-width="1"/></svg>`;
+    }
+  }
+  div.innerHTML=h;
+}
+
+buildHeaderFlames();
+buildChain();
+renderGrid();
+renderDetail(lamps[0]);
+</script>
