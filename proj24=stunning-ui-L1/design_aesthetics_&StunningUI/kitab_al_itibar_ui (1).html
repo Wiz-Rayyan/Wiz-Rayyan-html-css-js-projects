@@ -1,0 +1,942 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=IM+Fell+DW+Pica:ital@0;1&display=swap');
+
+  :root {
+    --crusader-red: #8B0000;
+    --steel: #4A5568;
+    --hunting-green: #2E5A4C;
+    --sand: #D4B895;
+    --gold: #D4AF37;
+    --crimson: #9B1D2C;
+    --chainmail: #B0B5B9;
+    --parchment: #F5E6D3;
+    --parchment-dark: #E8D5B7;
+    --ink: #1a1208;
+    --ink-faded: #3d2e1a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body, .kit-root {
+    font-family: 'IM Fell DW Pica', Georgia, serif;
+    background: var(--parchment);
+    color: var(--ink);
+  }
+
+  .kit-root {
+    max-width: 680px;
+    min-height: 900px;
+    background: var(--parchment);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Aged parchment texture via repeating pattern */
+  .kit-root::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 31px, rgba(139,90,43,0.04) 32px),
+      repeating-linear-gradient(90deg, transparent, transparent 63px, rgba(139,90,43,0.02) 64px);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .kit-content { position: relative; z-index: 1; }
+
+  /* ── Header ── */
+  .kit-header {
+    background: linear-gradient(180deg, #5a1010 0%, #8B0000 60%, #9B1D2C 100%);
+    padding: 18px 24px 14px;
+    border-bottom: 3px solid var(--gold);
+    text-align: center;
+    position: relative;
+  }
+  .kit-header::after {
+    content: '✦ ✦ ✦';
+    display: block;
+    color: var(--gold);
+    font-size: 11px;
+    letter-spacing: 8px;
+    margin-top: 6px;
+    opacity: 0.7;
+  }
+  .kit-title {
+    font-family: 'Amiri', serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--gold);
+    letter-spacing: 1px;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+  }
+  .kit-subtitle {
+    font-family: 'IM Fell DW Pica', serif;
+    font-style: italic;
+    font-size: 13px;
+    color: rgba(212,175,55,0.75);
+    margin-top: 3px;
+  }
+
+  /* ── Divider: crossed weapons ── */
+  .divider-weapons {
+    display: flex; align-items: center; justify-content: center;
+    gap: 6px; padding: 8px 0; 
+    color: var(--steel); font-size: 13px; opacity: 0.6;
+  }
+  .divider-weapons span { font-size: 18px; }
+
+  /* ── Nav: fortress gates ── */
+  .kit-nav {
+    display: flex; overflow-x: auto; background: #2a1205;
+    border-bottom: 2px solid var(--gold);
+    scrollbar-width: none;
+  }
+  .kit-nav::-webkit-scrollbar { display: none; }
+  .nav-tab {
+    padding: 9px 14px; font-size: 12px; white-space: nowrap;
+    color: rgba(212,175,55,0.6); cursor: pointer;
+    border-right: 1px solid rgba(212,175,55,0.15);
+    transition: all 0.2s; font-family: 'IM Fell DW Pica', serif;
+    letter-spacing: 0.3px;
+    background: none; border-bottom: none; border-top: none; border-left: none;
+    flex-shrink: 0;
+  }
+  .nav-tab:hover { color: var(--gold); background: rgba(212,175,55,0.08); }
+  .nav-tab.active { color: var(--gold); background: rgba(212,175,55,0.15); border-bottom: 2px solid var(--gold); }
+
+  /* ── Memoir reader panel ── */
+  .memoir-panel {
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(139,90,43,0.2);
+  }
+  .memoir-label {
+    font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--steel); margin-bottom: 8px; font-family: 'IM Fell DW Pica', serif;
+  }
+  .memoir-text {
+    font-size: 15px; line-height: 1.85;
+    color: var(--ink-faded);
+    font-family: 'IM Fell DW Pica', serif;
+  }
+  .pronoun-i {
+    font-family: 'Amiri', serif;
+    font-size: 20px;
+    color: var(--gold);
+    font-weight: 700;
+    cursor: pointer;
+    position: relative;
+    display: inline-block;
+  }
+  .pronoun-i:hover .i-tooltip {
+    display: block;
+  }
+  .i-tooltip {
+    display: none;
+    position: absolute;
+    top: -44px; left: 50%; transform: translateX(-50%);
+    background: #2a1205;
+    color: var(--gold);
+    font-size: 11px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+    border: 1px solid var(--gold);
+    pointer-events: none;
+    z-index: 20;
+    font-family: 'IM Fell DW Pica', serif;
+  }
+  .i-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%; left: 50%; transform: translateX(-50%);
+    border: 4px solid transparent;
+    border-top-color: var(--gold);
+  }
+
+  /* ── Two-column layout ── */
+  .two-col {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 0;
+    border-bottom: 1px solid rgba(139,90,43,0.2);
+  }
+
+  /* ── Skirmish Map (Shaizar Castle) ── */
+  .skirmish-panel {
+    padding: 14px 16px;
+    border-right: 1px solid rgba(139,90,43,0.2);
+  }
+  .panel-title {
+    font-family: 'Amiri', serif;
+    font-size: 14px; font-weight: 700;
+    color: var(--crusader-red);
+    margin-bottom: 10px;
+    letter-spacing: 0.3px;
+  }
+  .siege-tabs {
+    display: flex; gap: 4px; margin-bottom: 10px; flex-wrap: wrap;
+  }
+  .siege-btn {
+    padding: 3px 8px; font-size: 10px; cursor: pointer;
+    background: transparent; border: 1px solid var(--steel);
+    color: var(--steel); border-radius: 2px;
+    font-family: 'IM Fell DW Pica', serif;
+    transition: all 0.2s;
+  }
+  .siege-btn.active { background: var(--crusader-red); border-color: var(--crusader-red); color: #fff; }
+
+  /* ── Wound Tracker ── */
+  .wound-panel { padding: 14px 16px; }
+  .wound-body { position: relative; margin: 0 auto; width: 90px; height: 180px; }
+  .wound-svg { width: 100%; height: 100%; }
+  .wound-dot {
+    cursor: pointer; transition: r 0.2s;
+  }
+  .wound-dot:hover { r: 7; }
+  .wound-info {
+    font-size: 11px; color: var(--ink-faded); margin-top: 8px;
+    font-style: italic; line-height: 1.5;
+    min-height: 44px;
+    border-top: 1px solid rgba(139,90,43,0.2);
+    padding-top: 6px;
+  }
+
+  /* ── Cultural cards ── */
+  .cards-section {
+    padding: 14px 16px;
+    border-bottom: 1px solid rgba(139,90,43,0.2);
+  }
+  .cards-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+  }
+  .cultural-card {
+    background: var(--parchment-dark);
+    border: 1px solid rgba(139,90,43,0.3);
+    border-radius: 3px;
+    padding: 10px 8px;
+    cursor: pointer; transition: all 0.2s;
+    position: relative;
+  }
+  .cultural-card:hover { border-color: var(--gold); }
+  .cultural-card.active { border-color: var(--crimson); background: rgba(155,29,44,0.05); }
+  .card-icon { font-size: 16px; margin-bottom: 4px; display: block; }
+  .card-topic {
+    font-family: 'Amiri', serif; font-size: 12px; font-weight: 700;
+    color: var(--crusader-red);
+  }
+  .card-quote {
+    font-size: 10px; font-style: italic; color: var(--ink-faded);
+    margin-top: 6px; line-height: 1.5; display: none;
+  }
+  .cultural-card.active .card-quote { display: block; }
+  .eye-roll {
+    position: absolute; top: 6px; right: 6px; font-size: 10px; opacity: 0.5;
+  }
+
+  /* ── Timeline slider ── */
+  .timeline-section {
+    padding: 14px 16px;
+    border-bottom: 1px solid rgba(139,90,43,0.2);
+  }
+  .timeline-slider {
+    width: 100%;
+    accent-color: var(--crusader-red);
+    margin: 8px 0;
+  }
+  .timeline-labels {
+    display: flex; justify-content: space-between;
+    font-size: 10px; color: var(--steel);
+    font-family: 'IM Fell DW Pica', serif;
+  }
+  .timeline-year {
+    font-family: 'Amiri', serif; font-size: 18px; font-weight: 700;
+    color: var(--crusader-red); text-align: center;
+  }
+  .timeline-story {
+    background: var(--parchment-dark);
+    border-left: 3px solid var(--gold);
+    padding: 8px 10px; margin-top: 8px;
+    font-size: 12px; color: var(--ink-faded);
+    font-style: italic; line-height: 1.6;
+  }
+
+  /* ── Quote carousel ── */
+  .quote-section {
+    padding: 14px 16px;
+    border-bottom: 1px solid rgba(139,90,43,0.2);
+    background: rgba(139,0,0,0.03);
+  }
+  .quote-display {
+    font-family: 'Amiri', serif; font-size: 15px;
+    color: var(--ink-faded); font-style: italic;
+    line-height: 1.7; text-align: center;
+    padding: 4px 8px;
+    border-top: 2px solid var(--gold);
+    border-bottom: 2px solid var(--gold);
+    min-height: 56px; display: flex; align-items: center; justify-content: center;
+  }
+  .quote-nav { display: flex; justify-content: center; gap: 12px; margin-top: 8px; }
+  .q-btn {
+    background: none; border: 1px solid var(--steel);
+    color: var(--steel); padding: 3px 10px; cursor: pointer;
+    font-family: 'IM Fell DW Pica', serif; font-size: 12px;
+    border-radius: 2px; transition: all 0.2s;
+  }
+  .q-btn:hover { border-color: var(--gold); color: var(--gold); }
+
+  /* ── Medicine contrast ── */
+  .medicine-section {
+    padding: 14px 16px;
+    border-bottom: 1px solid rgba(139,90,43,0.2);
+  }
+  .med-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  .med-table th {
+    padding: 6px 8px; text-align: left;
+    font-family: 'Amiri', serif; font-weight: 700; font-size: 12px;
+    border-bottom: 2px solid;
+  }
+  .med-table th.frankish { color: var(--crusader-red); border-color: var(--crusader-red); }
+  .med-table th.muslim { color: var(--hunting-green); border-color: var(--hunting-green); }
+  .med-table td { padding: 5px 8px; border-bottom: 1px solid rgba(139,90,43,0.1); vertical-align: top; line-height: 1.5; }
+  .med-table tr:hover td { background: rgba(212,175,55,0.06); }
+  .med-footnote { font-size: 10px; font-style: italic; color: var(--steel); margin-top: 6px; text-align: right; }
+
+  /* ── Battle odds calculator ── */
+  .battle-section { padding: 14px 16px; }
+  .battle-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 8px 0; }
+  .battle-select {
+    font-family: 'IM Fell DW Pica', serif; font-size: 11px;
+    border: 1px solid rgba(139,90,43,0.3);
+    background: var(--parchment-dark); color: var(--ink);
+    padding: 4px 6px; border-radius: 2px; width: 100%;
+  }
+  .battle-label { font-size: 10px; color: var(--steel); margin-bottom: 2px; display: block; }
+  .battle-result {
+    background: var(--parchment-dark);
+    border: 1px solid rgba(139,90,43,0.3);
+    padding: 10px; margin-top: 10px; border-radius: 2px;
+    display: none;
+  }
+  .battle-result.show { display: block; }
+  .survival-bar {
+    height: 14px; background: rgba(139,90,43,0.15); border-radius: 2px;
+    margin: 6px 0; overflow: hidden;
+  }
+  .survival-fill {
+    height: 100%; background: var(--hunting-green);
+    transition: width 0.4s ease;
+  }
+  .survival-fill.danger { background: var(--crusader-red); }
+  .survival-pct { font-family: 'Amiri', serif; font-size: 16px; font-weight: 700; color: var(--crusader-red); }
+  .strategy-note { font-size: 11px; font-style: italic; color: var(--ink-faded); margin-top: 4px; }
+
+  /* ── Buttons ── */
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; padding: 12px 16px; background: rgba(42,18,5,0.04); border-top: 1px solid rgba(139,90,43,0.2); }
+  .btn-kit {
+    font-family: 'Amiri', serif; font-size: 12px;
+    padding: 6px 12px; cursor: pointer; transition: all 0.2s;
+    border-radius: 2px; letter-spacing: 0.3px;
+  }
+  .btn-helm { background: var(--crusader-red); color: #fff; border: none; }
+  .btn-helm:hover { background: #a00; }
+  .btn-saif { background: var(--steel); color: #fff; border: none; }
+  .btn-saif:hover { background: #3a4455; }
+  .btn-hunt { background: var(--hunting-green); color: #fff; border: none; }
+  .btn-hunt:hover { background: #1e3d34; }
+
+  /* ── Empty state ── */
+  .empty-state { text-align: center; padding: 20px; color: var(--steel); font-style: italic; font-size: 13px; }
+
+  /* ── Hunting trophy wall ── */
+  .trophy-section { padding: 14px 16px; border-bottom: 1px solid rgba(139,90,43,0.2); }
+  .trophy-filters { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 10px; }
+  .filter-btn {
+    padding: 2px 7px; font-size: 10px; cursor: pointer;
+    background: transparent; border: 1px solid rgba(139,90,43,0.3);
+    color: var(--steel); border-radius: 2px;
+    font-family: 'IM Fell DW Pica', serif; transition: all 0.2s;
+  }
+  .filter-btn.active { background: var(--hunting-green); border-color: var(--hunting-green); color: #fff; }
+  .trophy-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+  .trophy-card {
+    background: var(--parchment-dark); border: 1px solid rgba(139,90,43,0.25);
+    border-radius: 2px; padding: 6px; text-align: center;
+    font-size: 10px; color: var(--ink-faded); line-height: 1.4;
+    cursor: pointer; transition: border-color 0.2s;
+  }
+  .trophy-card:hover { border-color: var(--gold); }
+  .trophy-card.hidden { display: none; }
+  .trophy-prey { font-size: 14px; display: block; margin-bottom: 2px; }
+  .trophy-weapon { font-size: 9px; color: var(--steel); }
+</style>
+
+<div class="kit-root">
+<div class="kit-content">
+
+<!-- Header -->
+<div class="kit-header">
+  <div class="kit-title">كتاب الاعتبار — Kitāb al-Iʿtibār</div>
+  <div class="kit-subtitle">The Book of Learning by Example · Usāma ibn Munqidh · 1095–1188</div>
+</div>
+
+<!-- Nav: fortress gates -->
+<nav class="kit-nav">
+  <button class="nav-tab active" onclick="switchTab(this,'memoir')">⚔ First Blood</button>
+  <button class="nav-tab" onclick="switchTab(this,'map')">🏰 Shaizar Siege</button>
+  <button class="nav-tab" onclick="switchTab(this,'culture')">✦ Frankish Ways</button>
+  <button class="nav-tab" onclick="switchTab(this,'hunt')">🦅 Hunting Wall</button>
+  <button class="nav-tab" onclick="switchTab(this,'timeline')">📜 Life of Usama</button>
+</nav>
+
+<!-- ── TAB: MEMOIR ── -->
+<div id="tab-memoir" class="tab-content">
+
+  <!-- Memoir reader -->
+  <div class="memoir-panel">
+    <div class="memoir-label">◆ Memoir Reader — Gold "I" reveals location & year</div>
+    <div class="memoir-text">
+      <span class="pronoun-i"><span class="i-tooltip">📍 Shaizar · 1138</span>I</span> rode out with forty horsemen when the Franks came to the valley below our castle. <span class="pronoun-i"><span class="i-tooltip">📍 Shaizar · 1138</span>I</span> saw their crossbowmen form up behind a ridge of thornbush, and <span class="pronoun-i"><span class="i-tooltip">📍 Shaizar · 1139</span>I</span> said to my brother Bahram, <em>"They mean to ambush our flank at the ford."</em> <span class="pronoun-i"><span class="i-tooltip">📍 Jerusalem · 1140</span>I</span> was then a guest of the Templars in the al-Aqsa mosque, and marveled at their curious customs. <span class="pronoun-i"><span class="i-tooltip">📍 Damascus · 1154</span>I</span> have seen a Frank cut the leg from a man and the man lived; <span class="pronoun-i"><span class="i-tooltip">📍 Damascus · 1154</span>I</span> have seen a Muslim physician cure with diet what the Frank destroyed with iron.
+    </div>
+  </div>
+
+  <!-- Two-column: skirmish + wound -->
+  <div class="two-col">
+
+    <!-- Skirmish map (Shaizar castle) -->
+    <div class="skirmish-panel">
+      <div class="panel-title">Shaizar Castle — Siege Map</div>
+      <div class="siege-tabs">
+        <button class="siege-btn active" onclick="setSiege(0,this)">Frankish Siege</button>
+        <button class="siege-btn" onclick="setSiege(1,this)">Assassin Attempt</button>
+        <button class="siege-btn" onclick="setSiege(2,this)">Local Revolt</button>
+      </div>
+      <svg id="siege-svg" width="100%" viewBox="0 0 240 200" style="border:1px solid rgba(139,90,43,0.2);border-radius:2px;">
+        <!-- Castle walls -->
+        <rect x="80" y="60" width="80" height="80" fill="#c8a87a" stroke="#5a3a1a" stroke-width="1.5" rx="3"/>
+        <!-- Towers -->
+        <rect x="75" y="55" width="18" height="22" fill="#b8986a" stroke="#5a3a1a" stroke-width="1"/>
+        <rect x="147" y="55" width="18" height="22" fill="#b8986a" stroke="#5a3a1a" stroke-width="1"/>
+        <rect x="75" y="123" width="18" height="22" fill="#b8986a" stroke="#5a3a1a" stroke-width="1"/>
+        <rect x="147" y="123" width="18" height="22" fill="#b8986a" stroke="#5a3a1a" stroke-width="1"/>
+        <!-- Keep -->
+        <rect x="100" y="80" width="40" height="40" fill="#a87848" stroke="#5a3a1a" stroke-width="1" rx="2"/>
+        <text x="120" y="105" text-anchor="middle" font-size="7" fill="#3a2010" font-family="serif">قلعة</text>
+        <!-- Gate -->
+        <rect x="110" y="135" width="20" height="6" fill="#5a3a1a"/>
+        <!-- River (Orontes) -->
+        <path d="M0 170 Q60 155 120 165 Q180 175 240 160" fill="none" stroke="#4a7aaf" stroke-width="4" opacity="0.5"/>
+        <text x="60" y="183" font-size="7" fill="#4a7aaf" font-family="serif">Orontes River</text>
+        <!-- Dynamic elements -->
+        <g id="siege-elements"></g>
+      </svg>
+      <div id="siege-desc" style="font-size:10px;font-style:italic;color:var(--steel);margin-top:5px;line-height:1.5;"></div>
+    </div>
+
+    <!-- Wound tracker -->
+    <div class="wound-panel">
+      <div class="panel-title">Wound Tracker</div>
+      <div class="wound-body">
+        <svg class="wound-svg" viewBox="0 0 90 190" xmlns="http://www.w3.org/2000/svg">
+          <!-- Head -->
+          <ellipse cx="45" cy="18" rx="14" ry="16" fill="#d4b895" stroke="#8B6040" stroke-width="1"/>
+          <!-- Neck -->
+          <rect x="39" y="32" width="12" height="10" fill="#c8a87a" rx="2"/>
+          <!-- Torso -->
+          <rect x="25" y="42" width="40" height="50" rx="5" fill="#c8a87a" stroke="#8B6040" stroke-width="0.8"/>
+          <!-- Left arm -->
+          <rect x="8" y="44" width="16" height="44" rx="6" fill="#c8a87a" stroke="#8B6040" stroke-width="0.8"/>
+          <!-- Right arm -->
+          <rect x="66" y="44" width="16" height="44" rx="6" fill="#c8a87a" stroke="#8B6040" stroke-width="0.8"/>
+          <!-- Left leg -->
+          <rect x="26" y="92" width="16" height="54" rx="6" fill="#c8a87a" stroke="#8B6040" stroke-width="0.8"/>
+          <!-- Right leg -->
+          <rect x="48" y="92" width="16" height="54" rx="6" fill="#c8a87a" stroke="#8B6040" stroke-width="0.8"/>
+          <!-- Left hand -->
+          <ellipse cx="16" cy="93" rx="7" ry="6" fill="#c8a87a" stroke="#8B6040" stroke-width="0.8"/>
+          <!-- Right hand -->
+          <ellipse cx="74" cy="93" rx="7" ry="6" fill="#c8a87a" stroke="#8B6040" stroke-width="0.8"/>
+          <!-- Left foot -->
+          <ellipse cx="34" cy="150" rx="9" ry="6" fill="#c8a87a" stroke="#8B6040" stroke-width="0.8"/>
+          <!-- Right foot -->
+          <ellipse cx="56" cy="150" rx="9" ry="6" fill="#c8a87a" stroke="#8B6040" stroke-width="0.8"/>
+
+          <!-- Wound hotspots -->
+          <!-- 1. Pierced hand (left) -->
+          <circle class="wound-dot" cx="16" cy="93" r="5" fill="#9B1D2C" opacity="0.85" onclick="showWound(0)"/>
+          <!-- 2. Arrow in foot (right) -->
+          <circle class="wound-dot" cx="56" cy="150" r="5" fill="#9B1D2C" opacity="0.85" onclick="showWound(1)"/>
+          <!-- 3. Spear in thigh (left) -->
+          <circle class="wound-dot" cx="34" cy="118" r="5" fill="#9B1D2C" opacity="0.85" onclick="showWound(2)"/>
+          <!-- 4. Fractured skull -->
+          <circle class="wound-dot" cx="45" cy="12" r="5" fill="#8B0000" opacity="0.9" onclick="showWound(3)"/>
+          <!-- 5. Shoulder slash -->
+          <circle class="wound-dot" cx="25" cy="50" r="5" fill="#9B1D2C" opacity="0.85" onclick="showWound(4)"/>
+          <!-- 6. Side wound (sword) -->
+          <circle class="wound-dot" cx="65" cy="75" r="5" fill="#9B1D2C" opacity="0.85" onclick="showWound(5)"/>
+          <!-- 7. Right hand (arrow) -->
+          <circle class="wound-dot" cx="74" cy="93" r="5" fill="#9B1D2C" opacity="0.85" onclick="showWound(6)"/>
+        </svg>
+      </div>
+      <div class="wound-info" id="wound-info">
+        ◆ Touch a crimson mark to read Usama's account of that wound
+      </div>
+    </div>
+
+  </div><!-- /.two-col -->
+
+  <!-- Quote carousel -->
+  <div class="quote-section">
+    <div class="memoir-label">◆ Usama's Words</div>
+    <div class="quote-display" id="quote-display"></div>
+    <div class="quote-nav">
+      <button class="q-btn" onclick="prevQuote()">← Prev</button>
+      <button class="q-btn" onclick="nextQuote()">Next →</button>
+    </div>
+  </div>
+
+  <!-- Battle odds -->
+  <div class="battle-section">
+    <div class="panel-title">Battle Odds Calculator</div>
+    <div class="battle-inputs">
+      <div>
+        <label class="battle-label">Terrain</label>
+        <select class="battle-select" id="b-terrain">
+          <option value="castle">Castle / fortified</option>
+          <option value="ambush">Ambush / ravine</option>
+          <option value="open">Open field</option>
+        </select>
+      </div>
+      <div>
+        <label class="battle-label">Your numbers</label>
+        <select class="battle-select" id="b-numbers">
+          <option value="equal">Equal forces</option>
+          <option value="outnumbered">Outnumbered 2:1</option>
+          <option value="outnumbered3">Outnumbered 3:1+</option>
+          <option value="superior">You outnumber</option>
+        </select>
+      </div>
+      <div>
+        <label class="battle-label">Your weapon type</label>
+        <select class="battle-select" id="b-weapon">
+          <option value="horse">Horse archers</option>
+          <option value="sword">Cavalry sword</option>
+          <option value="crossbow">Enemy crossbow</option>
+        </select>
+      </div>
+      <div style="display:flex;align-items:flex-end;">
+        <button class="btn-kit btn-helm" style="width:100%;padding:5px;" onclick="calcOdds()">⚔ Calculate</button>
+      </div>
+    </div>
+    <div class="battle-result" id="battle-result">
+      <div style="font-size:10px;color:var(--steel);margin-bottom:4px;">Survival probability</div>
+      <div class="survival-bar"><div class="survival-fill" id="survival-fill" style="width:0%"></div></div>
+      <div class="survival-pct" id="survival-pct">—</div>
+      <div class="strategy-note" id="strategy-note"></div>
+    </div>
+  </div>
+
+  <!-- Buttons -->
+  <div class="btn-row">
+    <button class="btn-kit btn-helm">⛨ Frankish Helm</button>
+    <button class="btn-kit btn-saif">🗡 Arab Saif</button>
+    <button class="btn-kit btn-hunt">🦅 Hunt Record</button>
+    <button class="btn-kit" style="background:var(--gold);color:#2a1205;border:none;">🏰 Shaizar</button>
+    <button class="btn-kit" style="background:var(--crimson);color:#fff;border:none;">🩸 Wound</button>
+  </div>
+
+</div><!-- /#tab-memoir -->
+
+<!-- ── TAB: MAP ── -->
+<div id="tab-map" class="tab-content" style="display:none; padding:16px;">
+  <div class="panel-title">Interactive Siege of Shaizar — Toggle Accounts</div>
+  <div style="font-size:11px;font-style:italic;color:var(--steel);margin-bottom:10px;">Three separate events recorded by Usama at his ancestral castle</div>
+  <div class="siege-tabs">
+    <button class="siege-btn active" onclick="setSiege(0,this)">Frankish Siege · 1138</button>
+    <button class="siege-btn" onclick="setSiege(1,this)">Assassin Attempt · 1149</button>
+    <button class="siege-btn" onclick="setSiege(2,this)">Local Revolt · 1157 (Earthquake)</button>
+  </div>
+  <svg id="siege-svg-2" width="100%" viewBox="0 0 480 300" style="border:1px solid rgba(139,90,43,0.2);border-radius:2px;margin-top:8px;">
+    <rect x="180" y="80" width="120" height="120" fill="#c8a87a" stroke="#5a3a1a" stroke-width="2" rx="4"/>
+    <rect x="172" y="73" width="26" height="30" fill="#b8986a" stroke="#5a3a1a" stroke-width="1.5"/>
+    <rect x="282" y="73" width="26" height="30" fill="#b8986a" stroke="#5a3a1a" stroke-width="1.5"/>
+    <rect x="172" y="170" width="26" height="30" fill="#b8986a" stroke="#5a3a1a" stroke-width="1.5"/>
+    <rect x="282" y="170" width="26" height="30" fill="#b8986a" stroke="#5a3a1a" stroke-width="1.5"/>
+    <rect x="210" y="110" width="60" height="60" fill="#a87848" stroke="#5a3a1a" stroke-width="1.5" rx="3"/>
+    <text x="240" y="145" text-anchor="middle" font-size="10" fill="#3a2010" font-family="serif" font-weight="bold">Shaizar</text>
+    <rect x="220" y="195" width="40" height="8" fill="#5a3a1a"/>
+    <path d="M0 260 Q120 240 240 252 Q360 264 480 245" fill="none" stroke="#4a7aaf" stroke-width="6" opacity="0.4"/>
+    <text x="100" y="282" font-size="9" fill="#4a7aaf" font-family="serif">Orontes River</text>
+    <text x="240" y="30" text-anchor="middle" font-size="11" fill="#5a3a1a" font-family="serif" font-style="italic">قلعة شيزر — Qalʿat Shayzar</text>
+    <g id="siege-elements-2"></g>
+  </svg>
+  <div id="siege-desc-2" style="font-size:11px;font-style:italic;color:var(--steel);margin-top:8px;padding:8px;background:rgba(212,175,55,0.06);border-left:2px solid var(--gold);"></div>
+</div>
+
+<!-- ── TAB: CULTURE ── -->
+<div id="tab-culture" class="tab-content" style="display:none; padding:16px;">
+  <div class="panel-title">What Usama Learned about the Franks</div>
+  <div class="cards-grid" id="culture-cards"></div>
+  <div class="divider-weapons"><span>⚔</span><span>✦</span><span>⚔</span></div>
+
+  <!-- Medicine contrast table -->
+  <div class="medicine-section" style="border:none;">
+    <div class="panel-title">Frankish Medicine vs Muslim Medicine</div>
+    <table class="med-table">
+      <tr>
+        <th class="frankish">Frankish Physician</th>
+        <th class="muslim">Muslim Physician</th>
+      </tr>
+      <tr>
+        <td>Amputates the leg at once with an axe</td>
+        <td>Applies poultice of herbs; waits three days</td>
+      </tr>
+      <tr>
+        <td>Burns wound with hot iron to "close the humors"</td>
+        <td>Cleanses with salt water and rose water</td>
+      </tr>
+      <tr>
+        <td>Prescribes fasting unto weakness</td>
+        <td>Prescribes light broth and pomegranate</td>
+      </tr>
+      <tr>
+        <td>Exorcises "possession" with prayer over wound</td>
+        <td>Diagnoses from pulse, urine, breath</td>
+      </tr>
+      <tr>
+        <td>"The knight lived — praise God!" (patient died)</td>
+        <td>Patient recovered; returned to duties</td>
+      </tr>
+    </table>
+    <div class="med-footnote">🙄 — Usama's marginal observation, passim</div>
+  </div>
+</div>
+
+<!-- ── TAB: HUNT ── -->
+<div id="tab-hunt" class="tab-content" style="display:none;">
+  <div class="trophy-section">
+    <div class="panel-title">Hunting Trophy Wall — 50+ Anecdotes</div>
+    <div class="trophy-filters" id="trophy-filters"></div>
+    <div class="trophy-grid" id="trophy-grid"></div>
+  </div>
+</div>
+
+<!-- ── TAB: TIMELINE ── -->
+<div id="tab-timeline" class="tab-content" style="display:none; padding:16px;">
+  <div class="panel-title">Life of Usama ibn Munqidh · 1095–1188</div>
+  <div class="timeline-year" id="tl-year">1157</div>
+  <input type="range" class="timeline-slider" min="1095" max="1188" value="1157" id="tl-slider" oninput="updateTimeline(this.value)">
+  <div class="timeline-labels"><span>1095</span><span>1188</span></div>
+  <div class="timeline-story" id="tl-story"></div>
+</div>
+
+</div><!-- /.kit-content -->
+</div><!-- /.kit-root -->
+
+<script>
+// ── Tab switching ──
+function switchTab(btn, id) {
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
+  btn.classList.add('active');
+  document.getElementById('tab-' + id).style.display = 'block';
+}
+
+// ── Siege map data ──
+const sieges = [
+  {
+    desc: '"The Franks came with siege engines and occupied the valley road. I led a sortie through the eastern gate and scattered their vanguard before they could raise ladders." — Usama, c. 1138',
+    elements: (svg) => {
+      // Frankish forces (red crosses)
+      [[30,120],[20,90],[40,150],[55,160],[15,55]].forEach(([x,y]) => {
+        const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+        g.innerHTML = `<circle cx="${x}" cy="${y}" r="5" fill="#8B0000" opacity="0.85"/>
+          <text x="${x}" y="${y+4}" text-anchor="middle" font-size="7" fill="#fff">✚</text>`;
+        svg.appendChild(g);
+      });
+      // Muslim defenders (crescent)
+      [[120,100],[115,120],[125,85]].forEach(([x,y]) => {
+        const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+        g.innerHTML = `<circle cx="${x}" cy="${y}" r="5" fill="#2E5A4C" opacity="0.85"/>
+          <text x="${x}" y="${y+4}" text-anchor="middle" font-size="7" fill="#fff">☽</text>`;
+        svg.appendChild(g);
+      });
+      // Sortie arrow
+      drawArrow(svg, 110, 140, 60, 155, '#D4AF37');
+      // Siege engine
+      const se = document.createElementNS('http://www.w3.org/2000/svg','rect');
+      se.setAttribute('x','15'); se.setAttribute('y','100'); se.setAttribute('width','18'); se.setAttribute('height','12');
+      se.setAttribute('fill','#5a3a1a'); se.setAttribute('rx','2'); se.setAttribute('opacity','0.7');
+      svg.appendChild(se);
+    }
+  },
+  {
+    desc: '"The Assassins crept through the postern gate at midnight. My kinsmen fought them in the corridors. Three of my uncles were slain before dawn. This was the night God tested our house." — Usama, c. 1149',
+    elements: (svg) => {
+      // Assassin dots (dark, small)
+      [[135,140],[130,115],[140,95]].forEach(([x,y],i) => {
+        const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+        g.innerHTML = `<circle cx="${x}" cy="${y}" r="4" fill="#4a1a4a" opacity="0.9"/>
+          <text x="${x}" y="${y+3}" text-anchor="middle" font-size="6" fill="#d4af37">☽</text>`;
+        svg.appendChild(g);
+      });
+      // Postern gate entry arrow
+      drawArrow(svg, 155, 145, 120, 135, '#9B1D2C');
+      // Alarm indicator
+      const fl = document.createElementNS('http://www.w3.org/2000/svg','text');
+      fl.setAttribute('x','100'); fl.setAttribute('y','70');
+      fl.setAttribute('font-size','9'); fl.setAttribute('fill','#D4AF37'); fl.setAttribute('font-family','serif');
+      fl.textContent = '⚠ night raid';
+      svg.appendChild(fl);
+    }
+  },
+  {
+    desc: '"In the year of the great earthquake (1157), the castle fell. My kin who survived were exiled. I wept — for Shaizar was not merely stone; it was the house of our blood for generations." — Usama, in old age',
+    elements: (svg) => {
+      // Crack lines (earthquake damage)
+      [[80,60],[110,90],[90,130],[140,115]].forEach(([x,y]) => {
+        const crack = document.createElementNS('http://www.w3.org/2000/svg','path');
+        crack.setAttribute('d',`M${x},${y} l6,8 l-3,5 l5,6`);
+        crack.setAttribute('fill','none'); crack.setAttribute('stroke','#5a3a1a'); crack.setAttribute('stroke-width','1.5');
+        crack.setAttribute('opacity','0.7');
+        svg.appendChild(crack);
+      });
+      // Rubble dots
+      [[75,155],[100,160],[145,158],[120,162]].forEach(([x,y]) => {
+        const rb = document.createElementNS('http://www.w3.org/2000/svg','ellipse');
+        rb.setAttribute('cx',x); rb.setAttribute('cy',y); rb.setAttribute('rx','5'); rb.setAttribute('ry','3');
+        rb.setAttribute('fill','#8B6040'); rb.setAttribute('opacity','0.6');
+        svg.appendChild(rb);
+      });
+      const lbl = document.createElementNS('http://www.w3.org/2000/svg','text');
+      lbl.setAttribute('x','120'); lbl.setAttribute('y','25');
+      lbl.setAttribute('font-size','9'); lbl.setAttribute('fill','#9B1D2C'); lbl.setAttribute('font-family','serif');
+      lbl.setAttribute('text-anchor','middle');
+      lbl.textContent = '☩ Earthquake — 1157';
+      svg.appendChild(lbl);
+    }
+  }
+];
+
+function drawArrow(svg, x1, y1, x2, y2, color) {
+  const defs = svg.querySelector('defs') || svg;
+  const mid = `M${x1},${y1} L${x2},${y2}`;
+  const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+  path.setAttribute('d', mid);
+  path.setAttribute('fill','none'); path.setAttribute('stroke', color);
+  path.setAttribute('stroke-width','1.5'); path.setAttribute('stroke-dasharray','4 2');
+  path.setAttribute('marker-end','url(#arr-head)');
+  svg.appendChild(path);
+}
+
+function addArrowDef(svg) {
+  let d = svg.querySelector('defs');
+  if (!d) { d = document.createElementNS('http://www.w3.org/2000/svg','defs'); svg.prepend(d); }
+  if (!d.querySelector('#arr-head')) {
+    d.innerHTML += `<marker id="arr-head" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#D4AF37" stroke-width="1.5" stroke-linecap="round"/></marker>`;
+  }
+}
+
+function setSiege(idx, btn) {
+  document.querySelectorAll('.siege-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  // Update both SVGs
+  ['siege-svg','siege-svg-2'].forEach((svgId, si) => {
+    const svg = document.getElementById(svgId);
+    if (!svg) return;
+    addArrowDef(svg);
+    const old = svg.getElementById ? null : null;
+    const eid = si === 0 ? 'siege-elements' : 'siege-elements-2';
+    let el = document.getElementById(eid);
+    if (!el) return;
+    el.innerHTML = '';
+    sieges[idx].elements(el);
+  });
+  ['siege-desc','siege-desc-2'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = sieges[idx].desc;
+  });
+}
+
+// ── Wounds ──
+const wounds = [
+  { label: 'Pierced hand (left)', text: '"A lance pierced my left hand between the index and middle fingers. I pulled it through myself and bound it with a strip torn from my robe. The hand healed, though two fingers remain stiff."' },
+  { label: 'Arrow in foot', text: '"My father was struck by an arrow through the foot in the garden of Shaizar. The Muslim physician drew it cleanly; my father rode again within a month."' },
+  { label: 'Spear in thigh', text: '"A Frank thrust his spear into my left thigh as I was wheeling my horse. The wound was deep but God willed that no great vessel was struck."' },
+  { label: 'Fractured skull', text: '"A stone from a mangonel struck my cousin on the head; his skull cracked like an eggshell. Yet he lived — God alone knows how."' },
+  { label: 'Shoulder slash', text: '"In the press of men, a sword glanced off my shoulder-plate and opened the flesh to the bone. I did not feel it until the battle ended."' },
+  { label: 'Side wound', text: '"A crossbow bolt cut my right side as I raced for the gate. The Frankish bolt is a vicious thing — it spins as it flies and tears rather than pierces."' },
+  { label: 'Right hand (arrow)', text: '"An arrow passed clean through my right hand during the siege of Kafartab. I bound it with my turban cloth and fought on, though I could barely grip my sword."' },
+];
+function showWound(i) {
+  const w = wounds[i];
+  document.getElementById('wound-info').innerHTML = `<strong>${w.label}</strong><br>${w.text}`;
+}
+
+// ── Quotes ──
+const quotes = [
+  '"The Franks have no jealousy in their treatment of women — a thing that, to us, is wondrous and shameful alike."',
+  '"A Crusader knight once shared his bread with me at the table of the Templars. He called me his friend. I did not know what to make of such a Frank."',
+  '"I killed ten men with my own hand in that raid at the ford, yet it was God who guided each stroke — not my arm."',
+  '"I saw a Frank have his foot amputated by a physician who struck it with an axe. The man died forthwith. The Muslim doctor shook his head and said nothing."',
+  '"Of all things the Franks do, their bathing customs are the most astonishing. They bathe together — man and woman — in a common tub, without shame."',
+  '"When I grew old and my strength left me, I took up the pen, for the hand that once held a lance must hold something."',
+  '"I have never seen a braver people than the Franks — nor one more deficient in wisdom."',
+  '"The Templars were my friends. This is a strange thing to say, but it is true."',
+];
+let qIdx = 0;
+function updateQuote() { document.getElementById('quote-display').textContent = quotes[qIdx]; }
+function nextQuote() { qIdx = (qIdx+1)%quotes.length; updateQuote(); }
+function prevQuote() { qIdx = (qIdx-1+quotes.length)%quotes.length; updateQuote(); }
+
+// ── Cultural cards ──
+const cultCards = [
+  { topic:'Bathing', icon:'🛁', quote:'"The Franks bathe together, man and woman, in a common tub — without the slightest shame. This I witnessed myself."', eyeroll:true },
+  { topic:'Medicine', icon:'⚕', quote:'"Their doctor struck the man\'s leg with an axe. He died. Our physician cured the same ailment with pomegranate and rest."', eyeroll:true },
+  { topic:'Justice', icon:'⚖', quote:'"A Frank accused of murder was made to fight his accuser. God, it seems, determines truth by who can swing a sword harder."', eyeroll:true },
+  { topic:'Piety', icon:'✝', quote:'"They pray, but their priests eat and drink with abandon. I admired their devotion; I did not admire their priests."', eyeroll:false },
+  { topic:'Marriage', icon:'💍', quote:'"A Frank man thought nothing of leaving his wife to speak with another man. He was not angry. This we find impossible to comprehend."', eyeroll:true },
+  { topic:'Hospitality', icon:'🏠', quote:'"When I lodged with the Templars in Jerusalem, they set aside a room for my prayers — facing Mecca. This I shall never forget."', eyeroll:false },
+];
+
+function buildCultureCards() {
+  const grid = document.getElementById('culture-cards');
+  if (!grid) return;
+  cultCards.forEach((c, i) => {
+    const card = document.createElement('div');
+    card.className = 'cultural-card';
+    card.innerHTML = `
+      <span class="card-icon">${c.icon}</span>
+      <div class="card-topic">${c.topic}</div>
+      ${c.eyeroll ? '<span class="eye-roll">🙄</span>' : ''}
+      <div class="card-quote">${c.quote}</div>
+    `;
+    card.onclick = () => {
+      document.querySelectorAll('.cultural-card').forEach(x => x.classList.remove('active'));
+      card.classList.toggle('active');
+    };
+    grid.appendChild(card);
+  });
+}
+
+// ── Hunting trophy wall ──
+const trophies = [
+  { prey:'Lion', weapon:'spear', icon:'🦁', companion:'his father' },
+  { prey:'Gazelle', weapon:'falcon', icon:'🦌', companion:'Husam' },
+  { prey:'Boar', weapon:'sword', icon:'🐗', companion:'alone' },
+  { prey:'Bear', weapon:'arrow', icon:'🐻', companion:'his brother' },
+  { prey:'Rabbit', weapon:'dog', icon:'🐇', companion:'a servant' },
+  { prey:'Bird', weapon:'falcon', icon:'🦢', companion:'King Fulk' },
+  { prey:'Gazelle', weapon:'cheetah', icon:'🦌', companion:'Zengi' },
+  { prey:'Boar', weapon:'spear', icon:'🐗', companion:'his son' },
+  { prey:'Lion', weapon:'arrow', icon:'🦁', companion:'Nur al-Din' },
+  { prey:'Bird', weapon:'dog', icon:'🦅', companion:'alone' },
+  { prey:'Rabbit', weapon:'arrow', icon:'🐇', companion:'his nephew' },
+  { prey:'Bear', weapon:'sword', icon:'🐻', companion:'Bahram' },
+];
+const trophyFilters = ['All', 'Lion', 'Gazelle', 'Boar', 'Bear', 'Bird', 'Rabbit', 'spear', 'falcon', 'sword', 'arrow'];
+let activeFilter = 'All';
+
+function buildTrophyWall() {
+  const filtersEl = document.getElementById('trophy-filters');
+  const gridEl = document.getElementById('trophy-grid');
+  if (!filtersEl || !gridEl) return;
+
+  trophyFilters.forEach(f => {
+    const btn = document.createElement('button');
+    btn.className = 'filter-btn' + (f==='All' ? ' active' : '');
+    btn.textContent = f;
+    btn.onclick = () => {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeFilter = f;
+      document.querySelectorAll('.trophy-card').forEach(c => {
+        const p = c.dataset.prey, w = c.dataset.weapon;
+        c.classList.toggle('hidden', f!=='All' && f!==p && f!==w);
+      });
+    };
+    filtersEl.appendChild(btn);
+  });
+
+  trophies.forEach(t => {
+    const card = document.createElement('div');
+    card.className = 'trophy-card';
+    card.dataset.prey = t.prey;
+    card.dataset.weapon = t.weapon;
+    card.innerHTML = `<span class="trophy-prey">${t.icon}</span>${t.prey}<div class="trophy-weapon">with ${t.weapon}</div><div class="trophy-weapon" style="color:var(--gold);margin-top:2px;">${t.companion}</div>`;
+    gridEl.appendChild(card);
+  });
+}
+
+// ── Timeline ──
+const timelineEvents = {
+  1095: '"I was born at Shaizar in the year the Crusaders first set foot in Syria. My father was lord of the castle; the world was already at war."',
+  1110: '"My first campaign — I was fifteen years of age. My father placed a sword in my hand and said, \'Learn to look a man in the eye when you strike him.\'"',
+  1138: '"The Emperor John Comnenus besieged Shaizar. We held him for weeks. I made seventeen sorties. God preserved our walls."',
+  1140: '"I visited Jerusalem as a guest and lodged with the Templars in the mosque of al-Aqsa. Strange days — enemy as host."',
+  1144: '"Zengi took Edessa from the Crusaders. The balance tips, but slowly."',
+  1149: '"The Assassins struck in the night. Three of my uncles perished in the corridors of our own castle."',
+  1154: '"Exiled from Shaizar by my own kinsmen. I went to Damascus, then to Nur al-Din's court. A man learns more from exile than from comfort."',
+  1157: '"The earthquake destroyed Shaizar utterly. The castle fell; my remaining kin perished. I wept — not for the stones, but for all who had lived within them."',
+  1164: '"I am now very old. My hands tremble but my memory is sharp. I begin to set down what I have seen and done."',
+  1188: '"I completed this book at the age of ninety-three. The Crusaders still hold parts of our land. But Saladin has taken Jerusalem. Perhaps God has not abandoned us."',
+};
+function updateTimeline(year) {
+  document.getElementById('tl-year').textContent = year;
+  const keys = Object.keys(timelineEvents).map(Number).sort((a,b)=>a-b);
+  let best = keys[0];
+  for (const k of keys) { if (k <= parseInt(year)) best = k; }
+  document.getElementById('tl-story').textContent = `${best} — ${timelineEvents[best]}`;
+}
+
+// ── Battle odds ──
+function calcOdds() {
+  const terrain = document.getElementById('b-terrain').value;
+  const numbers = document.getElementById('b-numbers').value;
+  const weapon = document.getElementById('b-weapon').value;
+  let base = 55;
+  if (terrain==='castle') base += 20;
+  else if (terrain==='ambush') base += 12;
+  else base -= 5;
+  if (numbers==='superior') base += 20;
+  else if (numbers==='equal') base += 5;
+  else if (numbers==='outnumbered') base -= 15;
+  else base -= 30;
+  if (weapon==='horse') base += 10;
+  else if (weapon==='sword') base += 0;
+  else base -= 20;
+  base = Math.max(5, Math.min(95, base));
+
+  const strategies = {
+    castle: 'Hold the gates; use archers on the ramparts; send sortie at dawn before they erect siege engines.',
+    ambush: 'Strike fast before they form lines; split their vanguard; retreat to the ravine.',
+    open: 'Do not engage in the open. Feign retreat; draw them toward broken ground.',
+  };
+  const fill = document.getElementById('survival-fill');
+  const pct = document.getElementById('survival-pct');
+  const note = document.getElementById('strategy-note');
+  const result = document.getElementById('battle-result');
+  result.classList.add('show');
+  fill.style.width = base + '%';
+  fill.classList.toggle('danger', base < 40);
+  pct.textContent = base + '% survival';
+  note.textContent = '"' + strategies[terrain] + '" — Usama\'s likely counsel';
+}
+
+// ── Init ──
+window.addEventListener('DOMContentLoaded', () => {
+  updateQuote();
+  buildCultureCards();
+  buildTrophyWall();
+  updateTimeline(1157);
+  setSiege(0, document.querySelector('.siege-btn.active'));
+});
+
+// Ensure init runs even if DOMContentLoaded already fired
+if (document.readyState !== 'loading') {
+  updateQuote();
+  buildCultureCards();
+  buildTrophyWall();
+  updateTimeline(1157);
+  setTimeout(() => setSiege(0, document.querySelector('.siege-btn.active')), 100);
+}
+</script>

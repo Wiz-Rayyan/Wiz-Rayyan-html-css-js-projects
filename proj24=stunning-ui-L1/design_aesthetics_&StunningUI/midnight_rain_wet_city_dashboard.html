@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;400;600&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0A1128;
+    color: #CBD5E1;
+    font-family: 'Rajdhani', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* Rain layer */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: repeating-linear-gradient(
+      180deg,
+      transparent 0px,
+      transparent 6px,
+      rgba(56, 189, 248, 0.07) 6px,
+      rgba(56, 189, 248, 0.07) 7px
+    ),
+    repeating-linear-gradient(
+      180deg,
+      transparent 0px,
+      transparent 14px,
+      rgba(56, 189, 248, 0.04) 14px,
+      rgba(56, 189, 248, 0.04) 15px
+    );
+    background-size: 3px 80px, 7px 120px;
+    background-position: 0 0, 40px 20px;
+    animation: rain 0.6s linear infinite;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Glossy wet overlay */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(
+      160deg,
+      rgba(255,255,255,0.03) 0%,
+      transparent 40%,
+      rgba(56,189,248,0.04) 70%,
+      transparent 100%
+    );
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  @keyframes rain {
+    0% { background-position: 0 0, 40px 20px; }
+    100% { background-position: 0 80px, 40px 140px; }
+  }
+
+  .dashboard {
+    position: relative;
+    z-index: 2;
+    padding: 2rem;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+    border-bottom: 0.5px solid rgba(56,189,248,0.2);
+    padding-bottom: 1rem;
+  }
+
+  .city-name {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 42px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    color: #E2E8F0;
+    text-shadow: 0 0 20px rgba(56,189,248,0.5), 0 0 40px rgba(56,189,248,0.2);
+    line-height: 1;
+  }
+
+  .city-sub {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: rgba(56,189,248,0.6);
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  .live-time {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 28px;
+    color: #38BDF8;
+    text-shadow: 0 0 8px #38BDF8;
+    letter-spacing: 0.06em;
+  }
+
+  .live-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    background: #38BDF8;
+    border-radius: 50%;
+    margin-right: 8px;
+    box-shadow: 0 0 8px #38BDF8;
+    animation: pulse 2s ease-in-out infinite;
+    vertical-align: middle;
+    position: relative;
+    top: -2px;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  /* Stat cards */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 1.5rem;
+  }
+
+  .stat-card {
+    background: rgba(15, 23, 42, 0.7);
+    border: 0.5px solid rgba(56,189,248,0.2);
+    border-radius: 8px;
+    padding: 1rem;
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(4px);
+  }
+
+  /* Wet reflection on each card */
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 40%;
+    background: linear-gradient(
+      180deg,
+      rgba(255,255,255,0.06) 0%,
+      transparent 100%
+    );
+    border-radius: 8px 8px 0 0;
+    pointer-events: none;
+  }
+
+  /* Neon cyan left accent */
+  .stat-card::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 20%;
+    bottom: 20%;
+    width: 2px;
+    background: linear-gradient(180deg, transparent, #38BDF8, transparent);
+    opacity: 0.7;
+  }
+
+  .stat-label {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(148,163,184,0.7);
+    font-family: 'Share Tech Mono', monospace;
+    margin-bottom: 6px;
+  }
+
+  .stat-value {
+    font-size: 26px;
+    font-weight: 600;
+    color: #E2E8F0;
+    text-shadow: 0 0 8px rgba(56,189,248,0.3);
+    line-height: 1;
+  }
+
+  .stat-unit {
+    font-size: 11px;
+    color: #38BDF8;
+    font-family: 'Share Tech Mono', monospace;
+    margin-top: 4px;
+    opacity: 0.8;
+  }
+
+  .stat-change {
+    font-size: 11px;
+    margin-top: 4px;
+  }
+
+  .stat-change.up { color: #34D399; }
+  .stat-change.down { color: #F87171; }
+
+  /* Main panels */
+  .panels-row {
+    display: grid;
+    grid-template-columns: 1.6fr 1fr;
+    gap: 12px;
+    margin-bottom: 1.5rem;
+  }
+
+  .panel {
+    background: rgba(10, 17, 40, 0.85);
+    border: 0.5px solid rgba(56,189,248,0.15);
+    border-radius: 10px;
+    padding: 1.25rem;
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(6px);
+  }
+
+  .panel::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 50%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.04) 0%, transparent 100%);
+    pointer-events: none;
+  }
+
+  .panel-title {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: #38BDF8;
+    margin-bottom: 1rem;
+    opacity: 0.8;
+  }
+
+  /* Chart bars */
+  .chart-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    height: 100px;
+    margin-bottom: 8px;
+  }
+
+  .bar-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    height: 100%;
+    justify-content: flex-end;
+  }
+
+  .bar {
+    width: 100%;
+    border-radius: 3px 3px 0 0;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
+
+  .bar::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 30%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.15) 0%, transparent 100%);
+  }
+
+  .bar-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    color: rgba(148,163,184,0.5);
+    letter-spacing: 0.1em;
+  }
+
+  /* Activity list */
+  .activity-list {
+    list-style: none;
+  }
+
+  .activity-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 0.5px solid rgba(56,189,248,0.08);
+    font-size: 13px;
+  }
+
+  .activity-item:last-child { border-bottom: none; }
+
+  .activity-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .activity-time {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: rgba(56,189,248,0.5);
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+
+  .activity-name { color: #CBD5E1; }
+
+  /* Bottom row */
+  .bottom-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+  }
+
+  /* Signal meter */
+  .signal-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 28px;
+  }
+
+  .sig-bar {
+    width: 8px;
+    border-radius: 1px;
+    background: rgba(56,189,248,0.15);
+  }
+
+  .sig-bar.active {
+    background: #38BDF8;
+    box-shadow: 0 0 6px rgba(56,189,248,0.5);
+  }
+
+  /* Weather */
+  .rain-icon {
+    font-size: 28px;
+    margin-bottom: 4px;
+  }
+
+  .temp-big {
+    font-size: 36px;
+    font-weight: 600;
+    color: #E2E8F0;
+    text-shadow: 0 0 12px rgba(56,189,248,0.4);
+  }
+
+  .weather-detail {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: rgba(56,189,248,0.6);
+    margin-top: 2px;
+    letter-spacing: 0.1em;
+  }
+
+  /* Street cam */
+  .cam-feed {
+    aspect-ratio: 16/9;
+    background: #060D1F;
+    border-radius: 6px;
+    border: 0.5px solid rgba(56,189,248,0.15);
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+
+  .cam-feed::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 30% 60%, rgba(56,189,248,0.08) 0%, transparent 60%),
+      radial-gradient(ellipse at 70% 80%, rgba(251,191,36,0.05) 0%, transparent 50%),
+      linear-gradient(180deg, #060D1F 0%, #0A1420 50%, #060D1F 100%);
+  }
+
+  /* Road / reflection lines */
+  .cam-feed::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 10%;
+    right: 10%;
+    height: 40%;
+    background:
+      repeating-linear-gradient(
+        90deg,
+        transparent 0%, transparent 45%,
+        rgba(56,189,248,0.15) 45%, rgba(56,189,248,0.15) 55%,
+        transparent 55%, transparent 100%
+      );
+    background-size: 40px 100%;
+    mask-image: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.6) 100%);
+  }
+
+  .cam-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 6px 8px;
+  }
+
+  .cam-badge {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    color: rgba(56,189,248,0.7);
+    letter-spacing: 0.15em;
+    background: rgba(0,0,0,0.4);
+    padding: 2px 5px;
+    border-radius: 2px;
+    width: fit-content;
+  }
+
+  .cam-corner {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+  }
+
+  .cam-corner.tl { top: 4px; left: 4px; border-top: 1px solid rgba(56,189,248,0.5); border-left: 1px solid rgba(56,189,248,0.5); }
+  .cam-corner.tr { top: 4px; right: 4px; border-top: 1px solid rgba(56,189,248,0.5); border-right: 1px solid rgba(56,189,248,0.5); }
+  .cam-corner.bl { bottom: 4px; left: 4px; border-bottom: 1px solid rgba(56,189,248,0.5); border-left: 1px solid rgba(56,189,248,0.5); }
+  .cam-corner.br { bottom: 4px; right: 4px; border-bottom: 1px solid rgba(56,189,248,0.5); border-right: 1px solid rgba(56,189,248,0.5); }
+
+  /* Streetlight glow blobs in cam */
+  .light-glow {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(8px);
+  }
+
+  .status-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .status-pill {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 20px;
+    border: 0.5px solid;
+  }
+
+  .status-pill.green {
+    color: #34D399;
+    border-color: rgba(52,211,153,0.3);
+    background: rgba(52,211,153,0.08);
+  }
+
+  .status-pill.amber {
+    color: #FBBF24;
+    border-color: rgba(251,191,36,0.3);
+    background: rgba(251,191,36,0.08);
+  }
+
+  .status-pill.red {
+    color: #F87171;
+    border-color: rgba(248,113,113,0.3);
+    background: rgba(248,113,113,0.08);
+  }
+
+  @keyframes flicker {
+    0%, 95%, 100% { opacity: 1; }
+    96% { opacity: 0.7; }
+    97% { opacity: 1; }
+    98% { opacity: 0.5; }
+    99% { opacity: 0.9; }
+  }
+
+  .city-name { animation: flicker 8s ease-in-out infinite; }
+</style>
+</head>
+<body>
+<div class="dashboard">
+
+  <div class="header">
+    <div>
+      <div class="city-name">MIDNIGHT RAIN</div>
+      <div class="city-sub">district ops center &bull; sector 7 &bull; classified</div>
+    </div>
+    <div style="text-align:right;">
+      <div style="font-size:11px; font-family:'Share Tech Mono',monospace; color:rgba(56,189,248,0.5); letter-spacing:0.2em; margin-bottom:4px;">LOCAL TIME</div>
+      <div class="live-time">
+        <span class="live-dot"></span>
+        <span id="clock">--:--:--</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-label">Precipitation</div>
+      <div class="stat-value">84<span style="font-size:14px;"> %</span></div>
+      <div class="stat-unit">humidity index</div>
+      <div class="stat-change up">↑ 12% from 1h ago</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Visibility</div>
+      <div class="stat-value">0.4</div>
+      <div class="stat-unit">km — heavy rain</div>
+      <div class="stat-change down">↓ critical</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Street Flow</div>
+      <div class="stat-value">23<span style="font-size:14px;"> k</span></div>
+      <div class="stat-unit">vehicles / hr</div>
+      <div class="stat-change down">↓ 31% congested</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Signal Grid</div>
+      <div class="stat-value">96</div>
+      <div class="stat-unit">nodes online</div>
+      <div class="stat-change up">↑ stable</div>
+    </div>
+  </div>
+
+  <div class="panels-row">
+    <div class="panel">
+      <div class="panel-title">district activity — last 12h</div>
+      <div class="chart-bars" id="bars"></div>
+      <div style="display:flex; justify-content:space-between; margin-top:4px;" id="bar-labels"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">live incidents</div>
+      <ul class="activity-list">
+        <li class="activity-item">
+          <div class="activity-dot" style="background:#38BDF8; box-shadow:0 0 6px #38BDF8;"></div>
+          <span class="activity-name">Flood sensor — 7th Ave</span>
+          <span class="activity-time">02:11</span>
+        </li>
+        <li class="activity-item">
+          <div class="activity-dot" style="background:#FBBF24; box-shadow:0 0 6px rgba(251,191,36,0.5);"></div>
+          <span class="activity-name">Signal outage — B12</span>
+          <span class="activity-time">01:54</span>
+        </li>
+        <li class="activity-item">
+          <div class="activity-dot" style="background:#34D399; box-shadow:0 0 6px rgba(52,211,153,0.5);"></div>
+          <span class="activity-name">Drainage clear — Canal St</span>
+          <span class="activity-time">01:32</span>
+        </li>
+        <li class="activity-item">
+          <div class="activity-dot" style="background:#F87171; box-shadow:0 0 6px rgba(248,113,113,0.5);"></div>
+          <span class="activity-name">Road closure — Harbor X</span>
+          <span class="activity-time">00:48</span>
+        </li>
+        <li class="activity-item">
+          <div class="activity-dot" style="background:#38BDF8; box-shadow:0 0 6px #38BDF8;"></div>
+          <span class="activity-name">Cam restored — Neon Row</span>
+          <span class="activity-time">00:17</span>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="bottom-row">
+    <!-- Weather -->
+    <div class="panel">
+      <div class="panel-title">weather</div>
+      <div style="font-size:32px; margin-bottom:2px;">🌧</div>
+      <div class="temp-big">17°</div>
+      <div class="weather-detail">Heavy rain &bull; feels like 14°</div>
+      <div class="weather-detail" style="margin-top:4px;">Wind SW 22 km/h &bull; Gusts 41</div>
+      <div class="weather-detail" style="margin-top:4px; color:rgba(248,113,113,0.7);">Flash flood watch active</div>
+    </div>
+
+    <!-- Signal grid -->
+    <div class="panel">
+      <div class="panel-title">network signal</div>
+      <div class="signal-bars" id="signal" style="margin-bottom:12px;"></div>
+      <div style="font-size:12px; color:rgba(148,163,184,0.6); font-family:'Share Tech Mono',monospace; letter-spacing:0.1em; line-height:1.8;">
+        UPTIME &nbsp;&nbsp; <span style="color:#38BDF8;">99.4%</span><br>
+        LATENCY &nbsp; <span style="color:#38BDF8;">12 ms</span><br>
+        NODES &nbsp;&nbsp; <span style="color:#34D399;">96 / 100</span><br>
+        ERR RATE &nbsp; <span style="color:#FBBF24;">0.06%</span>
+      </div>
+    </div>
+
+    <!-- Street cam -->
+    <div class="panel">
+      <div class="panel-title">street feed — neon row</div>
+      <div class="cam-feed">
+        <div class="cam-corner tl"></div>
+        <div class="cam-corner tr"></div>
+        <div class="cam-corner bl"></div>
+        <div class="cam-corner br"></div>
+        <!-- Streetlight glows -->
+        <div class="light-glow" style="width:40px;height:40px;background:rgba(56,189,248,0.3);top:15%;left:20%;"></div>
+        <div class="light-glow" style="width:30px;height:30px;background:rgba(251,191,36,0.25);top:20%;right:25%;"></div>
+        <div class="light-glow" style="width:20px;height:20px;background:rgba(56,189,248,0.2);top:30%;left:55%;"></div>
+        <!-- Puddle reflection -->
+        <div style="position:absolute;bottom:6px;left:15%;right:30%;height:12px;background:linear-gradient(90deg,transparent,rgba(56,189,248,0.12),rgba(251,191,36,0.08),transparent);border-radius:50%;filter:blur(2px);"></div>
+        <div class="cam-overlay">
+          <div class="cam-badge">● REC 02:14:37</div>
+        </div>
+      </div>
+      <div class="status-row">
+        <span class="status-pill green">Online</span>
+        <span class="status-pill amber">Rain noise</span>
+        <span style="font-size:10px; font-family:'Share Tech Mono',monospace; color:rgba(148,163,184,0.4); margin-left:auto;">CAM-07</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function clock() {
+  const now = new Date();
+  const h = String(now.getHours()).padStart(2,'0');
+  const m = String(now.getMinutes()).padStart(2,'0');
+  const s = String(now.getSeconds()).padStart(2,'0');
+  document.getElementById('clock').textContent = h+':'+m+':'+s;
+}
+clock();
+setInterval(clock, 1000);
+
+const data = [45,70,30,80,55,90,40,65,85,50,75,60];
+const hours = ['00','01','02','03','04','05','06','07','08','09','10','11'];
+const colors = ['rgba(56,189,248,0.5)','rgba(56,189,248,0.7)','rgba(56,189,248,0.35)','rgba(56,189,248,0.9)','rgba(56,189,248,0.55)','rgba(56,189,248,0.95)','rgba(56,189,248,0.4)','rgba(56,189,248,0.65)','rgba(56,189,248,0.85)','rgba(56,189,248,0.5)','rgba(56,189,248,0.75)','rgba(56,189,248,0.6)'];
+const max = Math.max(...data);
+const bars = document.getElementById('bars');
+const labels = document.getElementById('bar-labels');
+
+data.forEach((v,i) => {
+  const col = document.createElement('div');
+  col.className = 'bar-col';
+
+  const bar = document.createElement('div');
+  bar.className = 'bar';
+  bar.style.height = (v/max*90)+'px';
+  bar.style.background = colors[i];
+  bar.style.boxShadow = '0 0 8px '+colors[i];
+
+  col.appendChild(bar);
+  bars.appendChild(col);
+
+  const lbl = document.createElement('span');
+  lbl.className = 'bar-label';
+  lbl.textContent = hours[i];
+  lbl.style.flex = '1';
+  lbl.style.textAlign = 'center';
+  labels.appendChild(lbl);
+});
+
+const sigEl = document.getElementById('signal');
+const sigHeights = [8,13,18,24,30,36,30,36];
+const active = 6;
+sigHeights.forEach((h,i) => {
+  const b = document.createElement('div');
+  b.className = 'sig-bar' + (i < active ? ' active' : '');
+  b.style.height = h+'px';
+  sigEl.appendChild(b);
+});
+</script>
+</body>
+</html>

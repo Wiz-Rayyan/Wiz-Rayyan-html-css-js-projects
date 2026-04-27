@@ -1,0 +1,589 @@
+
+<style>
+:root {
+  --meadow: #2E5A4C;
+  --gold: #C8961E;
+  --ocean: #1a3a7a;
+  --wonder: #5E2B5E;
+  --sand: #A0702A;
+  --pearl: #F0EDE0;
+  --parchment: #F5E6D3;
+  --crimson: #8B0000;
+  --ink: #1a1208;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+.page { font-family: var(--font-serif); background: var(--parchment); color: var(--ink); }
+.masthead {
+  text-align: center;
+  padding: 20px 16px 14px;
+  border-bottom: 2px solid var(--gold);
+  background: #eddfc8;
+}
+.masthead-ornament { color: var(--gold); font-size: 16px; letter-spacing: 10px; margin-bottom: 4px; }
+.title-ar { font-size: 20px; color: var(--meadow); font-weight: 700; }
+.title-en { font-size: 11px; color: var(--sand); letter-spacing: 3px; text-transform: uppercase; margin-top: 2px; }
+.author-line { font-size: 11px; color: var(--wonder); margin-top: 3px; font-style: italic; }
+.nav-tabs { display: flex; background: #1a1208; overflow-x: auto; scrollbar-width: none; }
+.nav-tabs::-webkit-scrollbar { display: none; }
+.nav-tab { flex: 0 0 auto; padding: 8px 13px; color: rgba(255,255,255,0.5); font-size: 11px; letter-spacing: 0.5px; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; white-space: nowrap; font-family: var(--font-sans); }
+.nav-tab.active { color: var(--gold); border-bottom-color: var(--gold); }
+.nav-tab:hover:not(.active) { color: rgba(255,255,255,0.8); }
+.panel { display: none; }
+.panel.active { display: block; }
+.section-head { padding: 9px 14px; display: flex; align-items: center; gap: 8px; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; font-family: var(--font-sans); border-bottom: 1px solid; }
+.meadow-divider { height: 14px; background: var(--meadow); position: relative; overflow: hidden; }
+.meadow-divider::after { content: '* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *'; position: absolute; top: 50%; left: 0; transform: translateY(-50%); font-size: 8px; color: var(--gold); letter-spacing: 6px; white-space: nowrap; }
+
+/* CLIMATE */
+.climate-scroll { display: flex; overflow-x: auto; scrollbar-width: thin; scrollbar-color: var(--gold) transparent; }
+.climate-card { flex: 0 0 190px; border-right: 1px solid rgba(0,0,0,0.1); padding: 12px 11px; cursor: pointer; transition: background 0.15s; background: var(--parchment); }
+.climate-card:last-child { border-right: none; }
+.climate-card.active, .climate-card:hover { background: #e8d5b0; }
+.clim-num { font-size: 28px; font-weight: 700; color: var(--gold); line-height: 1; }
+.clim-name { font-size: 13px; font-weight: 700; color: var(--meadow); margin: 3px 0 2px; }
+.clim-people { font-size: 10px; color: var(--sand); margin-bottom: 6px; font-style: italic; }
+.clim-products { display: flex; flex-wrap: wrap; gap: 3px; margin-bottom: 6px; }
+.prod-tag { font-size: 9px; padding: 1px 5px; background: var(--meadow); color: #e8f5f0; border-radius: 2px; font-family: var(--font-sans); }
+.visited-badge { font-size: 9px; padding: 1px 5px; background: var(--gold); color: #3a2500; border-radius: 2px; font-weight: 700; font-family: var(--font-sans); }
+.clim-detail { padding: 14px 14px; background: #e8d5b0; border-top: 1px solid rgba(46,90,76,0.2); display: none; }
+.clim-detail.active { display: block; }
+.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.detail-box { padding: 8px 10px; border: 1px solid rgba(0,0,0,0.1); border-radius: 2px; background: var(--parchment); }
+.detail-label { font-size: 9px; color: var(--sand); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 3px; font-family: var(--font-sans); }
+.detail-val { font-size: 12px; color: var(--ink); line-height: 1.5; }
+
+/* SEA */
+.sea-map-wrap { background: #7ab8d8; height: 300px; overflow: hidden; position: relative; }
+.sea-svg { width: 100%; height: 100%; }
+.port-dot { cursor: pointer; transition: all 0.15s; }
+.port-dot:hover { r: 7; }
+.port-dot.active { fill: var(--gold) !important; stroke: #1a1208; stroke-width: 2; }
+.sea-info { padding: 12px 14px; border-top: 1px solid rgba(26,58,122,0.2); background: #f0eadf; min-height: 70px; }
+.sea-info h3 { font-size: 13px; color: var(--ocean); margin-bottom: 4px; }
+.sea-info p { font-size: 11px; color: #333; line-height: 1.6; }
+.route-anim { stroke: var(--gold); stroke-width: 2.5; stroke-dasharray: 8 5; fill: none; animation: dashflow 2.5s linear infinite; }
+@keyframes dashflow { to { stroke-dashoffset: -52; } }
+
+/* WONDER */
+.wonder-btn { display: block; width: calc(100% - 28px); margin: 14px auto; padding: 11px; background: var(--wonder); color: #e8d8e8; border: none; font-family: var(--font-serif); font-size: 14px; cursor: pointer; letter-spacing: 1px; border-radius: 2px; transition: background 0.2s; }
+.wonder-btn:hover { background: #4a2050; }
+.wonder-btn:active { transform: scale(0.98); }
+.wonder-display { margin: 0 14px 14px; border: 1px solid var(--wonder); border-radius: 2px; overflow: hidden; background: var(--parchment); }
+.wonder-illus { height: 100px; display: flex; align-items: center; justify-content: center; background: #f0e4f5; font-size: 44px; }
+.wonder-body { padding: 10px 12px; }
+.wonder-name { font-size: 15px; font-weight: 700; color: var(--wonder); }
+.wonder-loc { font-size: 10px; color: var(--sand); margin: 2px 0 7px; font-style: italic; font-family: var(--font-sans); }
+.wonder-desc { font-size: 11px; line-height: 1.7; color: #333; }
+
+/* GENEALOGY */
+.gene-search-wrap { padding: 10px 14px; border-bottom: 1px solid rgba(0,0,0,0.1); background: var(--parchment); }
+.gene-search { width: 100%; padding: 7px 10px; border: 1px solid rgba(160,112,42,0.4); border-radius: 2px; background: white; font-size: 12px; color: var(--ink); font-family: var(--font-sans); }
+.dynasty-btns { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
+.dyn-btn { padding: 3px 9px; border: 1px solid var(--sand); border-radius: 2px; background: transparent; font-size: 11px; cursor: pointer; color: var(--sand); transition: all 0.15s; font-family: var(--font-sans); }
+.dyn-btn:hover, .dyn-btn.active { background: var(--sand); color: white; }
+.gene-tree { padding: 10px 14px; overflow-x: auto; background: var(--parchment); }
+.ruler-name { font-size: 11px; font-weight: 500; }
+.ruler-dates { font-size: 9px; }
+
+/* TRADE */
+.trade-filters { padding: 9px 14px; display: flex; gap: 5px; flex-wrap: wrap; border-bottom: 1px solid rgba(0,0,0,0.08); background: var(--parchment); }
+.filter-btn { padding: 3px 9px; border: 1px solid rgba(0,0,0,0.15); border-radius: 2px; background: white; font-size: 11px; cursor: pointer; transition: all 0.15s; font-family: var(--font-sans); }
+.filter-btn.active { background: var(--gold); border-color: var(--gold); color: #3a2500; font-weight: 700; }
+.trade-table { padding: 0 14px 14px; background: var(--parchment); }
+.trade-row { display: flex; align-items: center; gap: 7px; padding: 7px 0; border-bottom: 1px solid rgba(0,0,0,0.06); font-size: 11px; }
+.trade-icon { font-size: 16px; width: 24px; text-align: center; flex-shrink: 0; }
+.trade-good { font-weight: 700; color: var(--ink); flex: 0 0 75px; }
+.trade-origin { flex: 1; color: #555; }
+.trade-arrow { color: var(--gold); font-size: 13px; flex-shrink: 0; }
+.trade-dest { flex: 1; color: #555; }
+.trade-price { flex: 0 0 80px; text-align: right; color: var(--meadow); font-weight: 700; font-size: 10px; font-family: var(--font-sans); }
+
+/* PEOPLE */
+.people-select-row { display: flex; overflow-x: auto; border-bottom: 1px solid rgba(0,0,0,0.1); scrollbar-width: none; background: var(--parchment); }
+.people-select-row::-webkit-scrollbar { display: none; }
+.people-tab { flex: 0 0 auto; padding: 8px 13px; font-size: 12px; cursor: pointer; border-bottom: 2px solid transparent; color: #666; transition: all 0.15s; white-space: nowrap; font-family: var(--font-sans); }
+.people-tab.active { color: var(--crimson); border-bottom-color: var(--crimson); }
+.people-body { padding: 12px 14px; background: var(--parchment); }
+.people-attrs { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-bottom: 10px; }
+.attr-chip { padding: 6px 9px; border: 1px solid rgba(0,0,0,0.1); border-radius: 2px; background: white; }
+.attr-chip .attr-key { font-size: 9px; color: var(--sand); text-transform: uppercase; letter-spacing: 1px; font-family: var(--font-sans); }
+.attr-chip .attr-val { font-size: 11px; color: var(--ink); margin-top: 2px; }
+.scholarly-note { padding: 8px 10px; background: rgba(94,43,94,0.06); border-left: 3px solid var(--wonder); font-size: 11px; color: #555; font-style: italic; line-height: 1.6; }
+
+/* TIMELINE */
+.timeline-wrap { padding: 14px; overflow-x: auto; background: var(--parchment); }
+.decade-row { display: flex; gap: 0; margin-bottom: 10px; align-items: stretch; }
+.decade-block { flex: 0 0 auto; padding: 7px 9px; border: 1px solid rgba(0,0,0,0.12); border-right: none; cursor: pointer; transition: background 0.15s; text-align: center; background: white; min-width: 58px; }
+.decade-block:last-child { border-right: 1px solid rgba(0,0,0,0.12); }
+.decade-block:hover { background: #f5e6c8; }
+.decade-block.active { background: var(--gold); border-color: #a07010; }
+.decade-block .dec-date { font-size: 9px; color: #888; font-family: var(--font-sans); }
+.decade-block.active .dec-date { color: #3a2500; }
+.decade-block .dec-place { font-size: 11px; font-weight: 700; color: var(--ink); margin-top: 2px; }
+.decade-detail { padding: 10px 12px; background: #e8d5b0; border: 1px solid rgba(0,0,0,0.1); border-radius: 0 0 2px 2px; font-size: 12px; line-height: 1.7; color: var(--ink); }
+</style>
+
+<div class="page">
+  <div class="masthead">
+    <div class="masthead-ornament">* * *</div>
+    <div class="title-ar">Muruj al-Dhahab wa Maadin al-Jawhar</div>
+    <div class="title-en">Meadows of Gold &amp; Mines of Gems</div>
+    <div class="author-line">Al-Masʿūdī · Composed 947 CE · Baghdad &amp; Fustat</div>
+  </div>
+
+  <div class="nav-tabs" id="navTabs">
+    <div class="nav-tab active" onclick="switchPanel('climate',this)">Seven Climates</div>
+    <div class="nav-tab" onclick="switchPanel('sea',this)">Sea Routes</div>
+    <div class="nav-tab" onclick="switchPanel('wonder',this)">Wonders</div>
+    <div class="nav-tab" onclick="switchPanel('gene',this)">Dynasties</div>
+    <div class="nav-tab" onclick="switchPanel('trade',this)">Trade</div>
+    <div class="nav-tab" onclick="switchPanel('people',this)">Peoples</div>
+    <div class="nav-tab" onclick="switchPanel('timeline',this)">Journey</div>
+  </div>
+
+  <!-- CLIMATE -->
+  <div class="panel active" id="panel-climate">
+    <div class="section-head" style="border-color:var(--meadow);color:var(--meadow);background:rgba(46,90,76,0.07)">
+      The Seven Climatic Zones — from the Western Sea to Cathay
+    </div>
+    <div class="climate-scroll" id="climateScroll"></div>
+    <div class="clim-detail" id="climDetail"></div>
+  </div>
+
+  <div class="meadow-divider"></div>
+
+  <!-- SEA -->
+  <div class="panel" id="panel-sea">
+    <div class="section-head" style="border-color:var(--ocean);color:var(--ocean);background:rgba(26,58,122,0.05)">
+      Indian Ocean Routes — Basra to Canton
+    </div>
+    <div class="sea-map-wrap">
+      <svg class="sea-svg" viewBox="0 0 680 300">
+        <defs>
+          <marker id="arr2" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+            <path d="M0,1 L5,3 L0,5 Z" fill="#1a3a7a" opacity="0.5"/>
+          </marker>
+        </defs>
+        <rect width="680" height="300" fill="#7ab8d8"/>
+        <rect width="680" height="300" fill="url(#wavepat)" opacity="0.15"/>
+        <!-- Landmasses -->
+        <path d="M100,10 L175,10 L200,45 L205,90 L185,118 L155,128 L130,108 L105,75 Z" fill="#c8a860"/>
+        <path d="M30,75 L75,65 L88,100 L82,148 L65,178 L32,188 L22,148 Z" fill="#c8a860"/>
+        <path d="M270,10 L345,10 L362,58 L348,108 L318,148 L288,118 L265,78 Z" fill="#c8a860"/>
+        <path d="M440,10 L510,10 L522,58 L500,88 L465,78 L438,48 Z" fill="#c8a860"/>
+        <path d="M535,8 L625,8 L640,52 L620,78 L578,68 L532,38 Z" fill="#c8a860"/>
+        <!-- Land labels -->
+        <text x="150" y="55" fill="#6b4a10" font-size="9" text-anchor="middle" font-family="sans-serif" font-style="italic">Arabia</text>
+        <text x="52" y="128" fill="#6b4a10" font-size="9" text-anchor="middle" font-family="sans-serif" font-style="italic">Africa</text>
+        <text x="310" y="68" fill="#6b4a10" font-size="9" text-anchor="middle" font-family="sans-serif" font-style="italic">India</text>
+        <text x="472" y="45" fill="#6b4a10" font-size="9" text-anchor="middle" font-family="sans-serif" font-style="italic">Malay</text>
+        <text x="580" y="38" fill="#6b4a10" font-size="9" text-anchor="middle" font-family="sans-serif" font-style="italic">China</text>
+        <!-- Monsoon arrows -->
+        <line x1="150" y1="165" x2="192" y2="145" stroke="#1a3a7a" stroke-width="1" opacity="0.4" marker-end="url(#arr2)"/>
+        <line x1="235" y1="180" x2="275" y2="158" stroke="#1a3a7a" stroke-width="1" opacity="0.4" marker-end="url(#arr2)"/>
+        <line x1="355" y1="168" x2="395" y2="148" stroke="#1a3a7a" stroke-width="1" opacity="0.4" marker-end="url(#arr2)"/>
+        <line x1="438" y1="155" x2="478" y2="132" stroke="#1a3a7a" stroke-width="1" opacity="0.4" marker-end="url(#arr2)"/>
+        <text x="168" y="200" fill="#1a3a7a" font-size="9" text-anchor="middle" opacity="0.6" font-family="sans-serif" font-style="italic">SW Monsoon (summer)</text>
+        <!-- Sea monster -->
+        <ellipse cx="220" cy="225" rx="20" ry="7" fill="#1a5a8a" opacity="0.35"/>
+        <ellipse cx="206" cy="220" rx="7" ry="5" fill="#1a5a8a" opacity="0.35"/>
+        <!-- Animated route -->
+        <path class="route-anim" d="M128,92 Q175,138 198,158 Q255,188 308,163 Q368,138 418,118 Q468,98 508,78 Q555,62 598,52"/>
+        <!-- Port dots -->
+        <circle class="port-dot" id="port-basra" cx="128" cy="92" r="5" fill="#8B0000" onclick="showPort('basra')"/>
+        <circle class="port-dot" id="port-aden" cx="138" cy="148" r="5" fill="#2E5A4C" onclick="showPort('aden')"/>
+        <circle class="port-dot" id="port-sofala" cx="52" cy="152" r="5" fill="#2E5A4C" onclick="showPort('sofala')"/>
+        <circle class="port-dot" id="port-calicut" cx="293" cy="133" r="5" fill="#2E5A4C" onclick="showPort('calicut')"/>
+        <circle class="port-dot" id="port-zabaj" cx="478" cy="93" r="5" fill="#2E5A4C" onclick="showPort('zabaj')"/>
+        <circle class="port-dot" id="port-khanfu" cx="598" cy="52" r="5" fill="#8B0000" onclick="showPort('khanfu')"/>
+        <!-- Labels -->
+        <text x="128" y="86" fill="#8B0000" font-size="9" text-anchor="middle" font-weight="bold" font-family="sans-serif">Basra</text>
+        <text x="118" y="158" fill="#2E5A4C" font-size="9" text-anchor="middle" font-family="sans-serif">Aden</text>
+        <text x="38" y="148" fill="#2E5A4C" font-size="9" text-anchor="middle" font-family="sans-serif">Sofala</text>
+        <text x="293" y="126" fill="#2E5A4C" font-size="9" text-anchor="middle" font-family="sans-serif">Calicut</text>
+        <text x="478" y="87" fill="#2E5A4C" font-size="9" text-anchor="middle" font-family="sans-serif">Zabaj</text>
+        <text x="598" y="46" fill="#8B0000" font-size="9" text-anchor="middle" font-weight="bold" font-family="sans-serif">Canton</text>
+        <text x="340" y="252" fill="#0e2a5a" font-size="10" text-anchor="middle" opacity="0.7" font-family="sans-serif" font-style="italic">Total voyage: ~120 days · 6,400 farsakhs</text>
+      </svg>
+    </div>
+    <div class="sea-info" id="seaInfo">
+      <h3>Basra to Canton — The Great Eastern Route</h3>
+      <p>Al-Masʿūdī sailed these seas himself. Click any port to read his notes on its goods and people.</p>
+    </div>
+  </div>
+
+  <div class="meadow-divider"></div>
+
+  <!-- WONDER -->
+  <div class="panel" id="panel-wonder">
+    <div class="section-head" style="border-color:var(--wonder);color:var(--wonder);background:rgba(94,43,94,0.05)">
+      Ajaib — Marvels and Wonders of the Created World
+    </div>
+    <button class="wonder-btn" onclick="showWonder()">* Show Me an Ajab *</button>
+    <div class="wonder-display" id="wonderDisplay">
+      <div class="wonder-illus" id="wonderIllus">&#x1F9F2;</div>
+      <div class="wonder-body">
+        <div class="wonder-name" id="wonderName">The Magnetic Mountain</div>
+        <div class="wonder-loc" id="wonderLoc">3rd Climate · Coast of Somalia</div>
+        <div class="wonder-desc" id="wonderDesc">A great black mountain rises from the sea near the Zanj coast, possessed of such powerful attraction that it draws out all iron nails from ships that sail too close. Sailors must use wooden pegs on vessels bound for these waters. Al-Masʿūdī records that merchants detour 300 farsakhs to avoid it.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="meadow-divider"></div>
+
+  <!-- GENEALOGY -->
+  <div class="panel" id="panel-gene">
+    <div class="section-head" style="border-color:var(--sand);color:var(--sand);background:rgba(160,112,42,0.05)">
+      Royal Genealogies — Dynasties of the World
+    </div>
+    <div class="gene-search-wrap">
+      <input class="gene-search" type="text" placeholder="Search dynasty or ruler…" id="geneSearch" oninput="filterDynasty(this.value)"/>
+      <div class="dynasty-btns" id="dynastyBtns"></div>
+    </div>
+    <div class="gene-tree" id="geneTree">
+      <svg id="treeSvg" width="100%" viewBox="0 0 640 290" style="min-height:290px"></svg>
+    </div>
+  </div>
+
+  <div class="meadow-divider"></div>
+
+  <!-- TRADE -->
+  <div class="panel" id="panel-trade">
+    <div class="section-head" style="border-color:var(--gold);color:var(--sand);background:rgba(200,150,30,0.07)">
+      Product Trade Grid — Origin, Destination and Price in Dinars
+    </div>
+    <div class="trade-filters" id="tradeFilters"></div>
+    <div class="trade-table" id="tradeTable"></div>
+  </div>
+
+  <div class="meadow-divider"></div>
+
+  <!-- PEOPLE -->
+  <div class="panel" id="panel-people">
+    <div class="section-head" style="border-color:var(--crimson);color:var(--crimson);background:rgba(139,0,0,0.04)">
+      Peoples of the World — As Described by Al-Masʿudi
+    </div>
+    <div class="people-select-row" id="peopleRow"></div>
+    <div class="people-body" id="peopleBody"></div>
+  </div>
+
+  <div class="meadow-divider"></div>
+
+  <!-- TIMELINE -->
+  <div class="panel" id="panel-timeline">
+    <div class="section-head" style="border-color:#888;color:#444;background:rgba(0,0,0,0.03)">
+      Al-Masʿudi's Travels — A Life of Inquiry (c.895–956 CE)
+    </div>
+    <div class="timeline-wrap">
+      <div class="decade-row" id="decadeRow"></div>
+      <div class="decade-detail" id="decadeDetail">Select a decade above to read Al-Masʿūdī's record from that time and place.</div>
+    </div>
+  </div>
+  <div style="height:16px;background:var(--parchment)"></div>
+</div>
+
+<script>
+const climates = [
+  { num:'I', name:'Lands of the West', people:'Franks, Slavs, Berbers', products:['Fur','Amber','Iron','Timber'], visited:false, region:'Atlantic Coast to Morocco', religion:'Christianity, paganism', peculiarity:'People pale and phlegmatic; bold in war but little given to subtlety of mind', masudi:'Al-Masʿūdī reports from merchants: the Franks are divided into many kingdoms, ever at war among themselves.', animals:'Bear, aurochs, wolf', minerals:'Iron, tin, lead' },
+  { num:'II', name:'Egypt, Syria & Iraq', people:'Arabs, Copts, Persians', products:['Papyrus','Glass','Dates','Natron'], visited:true, region:'Nile Valley to the Euphrates', religion:'Islam, Christianity, Zoroastrianism', peculiarity:'Most balanced temperament; centre of learning, philosophy and commerce in all the world', masudi:'Al-Masʿūdī lived in Baghdad, Fustat and Damascus. He calls Iraq the navel of the earth and marvels at the Tigris canal system.', animals:'Camel, horse, falcon', minerals:'Asphalt, salt, natron' },
+  { num:'III', name:'Arabia & East Africa', people:'Arabs, Zanj, Ethiopians', products:['Gold','Incense','Ivory','Ambergris'], visited:true, region:'Hijaz to Mozambique', religion:'Islam, animism', peculiarity:'Gold in the soil; the Zanj are of great physical strength and remarkable musical talent', masudi:'Al-Masʿūdī sailed to Zanzibar and Sofala. He marvels at gold traded weight-for-weight with salt inland.', animals:'Elephant, rhinoceros, giraffe', minerals:'Gold, iron' },
+  { num:'IV', name:'Persia & Central Asia', people:'Persians, Turks, Khazars', products:['Silk','Musk','Horses','Silver'], visited:true, region:'Iraq to the River Oxus', religion:'Islam, Zoroastrianism, Nestorianism', peculiarity:'Ancient civilisation; cunning in administration; deeply fond of music and formal poetry', masudi:'Al-Masʿūdī visited Ctesiphon\'s ruins and interviewed Persian scholars on Sasanian history at length.', animals:'Horse, onager, panther', minerals:'Silver, lapis lazuli, copper' },
+  { num:'V', name:'India', people:'Hindus, Jains, Buddhists', products:['Pepper','Camphor','Rubies','Cotton'], visited:true, region:'Sindh to the Deccan Plateau', religion:'Hinduism, Buddhism, Jainism', peculiarity:'Greatest knowledge of stars and numbers; elephants deployed as engines of war', masudi:'Al-Masʿūdī describes Hindu temples with mechanical idols and records debates between Brahmin scholars on creation.', animals:'Elephant, peacock, parrot', minerals:'Rubies, diamonds, iron' },
+  { num:'VI', name:'SE Asia & Malay', people:'Zabajis, Khmers', products:['Camphor','Sandalwood','Cloves','Nutmeg'], visited:false, region:'Sumatra to Champa', religion:'Hinduism, Buddhism', peculiarity:'The Maharaja rules 10,000 islands; camphor trees here reach miraculous height', masudi:'Al-Masʿūdī records from sailors: the Maharaja each morning throws a gold ingot into the sea to keep his treasury humble.', animals:'Orangutan, tapir, rhinoceros', minerals:'Gold, tin' },
+  { num:'VII', name:'China & Cathay', people:'Chinese, Tibetans', products:['Silk','Porcelain','Tea','Jade'], visited:false, region:'Canton to Korea', religion:'Buddhism, Taoism', peculiarity:'Most populous of all lands; the emperor is worshipped as the son of heaven; silk of unmatched fineness', masudi:'Al-Masʿūdī relies on Canton merchants. He records the great massacre of Arab traders there in 878 CE.', animals:'Panda, tiger, silkworm', minerals:'Jade, gold, iron' }
+];
+
+const ports = {
+  basra:{ name:'Basra', goods:'Dates, textiles, glass, pottery', dist:'—', note:'Greatest port of the Abbasid empire. Al-Masʿūdī departed from here on his eastern voyages. Ships of 200 tons load here with Iraqi wares.' },
+  aden:{ name:'Aden', goods:'Frankincense, horses, dried fish', dist:'800 farsakhs from Basra', note:'Gateway between Red Sea and Indian Ocean. Merchants from Yemen, Ethiopia and India meet here; customs duties collected by local amirs.' },
+  sofala:{ name:'Sofala', goods:'Gold, ivory, iron', dist:'1,400 farsakhs south of Aden', note:'Al-Masʿūdī writes: the gold of Sofala is so abundant that the Zanj use iron tools worth less than their weight in gold to mine it.' },
+  calicut:{ name:'Calicut', goods:'Pepper, ginger, cotton, rubies', dist:'2,200 farsakhs from Basra', note:'The Zamorin\'s city. Arab and Persian merchants maintain permanent quarters here. Depart before Rajab or risk missing the monsoon.' },
+  zabaj:{ name:'Zabaj (Sumatra)', goods:'Camphor, sandalwood, cloves, gold', dist:'3,800 farsakhs from Basra', note:'Al-Masʿūdī: the Maharaja\'s treasury contains more gold than all the kings of the earth combined. Camphor trees reach 60 cubits.' },
+  khanfu:{ name:'Canton (Khanfu)', goods:'Silk, porcelain, tea, jade', dist:'6,400 farsakhs from Basra', note:'The great terminus. Arab merchants had their own quarter destroyed in 878 CE; Al-Masʿūdī records 200,000 foreigners killed. Ships load 600 tons of silk.' }
+};
+
+const wonders = [
+  { name:'The Magnetic Mountain', loc:'3rd Climate · Coast of Somalia', icon:'&#x1F9F2;', desc:'A great black mountain rises from the sea near the Zanj coast, pulling out all iron nails from ships that sail too close, causing them to fall apart. Sailors must use wooden pegs. Merchants detour 300 farsakhs to avoid it.' },
+  { name:'The Sea of Darkness', loc:'1st Climate · Beyond the Atlantic', icon:'&#x1F311;', desc:'Beyond the Maghrib lies a sea of perpetual fog and darkness where no sailor returns. Al-Masʿūdī records legends of an island within it whose pale-skinned inhabitants ride horses — possibly the Canary Islands.' },
+  { name:'The Talking Trees of Waq-Waq', loc:'7th Climate · Eastern Sea', icon:'&#x1F333;', desc:'In the island of Waq-Waq, trees bear fruit shaped as human heads that cry "Waq! Waq!" at sunrise and sunset, then fall silent. Al-Masʿūdī received this from an Indian merchant who claimed his uncle had visited.' },
+  { name:'The Whale Mistaken for an Island', loc:'Indian Ocean · Open Sea', icon:'&#x1F40B;', desc:'Immense whales surface and remain still so long that birds nest on their backs and men build fires upon them, taking them for islands. When heat reaches the whale it dives, drowning all.' },
+  { name:'The Valley of Rubies', loc:'5th Climate · Ceylon', icon:'&#x1F48E;', desc:'In the mountains of Sarandib, merchants lower meat on ropes into a gorge of rubies and sapphires. Eagles swoop to carry the meat to clifftops, where the gems stuck to the fat are gathered.' },
+  { name:'The Quicksilver Mountain', loc:'4th Climate · Khorasan', icon:'&#x2697;&#xFE0F;', desc:'A mountain in Khorasan yields liquid silver flowing from cracks in the rock. Alchemists buy it believing mercury to be the mother of all metals. Al-Masʿūdī records it sells at immense profit in Baghdad.' },
+  { name:'The Amber of the Sea', loc:'4th Climate · Persian Gulf', icon:'&#x1F7E1;', desc:'After great storms, lumps of grey ambergris weighing 200 ratls wash ashore near Oman. Al-Masʿūdī explains this is the excretion of sea creatures. A single piece bought in Oman sells for ten times its price in Baghdad.' },
+  { name:'The Island of the Zanj King', loc:'3rd Climate · East Africa', icon:'&#x1F451;', desc:'The Zanj king rules from a great island and commands elephant riders. Al-Masʿūdī met merchants who traded salt and iron directly with his agents at Sofala in exchange for gold and ivory.' }
+];
+
+const dynasties = {
+  abbasid:{ name:'Abbasid Caliphate', color:'#2E5A4C',
+    rulers:[
+      {name:'al-Saffah',r:'750–754',x:260,y:20},
+      {name:'al-Mansur',r:'754–775',x:130,y:80},{name:'al-Mahdi',r:'775–785',x:260,y:80},{name:'al-Hadi',r:'785–786',x:390,y:80},
+      {name:'Harun al-Rashid',r:'786–809',x:80,y:150},{name:'al-Mamun',r:'813–833',x:200,y:150},{name:'al-Mutasim',r:'833–842',x:330,y:150},{name:'al-Mutamid',r:'870–892',x:470,y:150}
+    ],
+    edges:[[0,1],[0,2],[0,3],[2,4],[2,5],[2,6],[3,7]]
+  },
+  sasanian:{ name:'Sasanian Empire', color:'#8B0000',
+    rulers:[
+      {name:'Ardashir I',r:'224–241',x:260,y:20},
+      {name:'Shapur I',r:'241–272',x:130,y:80},{name:'Hormizd I',r:'272–273',x:290,y:80},{name:'Ardashir II',r:'379–383',x:450,y:80},
+      {name:'Shapur II',r:'309–379',x:60,y:150},{name:'Yazdegerd I',r:'399–420',x:210,y:150},{name:'Bahram V',r:'420–438',x:360,y:150},{name:'Khosrow I',r:'531–579',x:490,y:150}
+    ],
+    edges:[[0,1],[0,2],[0,3],[1,4],[2,5],[3,6],[5,7]]
+  },
+  tang:{ name:'Tang Dynasty', color:'#A0702A',
+    rulers:[
+      {name:'Gaozu',r:'618–626',x:260,y:20},
+      {name:'Taizong',r:'626–649',x:130,y:80},{name:'Gaozong',r:'649–683',x:290,y:80},{name:'Xuanzong',r:'712–756',x:450,y:80},
+      {name:'Suzong',r:'756–762',x:70,y:150},{name:'Daizong',r:'762–779',x:210,y:150},{name:'Dezong',r:'779–805',x:350,y:150},{name:'Xizong',r:'873–888',x:490,y:150}
+    ],
+    edges:[[0,1],[0,2],[0,3],[1,4],[1,5],[2,6],[3,7]]
+  }
+};
+
+const trades = [
+  {icon:'&#x1F947;',good:'Gold',origin:'Sofala, Sudan',dest:'Baghdad, Cairo',price:'850 din/ratl',tags:['gold']},
+  {icon:'&#x1F9F5;',good:'Silk',origin:'China, Persia',dest:'Europe, India',price:'12 din/cubit',tags:['silk']},
+  {icon:'&#x1FAB6;',good:'Musk',origin:'Tibet, Kashmir',dest:'Baghdad, Cordoba',price:'400 din/ratl',tags:['luxury']},
+  {icon:'&#x1F33F;',good:'Pepper',origin:'Calicut, Malabar',dest:'Alexandria, Basra',price:'3 din/ratl',tags:['spice']},
+  {icon:'&#x1FAB5;',good:'Sandalwood',origin:'Zabaj, India',dest:'Persia, Arabia',price:'25 din/log',tags:['luxury']},
+  {icon:'&#x1F9F4;',good:'Ivory',origin:'East Africa, India',dest:'Egypt, Persia',price:'15 din/tusk',tags:['luxury']},
+  {icon:'&#x1F7E1;',good:'Ambergris',origin:'Persian Gulf, Oman',dest:'Baghdad, Basra',price:'1200 din/ratl',tags:['luxury','gold']},
+  {icon:'&#x1F338;',good:'Camphor',origin:'Zabaj, Borneo',dest:'Persia, Iraq',price:'180 din/ratl',tags:['spice','luxury']},
+  {icon:'&#x1F48E;',good:'Rubies',origin:'Ceylon, Badakhshan',dest:'Baghdad, Byzantium',price:'2000 din/carat',tags:['gold','luxury']},
+  {icon:'&#x1F9F6;',good:'Frankincense',origin:'Hadramawt, Somalia',dest:'Egypt, Persia',price:'8 din/ratl',tags:['spice']},
+  {icon:'&#x1F9C2;',good:'Cinnamon',origin:'Ceylon, Malay',dest:'Arabia, Persia',price:'22 din/ratl',tags:['spice']},
+  {icon:'&#x1F4DC;',good:'Papyrus',origin:'Egypt (Nile Delta)',dest:'Baghdad, Medina',price:'4 din/roll',tags:[]}
+];
+
+const peoples = [
+  {name:'Zanj',region:'East Africa',attrs:{Appearance:'Dark, tall, strong build',Religion:'Animist, spirit worship',Warfare:'Spears, ox-hide shields',Diet:'Rice, fish, millet'},masudi:'The Zanj are naturally eloquent; they have orators who move great crowds. They mine iron and trade it for salt. Al-Masʿūdī finds them noble in bearing.',note:'Modern scholarship: "Zanj" denotes Bantu-speaking East Africans. The Zanj Revolt (869–883 CE) shook the Abbasid state. Al-Masʿūdī\'s respectful account contrasts with many later Arabic sources.'},
+  {name:'Turk',region:'Central Asia',attrs:{Appearance:'Ruddy, broad-faced',Religion:'Shamanism, later Islam',Warfare:'Horse archers, unmatched',Diet:'Meat, mare\'s milk'},masudi:'The Turks have no equal in horsemanship. Their children learn to ride before walking. Whoever controls the Turks controls the armies of the world, Al-Masʿūdī warns.',note:'Modern scholarship: Al-Masʿūdī wrote as Turkic power was rising. Within a century Seljuks would rule from Anatolia to Central Asia — his assessment proved prescient.'},
+  {name:'Slav',region:'Eastern Europe',attrs:{Appearance:'Pale, fair-haired',Religion:'Pagan sun worship',Warfare:'Brave but undisciplined',Diet:'Grain, pork, mead'},masudi:'The Slavs are numerous beyond counting, like sand. They dwell in forests and build wooden cities. When a Slav king dies, his wives are burned with him on a pyre.',note:'Modern scholarship: Al-Masʿūdī is one of the most detailed Arab sources on early Slavic culture, drawing on Khazar and Byzantine informants.'},
+  {name:'Frank',region:'Western Europe',attrs:{Appearance:'Pale, large-limbed',Religion:'Catholic Christianity',Warfare:'Heavy cavalry, siege',Diet:'Bread, wine, pork, cheese'},masudi:'The Franks were once ruled by a great king named Charlemagne who conquered all the western lands. Since his death they have split into warring kingdoms. They are brave but lacking in craft.',note:'Modern scholarship: Al-Masʿūdī\'s account of Charlemagne (Qarluh) is one of the earliest Arabic references, written 40 years after his death.'},
+  {name:'Indian',region:'Hindustan',attrs:{Appearance:'Brown, slim, keen-eyed',Religion:'Brahmin, Jain, Buddhist',Warfare:'Elephants and chariots',Diet:'Rice, lentils, many vegetarian'},masudi:'The Indians possess the deepest knowledge of the stars and numbers. Al-Masʿūdī describes 72 sects of Indian religion, each with its own idol and doctrine.',note:'Modern scholarship: Al-Masʿūdī had direct contact with Indian scholars in Oman and Gulf ports. His accounts of Hindu temple ritual are among the most detailed in early Arabic literature.'},
+  {name:'Chinese',region:'Cathay',attrs:{Appearance:'Yellow-pale, beardless',Religion:'Buddhism, ancestor worship',Warfare:'Crossbows, walls, fire-weapons',Diet:'Rice, fish, pork, tea'},masudi:'The Chinese are the most skilled of all peoples in craftsmanship. Their silk cannot be imitated. Al-Masʿūdī records a Chinese legend that they were created from a different clay than all other peoples.',note:'Modern scholarship: Al-Masʿūdī never visited China himself but drew on accounts of Arab merchants in Canton and official Abbasid diplomatic correspondence with the Tang court.'}
+];
+
+const timeline = [
+  {date:'895–910',place:'Baghdad',detail:'Born in Baghdad to a family claiming descent from the Companion Masʿūd ibn ʿAmr. Studied hadith, philosophy and geography. Met scholars of every sect and faith in the great capital.'},
+  {date:'915–916',place:'Persia',detail:'First eastern journey: visited Ahvaz, Fars, Isfahan, Rayy. Interviewed Persian dihqans on Sasanian history. Began composing early geographical drafts now lost.'},
+  {date:'915–916',place:'India',detail:'Sailed from the Persian Gulf to the Konkan coast and Malabar. Visited Hindu temples, interviewed Brahmin scholars, witnessed elephant hunts in the Deccan plateau.'},
+  {date:'916–918',place:'Ceylon',detail:'Wintered in Sarandib (Sri Lanka). Noted the ruby trade, Adam\'s Peak, and the Buddhist relic temples. Collected accounts from Chinese and Malay sailors in port.'},
+  {date:'918–920',place:'E. Africa',detail:'Sailed south along the African coast to Sofala and Zanzibar. Witnessed the gold trade of the Zanj. Recorded details of the Zanj king and his elephant cavalry units.'},
+  {date:'926–932',place:'Oman',detail:'Settled in Sohar — greatest port of the Indian Ocean trade. Met merchants from China, India and East Africa. Collected sea-monster lore and monsoon wind knowledge.'},
+  {date:'932–940',place:'Syria',detail:'Traveled through Syria, visiting Antioch, Damascus, Palmyra ruins. Researched Byzantine and ancient history. Met Melkite Christian scholars and Syriac monks.'},
+  {date:'940–947',place:'Egypt',detail:'Lived in Fustat (Old Cairo). Access to Greek manuscripts, Coptic monasteries, Nile flood records. Composed Muruj al-Dhahab here in 947 CE. Died c.956 CE.'}
+];
+
+// ===== FUNCTIONS =====
+
+function switchPanel(id, el) {
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('panel-'+id).classList.add('active');
+  el.classList.add('active');
+}
+
+// CLIMATES
+function buildClimates() {
+  const scroll = document.getElementById('climateScroll');
+  climates.forEach((c,i) => {
+    const card = document.createElement('div');
+    card.className = 'climate-card'+(i===1?' active':'');
+    card.innerHTML =
+      '<div class="clim-num">'+c.num+'</div>'+
+      '<div class="clim-name">'+c.name+'</div>'+
+      '<div class="clim-people">'+c.people+'</div>'+
+      '<div class="clim-products">'+c.products.map(p=>'<span class="prod-tag">'+p+'</span>').join('')+'</div>'+
+      (c.visited?'<span class="visited-badge">Visited</span>':'');
+    card.onclick = function(){ selectClimate(i,card); };
+    scroll.appendChild(card);
+  });
+  selectClimate(1, scroll.children[1]);
+}
+
+function selectClimate(i,el) {
+  document.querySelectorAll('.climate-card').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  const c = climates[i];
+  const det = document.getElementById('climDetail');
+  det.className = 'clim-detail active';
+  det.innerHTML =
+    '<div style="font-size:13px;font-weight:700;color:var(--meadow);margin-bottom:8px">Climate '+c.num+': '+c.name+(c.visited?' <span class="visited-badge">Visited</span>':'')+'</div>'+
+    '<div class="detail-grid">'+
+    '<div class="detail-box"><div class="detail-label">Region</div><div class="detail-val">'+c.region+'</div></div>'+
+    '<div class="detail-box"><div class="detail-label">Religions</div><div class="detail-val">'+c.religion+'</div></div>'+
+    '<div class="detail-box"><div class="detail-label">Animals</div><div class="detail-val">'+c.animals+'</div></div>'+
+    '<div class="detail-box"><div class="detail-label">Minerals</div><div class="detail-val">'+c.minerals+'</div></div>'+
+    '<div class="detail-box" style="grid-column:1/-1"><div class="detail-label">Peculiarity</div><div class="detail-val">'+c.peculiarity+'</div></div>'+
+    '<div class="detail-box" style="grid-column:1/-1;border-left:3px solid var(--gold)"><div class="detail-label">Al-Masudi\'s Record</div><div class="detail-val" style="font-style:italic">'+c.masudi+'</div></div>'+
+    '</div>';
+}
+
+// SEA
+function showPort(key) {
+  document.querySelectorAll('.port-dot').forEach(d=>d.classList.remove('active'));
+  document.getElementById('port-'+key).classList.add('active');
+  const p = ports[key];
+  document.getElementById('seaInfo').innerHTML =
+    '<h3>'+p.name+(p.dist!=='—'?' &mdash; '+p.dist:'')+'</h3>'+
+    '<p><strong>Goods:</strong> '+p.goods+'<br>'+p.note+'</p>';
+}
+
+// WONDERS
+var lastWonder = 0;
+function showWonder() {
+  var idx;
+  do { idx = Math.floor(Math.random()*wonders.length); } while(idx===lastWonder && wonders.length>1);
+  lastWonder = idx;
+  var w = wonders[idx];
+  document.getElementById('wonderIllus').innerHTML = w.icon;
+  document.getElementById('wonderName').textContent = w.name;
+  document.getElementById('wonderLoc').textContent = w.loc;
+  document.getElementById('wonderDesc').textContent = w.desc;
+}
+
+// GENEALOGY
+var currentDynasty = 'abbasid';
+function buildGenealogy() {
+  var btns = document.getElementById('dynastyBtns');
+  Object.keys(dynasties).forEach(function(key) {
+    var b = document.createElement('button');
+    b.className = 'dyn-btn'+(key===currentDynasty?' active':'');
+    b.textContent = dynasties[key].name;
+    b.onclick = function(){
+      currentDynasty = key;
+      document.querySelectorAll('.dyn-btn').forEach(function(x){x.classList.remove('active');});
+      b.classList.add('active');
+      renderTree(key);
+    };
+    btns.appendChild(b);
+  });
+  renderTree('abbasid');
+}
+
+function renderTree(key) {
+  var d = dynasties[key];
+  var svg = document.getElementById('treeSvg');
+  var h = '<defs></defs>';
+  d.edges.forEach(function(e){
+    var r1=d.rulers[e[0]], r2=d.rulers[e[1]];
+    var x1=r1.x+55, y1=r1.y+28, x2=r2.x+55, y2=r2.y;
+    var my=(y1+y2)/2;
+    h+='<path d="M'+x1+','+y1+' C'+x1+','+my+' '+x2+','+my+' '+x2+','+y2+'" stroke="'+d.color+'" stroke-width="1" fill="none" opacity="0.35"/>';
+  });
+  d.rulers.forEach(function(r){
+    h+='<g>'+
+      '<rect x="'+r.x+'" y="'+r.y+'" width="110" height="38" rx="3" fill="'+d.color+'" opacity="0.1" stroke="'+d.color+'" stroke-width="0.8"/>'+
+      '<text class="ruler-name" x="'+(r.x+55)+'" y="'+(r.y+14)+'" text-anchor="middle" dominant-baseline="central" fill="'+d.color+'" font-family="var(--font-sans)" font-size="11" font-weight="500">'+r.name+'</text>'+
+      '<text class="ruler-dates" x="'+(r.x+55)+'" y="'+(r.y+28)+'" text-anchor="middle" dominant-baseline="central" fill="'+d.color+'" font-family="var(--font-sans)" font-size="9" opacity="0.7">'+r.r+'</text>'+
+    '</g>';
+  });
+  svg.innerHTML = h;
+}
+
+function filterDynasty(val) {
+  if(!val) return;
+  var low=val.toLowerCase();
+  Object.keys(dynasties).forEach(function(key){
+    if(dynasties[key].name.toLowerCase().includes(low)||dynasties[key].rulers.some(function(r){return r.name.toLowerCase().includes(low);})){
+      currentDynasty=key;
+      document.querySelectorAll('.dyn-btn').forEach(function(x){x.classList.remove('active');});
+      renderTree(key);
+    }
+  });
+}
+
+// TRADE
+var activeFilters=['gold','silk'];
+function buildTrade() {
+  var fd=document.getElementById('tradeFilters');
+  var allTags=['gold','silk','spice','luxury'];
+  var ab=document.createElement('button');
+  ab.className='filter-btn';
+  ab.textContent='All goods';
+  ab.onclick=function(){activeFilters=[];document.querySelectorAll('.filter-btn').forEach(function(b){b.classList.remove('active');});renderTrade();};
+  fd.appendChild(ab);
+  allTags.forEach(function(tag){
+    var b=document.createElement('button');
+    b.className='filter-btn'+(activeFilters.includes(tag)?' active':'');
+    b.textContent=tag[0].toUpperCase()+tag.slice(1);
+    b.onclick=function(){
+      var idx=activeFilters.indexOf(tag);
+      if(idx>-1)activeFilters.splice(idx,1); else activeFilters.push(tag);
+      b.classList.toggle('active');
+      renderTrade();
+    };
+    fd.appendChild(b);
+  });
+  renderTrade();
+}
+
+function renderTrade() {
+  var tbl=document.getElementById('tradeTable');
+  var filtered=activeFilters.length===0?trades:trades.filter(function(t){return activeFilters.some(function(f){return t.tags.includes(f);});});
+  tbl.innerHTML=filtered.map(function(t){
+    return '<div class="trade-row">'+
+      '<span class="trade-icon">'+t.icon+'</span>'+
+      '<span class="trade-good">'+t.good+'</span>'+
+      '<span class="trade-origin">'+t.origin+'</span>'+
+      '<span class="trade-arrow">&rarr;</span>'+
+      '<span class="trade-dest">'+t.dest+'</span>'+
+      '<span class="trade-price">'+t.price+'</span>'+
+    '</div>';
+  }).join('')||'<p style="padding:12px;color:#999;font-size:11px">No goods match this filter.</p>';
+}
+
+// PEOPLE
+function buildPeople() {
+  var row=document.getElementById('peopleRow');
+  peoples.forEach(function(p,i){
+    var tab=document.createElement('div');
+    tab.className='people-tab'+(i===0?' active':'');
+    tab.textContent=p.name;
+    tab.onclick=function(){
+      document.querySelectorAll('.people-tab').forEach(function(t){t.classList.remove('active');});
+      tab.classList.add('active');
+      renderPeople(i);
+    };
+    row.appendChild(tab);
+  });
+  renderPeople(0);
+}
+
+function renderPeople(i) {
+  var p=peoples[i];
+  var body=document.getElementById('peopleBody');
+  body.innerHTML=
+    '<div style="font-size:12px;color:var(--sand);margin-bottom:8px;font-style:italic">'+p.region+'</div>'+
+    '<div class="people-attrs">'+Object.entries(p.attrs).map(function(e){
+      return '<div class="attr-chip"><div class="attr-key">'+e[0]+'</div><div class="attr-val">'+e[1]+'</div></div>';
+    }).join('')+'</div>'+
+    '<div style="font-size:12px;line-height:1.7;margin-bottom:9px;color:var(--ink)">'+p.masudi+'</div>'+
+    '<div class="scholarly-note">Scholarly note: '+p.note+'</div>';
+}
+
+// TIMELINE
+function buildTimeline() {
+  var row=document.getElementById('decadeRow');
+  timeline.forEach(function(t,i){
+    var block=document.createElement('div');
+    block.className='decade-block'+(i===0?' active':'');
+    block.innerHTML='<div class="dec-date">'+t.date+'</div><div class="dec-place">'+t.place+'</div>';
+    block.onclick=function(){
+      document.querySelectorAll('.decade-block').forEach(function(b){b.classList.remove('active');});
+      block.classList.add('active');
+      document.getElementById('decadeDetail').textContent=t.detail;
+    };
+    row.appendChild(block);
+  });
+  document.getElementById('decadeDetail').textContent=timeline[0].detail;
+}
+
+buildClimates();
+buildGenealogy();
+buildTrade();
+buildPeople();
+buildTimeline();
+</script>

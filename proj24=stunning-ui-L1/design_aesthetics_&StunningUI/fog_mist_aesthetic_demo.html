@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Instrument+Sans:wght@300;400&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    min-height: 100vh;
+    background: #CBD5E1;
+    font-family: 'Instrument Sans', sans-serif;
+    font-weight: 300;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  .scene {
+    min-height: 100vh;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 32px;
+    gap: 0;
+  }
+
+  /* Fog gradient layers */
+  .fog-base {
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(180deg, #CBD5E1 0%, #E2E8F0 50%, #CBD5E1 100%);
+    z-index: 0;
+  }
+
+  .fog-veil-1 {
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse 120% 60% at 30% 40%, rgba(255,255,255,0.25) 0%, transparent 70%),
+                radial-gradient(ellipse 80% 40% at 80% 70%, rgba(203,213,225,0.4) 0%, transparent 60%);
+    z-index: 1;
+    animation: driftA 18s ease-in-out infinite alternate;
+  }
+
+  .fog-veil-2 {
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse 100% 50% at 70% 30%, rgba(255,255,255,0.18) 0%, transparent 65%),
+                radial-gradient(ellipse 60% 80% at 10% 80%, rgba(226,232,240,0.35) 0%, transparent 55%);
+    z-index: 2;
+    animation: driftB 24s ease-in-out infinite alternate;
+  }
+
+  @keyframes driftA {
+    from { transform: translate(0, 0) scale(1); }
+    to   { transform: translate(20px, -12px) scale(1.03); }
+  }
+  @keyframes driftB {
+    from { transform: translate(0, 0) scale(1.02); }
+    to   { transform: translate(-16px, 10px) scale(1); }
+  }
+
+  /* Content layers */
+  .content {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    max-width: 640px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+
+  /* Background card — deepest, most blurred */
+  .card-bg {
+    width: 88%;
+    background: rgba(255,255,255,0.18);
+    border: 0.5px solid rgba(255,255,255,0.25);
+    border-radius: 20px;
+    padding: 28px 32px;
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    opacity: 0.45;
+    margin-bottom: -52px;
+    transform: scale(0.96);
+    filter: blur(1.5px);
+  }
+
+  /* Midground card */
+  .card-mid {
+    width: 93%;
+    background: rgba(255,255,255,0.28);
+    border: 0.5px solid rgba(255,255,255,0.38);
+    border-radius: 20px;
+    padding: 28px 32px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    opacity: 0.65;
+    margin-bottom: -36px;
+    transform: scale(0.98);
+  }
+
+  /* Foreground card — sharpest, most opaque */
+  .card-fg {
+    width: 100%;
+    background: rgba(255,255,255,0.42);
+    border: 0.5px solid rgba(255,255,255,0.6);
+    border-radius: 20px;
+    padding: 36px 40px;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    opacity: 1.0;
+  }
+
+  /* Typography */
+  .eyebrow {
+    font-family: 'Instrument Sans', sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.55);
+    margin-bottom: 10px;
+  }
+
+  .title-main {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 42px;
+    font-weight: 300;
+    font-style: italic;
+    color: rgba(255,255,255,0.92);
+    line-height: 1.15;
+    margin-bottom: 14px;
+    letter-spacing: -0.01em;
+  }
+
+  .body-text {
+    font-size: 14px;
+    line-height: 1.75;
+    color: rgba(255,255,255,0.72);
+    font-weight: 300;
+  }
+
+  .divider {
+    width: 48px;
+    height: 0.5px;
+    background: rgba(255,255,255,0.35);
+    margin: 16px 0;
+  }
+
+  .tag-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 18px;
+  }
+
+  .tag {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: rgba(255,255,255,0.6);
+    border: 0.5px solid rgba(255,255,255,0.3);
+    border-radius: 100px;
+    padding: 4px 14px;
+    font-weight: 300;
+  }
+
+  /* Mid card content */
+  .mid-label {
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.4);
+    margin-bottom: 6px;
+  }
+  .mid-value {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px;
+    font-weight: 300;
+    font-style: italic;
+    color: rgba(255,255,255,0.6);
+  }
+
+  /* BG card content */
+  .bg-text {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 18px;
+    font-style: italic;
+    color: rgba(255,255,255,0.35);
+    font-weight: 300;
+  }
+
+  /* Opacity indicator dots */
+  .legend {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 24px;
+  }
+  .legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.5);
+  }
+  .legend-label {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: rgba(255,255,255,0.45);
+    font-weight: 300;
+  }
+  .legend-sep {
+    width: 20px;
+    height: 0.5px;
+    background: rgba(255,255,255,0.2);
+    margin: 0 4px;
+  }
+
+  /* Fade gradient at bottom */
+  .bottom-fade {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 120px;
+    background: linear-gradient(to bottom, transparent, rgba(203,213,225,0.6));
+    z-index: 5;
+    pointer-events: none;
+  }
+
+  /* Mist particles */
+  .particle {
+    position: fixed;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+    pointer-events: none;
+    z-index: 3;
+    animation: floatUp linear infinite;
+  }
+
+  @keyframes floatUp {
+    from { transform: translateY(110vh) translateX(0); opacity: 0; }
+    10%  { opacity: 1; }
+    90%  { opacity: 0.5; }
+    to   { transform: translateY(-10vh) translateX(var(--drift)); opacity: 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="fog-base"></div>
+<div class="fog-veil-1"></div>
+<div class="fog-veil-2"></div>
+
+<!-- Mist particles -->
+<div class="particle" style="width:180px;height:180px;left:8%;top:20%;animation-duration:22s;animation-delay:-4s;--drift:30px;"></div>
+<div class="particle" style="width:240px;height:240px;left:65%;top:40%;animation-duration:30s;animation-delay:-10s;--drift:-20px;"></div>
+<div class="particle" style="width:120px;height:120px;left:40%;top:60%;animation-duration:18s;animation-delay:-6s;--drift:15px;"></div>
+<div class="particle" style="width:300px;height:200px;border-radius:50%;left:20%;top:70%;animation-duration:35s;animation-delay:-16s;--drift:40px;"></div>
+
+<div class="scene">
+  <div class="content">
+
+    <!-- Background card — deepest layer -->
+    <div class="card-bg">
+      <p class="bg-text">something dissolved here, once</p>
+    </div>
+
+    <!-- Midground card -->
+    <div class="card-mid">
+      <p class="mid-label">midground · opacity 0.65</p>
+      <p class="mid-value">forms half-remembered</p>
+    </div>
+
+    <!-- Foreground card — primary -->
+    <div class="card-fg">
+      <p class="eyebrow">foreground · opacity 1.0</p>
+      <h1 class="title-main">Fog / Mist</h1>
+      <div class="divider"></div>
+      <p class="body-text">
+        High transparency. Low contrast. Distant elements dissolve into the pale ground — not hidden, just consumed. The further back, the less you can hold onto.
+      </p>
+      <p class="body-text" style="margin-top: 10px; color: rgba(255,255,255,0.5);">
+        backdrop-filter: blur(24px) on the deepest layer. Each plane forward gains opacity, loses blur. White text at 90%. No hard edges anywhere.
+      </p>
+      <div class="tag-row">
+        <span class="tag">backdrop-filter</span>
+        <span class="tag">#CBD5E1</span>
+        <span class="tag">layered opacity</span>
+        <span class="tag">fading gradients</span>
+      </div>
+
+      <div class="legend">
+        <div class="legend-dot" style="background:rgba(255,255,255,0.2);"></div>
+        <span class="legend-label">bg · 0.45</span>
+        <div class="legend-sep"></div>
+        <div class="legend-dot" style="background:rgba(255,255,255,0.5);"></div>
+        <span class="legend-label">mid · 0.65</span>
+        <div class="legend-sep"></div>
+        <div class="legend-dot" style="background:rgba(255,255,255,0.9);"></div>
+        <span class="legend-label">fg · 1.0</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="bottom-fade"></div>
+
+</body>
+</html>

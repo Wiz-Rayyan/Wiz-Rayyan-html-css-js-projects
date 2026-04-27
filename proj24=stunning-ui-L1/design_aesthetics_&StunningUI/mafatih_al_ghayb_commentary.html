@@ -1,0 +1,374 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --gold: #C9971A;
+    --gold-light: #F0C93A;
+    --gold-dim: #8A6A10;
+    --parch: #F5E6D3;
+    --parch-dark: #E8D5BD;
+    --lapis: #1E3A8A;
+    --crimson: #8B1A1A;
+    --forest: #2E5A4C;
+    --umber: #5C4033;
+    --ink: #1A1209;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --parch: #1C160E;
+      --parch-dark: #241C12;
+      --ink: #F0DFB8;
+      --gold: #D4AF37;
+      --gold-light: #E8C84A;
+      --gold-dim: #A07820;
+    }
+  }
+
+  #root { font-family: var(--font-sans); width: 100%; }
+  .header { display:flex; align-items:center; justify-content:space-between; padding:10px 14px; border-bottom: 0.5px solid var(--color-border-tertiary); }
+  .header-title { font-size:13px; font-weight:500; color:var(--color-text-primary); letter-spacing:0.04em; }
+  .header-sub { font-size:11px; color:var(--color-text-secondary); }
+  .nav-pills { display:flex; gap:6px; }
+  .pill { font-size:11px; padding:3px 9px; border-radius:99px; border:0.5px solid var(--color-border-secondary); cursor:pointer; color:var(--color-text-secondary); background:transparent; transition:all .15s; }
+  .pill.active { background:var(--gold); color:#1A1209; border-color:var(--gold); font-weight:500; }
+  .main-grid { display:grid; grid-template-columns:1fr 1fr; grid-template-rows: auto auto; gap:8px; padding:10px; }
+  .verse-pane { grid-column:1/3; background:var(--parch); border:1.5px solid var(--gold); border-radius:10px; padding:16px 20px; position:relative; }
+  .medallion { width:48px; height:48px; border-radius:50%; background:var(--gold); display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:700; color:#1A1209; border:2px solid #1A1209; flex-shrink:0; }
+  .verse-row { display:flex; align-items:center; gap:14px; }
+  .arabic { font-size:26px; line-height:1.5; color:var(--gold); text-align:right; flex:1; font-family:var(--font-serif); direction:rtl; letter-spacing:0.02em; }
+  .transliteration { font-size:12px; color:var(--color-text-secondary); margin-top:4px; font-style:italic; }
+  .translation { font-size:13px; color:var(--ink); margin-top:6px; opacity:.8; }
+  .corner-medallion { position:absolute; width:22px; height:22px; border-radius:50%; background:var(--gold-dim); opacity:.6; }
+  .corner-medallion.tl { top:6px; left:6px; }
+  .corner-medallion.tr { top:6px; right:6px; }
+  .corner-medallion.bl { bottom:6px; left:6px; }
+  .corner-medallion.br { bottom:6px; right:6px; }
+
+  .side-pane { background:var(--color-background-secondary); border:0.5px solid var(--color-border-tertiary); border-radius:8px; padding:12px; overflow:hidden; }
+  .pane-label { font-size:10px; font-weight:500; letter-spacing:.08em; text-transform:uppercase; margin-bottom:8px; display:flex; align-items:center; gap:5px; }
+  .dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+  .dot-red { background:var(--crimson); }
+  .dot-blue { background:var(--lapis); }
+  .dot-green { background:var(--forest); }
+  .dot-brown { background:var(--umber); }
+  .pane-body { font-size:12px; line-height:1.65; color:var(--color-text-secondary); }
+  .key-tag { display:inline-flex; align-items:center; gap:3px; font-size:10px; padding:2px 7px; border-radius:4px; margin:2px 2px; cursor:pointer; border:0.5px solid transparent; }
+  .key-tag:hover { border-color:var(--gold); }
+  .key-tag.linguistic { background:#8B1A1A22; color:var(--crimson); }
+  .key-tag.theological { background:#1E3A8A22; color:var(--lapis); }
+  .key-tag.rational { background:#5C403322; color:var(--umber); }
+  .key-tag.scientific { background:#2E5A4C22; color:var(--forest); }
+  .section-label { font-size:11px; font-weight:500; color:var(--color-text-primary); margin-bottom:5px; margin-top:8px; }
+  .spacer { height:1px; background:var(--color-border-tertiary); margin:8px 0; }
+
+  /* Root tree */
+  #root-pane svg text { font-size:11px; fill:var(--color-text-primary); font-family:var(--font-sans); }
+  #root-pane svg .root-node { fill:var(--gold); }
+  #root-pane svg .branch-node { fill:var(--color-background-primary); stroke:var(--color-border-secondary); stroke-width:.5; }
+
+  /* Argument tree */
+  .arg-tree { position:relative; padding:4px 0; }
+  .arg-node { border-radius:6px; padding:5px 9px; font-size:11px; line-height:1.4; margin:3px 0; position:relative; }
+  .arg-node.claim { background:#1E3A8A18; color:var(--lapis); border-left:2px solid var(--lapis); margin-left:0; }
+  .arg-node.support { background:#2E5A4C18; color:var(--forest); border-left:2px solid var(--forest); margin-left:20px; }
+  .arg-node.counter { background:#8B1A1A18; color:var(--crimson); border-left:2px solid var(--crimson); margin-left:20px; }
+  .arg-node.resolution { background:#C9971A22; color:var(--gold-dim); border-left:2px solid var(--gold); margin-left:40px; }
+  .arg-connector { width:1px; height:8px; background:var(--color-border-secondary); margin-left:9px; }
+  .expand-btn { font-size:10px; padding:3px 8px; border-radius:4px; border:0.5px solid var(--color-border-secondary); cursor:pointer; color:var(--color-text-secondary); background:transparent; margin-top:5px; }
+  .expand-btn:hover { border-color:var(--gold); color:var(--gold); }
+
+  /* Cosmo */
+  .cosmo-wrap { display:flex; justify-content:center; align-items:center; }
+  #cosmo-svg { overflow:visible; }
+  @keyframes spin1 { to { transform: rotate(360deg); transform-origin: 95px 95px; } }
+  @keyframes spin2 { to { transform: rotate(-360deg); transform-origin: 95px 95px; } }
+  .orb1 { animation: spin1 12s linear infinite; transform-origin: 95px 95px; }
+  .orb2 { animation: spin2 20s linear infinite; transform-origin: 95px 95px; }
+  @media (prefers-reduced-motion: no-preference) { .orb1, .orb2 { animation-play-state: running; } }
+
+  /* Bottom strip */
+  .bottom-strip { display:flex; gap:8px; padding:0 10px 10px; }
+  .mini-card { flex:1; border:0.5px solid var(--color-border-tertiary); border-radius:8px; padding:9px 11px; cursor:pointer; }
+  .mini-card:hover { border-color:var(--gold); }
+  .mini-card-title { font-size:11px; font-weight:500; color:var(--color-text-primary); display:flex; align-items:center; gap:5px; }
+  .mini-card-body { font-size:11px; color:var(--color-text-secondary); margin-top:3px; line-height:1.5; }
+
+  /* toggle buttons */
+  .compare-row { display:flex; gap:4px; flex-wrap:wrap; margin-top:6px; }
+  .scholar-btn { font-size:10px; padding:2px 7px; border-radius:4px; border:0.5px solid var(--color-border-secondary); cursor:pointer; color:var(--color-text-secondary); background:transparent; transition:all .15s; }
+  .scholar-btn.active { background:var(--gold); color:#1A1209; border-color:var(--gold); }
+  .scholar-content { font-size:11px; line-height:1.6; color:var(--color-text-secondary); margin-top:7px; min-height:60px; }
+
+  /* Key SVG icon inline */
+  .key-icon { display:inline-block; vertical-align:middle; margin-right:4px; }
+</style>
+
+<div id="root">
+  <div class="header">
+    <div>
+      <div class="header-title">Mafātīḥ al-Ghayb — The Keys to the Unseen</div>
+      <div class="header-sub">Fakhr al-Dīn al-Rāzī · Sūrat al-Ikhlāṣ, Verse 1</div>
+    </div>
+    <div class="nav-pills">
+      <button class="pill active" onclick="setView('commentary')">Commentary</button>
+      <button class="pill" onclick="setView('cosmo')">Cosmology</button>
+      <button class="pill" onclick="setView('debate')">Debate</button>
+    </div>
+  </div>
+
+  <!-- COMMENTARY VIEW -->
+  <div id="view-commentary">
+    <div class="main-grid">
+      <!-- Central Verse Pane -->
+      <div class="verse-pane">
+        <div class="corner-medallion tl"></div>
+        <div class="corner-medallion tr"></div>
+        <div class="corner-medallion bl"></div>
+        <div class="corner-medallion br"></div>
+        <div class="verse-row">
+          <div class="medallion">١</div>
+          <div style="flex:1">
+            <div class="arabic">قُلْ هُوَ ٱللَّهُ أَحَدٌ</div>
+            <div class="transliteration">Qul huwa llāhu aḥad</div>
+            <div class="translation">"Say: He is God, the One (Aḥad)"</div>
+          </div>
+        </div>
+        <!-- Key badges -->
+        <div style="margin-top:10px; display:flex; flex-wrap:wrap; gap:0; align-items:center;">
+          <span style="font-size:10px; color:var(--color-text-secondary); margin-right:6px;">Keys:</span>
+          <span class="key-tag linguistic" onclick="highlightPane('linguistic')">
+            <svg width="10" height="10" viewBox="0 0 10 10"><path d="M1 9 L2 5 L5 1 L8 5 L9 9" fill="none" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/><circle cx="5" cy="4.5" r="1.5" fill="currentColor" opacity=".4"/></svg>
+            Linguistic
+          </span>
+          <span class="key-tag theological" onclick="highlightPane('theological')">
+            <svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="none" stroke="currentColor" stroke-width="1"/><circle cx="5" cy="5" r="1.5" fill="currentColor"/></svg>
+            Theological
+          </span>
+          <span class="key-tag rational" onclick="highlightPane('rational')">
+            <svg width="10" height="10" viewBox="0 0 10 10"><rect x="1" y="1" width="3.5" height="3.5" rx="1" fill="currentColor" opacity=".7"/><rect x="5.5" y="1" width="3.5" height="3.5" rx="1" fill="currentColor" opacity=".4"/><rect x="1" y="5.5" width="3.5" height="3.5" rx="1" fill="currentColor" opacity=".4"/><rect x="5.5" y="5.5" width="3.5" height="3.5" rx="1" fill="currentColor" opacity=".7"/></svg>
+            Rational
+          </span>
+          <span class="key-tag scientific" onclick="highlightPane('scientific')">
+            <svg width="10" height="10" viewBox="0 0 10 10"><ellipse cx="5" cy="5" rx="4" ry="2" fill="none" stroke="currentColor" stroke-width="1"/><ellipse cx="5" cy="5" rx="2" ry="4" fill="none" stroke="currentColor" stroke-width="1"/></svg>
+            Scientific
+          </span>
+        </div>
+      </div>
+
+      <!-- Linguistic Pane -->
+      <div class="side-pane" id="pane-linguistic">
+        <div class="pane-label"><div class="dot dot-red"></div><span style="color:var(--crimson)">Linguistic analysis</span></div>
+        <div class="pane-body">
+          <div class="section-label">Root: ء–ح–د (a-ḥ-d)</div>
+          <svg id="root-svg" width="100%" viewBox="0 0 240 140" style="margin:4px 0 6px;">
+            <defs><marker id="arr2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M2 1L8 5L2 9" fill="none" stroke="var(--gold)" stroke-width="1.5" stroke-linecap="round"/></marker></defs>
+            <!-- Root node -->
+            <rect x="85" y="8" width="70" height="26" rx="5" fill="var(--gold)" opacity=".9"/>
+            <text x="120" y="25" text-anchor="middle" font-size="12" font-weight="600" fill="#1A1209" font-family="serif">أ–ح–د</text>
+            <!-- branches -->
+            <line x1="120" y1="34" x2="30" y2="62" stroke="var(--gold)" stroke-width=".7" opacity=".6" marker-end="url(#arr2)"/>
+            <line x1="120" y1="34" x2="120" y2="62" stroke="var(--gold)" stroke-width=".7" opacity=".6" marker-end="url(#arr2)"/>
+            <line x1="120" y1="34" x2="210" y2="62" stroke="var(--gold)" stroke-width=".7" opacity=".6" marker-end="url(#arr2)"/>
+            <!-- L1 nodes -->
+            <rect x="2" y="62" width="56" height="22" rx="4" fill="var(--color-background-primary)" stroke="var(--crimson)" stroke-width=".5"/>
+            <text x="30" y="77" text-anchor="middle" font-size="11" fill="var(--crimson)" font-family="serif">أَحَدٌ</text>
+            <rect x="92" y="62" width="56" height="22" rx="4" fill="var(--color-background-primary)" stroke="var(--crimson)" stroke-width=".5"/>
+            <text x="120" y="77" text-anchor="middle" font-size="11" fill="var(--crimson)" font-family="serif">وَاحِدٌ</text>
+            <rect x="182" y="62" width="56" height="22" rx="4" fill="var(--color-background-primary)" stroke="var(--crimson)" stroke-width=".5"/>
+            <text x="210" y="77" text-anchor="middle" font-size="11" fill="var(--crimson)" font-family="serif">إِتِّحَاد</text>
+            <!-- L1 labels -->
+            <text x="30" y="98" text-anchor="middle" font-size="9" fill="var(--color-text-secondary)">Aḥad</text>
+            <text x="120" y="98" text-anchor="middle" font-size="9" fill="var(--color-text-secondary)">Wāḥid</text>
+            <text x="210" y="98" text-anchor="middle" font-size="9" fill="var(--color-text-secondary)">Ittiḥād</text>
+            <text x="30" y="110" text-anchor="middle" font-size="9" fill="var(--color-text-secondary)">absolute one</text>
+            <text x="120" y="110" text-anchor="middle" font-size="9" fill="var(--color-text-secondary)">numerical one</text>
+            <text x="210" y="110" text-anchor="middle" font-size="9" fill="var(--color-text-secondary)">union</text>
+            <!-- L2 branch from aḥad -->
+            <line x1="30" y1="84" x2="30" y2="118" stroke="var(--gold)" stroke-width=".5" opacity=".5" marker-end="url(#arr2)"/>
+            <rect x="2" y="118" width="56" height="18" rx="3" fill="var(--color-background-secondary)" stroke="var(--color-border-tertiary)" stroke-width=".5"/>
+            <text x="30" y="131" text-anchor="middle" font-size="9" fill="var(--color-text-secondary)">≠ Wāḥid</text>
+          </svg>
+          <div style="font-size:11px; color:var(--color-text-secondary); line-height:1.55;">Rāzī distinguishes <em>Aḥad</em> (absolute, indivisible oneness) from <em>Wāḥid</em> (numerical unity). Only God is <em>Aḥad</em> — unparalleled and incomposite.</div>
+        </div>
+      </div>
+
+      <!-- Theological / Argument Tree Pane -->
+      <div class="side-pane" id="pane-theological">
+        <div class="pane-label"><div class="dot dot-blue"></div><span style="color:var(--lapis)">Theological discourse &amp; argument tree</span></div>
+        <div class="pane-body">
+          <div style="font-size:11px; color:var(--color-text-secondary); margin-bottom:6px;">What does <em>Aḥad</em> exclude? — Rāzī's dialectic</div>
+          <div class="arg-tree" id="arg-tree-short">
+            <div class="arg-node claim">Claim: "Aḥad" denotes absolute oneness</div>
+            <div class="arg-connector"></div>
+            <div class="arg-node support">∴ Excludes all multiplicity (ta'addud)</div>
+            <div class="arg-connector"></div>
+            <div class="arg-node counter">Obj: Does it exclude numerical oneness?</div>
+            <div class="arg-connector"></div>
+            <div class="arg-node resolution">Res: Aḥad transcends number entirely</div>
+          </div>
+          <div class="arg-tree" id="arg-tree-expanded" style="display:none;">
+            <div class="arg-node claim">Claim: "Aḥad" denotes absolute oneness</div>
+            <div class="arg-connector"></div>
+            <div class="arg-node support">P1: If God were composite, a composer would precede Him</div>
+            <div class="arg-connector"></div>
+            <div class="arg-node support">P2: A preceded being cannot be the First Cause</div>
+            <div class="arg-connector"></div>
+            <div class="arg-node claim">∴ God is necessarily incomposite (basīṭ)</div>
+            <div class="arg-connector"></div>
+            <div class="arg-node counter">Obj (Muʿtazila): Does this negate real attributes?</div>
+            <div class="arg-connector"></div>
+            <div class="arg-node counter">Obj (Mujassima): Is this denial of divine reality?</div>
+            <div class="arg-connector"></div>
+            <div class="arg-node resolution">Res: Attributes subsist in Essence without division</div>
+            <div class="arg-connector"></div>
+            <div class="arg-node resolution">Res: Aḥad transcends the category of number (ʿadad)</div>
+          </div>
+          <button class="expand-btn" onclick="toggleTree()">Expand argument ↓</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Compare strip -->
+    <div class="bottom-strip">
+      <div class="mini-card" style="flex:2">
+        <div class="mini-card-title">
+          <svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 11 L3.5 7 L6 1 L8.5 7 L10 11" fill="none" stroke="var(--gold)" stroke-width="1.2" stroke-linejoin="round"/><circle cx="6" cy="5.5" r="2" fill="var(--gold)" opacity=".35"/></svg>
+          Comparative tafsīr
+        </div>
+        <div class="compare-row">
+          <button class="scholar-btn active" onclick="selectScholar('razi')">Rāzī</button>
+          <button class="scholar-btn" onclick="selectScholar('tabari')">Ṭabarī</button>
+          <button class="scholar-btn" onclick="selectScholar('zamakhshari')">Zamakhsharī</button>
+          <button class="scholar-btn" onclick="selectScholar('ibn-kathir')">Ibn Kathīr</button>
+        </div>
+        <div class="scholar-content" id="scholar-text">
+          <strong>Rāzī</strong> (d. 1210): Integrates philosophical theology — "Aḥad" excludes composition in essence, attributes, and actions. God's oneness is ontologically necessary, not merely numerical.
+        </div>
+      </div>
+      <div class="mini-card" onclick="showScientific()">
+        <div class="mini-card-title">
+          <svg width="12" height="12" viewBox="0 0 12 12"><ellipse cx="6" cy="6" rx="5" ry="2.5" fill="none" stroke="var(--forest)" stroke-width="1"/><ellipse cx="6" cy="6" rx="2.5" ry="5" fill="none" stroke="var(--forest)" stroke-width="1"/></svg>
+          Scientific note
+        </div>
+        <div class="mini-card-body">Rāzī cites celestial unity — the single outermost sphere (al-falak al-aʿlā) as a cosmological analogue of oneness.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- COSMOLOGY VIEW -->
+  <div id="view-cosmo" style="display:none; padding:12px 10px;">
+    <div style="display:flex; gap:10px; align-items:flex-start; flex-wrap:wrap;">
+      <div style="flex:1; min-width:200px;">
+        <div class="pane-label" style="margin-bottom:10px;"><div class="dot dot-blue"></div><span style="color:var(--lapis)">Seven heavens, Throne &amp; Footstool</span></div>
+        <svg id="cosmo-svg" width="100%" viewBox="0 0 220 220">
+          <!-- arsh / throne outermost -->
+          <circle cx="110" cy="110" r="104" fill="none" stroke="var(--gold)" stroke-width="1.2" opacity=".5"/>
+          <text x="110" y="10" text-anchor="middle" font-size="9" fill="var(--gold)" opacity=".8">ʿArsh (Throne)</text>
+          <!-- kursi -->
+          <circle cx="110" cy="110" r="88" fill="none" stroke="#1E3A8A" stroke-width=".8" opacity=".6"/>
+          <text x="110" y="20" text-anchor="middle" font-size="8" fill="#1E3A8A" opacity=".7">Kursī (Footstool)</text>
+          <!-- 7 heavens -->
+          <g class="orb1">
+            <circle cx="110" cy="110" r="76" fill="none" stroke="#1E3A8A" stroke-width=".6" opacity=".4" stroke-dasharray="3 4"/>
+            <circle cx="110" cy="34" r="5" fill="#1E3A8A" opacity=".7"/>
+          </g>
+          <circle cx="110" cy="110" r="64" fill="none" stroke="#1E3A8A" stroke-width=".5" opacity=".35" stroke-dasharray="2 4"/>
+          <circle cx="110" cy="110" r="52" fill="none" stroke="#1E3A8A" stroke-width=".5" opacity=".3" stroke-dasharray="2 4"/>
+          <circle cx="110" cy="110" r="42" fill="none" stroke="#1E3A8A" stroke-width=".5" opacity=".3" stroke-dasharray="2 4"/>
+          <circle cx="110" cy="110" r="32" fill="none" stroke="#1E3A8A" stroke-width=".5" opacity=".3" stroke-dasharray="2 4"/>
+          <circle cx="110" cy="110" r="23" fill="none" stroke="#1E3A8A" stroke-width=".5" opacity=".3" stroke-dasharray="2 4"/>
+          <g class="orb2">
+            <circle cx="110" cy="110" r="14" fill="none" stroke="#1E3A8A" stroke-width=".5" opacity=".3"/>
+            <circle cx="110" cy="96" r="3.5" fill="#2E5A4C" opacity=".8"/>
+          </g>
+          <!-- Earth center -->
+          <circle cx="110" cy="110" r="7" fill="var(--umber)" opacity=".6"/>
+          <text x="110" y="113" text-anchor="middle" font-size="7" fill="var(--parch)" font-weight="600">أرض</text>
+          <!-- Heaven labels -->
+          <text x="187" y="108" font-size="8" fill="var(--color-text-secondary)">7th</text>
+          <text x="175" y="108" font-size="8" fill="var(--color-text-secondary)">6th</text>
+          <text x="163" y="108" font-size="8" fill="var(--color-text-secondary)">5th</text>
+          <text x="153" y="108" font-size="8" fill="var(--color-text-secondary)">4th</text>
+          <text x="143" y="108" font-size="8" fill="var(--color-text-secondary)">3rd</text>
+          <text x="133" y="108" font-size="8" fill="var(--color-text-secondary)">2nd</text>
+          <text x="123" y="108" font-size="8" fill="var(--color-text-secondary)">1st</text>
+        </svg>
+      </div>
+      <div style="flex:1; min-width:180px;">
+        <div class="pane-label" style="margin-bottom:8px;"><div class="dot dot-brown"></div><span style="color:var(--umber)">Cosmological commentary</span></div>
+        <div style="font-size:12px; line-height:1.7; color:var(--color-text-secondary);">
+          <p style="margin-bottom:8px;">Rāzī uses the verse on divine oneness to address the <em>cosmological argument</em>: the unified structure of the heavens — concentric spheres with a single primum mobile — points to a single Unmoved Mover.</p>
+          <p style="margin-bottom:8px;">The <strong style="color:var(--gold); font-weight:500;">ʿArsh</strong> (Throne) is the outermost encompassing reality; the <strong style="color:var(--lapis); font-weight:500;">Kursī</strong> (Footstool) contains all seven heavens. Each heaven bears its own angels and glorification.</p>
+          <p>Earth sits at the center — not as seat of honor but as the heaviest element, settled by natural motion. The hierarchy itself testifies to a single ordering intelligence.</p>
+        </div>
+        <div style="margin-top:10px; display:flex; flex-direction:column; gap:5px;">
+          <div style="font-size:10px; display:flex; align-items:center; gap:6px;"><div style="width:14px; height:2px; background:var(--gold); opacity:.7;"></div><span style="color:var(--color-text-secondary);">ʿArsh — divine throne, beyond enumeration</span></div>
+          <div style="font-size:10px; display:flex; align-items:center; gap:6px;"><div style="width:14px; height:2px; background:var(--lapis);"></div><span style="color:var(--color-text-secondary);">Kursī — encompasses all creation</span></div>
+          <div style="font-size:10px; display:flex; align-items:center; gap:6px;"><div style="width:14px; height:2px; background:var(--lapis); opacity:.5; border-top:1px dashed var(--lapis);"></div><span style="color:var(--color-text-secondary);">Seven heavens — spherical, nested</span></div>
+          <div style="font-size:10px; display:flex; align-items:center; gap:6px;"><div style="width:8px; height:8px; border-radius:50%; background:var(--umber); opacity:.7;"></div><span style="color:var(--color-text-secondary);">Earth — center by elemental gravity</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DEBATE VIEW -->
+  <div id="view-debate" style="display:none; padding:12px 10px;">
+    <div class="pane-label" style="margin-bottom:10px;"><div class="dot dot-blue"></div><span style="color:var(--lapis)">Theological debate simulator — Is the Qurʾān created?</span></div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px;">
+      <div style="border-left:3px solid var(--lapis); padding:10px 12px; background:var(--color-background-secondary); border-radius:0 6px 6px 0;">
+        <div style="font-size:11px; font-weight:500; color:var(--lapis); margin-bottom:6px;">Position A — Mutakallimūn (Muʿtazila)</div>
+        <div style="font-size:11px; line-height:1.6; color:var(--color-text-secondary);">The Qurʾān is God's speech, and speech is a temporal act. If God's speech were eternal and uncreated, it would imply a second eternal entity alongside God — violating taʾwīd. The Qurʾān as existing in human utterance and ink is created.</div>
+      </div>
+      <div style="border-left:3px solid var(--crimson); padding:10px 12px; background:var(--color-background-secondary); border-radius:0 6px 6px 0;">
+        <div style="font-size:11px; font-weight:500; color:var(--crimson); margin-bottom:6px;">Position B — Ashāʿira / traditional view</div>
+        <div style="font-size:11px; line-height:1.6; color:var(--color-text-secondary);">God's speech (kalām nafsī) — the eternal meaning — is uncreated and subsists in the divine essence. The letters and sounds (kalām lafẓī) are created vehicles. Denying the eternity of divine speech diminishes the divine attribute of Speech.</div>
+      </div>
+    </div>
+    <div style="border:0.5px solid var(--gold); border-radius:8px; padding:10px 12px; background:var(--parch);">
+      <div style="font-size:11px; font-weight:500; color:var(--gold-dim); margin-bottom:5px;">Rāzī's synthesis</div>
+      <div style="font-size:11px; line-height:1.65; color:var(--ink); opacity:.85;">Rāzī distinguishes between <em>kalām nafsī</em> (the eternal self-subsisting speech of God) and <em>kalām lafẓī</em> (its temporal, created expression in words and sounds). He argues the Ashʿarī position safeguards divine transcendence while accounting for the createdness of the physical Qurʾān. The verse "Qul huwa llāhu Aḥad" itself demonstrates that divine speech, as meaning, is one and indivisible.</div>
+    </div>
+    <div style="margin-top:10px; display:flex; gap:6px; flex-wrap:wrap;">
+      <button class="expand-btn" onclick="sendPrompt('Explain Rāzī\'s view on the createdness of the Quran in more detail')">Explore Rāzī's reasoning ↗</button>
+      <button class="expand-btn" onclick="sendPrompt('What is the Muʿtazila theological school and their view on divine attributes?')">About the Muʿtazila ↗</button>
+      <button class="expand-btn" onclick="sendPrompt('Explain Ashʿarī theology and kalām nafsī')">About Ashʿarī kalām ↗</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const scholars = {
+  'razi': '<strong>Rāzī</strong> (d. 1210): Integrates philosophical theology — "Aḥad" excludes composition in essence, attributes, and actions. God\'s oneness is ontologically necessary, not merely numerical.',
+  'tabari': '<strong>Ṭabarī</strong> (d. 923): Emphasizes linguistic and traditional transmission — "Aḥad" means singular, without partner or equal, citing companion reports and early Arabic usage.',
+  'zamakhshari': '<strong>Zamakhsharī</strong> (d. 1144): Muʿtazilī grammarian approach — analyzes the indefinite form of "Aḥad" to argue it denotes absolute negation of multiplicity in every respect.',
+  'ibn-kathir': '<strong>Ibn Kathīr</strong> (d. 1373): Traditionalist — stresses hadith of the Prophet calling this sūra equivalent to one-third of the Qurʾān; "Aḥad" as pure affirmation of divine uniqueness without philosophical elaboration.'
+};
+function selectScholar(s) {
+  document.querySelectorAll('.scholar-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('scholar-text').innerHTML = scholars[s];
+}
+function setView(v) {
+  document.querySelectorAll('[id^=view-]').forEach(el => el.style.display='none');
+  document.getElementById('view-'+v).style.display='';
+  document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+}
+let treeExpanded = false;
+function toggleTree() {
+  treeExpanded = !treeExpanded;
+  document.getElementById('arg-tree-short').style.display = treeExpanded ? 'none' : '';
+  document.getElementById('arg-tree-expanded').style.display = treeExpanded ? '' : 'none';
+  document.querySelector('.expand-btn').textContent = treeExpanded ? 'Collapse ↑' : 'Expand argument ↓';
+}
+function highlightPane(type) {
+  const map = {linguistic:'pane-linguistic', theological:'pane-theological', rational:'pane-theological', scientific:'pane-linguistic'};
+  const el = document.getElementById(map[type]);
+  if(el) { el.style.outline='2px solid var(--gold)'; setTimeout(()=>el.style.outline='',1500); }
+}
+function showScientific() {
+  setView('cosmo');
+  document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.pill')[1].classList.add('active');
+}
+</script>

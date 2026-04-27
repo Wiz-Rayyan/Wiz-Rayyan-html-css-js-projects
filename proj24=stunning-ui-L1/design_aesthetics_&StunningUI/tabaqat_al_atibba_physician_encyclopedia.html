@@ -1,0 +1,888 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Scheherazade+New:wght@400;700&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap');
+  
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  :root {
+    --gold: #C9913A;
+    --gold-light: #E8C47A;
+    --gold-pale: #F5E6C8;
+    --crimson: #8B1A1A;
+    --crimson-light: #C04040;
+    --ink: #1A1208;
+    --vellum: #F9F2E0;
+    --vellum-dark: #EDE0C0;
+    --vellum-mid: #F2E8CC;
+    --border-gold: 1px solid #C9913A;
+    --shadow-gold: 0 2px 12px rgba(201,145,58,0.18);
+  }
+
+  body, .wrap { background: transparent; font-family: 'Crimson Pro', Georgia, serif; color: var(--ink); }
+
+  .wrap {
+    background: linear-gradient(160deg, #F9F2E0 60%, #EDE0C0 100%);
+    border: 2px solid var(--gold);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+    min-height: 900px;
+  }
+
+  /* Decorative border pattern */
+  .wrap::before {
+    content: '';
+    position: absolute; inset: 6px;
+    border: 1px solid rgba(201,145,58,0.35);
+    border-radius: 2px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Header */
+  .header {
+    background: linear-gradient(135deg, #1A1208, #2D1F08);
+    padding: 22px 28px 16px;
+    text-align: center;
+    border-bottom: 3px solid var(--gold);
+    position: relative;
+  }
+  .header::after {
+    content: '❧';
+    display: block;
+    color: var(--gold);
+    font-size: 18px;
+    margin-top: 4px;
+    opacity: 0.7;
+  }
+  .header h1 {
+    font-family: 'Scheherazade New', serif;
+    font-size: 28px;
+    color: var(--gold);
+    font-weight: 700;
+    letter-spacing: 1px;
+    line-height: 1.2;
+  }
+  .header .subtitle {
+    font-family: 'Crimson Pro', serif;
+    color: var(--gold-light);
+    font-size: 14px;
+    margin-top: 4px;
+    opacity: 0.85;
+    font-style: italic;
+  }
+  .header .author {
+    color: rgba(232,196,122,0.6);
+    font-size: 12px;
+    margin-top: 2px;
+  }
+
+  /* Timeline */
+  .timeline-wrap {
+    background: #1A1208;
+    padding: 12px 20px;
+    border-bottom: 2px solid var(--gold);
+  }
+  .timeline-label {
+    color: var(--gold-light);
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .timeline-pills {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .era-pill {
+    font-family: 'Crimson Pro', serif;
+    font-size: 11px;
+    padding: 4px 10px;
+    border: 1px solid rgba(201,145,58,0.4);
+    border-radius: 2px;
+    color: rgba(232,196,122,0.7);
+    cursor: pointer;
+    background: transparent;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .era-pill:hover { border-color: var(--gold); color: var(--gold); }
+  .era-pill.active {
+    background: var(--gold);
+    color: #1A1208;
+    border-color: var(--gold);
+    font-weight: 600;
+  }
+
+  /* Main layout */
+  .main-layout {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    min-height: 680px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Sidebar - Physician Gallery */
+  .sidebar {
+    border-right: 1px solid var(--gold);
+    background: rgba(237,224,192,0.5);
+    padding: 14px 0;
+  }
+  .sidebar-label {
+    font-family: 'Crimson Pro', serif;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--gold);
+    padding: 0 14px 10px;
+    border-bottom: 1px solid rgba(201,145,58,0.3);
+    margin-bottom: 8px;
+  }
+  
+  .physician-card {
+    padding: 10px 14px;
+    cursor: pointer;
+    border-left: 3px solid transparent;
+    transition: all 0.2s;
+    border-bottom: 1px solid rgba(201,145,58,0.15);
+  }
+  .physician-card:hover { background: rgba(201,145,58,0.1); border-left-color: rgba(201,145,58,0.5); }
+  .physician-card.active { background: rgba(201,145,58,0.15); border-left-color: var(--gold); }
+
+  .phys-miniature {
+    width: 44px; height: 44px;
+    border: 1.5px solid var(--gold);
+    border-radius: 2px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    background: var(--vellum);
+    margin-bottom: 6px;
+    float: left;
+    margin-right: 10px;
+  }
+  .phys-info { overflow: hidden; }
+  .phys-name {
+    font-family: 'Scheherazade New', serif;
+    font-size: 14px;
+    color: var(--crimson);
+    font-weight: 700;
+    line-height: 1.2;
+  }
+  .phys-dates {
+    font-size: 11px;
+    color: #8B7340;
+    margin-top: 1px;
+  }
+  .phys-badges {
+    display: flex; gap: 3px; flex-wrap: wrap;
+    margin-top: 4px;
+    clear: both;
+  }
+  .badge {
+    font-size: 9px;
+    padding: 1px 5px;
+    border: 1px solid var(--gold);
+    border-radius: 1px;
+    color: var(--gold);
+    background: rgba(201,145,58,0.08);
+    white-space: nowrap;
+  }
+
+  /* Biography page */
+  .bio-page {
+    padding: 22px 28px;
+    background: var(--vellum);
+    position: relative;
+    overflow-y: auto;
+  }
+
+  /* Marginalia lines */
+  .bio-page::before {
+    content: '';
+    position: absolute;
+    left: 60px; top: 0; bottom: 0;
+    border-left: 1px solid rgba(201,145,58,0.2);
+    pointer-events: none;
+  }
+
+  .bio-name {
+    font-family: 'Scheherazade New', serif;
+    font-size: 32px;
+    color: var(--gold);
+    font-weight: 700;
+    line-height: 1.1;
+    border-bottom: 2px solid rgba(201,145,58,0.4);
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+  }
+  .bio-name .latin { font-size: 16px; color: var(--crimson); display: block; font-weight: 400; margin-top: 2px; }
+
+  .bio-meta {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .meta-item {
+    padding: 8px 10px;
+    border: 1px solid rgba(201,145,58,0.3);
+    background: var(--vellum-mid);
+    border-radius: 1px;
+  }
+  .meta-label {
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 3px;
+  }
+  .meta-value { font-size: 13px; color: var(--ink); line-height: 1.3; }
+
+  /* Sanad divider */
+  .sanad-divider {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin: 16px 0;
+    width: 100%;
+    overflow: hidden;
+  }
+  .sanad-node-sm {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--gold);
+    flex-shrink: 0;
+  }
+  .sanad-line-sm {
+    flex: 1;
+    height: 1px;
+    background: var(--crimson);
+  }
+
+  .section-head {
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 8px;
+    margin-top: 14px;
+    font-family: 'Crimson Pro', serif;
+  }
+
+  /* Teacher/Student chains */
+  .chain-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  .chain-pill {
+    padding: 4px 12px;
+    border: 1px solid;
+    border-radius: 1px;
+    font-size: 12px;
+    font-family: 'Scheherazade New', serif;
+  }
+  .teacher-pill { border-color: var(--crimson); color: var(--crimson); background: rgba(139,26,26,0.05); }
+  .student-pill { border-color: #2A5A2A; color: #2A5A2A; background: rgba(42,90,42,0.05); }
+
+  /* Works gallery */
+  .works-gallery { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+  .book-cover {
+    width: 62px;
+    border: 1.5px solid var(--gold);
+    border-radius: 1px;
+    padding: 6px 4px;
+    background: linear-gradient(160deg, #1A1208, #2D1F08);
+    cursor: pointer;
+    transition: transform 0.2s;
+    position: relative;
+    text-align: center;
+  }
+  .book-cover:hover { transform: scale(1.08) rotate(-1deg); }
+  .book-cover::before {
+    content: '';
+    position: absolute; top: 0; left: 6px; bottom: 0; width: 1px;
+    background: rgba(201,145,58,0.4);
+  }
+  .book-icon { font-size: 20px; display: block; margin-bottom: 3px; }
+  .book-title {
+    font-size: 8.5px;
+    color: var(--gold-light);
+    font-family: 'Scheherazade New', serif;
+    line-height: 1.2;
+  }
+
+  /* Contributions */
+  .contrib-list {
+    list-style: none;
+    margin-bottom: 12px;
+  }
+  .contrib-list li {
+    font-size: 13px;
+    padding: 3px 0 3px 14px;
+    position: relative;
+    border-bottom: 1px dotted rgba(201,145,58,0.2);
+    color: var(--ink);
+    line-height: 1.4;
+  }
+  .contrib-list li::before {
+    content: '◆';
+    position: absolute; left: 0;
+    color: var(--crimson);
+    font-size: 8px;
+    top: 5px;
+  }
+
+  /* Anecdote */
+  .anecdote-box {
+    border-left: 3px solid var(--gold);
+    padding: 12px 14px;
+    background: rgba(201,145,58,0.06);
+    margin-bottom: 14px;
+    position: relative;
+  }
+  .anecdote-box::before {
+    content: '"';
+    font-family: 'Scheherazade New', serif;
+    font-size: 48px;
+    color: var(--gold);
+    opacity: 0.3;
+    position: absolute;
+    top: -4px; left: 8px;
+    line-height: 1;
+  }
+  .anecdote-text {
+    font-style: italic;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #2D1F08;
+    padding-left: 20px;
+  }
+  .anecdote-btn {
+    font-size: 11px;
+    padding: 5px 14px;
+    border: 1px solid var(--gold);
+    background: transparent;
+    color: var(--gold);
+    cursor: pointer;
+    font-family: 'Crimson Pro', serif;
+    border-radius: 1px;
+    margin-bottom: 10px;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .anecdote-btn:hover { background: var(--gold); color: #1A1208; }
+
+  /* Specialty badges (large) */
+  .specialty-icons {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+  .spec-badge {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    border: 1px solid;
+    border-radius: 1px;
+    font-size: 11px;
+    font-family: 'Crimson Pro', serif;
+  }
+  .spec-icon { font-size: 14px; }
+  .spec-anatomy { border-color: #7B3F00; color: #7B3F00; background: rgba(123,63,0,0.07); }
+  .spec-pharma { border-color: #2A5A2A; color: #2A5A2A; background: rgba(42,90,42,0.07); }
+  .spec-ophthal { border-color: #1A3A6A; color: #1A3A6A; background: rgba(26,58,106,0.07); }
+  .spec-pediatric { border-color: #6B2A7A; color: #6B2A7A; background: rgba(107,42,122,0.07); }
+  .spec-surgery { border-color: #8B1A1A; color: #8B1A1A; background: rgba(139,26,26,0.07); }
+
+  /* Sanad diagram */
+  .sanad-diagram { margin: 14px 0; overflow-x: auto; }
+
+  /* Influence map */
+  .map-area {
+    position: relative;
+    height: 160px;
+    border: 1px solid rgba(201,145,58,0.3);
+    background: rgba(237,224,192,0.4);
+    border-radius: 2px;
+    margin-bottom: 14px;
+    overflow: hidden;
+  }
+  .map-dot {
+    position: absolute;
+    width: 10px; height: 10px;
+    background: var(--gold);
+    border-radius: 50%;
+    border: 1.5px solid var(--crimson);
+    transform: translate(-50%, -50%);
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+  .map-dot:hover { transform: translate(-50%, -50%) scale(1.5); }
+  .map-dot.highlight {
+    background: var(--crimson);
+    width: 14px; height: 14px;
+    border-color: var(--gold);
+  }
+  .map-label {
+    position: absolute;
+    font-size: 9px;
+    color: var(--crimson);
+    font-family: 'Crimson Pro', serif;
+    white-space: nowrap;
+    transform: translate(-50%, 8px);
+    font-style: italic;
+  }
+
+  /* Bottom panels */
+  .bottom-panels {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 14px;
+  }
+  .panel-box {
+    border: 1px solid rgba(201,145,58,0.3);
+    border-radius: 1px;
+    padding: 12px;
+    background: var(--vellum-mid);
+  }
+  .panel-head {
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 8px;
+    border-bottom: 1px solid rgba(201,145,58,0.25);
+    padding-bottom: 4px;
+  }
+  .panel-input {
+    width: 100%;
+    padding: 5px 8px;
+    border: 1px solid rgba(201,145,58,0.4);
+    background: var(--vellum);
+    font-family: 'Crimson Pro', serif;
+    font-size: 12px;
+    color: var(--ink);
+    border-radius: 1px;
+    margin-bottom: 6px;
+  }
+  .panel-input:focus { outline: none; border-color: var(--gold); }
+  .panel-result { font-size: 12px; line-height: 1.5; color: var(--ink); }
+
+  /* Footnote / colophon */
+  .colophon {
+    text-align: center;
+    padding: 10px;
+    border-top: 2px solid rgba(201,145,58,0.3);
+    background: rgba(26,18,8,0.04);
+    font-size: 10px;
+    color: rgba(139,115,64,0.7);
+    font-style: italic;
+    letter-spacing: 0.5px;
+  }
+
+  .snake-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 16px;
+    background: var(--crimson);
+    color: var(--gold-light);
+    border: 1.5px solid var(--gold);
+    font-family: 'Scheherazade New', serif;
+    font-size: 13px;
+    cursor: pointer;
+    border-radius: 1px;
+    transition: all 0.2s;
+    margin-right: 8px;
+  }
+  .snake-btn:hover { background: var(--gold); color: #1A1208; }
+
+  .era-marker {
+    display: inline-block;
+    font-size: 10px;
+    padding: 2px 6px;
+    background: rgba(201,145,58,0.15);
+    border: 1px solid var(--gold);
+    color: var(--gold);
+    border-radius: 1px;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+
+  svg.sanad { width: 100%; max-width: 580px; height: 80px; }
+  svg.map-svg { width: 100%; height: 100%; }
+</style>
+
+<div class="wrap">
+  <!-- Header -->
+  <div class="header">
+    <h1>طَبَقَاتُ الأَطِبَّاء</h1>
+    <div class="subtitle">Ṭabaqāt al-Aṭibbāʾ — The Chapters of the Physicians</div>
+    <div class="author">Ibn Abī Uṣaybiʿa · Damascus, 668 AH / 1270 CE · 380 physicians</div>
+  </div>
+
+  <!-- Timeline Era Selector -->
+  <div class="timeline-wrap">
+    <div class="timeline-label">Era &amp; Period</div>
+    <div class="timeline-pills" id="eraBar">
+      <button class="era-pill" onclick="setEra(0)">Greek (500–200 BCE)</button>
+      <button class="era-pill" onclick="setEra(1)">Alexandrian (200–600 CE)</button>
+      <button class="era-pill" onclick="setEra(2)">Early Islamic (600–900 CE)</button>
+      <button class="era-pill active" onclick="setEra(3)">Baghdad School (900–1100 CE)</button>
+      <button class="era-pill" onclick="setEra(4)">Andalusian / Maghribī (1000–1200 CE)</button>
+      <button class="era-pill" onclick="setEra(5)">Post-Classical (1200–1300 CE)</button>
+    </div>
+  </div>
+
+  <!-- Main layout -->
+  <div class="main-layout">
+    <!-- Sidebar Physician Gallery -->
+    <div class="sidebar">
+      <div class="sidebar-label">Physicians <span class="era-marker" id="eraTag">Baghdad School</span></div>
+      <div id="physicianList"></div>
+    </div>
+
+    <!-- Biography Page -->
+    <div class="bio-page" id="bioPage">
+      <!-- Loaded dynamically -->
+    </div>
+  </div>
+
+  <div class="colophon">
+    Compiled in the tradition of Ibn Abī Uṣaybiʿa · <em>ʿUyūn al-Anbāʾ fī Ṭabaqāt al-Aṭibbāʾ</em> · Damascus, 668 AH
+  </div>
+</div>
+
+<script>
+const ERAS = [
+  { name: 'Greek', range: '500–200 BCE', tag: 'Greek Period' },
+  { name: 'Alexandrian', range: '200–600 CE', tag: 'Alexandrian' },
+  { name: 'Early Islamic', range: '600–900 CE', tag: 'Early Islamic' },
+  { name: 'Baghdad School', range: '900–1100 CE', tag: 'Baghdad School' },
+  { name: 'Andalusian', range: '1000–1200 CE', tag: 'Andalusian' },
+  { name: 'Post-Classical', range: '1200–1300 CE', tag: 'Post-Classical' },
+];
+
+const PHYSICIANS = {
+  0: [
+    { id:'hippocrates', arabic:'أبقراط', latin:'Hippocrates', dates:'460–370 BCE', place:'Kos, Greece', icon:'🩺', badges:['Anatomy','Ethics'], specialties:['anatomy','surgery'], teachers:[], students:['Dioscorides','Theophrastus'], works:[{t:'Aphorisms',i:'📜'},{t:'On Airs',i:'📜'}], contribs:['Father of clinical medicine','Hippocratic Oath','Humoral theory: blood, phlegm, yellow/black bile','Described epidemic diseases systematically'], anecdotes:['When asked to visit the Persian king Artaxerxes, Hippocrates refused, saying he could not serve the enemies of Greece.','Hippocrates is said to have diagnosed illness by taste of urine and observation of bodily constitution.'], sanad:['Hippocrates'], map:{home:[28,60],travels:[[40,55],[35,70]]} },
+    { id:'dioscorides', arabic:'ديسقوريدس', latin:'Dioscorides', dates:'40–90 CE', place:'Anazarbus, Cilicia', icon:'🌿', badges:['Pharmacology'], specialties:['pharma'], teachers:['Hippocrates (lineage)'], students:['Galen (influenced)'], works:[{t:'De Materia Medica',i:'📗'}], contribs:['Compiled 600 plants with medicinal properties','Standard pharmacological reference for 1500 years','Distinguished between healing and toxic herbs'], anecdotes:['Dioscorides traveled widely as a military physician with the Roman army, collecting botanical specimens from across the Mediterranean and Near East.'], sanad:['Hippocrates','Dioscorides'], map:{home:[35,62],travels:[[30,55],[42,60]]} },
+  ],
+  1: [
+    { id:'galen', arabic:'جالينوس', latin:'Galen of Pergamon', dates:'129–216 CE', place:'Pergamon, Asia Minor', icon:'🫀', badges:['Anatomy','Surgery'], specialties:['anatomy','surgery'], teachers:['Dioscorides (lineage)'], students:['Hunayn ibn Isḥāq (via text)'], works:[{t:'On the Natural Faculties',i:'📘'},{t:'De Usu Partium',i:'📘'},{t:'Methodus Medendi',i:'📙'}], contribs:['Systematized Hippocratic medicine into comprehensive theory','Animal dissection as basis of anatomy','Described seven ventricles of the brain','Physician to Marcus Aurelius'], anecdotes:['Galen reportedly cured the Empress Faustina of a stubborn fever by adjusting her diet and regimen — a feat that cemented his reputation at the imperial court.'], sanad:['Hippocrates','Dioscorides','Galen'], map:{home:[32,55],travels:[[30,52],[28,58]]} },
+  ],
+  2: [
+    { id:'hunayn', arabic:'حنين بن إسحاق', latin:'Hunayn ibn Isḥāq', dates:'808–873 CE', place:'al-Ḥīra (Iraq)', icon:'📖', badges:['Translation','Ophthalmology'], specialties:['ophthal','pharma'], teachers:['Ibn Māsawayh'], students:['Isḥāq ibn Ḥunayn','Ḥubaysh'], works:[{t:'Questions on Medicine',i:'📗'},{t:'Ten Treatises on the Eye',i:'👁️'}], contribs:['Translated Galen, Hippocrates, Dioscorides into Arabic','First systematic treatise on ophthalmology','Described seven layers of the eye','Chief translator at Bayt al-Ḥikma'], anecdotes:['Al-Mutawakkil ordered Hunayn imprisoned when he refused to compound a poison to kill an enemy, saying a physician exists to heal, not to harm.'], sanad:['Hippocrates','Galen','Hunayn ibn Isḥāq'], map:{home:[48,50],travels:[[35,55],[47,52]]} },
+  ],
+  3: [
+    { id:'razi', arabic:'مُحَمَّد بن زَكَرِيَّا الرَّازِي', latin:'Muḥammad ibn Zakariyyā al-Rāzī (Rhazes)', dates:'854–925 CE', place:'Rayy (near Tehran), Persia', icon:'⚗️', badges:['Pharmacology','Pediatrics','Ophthalmology'], specialties:['pharma','ophthal','pediatric'], teachers:['ʿAlī ibn Rabban al-Ṭabarī','Ibn al-Jazzār (lineage)'], students:['Ibn Abī al-Bayān','Ibn Buṭlān'], works:[{t:'al-Ḥāwī (Continens)',i:'📚'},{t:'al-Manṣūrī',i:'📙'},{t:'Jadari wa-Ḥaṣba',i:'📜'}], contribs:['First clinical distinction between smallpox and measles','Distillation techniques for pharmaceutical preparations','Described surgical sutures and wound closure','Pioneer of evidence-based clinical observation','First to use animal gut as suture material'], anecdotes:['To choose the site for a new hospital in Baghdad, al-Rāzī hung pieces of meat at various locations across the city and chose the spot where the meat rotted most slowly — reasoning that the air there was freshest and healthiest.'], sanad:['Hippocrates','Galen','Hunayn ibn Isḥāq','al-Rāzī'], map:{home:[55,48],travels:[[48,50],[45,55]]} },
+    { id:'ibnsina', arabic:'ابن سينا', latin:'Ibn Sīnā (Avicenna)', dates:'980–1037 CE', place:'Afshana, Bukhara (Uzbekistan)', icon:'📗', badges:['Philosophy','Surgery','Anatomy'], specialties:['anatomy','surgery','pharma'], teachers:['al-Rāzī (via text)','Abū Sahl ʿĪsā al-Masīḥī'], students:['al-Jūzjānī','al-Maʿṣūmī'], works:[{t:'al-Qānūn fī al-Ṭibb',i:'📗'},{t:'Kitāb al-Shifāʾ',i:'📘'},{t:'al-Mūjaz',i:'📙'}], contribs:['Canon of Medicine — standard medical text for 600 years in Europe and Islamic world','Described contagious disease and quarantine','Systematic pharmacopoeia of 760 drugs','Introduced clinical trials concept for drug testing'], anecdotes:['Ibn Sīnā is said to have cured a prince of lovesickness by determining the name of the beloved through the patient\'s pulse — which quickened whenever her name was spoken.'], sanad:['Hippocrates','Galen','Hunayn ibn Isḥāq','al-Rāzī','Ibn Sīnā'], map:{home:[62,42],travels:[[58,44],[50,48]]} },
+    { id:'zahrawi', arabic:'أبو القاسم الزهراوي', latin:'Abū al-Qāsim al-Zahrāwī (Abulcasis)', dates:'936–1013 CE', place:'Madīnat al-Zahrāʾ, Córdoba', icon:'🔪', badges:['Surgery','Pharmacology'], specialties:['surgery','pharma'], teachers:['Ibn al-Jazzār'], students:['Ibn al-Khaṭīb (influenced)'], works:[{t:'al-Taṣrīf',i:'📗'},{t:'Kitāb al-Mujaz',i:'📙'}], contribs:['Described over 200 surgical instruments — many invented by him','Pioneer of lithotomy and obstetrics','First illustrated surgical manual in Islamic medicine','Described haemophilia as hereditary condition'], anecdotes:['Al-Zahrāwī once removed a needle from a woman\'s neck using an instrument of his own invention — a feat witnessed by astonished courtiers who had declared the operation impossible.'], sanad:['Hippocrates','Galen','Hunayn ibn Isḥāq','al-Zahrāwī'], map:{home:[22,50],travels:[[28,55],[30,48]]} },
+  ],
+  4: [
+    { id:'ibnnafis', arabic:'ابن النفيس', latin:'Ibn al-Nafīs', dates:'1213–1288 CE', place:'Damascus, Syria', icon:'❤️', badges:['Anatomy','Pulmonology'], specialties:['anatomy','surgery'], teachers:['Ibn Abī Uṣaybiʿa\'s circle'], students:['Ibn al-Quff'], works:[{t:'Sharḥ al-Qānūn',i:'📘'},{t:'al-Mūjaz fī al-Ṭibb',i:'📙'}], contribs:['Discovered pulmonary circulation (300 years before Harvey)','Refuted Galen\'s theory of interventricular pores','Described coronary circulation','Comprehensive commentary on Ibn Sīnā\'s Canon'], anecdotes:['Ibn al-Nafīs reportedly refused to allow his own body to be dissected after death, despite having dissected others — saying that his body belonged to God and must be buried intact.'], sanad:['Hippocrates','Galen','Hunayn ibn Isḥāq','al-Rāzī','Ibn Sīnā','Ibn al-Nafīs'], map:{home:[42,52],travels:[[38,55],[44,50]]} },
+  ],
+  5: [
+    { id:'ibnubb', arabic:'ابن أبي أصيبعة', latin:'Ibn Abī Uṣaybiʿa', dates:'1203–1270 CE', place:'Damascus, Syria', icon:'📜', badges:['History','Compilation'], specialties:['anatomy','pharma'], teachers:['Ibn al-Bayṭār','Ibn Abī al-Bayān'], students:['(Compiler — no documented students)'], works:[{t:'ʿUyūn al-Anbāʾ',i:'📜'},{t:'Ṭabaqāt al-Aṭibbāʾ',i:'📚'}], contribs:['Biographical encyclopedia of 380+ physicians','Preserved biographies of ancient and Islamic physicians','Documented chains of medical transmission','Primary source for history of Islamic medicine'], anecdotes:['Ibn Abī Uṣaybiʿa served as a physician in Ṣāliḥiyya (Damascus) while composing his great encyclopedia — interviewing elderly physicians and copying manuscripts to preserve traditions otherwise lost to time.'], sanad:['Hippocrates','Galen','Hunayn ibn Isḥāq','al-Rāzī','Ibn Sīnā','Ibn Abī Uṣaybiʿa'], map:{home:[42,52],travels:[[40,54],[44,50]]} },
+  ],
+};
+
+const SPEC_LABELS = { anatomy:'Anatomy', pharma:'Pharmacology', ophthal:'Ophthalmology', pediatric:'Pediatrics', surgery:'Surgery' };
+const SPEC_CLASS = { anatomy:'spec-anatomy', pharma:'spec-pharma', ophthal:'spec-ophthal', pediatric:'spec-pediatric', surgery:'spec-surgery' };
+const SPEC_ICON = { anatomy:'🦴', pharma:'🌿', ophthal:'👁️', pediatric:'👶', surgery:'🔪' };
+
+let currentEra = 3;
+let currentPhysician = null;
+let anecdoteIndex = 0;
+
+function setEra(e) {
+  currentEra = e;
+  document.querySelectorAll('.era-pill').forEach((p,i)=>p.classList.toggle('active',i===e));
+  document.getElementById('eraTag').textContent = ERAS[e].tag;
+  renderSidebar();
+  // Auto-select first physician
+  const phys = PHYSICIANS[e];
+  if (phys && phys.length) selectPhysician(phys[0].id);
+}
+
+function renderSidebar() {
+  const phys = PHYSICIANS[currentEra] || [];
+  const list = document.getElementById('physicianList');
+  if (!phys.length) {
+    list.innerHTML = '<div style="padding:20px 14px;font-style:italic;font-size:12px;color:#8B7340;text-align:center;opacity:0.7">— No physician recorded —</div>';
+    return;
+  }
+  list.innerHTML = phys.map(p=>`
+    <div class="physician-card ${currentPhysician===p.id?'active':''}" id="card-${p.id}" onclick="selectPhysician('${p.id}')">
+      <div class="phys-miniature">${p.icon}</div>
+      <div class="phys-info">
+        <div class="phys-name">${p.arabic}</div>
+        <div class="phys-dates">${p.dates}</div>
+      </div>
+      <div class="phys-badges">${p.badges.map(b=>`<span class="badge">${b}</span>`).join('')}</div>
+    </div>
+  `).join('');
+}
+
+function selectPhysician(id) {
+  currentPhysician = id;
+  anecdoteIndex = 0;
+  // Update sidebar active states
+  document.querySelectorAll('.physician-card').forEach(c=>{
+    c.classList.toggle('active', c.id === 'card-'+id);
+  });
+  const allPhys = Object.values(PHYSICIANS).flat();
+  const p = allPhys.find(x=>x.id===id);
+  if (!p) return;
+  renderBio(p);
+}
+
+function renderBio(p) {
+  const bio = document.getElementById('bioPage');
+  bio.innerHTML = `
+    <div class="bio-name">
+      ${p.arabic}
+      <span class="latin">${p.latin}</span>
+    </div>
+    <div class="bio-meta">
+      <div class="meta-item"><div class="meta-label">Floruit / Dates</div><div class="meta-value">${p.dates}</div></div>
+      <div class="meta-item"><div class="meta-label">Birthplace (Mawlid)</div><div class="meta-value">${p.place}</div></div>
+      <div class="meta-item"><div class="meta-label">Era (Ṭabaqa)</div><div class="meta-value">${ERAS[currentEra]?ERAS[currentEra].tag:'—'}</div></div>
+    </div>
+
+    <!-- Sanad divider -->
+    <div class="sanad-divider">${buildSanadDivider(8)}</div>
+
+    <!-- Specialties -->
+    <div class="section-head">Medical Specialties (Ikhtisās)</div>
+    <div class="specialty-icons">
+      ${p.specialties.map(s=>`<div class="spec-badge ${SPEC_CLASS[s]}"><span class="spec-icon">${SPEC_ICON[s]}</span>${SPEC_LABELS[s]}</div>`).join('')}
+    </div>
+
+    <!-- Teachers & Students -->
+    <div class="section-head">Teachers (Ustādh) &amp; Students (Tilmīdh)</div>
+    <div style="margin-bottom:10px">
+      <div style="font-size:11px;color:#8B7340;margin-bottom:4px;">Teachers</div>
+      <div class="chain-row">${p.teachers.length ? p.teachers.map(t=>`<span class="chain-pill teacher-pill">${t}</span>`).join('') : '<span style="font-style:italic;font-size:12px;color:#8B7340">No recorded teacher</span>'}</div>
+      <div style="font-size:11px;color:#8B7340;margin-bottom:4px;margin-top:6px;">Students</div>
+      <div class="chain-row">${p.students.map(t=>`<span class="chain-pill student-pill">${t}</span>`).join('')}</div>
+    </div>
+
+    <!-- Sanad diagram -->
+    <div class="section-head">Chain of Transmission (Sanad Ṭibbī)</div>
+    <div class="sanad-diagram">
+      ${buildSanadSVG(p.sanad)}
+    </div>
+
+    <!-- Works -->
+    <div class="section-head">Major Works (Muṣannafāt)</div>
+    <div class="works-gallery">
+      ${p.works.map(w=>`<div class="book-cover" title="${w.t}"><span class="book-icon">${w.i}</span><div class="book-title">${w.t}</div></div>`).join('')}
+    </div>
+
+    <!-- Contributions -->
+    <div class="section-head">Medical Contributions</div>
+    <ul class="contrib-list">
+      ${p.contribs.map(c=>`<li>${c}</li>`).join('')}
+    </ul>
+
+    <!-- Anecdote Genie -->
+    <div class="section-head">Famous Anecdote (Ḥikāya Mashhūra)</div>
+    <div style="margin-bottom:8px">
+      <button class="anecdote-btn" onclick="nextAnecdote('${p.id}')">⟳ Another Anecdote</button>
+      <button class="snake-btn" onclick="showComparison()">⚕ Compare Physicians</button>
+    </div>
+    <div class="anecdote-box" id="anecdoteBox">
+      <div class="anecdote-text" id="anecdoteText">${p.anecdotes[0]}</div>
+    </div>
+
+    <!-- Influence Map -->
+    <div class="section-head">Influence Map (Khariṭat al-Taʾthīr)</div>
+    ${buildMapHTML(p)}
+
+    <!-- Bottom panels: Bibliography + Network -->
+    <div class="bottom-panels">
+      <div class="panel-box">
+        <div class="panel-head">Bibliography Builder</div>
+        <input class="panel-input" placeholder="Search physician or title..." oninput="searchBib(this.value)" id="bibInput">
+        <div class="panel-result" id="bibResult">
+          ${p.works.map(w=>`<div style="padding:3px 0;border-bottom:1px dotted rgba(201,145,58,0.2);font-size:12px">📜 ${w.t}</div>`).join('')}
+        </div>
+      </div>
+      <div class="panel-box">
+        <div class="panel-head">Teacher-Student Network</div>
+        <input class="panel-input" placeholder="Enter physician name..." oninput="exploreNetwork(this.value)" id="netInput">
+        <div class="panel-result" id="netResult">
+          <div style="font-size:11px;color:#8B7340;margin-bottom:4px">Teachers of ${p.arabic.split(' ')[0]}</div>
+          ${p.teachers.map(t=>`<div style="font-size:12px;padding:2px 0">⬆ ${t}</div>`).join('') || '<div style="font-size:12px;font-style:italic;color:#8B7340">None recorded</div>'}
+          <div style="font-size:11px;color:#2A5A2A;margin:6px 0 4px">Students</div>
+          ${p.students.map(s=>`<div style="font-size:12px;padding:2px 0">⬇ ${s}</div>`).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Store p for later reference
+  bio._currentPhys = p;
+}
+
+function buildSanadDivider(n) {
+  let out = '<div class="sanad-node-sm"></div>';
+  for(let i=0;i<n;i++) out += '<div class="sanad-line-sm" style="min-width:8px"></div><div class="sanad-node-sm"></div>';
+  return out;
+}
+
+function buildSanadSVG(sanad) {
+  const n = sanad.length;
+  if (!n) return '';
+  const W = 560, H = 72;
+  const nodeR = 20;
+  const spacing = Math.min(120, (W - nodeR*2) / Math.max(n-1,1));
+  const totalW = (n-1)*spacing + nodeR*2;
+  const startX = (W - totalW)/2 + nodeR;
+  const cy = 36;
+
+  let nodes = '';
+  let lines = '';
+  for(let i=0;i<n;i++) {
+    const cx = startX + i*spacing;
+    if (i>0) {
+      lines += `<line x1="${startX+(i-1)*spacing + nodeR}" y1="${cy}" x2="${cx - nodeR}" y2="${cy}" stroke="#8B1A1A" stroke-width="1.5" marker-end="url(#sarrow)"/>`;
+    }
+    nodes += `<g>
+      <circle cx="${cx}" cy="${cy}" r="${nodeR}" fill="#F5E6C8" stroke="#C9913A" stroke-width="1.5"/>
+      <text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="central" font-size="8" font-family="Crimson Pro,serif" fill="#1A1208" font-weight="600">${sanad[i].split(' ').slice(-1)[0].replace('ibn','')}</text>
+      <text x="${cx}" y="${cy+nodeR+11}" text-anchor="middle" font-size="8" font-family="Crimson Pro,serif" fill="#8B7340">${sanad[i].length > 12 ? sanad[i].substring(0,12)+'…' : sanad[i]}</text>
+    </g>`;
+  }
+
+  return `<svg viewBox="0 0 ${W} ${H+20}" width="100%" height="${H+20}" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="sarrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+        <path d="M2 1L8 5L2 9" fill="none" stroke="#8B1A1A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </marker>
+    </defs>
+    ${lines}${nodes}
+  </svg>`;
+}
+
+function buildMapHTML(p) {
+  // Simplified schematic map using dots
+  const cities = [
+    {name:'Athens',x:'15%',y:'40%'}, {name:'Alexandria',x:'30%',y:'62%'},{name:'Kos',x:'25%',y:'38%'},
+    {name:'Damascus',x:'45%',y:'48%'},{name:'Baghdad',x:'55%',y:'46%'},{name:'Rayy',x:'62%',y:'38%'},
+    {name:'Bukhara',x:'70%',y:'30%'},{name:'Córdoba',x:'8%',y:'38%'},{name:'Cairo',x:'37%',y:'60%'},
+    {name:'Shiraz',x:'65%',y:'50%'}
+  ];
+  
+  const home = p.map.home; // [x%, y%]
+  
+  return `<div class="map-area">
+    <svg class="map-svg" viewBox="0 0 400 160" xmlns="http://www.w3.org/2000/svg">
+      <!-- Decorative land masses (schematic) -->
+      <path d="M0,60 Q30,40 60,50 Q90,55 120,45 Q150,35 180,40 Q210,42 240,38 Q270,32 300,40 Q330,45 360,38 L400,42 L400,160 L0,160 Z" fill="rgba(201,145,58,0.08)" stroke="rgba(201,145,58,0.3)" stroke-width="0.5"/>
+      <!-- Mediterranean schematic -->
+      <ellipse cx="130" cy="75" rx="80" ry="30" fill="rgba(26,58,106,0.08)" stroke="rgba(26,58,106,0.2)" stroke-width="0.5"/>
+      <!-- Travel lines from home -->
+      ${p.map.travels.map(t=>`<line x1="${p.map.home[0]*4}" y1="${p.map.home[1]*1.6}" x2="${t[0]*4}" y2="${t[1]*1.6}" stroke="#8B1A1A" stroke-width="1" stroke-dasharray="3,3" opacity="0.5"/>`).join('')}
+      <!-- City dots -->
+      ${cities.map(c=>{
+        const isHome = false; // simplified
+        return `<g>
+          <circle cx="${parseFloat(c.x)*4}" cy="${parseFloat(c.y)*1.6}" r="4" fill="rgba(201,145,58,0.7)" stroke="#8B1A1A" stroke-width="0.8"/>
+          <text x="${parseFloat(c.x)*4}" y="${parseFloat(c.y)*1.6+12}" text-anchor="middle" font-size="6" font-family="Crimson Pro,serif" fill="#8B1A1A" font-style="italic">${c.name}</text>
+        </g>`;
+      }).join('')}
+      <!-- Home city highlight -->
+      <circle cx="${p.map.home[0]*4}" cy="${p.map.home[1]*1.6}" r="7" fill="#8B1A1A" stroke="#C9913A" stroke-width="1.5" opacity="0.85"/>
+      <text x="${p.map.home[0]*4}" y="${p.map.home[1]*1.6 + 16}" text-anchor="middle" font-size="7" font-family="Scheherazade New,serif" fill="#8B1A1A" font-weight="700">${p.place.split(',')[0]}</text>
+    </svg>
+  </div>`;
+}
+
+const ALL_PHYS = Object.values(PHYSICIANS).flat();
+
+function nextAnecdote(id) {
+  const p = ALL_PHYS.find(x=>x.id===id);
+  if (!p) return;
+  anecdoteIndex = (anecdoteIndex + 1) % p.anecdotes.length;
+  document.getElementById('anecdoteText').textContent = p.anecdotes[anecdoteIndex];
+  document.getElementById('anecdoteBox').style.opacity = '0';
+  setTimeout(()=>{ document.getElementById('anecdoteBox').style.transition='opacity 0.4s'; document.getElementById('anecdoteBox').style.opacity = '1'; }, 50);
+}
+
+function searchBib(q) {
+  if (!q.trim()) { 
+    const p = ALL_PHYS.find(x=>x.id===currentPhysician);
+    if (p) document.getElementById('bibResult').innerHTML = p.works.map(w=>`<div style="padding:3px 0;border-bottom:1px dotted rgba(201,145,58,0.2);font-size:12px">📜 ${w.t}</div>`).join('');
+    return;
+  }
+  const results = [];
+  ALL_PHYS.forEach(p=>{
+    p.works.forEach(w=>{
+      if (w.t.toLowerCase().includes(q.toLowerCase()) || p.latin.toLowerCase().includes(q.toLowerCase()) || p.arabic.includes(q)) {
+        results.push({physician: p.latin, work: w});
+      }
+    });
+  });
+  document.getElementById('bibResult').innerHTML = results.length ? 
+    results.map(r=>`<div style="padding:3px 0;border-bottom:1px dotted rgba(201,145,58,0.2);font-size:11px"><span style="color:#8B7340">${r.physician}</span><br>${r.work.i} ${r.work.t}</div>`).join('') :
+    '<div style="font-style:italic;font-size:11px;color:#8B7340">No works found</div>';
+}
+
+function exploreNetwork(q) {
+  if (!q.trim()) return;
+  const p = ALL_PHYS.find(x=>x.latin.toLowerCase().includes(q.toLowerCase()) || x.arabic.includes(q));
+  const res = document.getElementById('netResult');
+  if (!p) { res.innerHTML = '<div style="font-style:italic;font-size:11px;color:#8B7340">Physician not found in registry</div>'; return; }
+  res.innerHTML = `
+    <div style="font-size:11px;color:#8B7340;margin-bottom:4px">Teachers of ${p.arabic.split(' ')[0]}</div>
+    ${p.teachers.map(t=>`<div style="font-size:12px;padding:2px 0">⬆ ${t}</div>`).join('') || '<div style="font-size:12px;font-style:italic;color:#8B7340">None recorded</div>'}
+    <div style="font-size:11px;color:#2A5A2A;margin:6px 0 4px">Students</div>
+    ${p.students.map(s=>`<div style="font-size:12px;padding:2px 0">⬇ ${s}</div>`).join('')}
+  `;
+}
+
+function showComparison() {
+  const bioPage = document.getElementById('bioPage');
+  const p1 = ALL_PHYS.find(x=>x.id==='razi');
+  const p2 = ALL_PHYS.find(x=>x.id==='ibnsina');
+  if (!p1||!p2) return;
+  bioPage.innerHTML = `
+    <div style="margin-bottom:14px;display:flex;align-items:center;gap:10px">
+      <button class="snake-btn" onclick="selectPhysician('${currentPhysician||'razi'}')">⬅ Back to Biography</button>
+      <span style="font-size:13px;color:#8B7340;font-style:italic">Comparative Medicine (Muqārana)</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      ${[p1,p2].map(p=>`
+      <div style="border:1.5px solid rgba(201,145,58,0.4);border-radius:2px;overflow:hidden">
+        <div style="background:linear-gradient(135deg,#1A1208,#2D1F08);padding:12px 14px;text-align:center">
+          <div style="font-size:24px;margin-bottom:4px">${p.icon}</div>
+          <div style="font-family:'Scheherazade New',serif;font-size:18px;color:#C9913A">${p.arabic}</div>
+          <div style="font-size:11px;color:rgba(232,196,122,0.7);margin-top:2px">${p.latin}</div>
+        </div>
+        <div style="padding:12px 14px;background:#F9F2E0">
+          <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#C9913A;margin-bottom:6px">Era</div>
+          <div style="font-size:12px;margin-bottom:10px">${p.dates} · ${p.place}</div>
+          <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#C9913A;margin-bottom:6px">Major Works</div>
+          <div style="margin-bottom:10px">${p.works.map(w=>`<div style="font-size:11px;padding:2px 0">${w.i} ${w.t}</div>`).join('')}</div>
+          <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#C9913A;margin-bottom:6px">Contributions</div>
+          <div>${p.contribs.slice(0,3).map(c=>`<div style="font-size:11px;padding:2px 0 2px 8px;border-left:2px solid #8B1A1A;margin-bottom:3px">${c}</div>`).join('')}</div>
+          <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#C9913A;margin-top:10px;margin-bottom:4px">Specialties</div>
+          <div style="display:flex;gap:4px;flex-wrap:wrap">${p.specialties.map(s=>`<span class="spec-badge ${SPEC_CLASS[s]}" style="font-size:9px;padding:2px 6px">${SPEC_ICON[s]} ${SPEC_LABELS[s]}</span>`).join('')}</div>
+          <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#C9913A;margin-top:10px;margin-bottom:4px">Influence Rating</div>
+          <div style="font-size:20px">★★★★${p.id==='ibnsina'?'★':'☆'}</div>
+        </div>
+      </div>`).join('')}
+    </div>
+  `;
+}
+
+// Initialize
+renderSidebar();
+selectPhysician('razi');
+</script>

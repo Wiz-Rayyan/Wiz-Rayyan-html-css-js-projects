@@ -1,0 +1,824 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap');
+  :root {
+    --ocean: #1E3A8A; --river: #2C5282; --sand: #D4B895; --mtn: #5C4033; --forest: #2E5A4C;
+    --city: #8B0000; --road: #D4AF37; --parchment: #F5E6D3; --ink: #2C1810;
+    --panel-bg: rgba(245,230,211,0.97); --border: #8B6914;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Crimson Text', Georgia, serif; background: var(--parchment); color: var(--ink); }
+  #root { width: 100%; min-height: 600px; }
+
+  /* NAV */
+  .atlas-nav { display: flex; align-items: center; gap: 0; background: var(--ink); border-bottom: 2px solid var(--road); padding: 0; }
+  .atlas-nav h1 { font-family: 'Cinzel', serif; font-size: 13px; color: var(--road); padding: 8px 14px; letter-spacing: 0.08em; border-right: 1px solid #4a3520; white-space: nowrap; }
+  .tab-bar { display: flex; flex: 1; overflow-x: auto; }
+  .tab-btn { background: none; border: none; border-right: 1px solid #3a2510; color: #c4a96a; font-family: 'Crimson Text', serif; font-size: 12px; padding: 8px 12px; cursor: pointer; white-space: nowrap; transition: background .15s, color .15s; }
+  .tab-btn:hover { background: rgba(212,175,55,0.15); color: var(--road); }
+  .tab-btn.active { background: rgba(212,175,55,0.25); color: var(--road); border-bottom: 2px solid var(--road); }
+
+  /* MAIN LAYOUT */
+  .atlas-body { display: flex; height: calc(100% - 37px); min-height: 560px; }
+  .map-area { flex: 1; position: relative; overflow: hidden; background: var(--parchment); border-right: 1px solid var(--border); }
+  .side-panel { width: 240px; background: var(--panel-bg); border-left: 1px solid var(--border); overflow-y: auto; padding: 12px; font-size: 12.5px; display: flex; flex-direction: column; gap: 10px; }
+
+  /* MAP SVG */
+  .map-svg { width: 100%; height: 100%; }
+  .map-container { width: 100%; height: 100%; min-height: 480px; }
+
+  /* City circles */
+  .city-dot { cursor: pointer; }
+  .city-dot circle { stroke: var(--city); stroke-width: 1.5; fill: var(--parchment); transition: r .15s; }
+  .city-dot.major circle { fill: #8B0000; stroke: #4a0000; }
+  .city-dot:hover circle { fill: var(--road); stroke: var(--road); }
+  .city-dot text { font-family: 'Crimson Text', serif; fill: var(--ink); font-size: 10px; pointer-events: none; }
+  .city-dot.selected circle { fill: var(--road); stroke: var(--road); r: 9; }
+
+  /* Roads */
+  .road-line { stroke: var(--road); stroke-width: 1.5; fill: none; stroke-dasharray: none; opacity: 0.7; cursor: pointer; }
+  .road-line:hover { stroke-width: 2.5; opacity: 1; }
+  .road-line.highlighted { stroke-width: 3; opacity: 1; stroke: #FF8C00; }
+  .waystation { fill: var(--sand); stroke: var(--road); stroke-width: 1; cursor: pointer; }
+  .waystation:hover { fill: var(--road); }
+
+  /* Rivers */
+  .river-line { stroke: var(--river); stroke-width: 2; fill: none; opacity: 0.6; }
+
+  /* Mountains */
+  .mtn-path { stroke: var(--mtn); stroke-width: 1; fill: #c4a080; opacity: 0.5; }
+
+  /* Desert dots */
+  .desert-dot { fill: #c8a86a; opacity: 0.3; }
+
+  /* Climate bands */
+  .climate-band { opacity: 0; transition: opacity .3s; }
+  .climate-band.visible { opacity: 0.18; }
+
+  /* Product icons */
+  .product-icon { cursor: pointer; }
+  .product-icon:hover { filter: brightness(1.3); }
+  .product-label { font-size: 9px; fill: var(--ink); font-family: 'Crimson Text', serif; }
+
+  /* Panel sections */
+  .panel-title { font-family: 'Cinzel', serif; font-size: 11px; color: var(--city); border-bottom: 1px solid var(--border); padding-bottom: 4px; margin-bottom: 6px; letter-spacing: 0.05em; }
+  .panel-row { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 0.5px solid rgba(139,105,20,0.2); padding: 2px 0; font-size: 11.5px; }
+  .panel-label { color: #5C4033; font-style: italic; }
+  .panel-value { font-weight: 600; color: var(--ink); text-align: right; max-width: 120px; font-size: 11px; }
+  .city-selector { display: flex; flex-direction: column; gap: 4px; }
+  .city-select { width: 100%; padding: 4px 6px; border: 1px solid var(--border); background: rgba(255,255,255,0.5); font-family: 'Crimson Text', serif; font-size: 12px; color: var(--ink); border-radius: 3px; }
+  .action-btn { background: var(--ink); color: var(--road); border: 1px solid var(--road); font-family: 'Cinzel', serif; font-size: 10px; padding: 5px 10px; cursor: pointer; letter-spacing: 0.05em; border-radius: 2px; width: 100%; margin-top: 4px; }
+  .action-btn:hover { background: var(--city); }
+  .toggle-row { display: flex; align-items: center; gap: 6px; font-size: 11.5px; cursor: pointer; }
+  .toggle-row input { accent-color: var(--city); }
+
+  /* Route display */
+  .route-segment { background: rgba(212,175,55,0.1); border: 1px solid rgba(212,175,55,0.4); border-radius: 3px; padding: 4px 6px; margin: 2px 0; font-size: 11px; }
+  .route-station { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #5C4033; }
+  .station-square { width: 8px; height: 8px; background: var(--sand); border: 1px solid var(--road); display: inline-block; flex-shrink: 0; }
+
+  /* Compass rose */
+  .compass { position: absolute; top: 10px; right: 10px; opacity: 0.7; }
+
+  /* Scale bar */
+  .scale-bar { position: absolute; bottom: 10px; left: 10px; display: flex; flex-direction: column; gap: 2px; }
+  .scale-track { display: flex; }
+  .scale-seg { height: 8px; width: 40px; }
+  .scale-text { font-size: 9px; color: var(--ink); font-family: 'Crimson Text', serif; }
+
+  /* Tab panels */
+  .tab-panel { display: none; }
+  .tab-panel.active { display: flex; flex-direction: column; gap: 8px; }
+
+  /* Farsakh converter */
+  .converter { display: flex; flex-direction: column; gap: 6px; }
+  .conv-input { width: 100%; padding: 4px; border: 1px solid var(--border); background: rgba(255,255,255,0.5); font-family: 'Crimson Text', serif; font-size: 12px; border-radius: 3px; }
+  .conv-result { background: rgba(139,0,0,0.07); border: 1px solid rgba(139,0,0,0.2); border-radius: 3px; padding: 4px 6px; font-size: 11.5px; }
+
+  /* Itinerary */
+  .journey-stop { display: flex; align-items: center; gap: 6px; font-size: 11px; padding: 3px 0; border-bottom: 0.5px dotted var(--border); }
+  .stop-num { width: 16px; height: 16px; background: var(--city); color: var(--parchment); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-family: 'Cinzel', serif; flex-shrink: 0; }
+  .profit-box { background: rgba(46,90,76,0.1); border: 1px solid var(--forest); border-radius: 3px; padding: 6px; font-size: 11.5px; }
+
+  /* City comparison */
+  .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .compare-city { background: rgba(139,0,0,0.05); border: 1px solid rgba(139,0,0,0.2); border-radius: 3px; padding: 6px; }
+  .compare-city h4 { font-family: 'Cinzel', serif; font-size: 11px; color: var(--city); margin-bottom: 4px; }
+
+  /* Caravan divider */
+  .caravan-divider { text-align: center; padding: 4px 0; opacity: 0.5; font-size: 10px; letter-spacing: 2px; color: var(--road); }
+
+  /* Travel animation */
+  #caravan-pos { transition: cx 0.5s, cy 0.5s; }
+  .days-badge { background: var(--city); color: var(--parchment); font-family: 'Cinzel', serif; font-size: 10px; padding: 2px 8px; border-radius: 10px; display: inline-block; }
+
+  /* Empty state */
+  .empty-state { text-align: center; padding: 20px; color: #8B6914; font-style: italic; font-size: 12px; }
+
+  @media (max-width: 600px) {
+    .atlas-body { flex-direction: column; }
+    .side-panel { width: 100%; height: auto; max-height: 280px; }
+  }
+</style>
+
+<div id="root">
+  <nav class="atlas-nav">
+    <h1>&#9670; Kitāb Ṣifat al-Arḍ</h1>
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab('map')">Atlas</button>
+      <button class="tab-btn" onclick="switchTab('route')">Route Planner</button>
+      <button class="tab-btn" onclick="switchTab('itinerary')">Itinerary</button>
+      <button class="tab-btn" onclick="switchTab('compare')">City Compare</button>
+      <button class="tab-btn" onclick="switchTab('farsakh')">Farsakh</button>
+      <button class="tab-btn" onclick="switchTab('travel')">Travel Time</button>
+    </div>
+  </nav>
+
+  <div class="atlas-body">
+    <!-- MAP AREA -->
+    <div class="map-area map-container" id="mapArea">
+      <svg class="map-svg" viewBox="0 0 460 480" id="mainMap" xmlns="http://www.w3.org/2000/svg">
+        <!-- Ocean background patch -->
+        <rect x="0" y="0" width="460" height="480" fill="#e8d9c0"/>
+
+        <!-- Climate bands (toggleable) -->
+        <rect class="climate-band" id="band1" x="0" y="390" width="460" height="90" fill="#228B22"/>
+        <rect class="climate-band" id="band2" x="0" y="320" width="460" height="70" fill="#8B8000"/>
+        <rect class="climate-band" id="band3" x="0" y="240" width="460" height="80" fill="#D4A800"/>
+        <rect class="climate-band" id="band4" x="0" y="160" width="460" height="80" fill="#8B6914"/>
+        <rect class="climate-band" id="band5" x="0" y="100" width="460" height="60" fill="#4a7c59"/>
+        <rect class="climate-band" id="band6" x="0" y="50" width="460" height="50" fill="#5b8fa8"/>
+        <rect class="climate-band" id="band7" x="0" y="0" width="460" height="50" fill="#a8c8d8"/>
+
+        <!-- Map border / frame -->
+        <rect x="2" y="2" width="456" height="476" fill="none" stroke="#8B6914" stroke-width="2" rx="3"/>
+        <rect x="6" y="6" width="448" height="468" fill="none" stroke="#8B6914" stroke-width="0.5" rx="2"/>
+
+        <!-- Region labels (Kufic-style headers) -->
+        <text x="60" y="30" font-family="'Cinzel',serif" font-size="9" fill="#5C4033" opacity="0.7" letter-spacing="1">MAGHRIB</text>
+        <text x="180" y="22" font-family="'Cinzel',serif" font-size="9" fill="#5C4033" opacity="0.7" letter-spacing="1">AL-ANDALUS</text>
+        <text x="350" y="22" font-family="'Cinzel',serif" font-size="9" fill="#5C4033" opacity="0.7" letter-spacing="1">EGYPT</text>
+        <text x="360" y="120" font-family="'Cinzel',serif" font-size="9" fill="#5C4033" opacity="0.7" letter-spacing="1">SYRIA</text>
+        <text x="340" y="200" font-family="'Cinzel',serif" font-size="9" fill="#5C4033" opacity="0.7" letter-spacing="1">IRAQ</text>
+        <text x="360" y="290" font-family="'Cinzel',serif" font-size="9" fill="#5C4033" opacity="0.7" letter-spacing="1">PERSIA</text>
+        <text x="20" y="200" font-family="'Cinzel',serif" font-size="8" fill="#5C4033" opacity="0.7">TRANSOXIANA</text>
+        <text x="50" y="350" font-family="'Cinzel',serif" font-size="8" fill="#5C4033" opacity="0.7">SIND / INDIA</text>
+
+        <!-- Mediterranean Sea label -->
+        <text x="120" y="75" font-family="'Crimson Text',serif" font-size="9" fill="#2C5282" opacity="0.6" font-style="italic">البحر الأبيض</text>
+        <!-- Caspian -->
+        <text x="30" y="135" font-family="'Crimson Text',serif" font-size="8" fill="#2C5282" opacity="0.6" font-style="italic">بحر الخزر</text>
+
+        <!-- Water bodies -->
+        <!-- Mediterranean -->
+        <ellipse cx="150" cy="68" rx="100" ry="30" fill="#2C5282" opacity="0.25"/>
+        <!-- Caspian Sea -->
+        <ellipse cx="55" cy="145" rx="20" ry="45" fill="#2C5282" opacity="0.3"/>
+        <!-- Persian Gulf -->
+        <path d="M310 265 Q330 280 340 290 Q330 300 310 295 Q295 285 300 270 Z" fill="#2C5282" opacity="0.3"/>
+        <!-- Red Sea -->
+        <path d="M380 180 Q395 200 400 240 Q390 240 385 220 Q378 200 375 180 Z" fill="#2C5282" opacity="0.3"/>
+
+        <!-- Rivers -->
+        <!-- Tigris & Euphrates meeting -->
+        <path class="river-line" d="M290 200 Q295 220 300 240 Q310 260 330 270"/>
+        <path class="river-line" d="M320 195 Q315 215 310 240 Q315 255 325 265"/>
+        <!-- Nile suggestion -->
+        <path class="river-line" d="M390 320 Q388 280 395 250 Q400 220 405 190 Q400 160 398 140"/>
+        <!-- Oxus river -->
+        <path class="river-line" d="M80 130 Q90 155 100 170 Q120 185 140 190" stroke-width="1.5"/>
+
+        <!-- Mountains (row of hooks style) -->
+        <!-- Zagros -->
+        <g opacity="0.45">
+          <path class="mtn-path" d="M260 200 L265 188 L270 200 Z"/>
+          <path class="mtn-path" d="M273 202 L278 190 L283 202 Z"/>
+          <path class="mtn-path" d="M252 218 L257 206 L262 218 Z"/>
+          <path class="mtn-path" d="M265 220 L270 208 L275 220 Z"/>
+          <path class="mtn-path" d="M278 222 L283 210 L288 222 Z"/>
+          <path class="mtn-path" d="M245 235 L250 223 L255 235 Z"/>
+          <path class="mtn-path" d="M258 237 L263 225 L268 237 Z"/>
+        </g>
+        <!-- Hindu Kush suggestion -->
+        <g opacity="0.4">
+          <path class="mtn-path" d="M75 230 L80 218 L85 230 Z"/>
+          <path class="mtn-path" d="M88 232 L93 220 L98 232 Z"/>
+          <path class="mtn-path" d="M100 230 L105 218 L110 230 Z"/>
+          <path class="mtn-path" d="M112 228 L117 216 L122 228 Z"/>
+        </g>
+        <!-- Atlas Mountains -->
+        <g opacity="0.4">
+          <path class="mtn-path" d="M90 110 L95 98 L100 110 Z"/>
+          <path class="mtn-path" d="M103 112 L108 100 L113 112 Z"/>
+          <path class="mtn-path" d="M116 110 L121 98 L126 110 Z"/>
+        </g>
+        <!-- Taurus -->
+        <g opacity="0.4">
+          <path class="mtn-path" d="M280 130 L285 118 L290 130 Z"/>
+          <path class="mtn-path" d="M293 128 L298 116 L303 128 Z"/>
+          <path class="mtn-path" d="M306 126 L311 114 L316 126 Z"/>
+        </g>
+
+        <!-- Desert dots -->
+        <g id="desertLayer">
+          <circle class="desert-dot" cx="200" cy="310" r="2"/><circle class="desert-dot" cx="215" cy="325" r="1.5"/>
+          <circle class="desert-dot" cx="230" cy="315" r="2"/><circle class="desert-dot" cx="245" cy="330" r="1.5"/>
+          <circle class="desert-dot" cx="190" cy="330" r="2"/><circle class="desert-dot" cx="260" cy="320" r="2"/>
+          <circle class="desert-dot" cx="170" cy="320" r="1.5"/><circle class="desert-dot" cx="275" cy="335" r="2"/>
+          <circle class="desert-dot" cx="205" cy="345" r="2"/><circle class="desert-dot" cx="220" cy="355" r="1.5"/>
+          <circle class="desert-dot" cx="235" cy="345" r="2"/><circle class="desert-dot" cx="250" cy="360" r="1.5"/>
+          <circle class="desert-dot" cx="160" cy="340" r="2"/><circle class="desert-dot" cx="290" cy="350" r="2"/>
+        </g>
+
+        <!-- ROADS (masalik) -->
+        <!-- Baghdad - Nishapur route (main highlighted) -->
+        <path class="road-line highlighted" id="road-bgd-nish"
+          d="M305 215 Q280 205 255 210 Q230 215 210 210 Q190 205 170 215 Q150 225 140 240"
+          data-from="baghdad" data-to="nishapur"/>
+        <!-- Baghdad - Damascus -->
+        <path class="road-line" d="M305 215 Q320 195 340 178 Q360 162 365 140" data-from="baghdad" data-to="damascus"/>
+        <!-- Damascus - Cairo -->
+        <path class="road-line" d="M365 140 Q375 155 390 165" data-from="damascus" data-to="cairo"/>
+        <!-- Cairo - Cordoba via sea suggestion -->
+        <path class="road-line" stroke-dasharray="4,3" d="M390 165 Q350 130 300 110 Q240 90 195 85" data-from="cairo" data-to="cordoba"/>
+        <!-- Baghdad - Basra -->
+        <path class="road-line" d="M305 215 Q315 240 325 270" data-from="baghdad" data-to="basra"/>
+        <!-- Nishapur - Bukhara -->
+        <path class="road-line" d="M140 240 Q125 230 110 220 Q90 210 75 200" data-from="nishapur" data-to="bukhara"/>
+        <!-- Nishapur - Rayy -->
+        <path class="road-line" d="M140 240 Q155 235 175 230 Q195 228 215 225" data-from="nishapur" data-to="rayy"/>
+        <!-- Rayy - Baghdad via Qarmasin -->
+        <path class="road-line" d="M215 225 Q240 220 265 218 Q285 216 305 215" data-from="rayy" data-to="baghdad"/>
+
+        <!-- WAY STATIONS on Baghdad-Nishapur route -->
+        <!-- Qarmasin -->
+        <rect class="waystation" x="267" y="211" width="8" height="8" rx="1" id="ws-qarmasin"
+          onclick="showWaystation('Qarmasin','Day 8 — 200 parasangs from Baghdad. Caravanserai with well. Garrison town near Zagros foothills.')"/>
+        <!-- Rayy -->
+        <rect class="waystation" x="212" y="221" width="8" height="8" rx="1" id="ws-rayy"
+          onclick="showWaystation('Rayy','Day 18 — 500 parasangs from Baghdad. Major city. Silk market, pottery, copper goods. Royal caravanserai.')"/>
+
+        <!-- CITIES -->
+        <!-- Baghdad (major) -->
+        <g class="city-dot major selected" id="city-baghdad" onclick="showCity('baghdad')">
+          <circle cx="305" cy="215" r="10"/>
+          <text x="305" y="230" text-anchor="middle" font-size="9" font-weight="bold" font-family="'Cinzel',serif" fill="#2C1810">BAGHDAD</text>
+        </g>
+        <!-- Nishapur (major) -->
+        <g class="city-dot major" id="city-nishapur" onclick="showCity('nishapur')">
+          <circle cx="140" cy="240" r="8"/>
+          <text x="140" y="254" text-anchor="middle" font-size="8.5" font-weight="bold" font-family="'Cinzel',serif" fill="#2C1810">NISHAPUR</text>
+        </g>
+        <!-- Damascus -->
+        <g class="city-dot" id="city-damascus" onclick="showCity('damascus')">
+          <circle cx="365" cy="140" r="6"/>
+          <text x="365" y="153" text-anchor="middle" font-size="8" font-family="'Cinzel',serif" fill="#2C1810">DAMASCUS</text>
+        </g>
+        <!-- Cairo -->
+        <g class="city-dot" id="city-cairo" onclick="showCity('cairo')">
+          <circle cx="390" cy="165" r="7"/>
+          <text x="390" y="179" text-anchor="middle" font-size="8" font-family="'Cinzel',serif" fill="#2C1810">AL-QĀHIRA</text>
+        </g>
+        <!-- Cordoba -->
+        <g class="city-dot" id="city-cordoba" onclick="showCity('cordoba')">
+          <circle cx="195" cy="85" r="6"/>
+          <text x="195" y="75" text-anchor="middle" font-size="8" font-family="'Cinzel',serif" fill="#2C1810">QURṬUBA</text>
+        </g>
+        <!-- Basra -->
+        <g class="city-dot" id="city-basra" onclick="showCity('basra')">
+          <circle cx="325" cy="270" r="5"/>
+          <text x="325" y="283" text-anchor="middle" font-size="7.5" font-family="'Cinzel',serif" fill="#2C1810">BASRA</text>
+        </g>
+        <!-- Bukhara -->
+        <g class="city-dot" id="city-bukhara" onclick="showCity('bukhara')">
+          <circle cx="75" cy="200" r="5"/>
+          <text x="75" y="213" text-anchor="middle" font-size="7.5" font-family="'Cinzel',serif" fill="#2C1810">BUKHĀRĀ</text>
+        </g>
+        <!-- Rayy -->
+        <g class="city-dot" id="city-rayy" onclick="showCity('rayy')">
+          <circle cx="215" cy="228" r="5"/>
+          <text x="215" y="218" text-anchor="middle" font-size="7.5" font-family="'Cinzel',serif" fill="#2C1810">RAYY</text>
+        </g>
+        <!-- Fustat -->
+        <g class="city-dot" id="city-fustat" onclick="showCity('fustat')">
+          <circle cx="395" cy="185" r="4"/>
+          <text x="415" y="188" text-anchor="start" font-size="7" font-family="'Cinzel',serif" fill="#2C1810">FUSṬĀṬ</text>
+        </g>
+
+        <!-- PRODUCT ICONS (toggleable) -->
+        <g id="productLayer">
+          <!-- Textiles at Baghdad -->
+          <g class="product-icon" id="prod-textiles" onclick="highlightTrade('textiles','Baghdad','Nishapur via Rayy')">
+            <rect x="318" y="200" width="14" height="14" fill="#D4AF37" stroke="#8B6914" stroke-width="0.5" rx="2"/>
+            <text x="325" y="211" text-anchor="middle" font-size="9" fill="#5C4033">✦</text>
+            <text class="product-label" x="325" y="220" text-anchor="middle">Textiles</text>
+          </g>
+          <!-- Books at Baghdad -->
+          <g class="product-icon" id="prod-books" onclick="highlightTrade('books','Baghdad','Cordoba via Damascus')">
+            <rect x="290" y="198" width="14" height="14" fill="#2E5A4C" stroke="#1a3a2c" stroke-width="0.5" rx="2"/>
+            <text x="297" y="209" text-anchor="middle" font-size="9" fill="#e8d9c0">▣</text>
+            <text class="product-label" x="297" y="220" text-anchor="middle">Books</text>
+          </g>
+          <!-- Olives at Cordoba -->
+          <g class="product-icon" id="prod-olives" onclick="highlightTrade('olives','Cordoba','Mediterranean ports')">
+            <circle cx="185" cy="80" r="7" fill="#2E5A4C" stroke="#1a3a2c" stroke-width="0.5"/>
+            <text x="185" y="84" text-anchor="middle" font-size="9" fill="#e8d9c0">◉</text>
+            <text class="product-label" x="185" y="70" text-anchor="middle">Olive</text>
+          </g>
+          <!-- Dates at Basra -->
+          <g class="product-icon" id="prod-dates" onclick="highlightTrade('dates','Basra','Baghdad and Nishapur')">
+            <rect x="317" y="258" width="14" height="14" fill="#8B4513" stroke="#5C2A00" stroke-width="0.5" rx="2"/>
+            <text x="324" y="269" text-anchor="middle" font-size="9" fill="#e8d9c0">♣</text>
+            <text class="product-label" x="324" y="280" text-anchor="middle">Dates</text>
+          </g>
+          <!-- Ship at Cairo -->
+          <g class="product-icon" id="prod-port" onclick="highlightTrade('port','Cairo','Mediterranean trade')">
+            <rect x="378" y="152" width="14" height="14" fill="#1E3A8A" stroke="#0f2060" stroke-width="0.5" rx="2"/>
+            <text x="385" y="163" text-anchor="middle" font-size="9" fill="#e8d9c0">⚓</text>
+            <text class="product-label" x="385" y="142" text-anchor="middle">Port</text>
+          </g>
+          <!-- Silk at Bukhara -->
+          <g class="product-icon" id="prod-silk" onclick="highlightTrade('silk','Bukhara','Baghdad via Nishapur')">
+            <rect x="65" y="188" width="14" height="14" fill="#8B0000" stroke="#5C0000" stroke-width="0.5" rx="2"/>
+            <text x="72" y="199" text-anchor="middle" font-size="9" fill="#e8d9c0">~</text>
+            <text class="product-label" x="72" y="178" text-anchor="middle">Silk</text>
+          </g>
+        </g>
+
+        <!-- Road distance labels -->
+        <text x="255" y="204" text-anchor="middle" font-size="7.5" fill="#8B6914" font-style="italic" font-family="'Crimson Text',serif">25 farsakh/day</text>
+
+        <!-- COMPASS ROSE -->
+        <g class="compass" transform="translate(420,30)">
+          <circle cx="0" cy="0" r="18" fill="rgba(245,230,211,0.9)" stroke="#8B6914" stroke-width="1"/>
+          <!-- N arrow (pointing UP = actually south up, Islamic cartography) -->
+          <polygon points="0,-14 -4,-4 0,-6 4,-4" fill="#8B0000"/>
+          <polygon points="0,14 -4,4 0,6 4,4" fill="#2C1810"/>
+          <text y="-16" text-anchor="middle" font-size="7" fill="#8B0000" font-family="'Cinzel',serif">J</text>
+          <text y="20" text-anchor="middle" font-size="7" fill="#5C4033" font-family="'Cinzel',serif">S</text>
+          <text x="-18" y="3" text-anchor="middle" font-size="7" fill="#5C4033" font-family="'Cinzel',serif">M</text>
+          <text x="18" y="3" text-anchor="middle" font-size="7" fill="#5C4033" font-family="'Cinzel',serif">Sh</text>
+          <circle cx="0" cy="0" r="2" fill="#8B6914"/>
+          <text y="28" text-anchor="middle" font-size="6" fill="#8B6914" font-family="'Crimson Text',serif" font-style="italic">South ↑</text>
+        </g>
+
+        <!-- Scale bar -->
+        <g transform="translate(12,460)">
+          <rect x="0" y="0" width="40" height="7" fill="#2C1810"/>
+          <rect x="40" y="0" width="40" height="7" fill="var(--parchment)" stroke="#2C1810" stroke-width="0.5"/>
+          <rect x="80" y="0" width="40" height="7" fill="#2C1810"/>
+          <text x="0" y="17" font-size="7" fill="#2C1810" font-family="'Crimson Text',serif">0</text>
+          <text x="55" y="17" text-anchor="middle" font-size="7" fill="#2C1810" font-family="'Crimson Text',serif">200</text>
+          <text x="120" y="17" text-anchor="middle" font-size="7" fill="#2C1810" font-family="'Crimson Text',serif">400 farsakh</text>
+        </g>
+
+        <!-- Animated caravan (for travel tab) -->
+        <g id="caravanGroup" opacity="0">
+          <circle id="caravan-pos" cx="305" cy="215" r="5" fill="#D4AF37" stroke="#8B6914" stroke-width="1"/>
+          <text id="caravan-days" x="305" y="208" text-anchor="middle" font-size="7" fill="#8B0000" font-family="'Cinzel',serif">Day 0</text>
+        </g>
+
+        <!-- Anotation: Baghdad city plan inset hint -->
+        <g transform="translate(300,230)">
+          <!-- concentric circles for Baghdad -->
+          <circle cx="0" cy="0" r="0" fill="none" stroke="#8B0000" stroke-width="0.3" opacity="0.4" id="bg-outer"/>
+        </g>
+
+      </svg>
+    </div>
+
+    <!-- SIDE PANEL -->
+    <div class="side-panel">
+
+      <!-- MAP TAB -->
+      <div id="tab-map" class="tab-panel active">
+        <div class="panel-title">⬛ Map Layers</div>
+        <label class="toggle-row"><input type="checkbox" checked onchange="toggleLayer('roads',this.checked)"> Roads & routes</label>
+        <label class="toggle-row"><input type="checkbox" checked onchange="toggleLayer('rivers',this.checked)"> Rivers</label>
+        <label class="toggle-row"><input type="checkbox" checked onchange="toggleLayer('mountains',this.checked)"> Mountains</label>
+        <label class="toggle-row"><input type="checkbox" checked onchange="toggleLayer('desert',this.checked)"> Desert markers</label>
+        <label class="toggle-row"><input type="checkbox" checked onchange="toggleLayer('products',this.checked)"> Product icons</label>
+        <label class="toggle-row"><input type="checkbox" onchange="toggleLayer('climate',this.checked)"> Climate bands (iqlīm)</label>
+
+        <div class="caravan-divider">- &#x1F42A; - &#x1F42A; -</div>
+
+        <div class="panel-title">&#x2605; Climate Bands (Iqlīm)</div>
+        <div style="display:flex;flex-direction:column;gap:3px;font-size:11px;">
+          <div style="display:flex;align-items:center;gap:5px;"><div style="width:12px;height:12px;background:#228B22;border-radius:2px;"></div> Band 1 — Equatorial, grains</div>
+          <div style="display:flex;align-items:center;gap:5px;"><div style="width:12px;height:12px;background:#8B8000;border-radius:2px;"></div> Band 2 — Tropical, spices</div>
+          <div style="display:flex;align-items:center;gap:5px;"><div style="width:12px;height:12px;background:#D4A800;border-radius:2px;"></div> Band 3 — Sub-tropical, olives</div>
+          <div style="display:flex;align-items:center;gap:5px;"><div style="width:12px;height:12px;background:#8B6914;border-radius:2px;"></div> Band 4 — Dry/semi-arid (Iraq)</div>
+          <div style="display:flex;align-items:center;gap:5px;"><div style="width:12px;height:12px;background:#4a7c59;border-radius:2px;"></div> Band 5 — Temperate, grapes</div>
+          <div style="display:flex;align-items:center;gap:5px;"><div style="width:12px;height:12px;background:#5b8fa8;border-radius:2px;"></div> Band 6 — Cold, furs</div>
+          <div style="display:flex;align-items:center;gap:5px;"><div style="width:12px;height:12px;background:#a8c8d8;border-radius:2px;"></div> Band 7 — Arctic, desolate</div>
+        </div>
+
+        <div class="caravan-divider">- &#x1F42A; -</div>
+
+        <div id="cityPanel">
+          <div class="panel-title">&#x2605; Baghdad — بغداد</div>
+          <div class="panel-row"><span class="panel-label">Coordinates</span><span class="panel-value">33°20′N / 44°26′E</span></div>
+          <div class="panel-row"><span class="panel-label">Population</span><span class="panel-value">~500,000</span></div>
+          <div class="panel-row"><span class="panel-label">Tax revenue</span><span class="panel-value">10M dirhams</span></div>
+          <div class="panel-row"><span class="panel-label">Climate band</span><span class="panel-value">Band 4 (dry/arid)</span></div>
+          <div class="panel-row"><span class="panel-label">City gates</span><span class="panel-value">4 gates (Round City)</span></div>
+          <div class="panel-row"><span class="panel-label">Mosque</span><span class="panel-value">Mosque of al-Manṣūr</span></div>
+          <div class="panel-row"><span class="panel-label">Palace</span><span class="panel-value">Qaṣr al-Dhahab</span></div>
+          <div class="panel-row"><span class="panel-label">Markets</span><span class="panel-value">Textiles, books, metalwork, spices</span></div>
+          <div class="panel-row"><span class="panel-label">Main exports</span><span class="panel-value">Fine cloth, manuscripts, glass</span></div>
+          <div class="panel-row"><span class="panel-label">River</span><span class="panel-value">Tigris (Dijla)</span></div>
+          <div class="panel-row"><span class="panel-label">Days to Nishapur</span><span class="panel-value">30 days</span></div>
+        </div>
+      </div>
+
+      <!-- ROUTE TAB -->
+      <div id="tab-route" class="tab-panel">
+        <div class="panel-title">&#x27A4; Route Planner (Maslak)</div>
+        <div class="city-selector">
+          <label style="font-size:11px;color:#5C4033;">Departure city:</label>
+          <select class="city-select" id="fromCity">
+            <option value="baghdad">Baghdad</option>
+            <option value="cairo">Cairo (al-Qāhira)</option>
+            <option value="cordoba">Cordoba (Qurṭuba)</option>
+            <option value="damascus">Damascus</option>
+            <option value="nishapur">Nishapur</option>
+            <option value="basra">Basra</option>
+            <option value="bukhara">Bukhārā</option>
+          </select>
+          <label style="font-size:11px;color:#5C4033;margin-top:4px;">Destination:</label>
+          <select class="city-select" id="toCity">
+            <option value="nishapur" selected>Nishapur</option>
+            <option value="baghdad">Baghdad</option>
+            <option value="cairo">Cairo (al-Qāhira)</option>
+            <option value="cordoba">Cordoba (Qurṭuba)</option>
+            <option value="damascus">Damascus</option>
+            <option value="basra">Basra</option>
+            <option value="bukhara">Bukhārā</option>
+          </select>
+          <button class="action-btn" onclick="planRoute()">&#x27A4; Calculate Route</button>
+        </div>
+
+        <div id="routeResult" style="margin-top:8px;">
+          <div class="panel-title">Baghdad → Nishapur</div>
+          <div class="panel-row"><span class="panel-label">Total distance</span><span class="panel-value">750 parasangs</span></div>
+          <div class="panel-row"><span class="panel-label">Travel time</span><span class="panel-value">30 days</span></div>
+          <div class="panel-row"><span class="panel-label">Terrain</span><span class="panel-value">Plain → Mountain → Steppe</span></div>
+          <div style="margin-top:6px;font-size:11px;color:#5C4033;font-style:italic;">Way stations (caravanserais):</div>
+          <div class="route-station"><span class="station-square"></span> Qarmasin (Day 8, 200 par.)</div>
+          <div class="route-station"><span class="station-square"></span> Rayy (Day 18, 500 par.)</div>
+          <div class="route-station"><span class="station-square"></span> Nishapur Gate (Day 30)</div>
+          <div style="margin-top:6px;font-size:11px;color:#5C4033;font-style:italic;">Notable goods along route:</div>
+          <div class="route-segment">🔶 Textiles from Baghdad</div>
+          <div class="route-segment">📜 Manuscripts from Rayy</div>
+          <div class="route-segment">🧵 Silk from Nishapur</div>
+        </div>
+      </div>
+
+      <!-- ITINERARY TAB -->
+      <div id="tab-itinerary" class="tab-panel">
+        <div class="panel-title">&#x1F6B5; Merchant Itinerary Builder</div>
+        <div class="city-selector">
+          <label style="font-size:11px;color:#5C4033;">Start city:</label>
+          <select class="city-select" id="itinStart">
+            <option value="baghdad">Baghdad</option>
+            <option value="basra">Basra</option>
+            <option value="cairo">Cairo</option>
+            <option value="cordoba">Cordoba</option>
+          </select>
+          <label style="font-size:11px;color:#5C4033;margin-top:4px;">End city:</label>
+          <select class="city-select" id="itinEnd">
+            <option value="nishapur">Nishapur</option>
+            <option value="bukhara">Bukhārā</option>
+            <option value="damascus">Damascus</option>
+            <option value="cairo">Cairo</option>
+          </select>
+          <label style="font-size:11px;color:#5C4033;margin-top:4px;">Cargo (goods to trade):</label>
+          <select class="city-select" id="itinGoods">
+            <option value="textiles">Baghdad textiles</option>
+            <option value="manuscripts">Manuscripts</option>
+            <option value="spices">Spices</option>
+            <option value="silk">Raw silk</option>
+          </select>
+          <button class="action-btn" onclick="buildItinerary()">&#x2693; Build Journey</button>
+        </div>
+        <div id="itinResult" style="margin-top:8px;">
+          <div class="panel-title">Sample: Baghdad → Nishapur</div>
+          <div class="journey-stop"><span class="stop-num">1</span> Baghdad — Load textiles (cost: 500 dinars)</div>
+          <div class="journey-stop"><span class="stop-num">2</span> Qarmasin — Rest. Day 8. Buy provisions.</div>
+          <div class="journey-stop"><span class="stop-num">3</span> Rayy — Trade partial load. +150 dinars</div>
+          <div class="journey-stop"><span class="stop-num">4</span> Nishapur — Sell textiles. +600 dinars</div>
+          <div class="caravan-divider">- &#x1F42A; -</div>
+          <div class="profit-box">
+            <div style="font-family:'Cinzel',serif;font-size:10px;color:var(--forest);margin-bottom:4px;">Journey Ledger</div>
+            <div class="panel-row"><span class="panel-label">Total days</span><span class="panel-value">30 days</span></div>
+            <div class="panel-row"><span class="panel-label">Distance</span><span class="panel-value">750 parasangs</span></div>
+            <div class="panel-row"><span class="panel-label">Revenue</span><span class="panel-value">750 dinars</span></div>
+            <div class="panel-row"><span class="panel-label">Costs</span><span class="panel-value">500 dinars</span></div>
+            <div class="panel-row" style="border-top:1px solid var(--forest);padding-top:3px;"><span class="panel-label" style="font-weight:600;">Net profit</span><span class="panel-value" style="color:var(--forest);font-weight:700;">+250 dinars</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- COMPARE TAB -->
+      <div id="tab-compare" class="tab-panel">
+        <div class="panel-title">&#x2261; City Comparison</div>
+        <div class="city-selector" style="flex-direction:row;gap:4px;">
+          <select class="city-select" id="cmpA" style="flex:1;">
+            <option value="cairo">Cairo</option>
+            <option value="baghdad">Baghdad</option>
+            <option value="cordoba">Cordoba</option>
+            <option value="nishapur">Nishapur</option>
+          </select>
+          <span style="font-size:11px;align-self:center;color:#5C4033;">vs</span>
+          <select class="city-select" id="cmpB" style="flex:1;">
+            <option value="cordoba">Cordoba</option>
+            <option value="baghdad">Baghdad</option>
+            <option value="cairo">Cairo</option>
+            <option value="nishapur">Nishapur</option>
+          </select>
+        </div>
+        <button class="action-btn" onclick="compareCtys()">&#x2261; Compare</button>
+        <div id="compareResult" style="margin-top:8px;"></div>
+      </div>
+
+      <!-- FARSAKH TAB -->
+      <div id="tab-farsakh" class="tab-panel">
+        <div class="panel-title">&#x2609; Farsakh Converter</div>
+        <div class="converter">
+          <label style="font-size:11px;color:#5C4033;">Amount:</label>
+          <input class="conv-input" type="number" id="convAmt" value="30" min="1"/>
+          <label style="font-size:11px;color:#5C4033;">Unit:</label>
+          <select class="city-select" id="convUnit">
+            <option value="farsakh">Farsakh (parasang) ≈ 6 km</option>
+            <option value="barid">Barīd (postal stage) ≈ 24 km</option>
+            <option value="marhala">Marhala (day's march) ≈ 35 km</option>
+            <option value="days">Days of travel ≈ 35 km/day</option>
+            <option value="mils">Mils (miles) ≈ 1.6 km</option>
+          </select>
+          <button class="action-btn" onclick="convertFarsakh()">&#x2609; Convert</button>
+          <div class="conv-result" id="convResult">
+            <div style="font-size:11px;color:#5C4033;">30 farsakh =</div>
+            <div style="font-size:15px;font-weight:600;color:var(--ink);">180 km / 112 miles</div>
+            <div style="font-size:10px;color:#8B6914;margin-top:2px;">≈ 5 days caravan travel</div>
+          </div>
+          <div style="margin-top:8px;font-size:10.5px;color:#5C4033;line-height:1.5;">
+            <strong>Equivalences:</strong><br>
+            1 farsakh = ~6 km = ~3.7 miles<br>
+            1 barīd = 4 farsakh = ~24 km<br>
+            1 marhala = ~6 farsakh = ~35 km/day<br>
+            Baghdad→Nishapur: 750 farsakh = 30 marhala
+          </div>
+        </div>
+      </div>
+
+      <!-- TRAVEL TIME TAB -->
+      <div id="tab-travel" class="tab-panel">
+        <div class="panel-title">&#x1F6B5; Animated Caravan Travel</div>
+        <div style="font-size:11px;color:#5C4033;margin-bottom:6px;">Watch a caravan travel Baghdad → Nishapur along the road.</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <label style="font-size:11px;color:#5C4033;">Day:</label>
+          <input type="range" min="0" max="30" value="0" id="travelSlider" style="flex:1;" oninput="updateTravel(this.value)"/>
+          <span id="travelDay" class="days-badge">Day 0</span>
+        </div>
+        <div id="travelInfo" style="font-size:11px;color:#5C4033;line-height:1.6;">
+          <strong>Current position:</strong> Baghdad<br>
+          <strong>Distance covered:</strong> 0 parasangs<br>
+          <strong>Next station:</strong> Qarmasin (Day 8)
+        </div>
+        <button class="action-btn" onclick="animateCaravan()">&#x25B6; Animate Journey</button>
+        <div class="caravan-divider">- &#x1F42A; - &#x1F42A; -</div>
+        <div style="font-size:10.5px;color:#8B6914;line-height:1.6;">
+          <em>Ibn Hawqal notes the Baghdad–Nishapur road passes through Qarmasin at the Zagros foothills (Day 8), then Rayy, the great city of Persia (Day 18), before reaching Nishapur in Khorasan on Day 30.</em>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+const CITIES = {
+  baghdad: {name:"Baghdad",ar:"بغداد",coords:"33°20′N 44°26′E",pop:"~500,000",tax:"10,000,000 dirhams",band:"4 (dry/arid, Iraq)",gates:"4 (Round City of al-Manṣūr)",mosque:"Mosque of al-Manṣūr",palace:"Qaṣr al-Dhahab (Golden Gate Palace)",markets:"Textiles, books, metalwork, spices, glass",exports:"Fine cloth, manuscripts, glassware",river:"Tigris (Dijla)",x:305,y:215},
+  nishapur: {name:"Nishapur",ar:"نيسابور",coords:"36°12′N 58°47′E",pop:"~150,000",tax:"3,000,000 dirhams",band:"5 (temperate, Khorasan)",gates:"4 gates",mosque:"Great Mosque of Nishapur",palace:"Dār al-Imāra",markets:"Silk, turquoise, cotton, ceramics",exports:"Silk textiles, turquoise gems",river:"None major (arid plain)",x:140,y:240},
+  cairo: {name:"al-Qāhira (Cairo)",ar:"القاهرة",coords:"30°03′N 31°14′E",pop:"~200,000",tax:"5,000,000 dirhams",band:"3 (sub-tropical, Egypt)",gates:"8 gates",mosque:"al-Azhar Mosque",palace:"Fatimid Royal Palace",markets:"Linen, grain, spices, papyrus",exports:"Linen cloth, grain, papyrus, flax",river:"Nile (al-Nīl)",x:390,y:165},
+  cordoba: {name:"Qurṭuba (Cordoba)",ar:"قرطبة",coords:"37°53′N 4°46′W",pop:"~250,000",tax:"6,000,000 dirhams",band:"3 (Mediterranean, olive/vine)",gates:"7 gates",mosque:"Great Mosque of Córdoba",palace:"Madīnat al-Zahrāʾ",markets:"Leather, olive oil, silk, ivory",exports:"Olive oil, leather goods, silver",river:"Wadi al-Kabīr (Guadalquivir)",x:195,y:85},
+  damascus: {name:"Damascus",ar:"دمشق",coords:"33°30′N 36°17′E",pop:"~80,000",tax:"2,000,000 dirhams",band:"3 (Mediterranean, grains)",gates:"9 ancient gates",mosque:"Umayyad Mosque",palace:"Dār al-Imāra",markets:"Silk, glass, swords, dried fruit",exports:"Damascene steel, glass, silk",river:"Baradā river",x:365,y:140},
+  basra: {name:"Basra",ar:"البصرة",coords:"30°30′N 47°49′E",pop:"~100,000",tax:"2,500,000 dirhams",band:"3-4 (hot, riverine)",gates:"3 main gates",mosque:"al-Jamī al-Kabīr",palace:"Governor's Dār",markets:"Dates, pearls, fish, cotton",exports:"Dates, pearls, cotton cloth",river:"Shatt al-Arab",x:325,y:270},
+  bukhara: {name:"Bukhārā",ar:"بخارى",coords:"39°46′N 64°26′E",pop:"~100,000",tax:"2,000,000 dirhams",band:"5 (temperate, Transoxiana)",gates:"7 gates",mosque:"Kalān Mosque",palace:"Ark fortress",markets:"Silk, furs, horses, gold",exports:"Silk, fur, horses, carpets",river:"Zarafshān river",x:75,y:200},
+  rayy: {name:"Rayy",ar:"الري",coords:"35°35′N 51°27′E",pop:"~70,000",tax:"1,500,000 dirhams",band:"4-5 (semi-arid)",gates:"3 gates",mosque:"Great Mosque",palace:"Dār al-Imāra",markets:"Pottery, copper, textiles, manuscripts",exports:"Pottery, copper goods, manuscripts",river:"None major",x:215,y:228}
+};
+
+const ROUTES = {
+  "baghdad-nishapur": {dist:"750 parasangs",days:30,terrain:"Plain → Zagros foothills → Steppe",stations:["Qarmasin (Day 8, 200 par.)","Rayy (Day 18, 500 par.)","Nishapur Gate (Day 30)"],goods:["Textiles from Baghdad","Manuscripts from Rayy","Silk from Nishapur"]},
+  "baghdad-cairo": {dist:"400 parasangs",days:16,terrain:"Desert → Syria → Egypt delta",stations:["Hit (Day 4)","Damascus (Day 9)","Pelusium (Day 14)"],goods:["Textiles from Baghdad","Glassware from Damascus","Linen from Egypt"]},
+  "baghdad-cordoba": {dist:"1800 parasangs",days:65,terrain:"Desert → Sea → Mediterranean coast",stations:["Damascus (Day 9)","Alexandria (Day 20)","Kairouan (Day 40)"],goods:["Manuscripts from Baghdad","Spices via Egypt","Silver from Andalusia"]},
+  "baghdad-damascus": {dist:"250 parasangs",days:10,terrain:"Syrian desert, flat plain",stations:["Rusafa (Day 5)","Damascus Gate (Day 10)"],goods:["Silk from Iraq","Dates from Basra"]},
+  "baghdad-basra": {dist:"150 parasangs",days:6,terrain:"Mesopotamian plain, marshy",stations:["Wasit (Day 3)","Basra (Day 6)"],goods:["Textiles north","Dates and pearls south"]},
+  "nishapur-bukhara": {dist:"250 parasangs",days:10,terrain:"Steppe and desert",stations:["Merv (Day 6)","Bukhara Gate (Day 10)"],goods:["Silk from Bukhara","Turquoise from Nishapur"]},
+  "default": {dist:"Variable",days:"—",terrain:"Unknown terrain",stations:["Consult local guide"],goods:["Trade goods vary by region"]}
+};
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
+  if(name==='travel') { document.getElementById('caravanGroup').setAttribute('opacity','1'); }
+  else { document.getElementById('caravanGroup').setAttribute('opacity','0'); }
+}
+
+function showCity(id) {
+  const c = CITIES[id];
+  if(!c) return;
+  document.querySelectorAll('.city-dot').forEach(g=>g.classList.remove('selected'));
+  const el = document.getElementById('city-'+id);
+  if(el) el.classList.add('selected');
+  document.getElementById('cityPanel').innerHTML = `
+    <div class="panel-title">&#x2605; ${c.name} — ${c.ar}</div>
+    <div class="panel-row"><span class="panel-label">Coordinates</span><span class="panel-value">${c.coords}</span></div>
+    <div class="panel-row"><span class="panel-label">Population</span><span class="panel-value">${c.pop}</span></div>
+    <div class="panel-row"><span class="panel-label">Tax revenue</span><span class="panel-value">${c.tax}</span></div>
+    <div class="panel-row"><span class="panel-label">Climate band</span><span class="panel-value">Band ${c.band}</span></div>
+    <div class="panel-row"><span class="panel-label">City gates</span><span class="panel-value">${c.gates}</span></div>
+    <div class="panel-row"><span class="panel-label">Mosque</span><span class="panel-value">${c.mosque}</span></div>
+    <div class="panel-row"><span class="panel-label">Palace</span><span class="panel-value">${c.palace}</span></div>
+    <div class="panel-row"><span class="panel-label">Markets</span><span class="panel-value">${c.markets}</span></div>
+    <div class="panel-row"><span class="panel-label">Main exports</span><span class="panel-value">${c.exports}</span></div>
+    <div class="panel-row"><span class="panel-label">River</span><span class="panel-value">${c.river}</span></div>
+  `;
+}
+
+function showWaystation(name, desc) {
+  document.getElementById('cityPanel').innerHTML = `
+    <div class="panel-title">&#x25A1; Way Station: ${name}</div>
+    <div style="font-size:11.5px;color:var(--ink);line-height:1.7;padding:4px 0;">${desc}</div>
+    <div class="caravan-divider">- &#x1F42A; -</div>
+    <div style="font-size:11px;color:#5C4033;font-style:italic;">Caravanserai: fresh water, stabling, provisions, overnight shelter for merchants and their camels.</div>
+  `;
+}
+
+function highlightTrade(type, from, to) {
+  document.getElementById('cityPanel').innerHTML = `
+    <div class="panel-title">&#x27A4; Trade Route: ${type}</div>
+    <div class="panel-row"><span class="panel-label">Origin</span><span class="panel-value">${from}</span></div>
+    <div class="panel-row"><span class="panel-label">Destination</span><span class="panel-value">${to}</span></div>
+    <div style="font-size:11px;color:#5C4033;margin-top:6px;font-style:italic;">Click on cities along this route for detailed trade data. Ibn Hawqal recorded specific price differentials between production centers and markets.</div>
+  `;
+}
+
+function toggleLayer(layer, on) {
+  if(layer==='roads') document.querySelectorAll('.road-line').forEach(e=>e.style.display=on?'':'none');
+  if(layer==='rivers') document.querySelectorAll('.river-line').forEach(e=>e.style.display=on?'':'none');
+  if(layer==='mountains') document.querySelectorAll('.mtn-path').forEach(e=>e.style.display=on?'':'none');
+  if(layer==='desert') document.querySelectorAll('.desert-dot').forEach(e=>e.style.display=on?'':'none');
+  if(layer==='products') document.getElementById('productLayer').style.display=on?'':'none';
+  if(layer==='climate') {
+    document.querySelectorAll('.climate-band').forEach(b=>b.classList.toggle('visible',on));
+  }
+}
+
+function planRoute() {
+  const from = document.getElementById('fromCity').value;
+  const to = document.getElementById('toCity').value;
+  const key = from+'-'+to;
+  const r = ROUTES[key] || ROUTES['default'];
+  const fc = CITIES[from], tc = CITIES[to];
+  const stations = r.stations.map(s=>`<div class="route-station"><span class="station-square"></span> ${s}</div>`).join('');
+  const goods = r.goods.map(g=>`<div class="route-segment">🔶 ${g}</div>`).join('');
+  document.getElementById('routeResult').innerHTML = `
+    <div class="panel-title">${fc?fc.name:'?'} → ${tc?tc.name:'?'}</div>
+    <div class="panel-row"><span class="panel-label">Distance</span><span class="panel-value">${r.dist}</span></div>
+    <div class="panel-row"><span class="panel-label">Travel time</span><span class="panel-value">${r.days} days</span></div>
+    <div class="panel-row"><span class="panel-label">Terrain</span><span class="panel-value">${r.terrain}</span></div>
+    <div style="margin-top:6px;font-size:11px;color:#5C4033;font-style:italic;">Way stations (caravanserais):</div>
+    ${stations}
+    <div style="margin-top:6px;font-size:11px;color:#5C4033;font-style:italic;">Goods along route:</div>
+    ${goods}
+  `;
+}
+
+function buildItinerary() {
+  const start = document.getElementById('itinStart').value;
+  const end = document.getElementById('itinEnd').value;
+  const goods = document.getElementById('itinGoods').value;
+  const key = start+'-'+end;
+  const r = ROUTES[key] || ROUTES['default'];
+  const sc = CITIES[start], ec = CITIES[end];
+  const costs = {textiles:500,manuscripts:400,spices:600,silk:700};
+  const cost = costs[goods]||500;
+  const revenue = Math.round(cost*1.5);
+  const profit = revenue-cost;
+  document.getElementById('itinResult').innerHTML = `
+    <div class="panel-title">${sc?sc.name:'?'} → ${ec?ec.name:'?'}</div>
+    <div class="journey-stop"><span class="stop-num">1</span> ${sc?sc.name:'Start'} — Load ${goods} (cost: ${cost} dinars)</div>
+    ${r.stations.slice(0,-1).map((s,i)=>`<div class="journey-stop"><span class="stop-num">${i+2}</span> ${s} — Rest & trade</div>`).join('')}
+    <div class="journey-stop"><span class="stop-num">${r.stations.length+1}</span> ${ec?ec.name:'End'} — Sell ${goods}. +${revenue} dinars</div>
+    <div class="caravan-divider">- &#x1F42A; -</div>
+    <div class="profit-box">
+      <div style="font-family:'Cinzel',serif;font-size:10px;color:var(--forest);margin-bottom:4px;">Journey Ledger</div>
+      <div class="panel-row"><span class="panel-label">Total days</span><span class="panel-value">${r.days} days</span></div>
+      <div class="panel-row"><span class="panel-label">Distance</span><span class="panel-value">${r.dist}</span></div>
+      <div class="panel-row"><span class="panel-label">Revenue</span><span class="panel-value">${revenue} dinars</span></div>
+      <div class="panel-row"><span class="panel-label">Costs</span><span class="panel-value">${cost} dinars</span></div>
+      <div class="panel-row" style="border-top:1px solid var(--forest);padding-top:3px;"><span class="panel-label" style="font-weight:600;">Net profit</span><span class="panel-value" style="color:var(--forest);font-weight:700;">+${profit} dinars</span></div>
+    </div>
+  `;
+}
+
+function compareCtys() {
+  const a = CITIES[document.getElementById('cmpA').value];
+  const b = CITIES[document.getElementById('cmpB').value];
+  if(!a||!b) return;
+  document.getElementById('compareResult').innerHTML = `
+    <div class="compare-grid">
+      <div class="compare-city">
+        <h4>${a.name}</h4>
+        <div class="panel-row"><span class="panel-label">Pop.</span><span class="panel-value">${a.pop}</span></div>
+        <div class="panel-row"><span class="panel-label">Tax</span><span class="panel-value">${a.tax.replace(' dirhams','')}</span></div>
+        <div class="panel-row"><span class="panel-label">Band</span><span class="panel-value">Iqlīm ${a.band.charAt(0)}</span></div>
+        <div class="panel-row"><span class="panel-label">Gates</span><span class="panel-value">${a.gates.split(' ')[0]}</span></div>
+        <div class="panel-row"><span class="panel-label">River</span><span class="panel-value">${a.river.split(' ')[0]}</span></div>
+        <div style="margin-top:4px;font-size:10px;color:#5C4033;"><em>${a.exports}</em></div>
+      </div>
+      <div class="compare-city">
+        <h4>${b.name}</h4>
+        <div class="panel-row"><span class="panel-label">Pop.</span><span class="panel-value">${b.pop}</span></div>
+        <div class="panel-row"><span class="panel-label">Tax</span><span class="panel-value">${b.tax.replace(' dirhams','')}</span></div>
+        <div class="panel-row"><span class="panel-label">Band</span><span class="panel-value">Iqlīm ${b.band.charAt(0)}</span></div>
+        <div class="panel-row"><span class="panel-label">Gates</span><span class="panel-value">${b.gates.split(' ')[0]}</span></div>
+        <div class="panel-row"><span class="panel-label">River</span><span class="panel-value">${b.river.split(' ')[0]}</span></div>
+        <div style="margin-top:4px;font-size:10px;color:#5C4033;"><em>${b.exports}</em></div>
+      </div>
+    </div>
+    <div style="margin-top:6px;font-size:11px;color:#5C4033;">
+      <em>Travel between them: ${ROUTES[document.getElementById('cmpA').value+'-'+document.getElementById('cmpB').value]?.days || ROUTES[document.getElementById('cmpB').value+'-'+document.getElementById('cmpA').value]?.days || '—'} days</em>
+    </div>
+  `;
+}
+
+function convertFarsakh() {
+  const amt = parseFloat(document.getElementById('convAmt').value)||1;
+  const unit = document.getElementById('convUnit').value;
+  const toKm = {farsakh:6,barid:24,marhala:35,days:35,mils:1.6};
+  const km = amt * (toKm[unit]||6);
+  const miles = (km*0.6214).toFixed(1);
+  const days = (km/35).toFixed(1);
+  const farsakh = (km/6).toFixed(0);
+  document.getElementById('convResult').innerHTML = `
+    <div style="font-size:11px;color:#5C4033;">${amt} ${unit} =</div>
+    <div style="font-size:15px;font-weight:600;color:var(--ink);">${km.toFixed(0)} km / ${miles} miles</div>
+    <div style="font-size:10px;color:#8B6914;margin-top:2px;">≈ ${days} days caravan travel · ${farsakh} farsakh</div>
+  `;
+}
+
+// Travel animation
+const caravanPath = [
+  {day:0,x:305,y:215,loc:"Baghdad",dist:0,next:"Qarmasin (Day 8)"},
+  {day:8,x:271,y:213,loc:"Qarmasin",dist:200,next:"Rayy (Day 18)"},
+  {day:18,x:215,y:228,loc:"Rayy",dist:500,next:"Nishapur (Day 30)"},
+  {day:30,x:140,y:240,loc:"Nishapur",dist:750,next:"Destination reached!"}
+];
+
+function updateTravel(dayVal) {
+  const day = parseInt(dayVal);
+  document.getElementById('travelDay').textContent = 'Day '+day;
+  // interpolate position
+  let i=0;
+  for(let j=0;j<caravanPath.length-1;j++){
+    if(day>=caravanPath[j].day&&day<=caravanPath[j+1].day){i=j;break;}
+    if(day>caravanPath[caravanPath.length-1].day) i=caravanPath.length-2;
+  }
+  const a=caravanPath[Math.min(i,caravanPath.length-1)];
+  const b=caravanPath[Math.min(i+1,caravanPath.length-1)];
+  const t=a.day===b.day?1:(day-a.day)/(b.day-a.day);
+  const cx=a.x+(b.x-a.x)*t;
+  const cy=a.y+(b.y-a.y)*t;
+  const cp=document.getElementById('caravan-pos');
+  const cd=document.getElementById('caravan-days');
+  if(cp){cp.setAttribute('cx',cx.toFixed(1));cp.setAttribute('cy',cy.toFixed(1));}
+  if(cd){cd.setAttribute('x',cx.toFixed(1));cd.setAttribute('y',(cy-9).toFixed(1));cd.textContent='Day '+day;}
+  const dist=Math.round(a.dist+(b.dist-a.dist)*t);
+  const nearest=caravanPath.find(p=>p.day>=day)||caravanPath[caravanPath.length-1];
+  document.getElementById('travelInfo').innerHTML = `
+    <strong>Current position:</strong> ${day<=8?'Baghdad→Qarmasin':day<=18?'Qarmasin→Rayy':'Rayy→Nishapur'}<br>
+    <strong>Distance covered:</strong> ${dist} parasangs<br>
+    <strong>Next station:</strong> ${nearest.next||'Destination'}
+  `;
+}
+
+let caravanAnim=null;
+function animateCaravan() {
+  let day=0;
+  const slider=document.getElementById('travelSlider');
+  if(caravanAnim) clearInterval(caravanAnim);
+  caravanAnim=setInterval(()=>{
+    day++;
+    slider.value=day;
+    updateTravel(day);
+    if(day>=30) clearInterval(caravanAnim);
+  },150);
+}
+
+// Init
+showCity('baghdad');
+</script>

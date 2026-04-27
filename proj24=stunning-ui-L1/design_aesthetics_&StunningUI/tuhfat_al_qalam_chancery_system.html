@@ -1,0 +1,491 @@
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans)}
+.parchment{background:linear-gradient(135deg,#f5e6d3 0%,#efe0c8 100%);border:1px solid #c4a882;border-radius:var(--border-radius-lg);padding:1.5rem;position:relative}
+.gold-text{color:#b8960a;font-weight:500}
+.ink-text{color:#1a1a1a}
+.red-text{color:#8b0000;font-weight:500}
+.section-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1rem 1.25rem;margin-bottom:1rem}
+.tab-row{display:flex;gap:4px;margin-bottom:1rem;flex-wrap:wrap}
+.tab-btn{padding:5px 12px;font-size:12px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);cursor:pointer;background:var(--color-background-primary);color:var(--color-text-secondary);transition:all .15s}
+.tab-btn.active{background:#1a1a1a;color:#f5e6d3;border-color:#1a1a1a}
+.section-title{font-size:11px;font-weight:500;color:var(--color-text-secondary);letter-spacing:.05em;text-transform:uppercase;margin-bottom:.75rem}
+.doc-field{display:flex;flex-direction:column;gap:3px;margin-bottom:.75rem}
+.doc-field label{font-size:12px;color:var(--color-text-secondary)}
+.doc-field select,.doc-field input{padding:6px 8px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);font-size:13px;background:var(--color-background-primary);color:var(--color-text-primary)}
+.gen-btn{padding:8px 18px;background:#1a1a1a;color:#f5e6d3;border:none;border-radius:var(--border-radius-md);font-size:13px;cursor:pointer;margin-top:.5rem}
+.gen-btn:hover{background:#333}
+.qalam-divider{display:flex;align-items:center;gap:8px;margin:1rem 0;color:var(--color-text-secondary);font-size:12px}
+.qalam-divider::before,.qalam-divider::after{content:'';flex:1;height:0.5px;background:var(--color-border-tertiary)}
+.doc-output{display:none;margin-top:1rem}
+.doc-output.visible{display:block}
+.basmala{text-align:right;font-size:18px;font-weight:500;color:#b8960a;margin-bottom:.75rem;font-family:var(--font-serif)}
+.honorific-badge{display:inline-block;padding:3px 10px;background:#fff8e7;border:1px solid #d4af37;border-radius:var(--border-radius-md);color:#8a6800;font-size:13px;font-weight:500}
+.doc-body{text-align:justify;font-size:13px;line-height:1.8;color:#1a1a1a;border-top:1px solid #c4a882;border-bottom:1px solid #c4a882;padding:.75rem 0;margin:.5rem 0}
+.tuqra{text-align:center;font-family:var(--font-serif);font-size:22px;color:#1a1a1a;letter-spacing:-.02em;position:relative}
+.tuqra::after{content:'';display:block;height:2px;background:#1a1a1a;width:60%;margin:.25rem auto 0}
+.seal-circle{width:100px;height:100px;border-radius:50%;border:2px solid #8b0000;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:#fff5f5;margin:0 auto;padding:8px}
+.seal-text{font-size:10px;color:#8b0000;line-height:1.4;font-weight:500}
+.pyramid-level{display:flex;align-items:center;gap:8px;padding:.6rem .75rem;border-radius:var(--border-radius-md);cursor:pointer;margin-bottom:4px;transition:all .15s;border:0.5px solid transparent}
+.pyramid-level:hover{background:var(--color-background-secondary);border-color:var(--color-border-tertiary)}
+.pyramid-level.expanded{background:var(--color-background-secondary);border-color:var(--color-border-secondary)}
+.pyramid-dot{width:10px;height:10px;border-radius:50%}
+.pyramid-detail{display:none;font-size:12px;color:var(--color-text-secondary);padding:.5rem .75rem .5rem 2.2rem;line-height:1.6;border-left:2px solid var(--color-border-secondary);margin:0 0 4px .9rem}
+.pyramid-detail.visible{display:block}
+.honor-display{background:#fff8e7;border:1px solid #d4af37;border-radius:var(--border-radius-md);padding:1rem;text-align:center;margin-top:.75rem}
+.honor-phrase{font-size:20px;font-weight:500;color:#8a6800;font-family:var(--font-serif);direction:rtl;margin-bottom:.5rem}
+.honor-meta{font-size:12px;color:var(--color-text-secondary)}
+.grade-preview{height:60px;display:flex;align-items:center;justify-content:center;background:var(--color-background-secondary);border-radius:var(--border-radius-md);margin:.75rem 0;font-family:var(--font-serif);color:var(--color-text-primary);transition:all .3s;border:0.5px solid var(--color-border-tertiary)}
+.inkwell-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:.75rem}
+.inkwell-cell{padding:.5rem;text-align:center;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);cursor:pointer;font-size:11px;color:var(--color-text-secondary);transition:all .15s}
+.inkwell-cell:hover,.inkwell-cell.active{background:var(--color-background-secondary);border-color:var(--color-border-secondary);color:var(--color-text-primary)}
+.inkwell-icon{font-size:20px;display:block;margin-bottom:3px}
+.inkwell-desc{display:none;font-size:12px;line-height:1.5;color:var(--color-text-secondary);padding:.5rem;background:var(--color-background-secondary);border-radius:var(--border-radius-md);margin-top:.5rem}
+.inkwell-desc.visible{display:block}
+.diplo-flag{display:flex;gap:6px;flex-wrap:wrap;margin:.5rem 0}
+.diplo-btn{padding:5px 12px;font-size:12px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);cursor:pointer;background:var(--color-background-primary);color:var(--color-text-secondary);transition:all .15s}
+.diplo-btn.active{background:#1e3a8a;color:#fff;border-color:#1e3a8a}
+.diplo-result{margin-top:.75rem;font-size:13px;line-height:1.7;color:var(--color-text-primary)}
+.quiz-q{font-size:13px;font-weight:500;margin-bottom:.5rem;color:var(--color-text-primary)}
+.quiz-opts{display:flex;flex-direction:column;gap:4px;margin-bottom:.75rem}
+.quiz-opt{padding:6px 10px;font-size:12px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);cursor:pointer;background:var(--color-background-primary);color:var(--color-text-primary);text-align:left;transition:all .15s}
+.quiz-opt:hover{background:var(--color-background-secondary)}
+.quiz-opt.correct{background:#eaf3de;border-color:#639922;color:#3b6d11}
+.quiz-opt.wrong{background:#fcebeb;border-color:#a32d2d;color:#791f1f}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+@media(max-width:500px){.two-col,.three-col{grid-template-columns:1fr}}
+h2.sr-only{position:absolute;left:-9999px}
+.page-header{text-align:center;padding:1.5rem 0 1rem;border-bottom:0.5px solid var(--color-border-tertiary);margin-bottom:1.5rem}
+.page-header h1{font-size:22px;font-weight:500;color:var(--color-text-primary)}
+.page-header p{font-size:13px;color:var(--color-text-secondary);margin-top:.25rem}
+</style>
+
+<h2 class="sr-only">Tuhfat al-Qalam: an interactive Abbasid chancery design system with document generator, honorific tier tool, calligraphy grade slider, seal designer, diplomatic adapter, inkwell diagram, bureaucracy pyramid, and protocol quiz.</h2>
+
+<div class="page-header">
+  <div style="font-size:24px;margin-bottom:.25rem">&#x2710;</div>
+  <h1>Tuhfat al-Qalam</h1>
+  <p>The Precious Gift of the Pen — Abbasid Chancery Manual</p>
+</div>
+
+<div class="tab-row" id="mainTabs">
+  <button class="tab-btn active" onclick="switchTab('insha')">&#x2712; Document Generator</button>
+  <button class="tab-btn" onclick="switchTab('honorific')">&#x2605; Honorific Tier</button>
+  <button class="tab-btn" onclick="switchTab('calligraphy')">&#x270F; Calligraphy Grade</button>
+  <button class="tab-btn" onclick="switchTab('seal')">&#x25C9; Seal Designer</button>
+  <button class="tab-btn" onclick="switchTab('diplomatic')">&#x2606; Diplomatic Adapter</button>
+  <button class="tab-btn" onclick="switchTab('inkwell')">&#x25A3; Inkwell Diagram</button>
+  <button class="tab-btn" onclick="switchTab('pyramid')">&#x25B2; Bureaucracy Pyramid</button>
+  <button class="tab-btn" onclick="switchTab('quiz')">&#x2753; Protocol Quiz</button>
+</div>
+
+<!-- INSHA -->
+<div id="tab-insha" class="section-card">
+  <div class="section-title">Insha — Document Generator</div>
+  <div class="two-col">
+    <div>
+      <div class="doc-field">
+        <label>Document type</label>
+        <select id="docType">
+          <option value="appointment">Appointment of governor</option>
+          <option value="taxation">Tax remission decree</option>
+          <option value="treaty">Treaty / truce renewal</option>
+          <option value="condolence">Condolence letter</option>
+          <option value="congratulation">Eid congratulation</option>
+          <option value="judge">Appointment of judge</option>
+        </select>
+      </div>
+      <div class="doc-field">
+        <label>Recipient name</label>
+        <input type="text" id="recipientName" value="Abu Ali" placeholder="e.g. Abu Ali" />
+      </div>
+      <div class="doc-field">
+        <label>Province / region</label>
+        <input type="text" id="province" value="Egypt" placeholder="e.g. Egypt, Khurasan" />
+      </div>
+      <div class="doc-field">
+        <label>Date (Hijri year)</label>
+        <input type="text" id="hijriDate" value="335 AH" placeholder="e.g. 335 AH" />
+      </div>
+      <div class="doc-field">
+        <label>Recipient rank</label>
+        <select id="recipientRank">
+          <option value="governor">Governor (al-Mufaddal)</option>
+          <option value="vizier">Vizier (al-Sayyid al-Ajal)</option>
+          <option value="judge">Judge (al-Ajall)</option>
+          <option value="secretary">Chief Secretary</option>
+          <option value="caliph">Caliph (al-Imam)</option>
+        </select>
+      </div>
+      <button class="gen-btn" onclick="generateDoc()">&#x2712; Generate Document</button>
+    </div>
+    <div id="docOutput" class="doc-output">
+      <div class="parchment" id="docParchment"></div>
+    </div>
+  </div>
+</div>
+
+<!-- HONORIFIC TIER -->
+<div id="tab-honorific" class="section-card" style="display:none">
+  <div class="section-title">Honorific Tier Tool</div>
+  <p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:.75rem">Select recipient rank to view correct honorific, ink color, and seal type.</p>
+  <div style="display:flex;gap:8px;flex-wrap:wrap" id="honorRanks">
+    <button class="diplo-btn" onclick="setHonorRank(this,'caliph','الإمام المعظّم','gold','Caliphal round seal — ruler name, Quranic motto')">Caliph</button>
+    <button class="diplo-btn active" onclick="setHonorRank(this,'vizier','السيد الأجل','gold','Octagonal vizier seal — name + function')">Vizier</button>
+    <button class="diplo-btn" onclick="setHonorRank(this,'governor','المفضّل','red','Oval provincial seal — name + province')">Governor</button>
+    <button class="diplo-btn" onclick="setHonorRank(this,'judge','الأجل','red','Round qadi seal — name + date appointed')">Judge</button>
+    <button class="diplo-btn" onclick="setHonorRank(this,'secretary','الكاتب المحترم','black','Square secretary seal — name only')">Chief Secretary</button>
+    <button class="diplo-btn" onclick="setHonorRank(this,'taxclerk','الأمين','black','Plain stamp — function + district')">Tax Clerk</button>
+  </div>
+  <div id="honorDisplay" class="honor-display">
+    <div class="honor-phrase" id="honorPhrase">السيد الأجل</div>
+    <div class="honor-meta" id="honorMeta">Ink: gold · Seal: Octagonal vizier seal — name + function</div>
+  </div>
+</div>
+
+<!-- CALLIGRAPHY GRADE -->
+<div id="tab-calligraphy" class="section-card" style="display:none">
+  <div class="section-title">Calligraphy Grade — Ibraz Scale</div>
+  <p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:.75rem">Drag the slider from ghubar (dust-fine) to jali thuluth (monumental).</p>
+  <div style="display:flex;align-items:center;gap:12px">
+    <span style="font-size:12px;color:var(--color-text-secondary)">Ghubar</span>
+    <input type="range" min="1" max="5" value="3" id="gradeSlider" oninput="updateGrade(this.value)" style="flex:1" />
+    <span style="font-size:12px;color:var(--color-text-secondary)">Jali Thuluth</span>
+  </div>
+  <div id="gradePreview" class="grade-preview"></div>
+  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-top:.5rem">
+    <div style="text-align:center;font-size:11px;color:var(--color-text-secondary)">1<br>Ghubar<br>micro</div>
+    <div style="text-align:center;font-size:11px;color:var(--color-text-secondary)">2<br>Ruqa<br>small</div>
+    <div style="text-align:center;font-size:11px;color:var(--color-text-secondary)">3<br>Naskh<br>standard</div>
+    <div style="text-align:center;font-size:11px;color:var(--color-text-secondary)">4<br>Thuluth<br>formal</div>
+    <div style="text-align:center;font-size:11px;color:var(--color-text-secondary)">5<br>Jali<br>monumental</div>
+  </div>
+</div>
+
+<!-- SEAL DESIGNER -->
+<div id="tab-seal" class="section-card" style="display:none">
+  <div class="section-title">Seal Designer — Khatm</div>
+  <div class="two-col">
+    <div>
+      <div class="doc-field">
+        <label>Shape</label>
+        <select id="sealShape" onchange="renderSeal()">
+          <option value="circle">Circle (caliphal)</option>
+          <option value="oval">Oval (provincial)</option>
+          <option value="octagon">Octagon (vizier)</option>
+        </select>
+      </div>
+      <div class="doc-field">
+        <label>Ruler / official name</label>
+        <input type="text" id="sealName" value="Abu Ali" oninput="renderSeal()" />
+      </div>
+      <div class="doc-field">
+        <label>Title / function</label>
+        <input type="text" id="sealTitle" value="Governor of Egypt" oninput="renderSeal()" />
+      </div>
+      <div class="doc-field">
+        <label>Date (Hijri)</label>
+        <input type="text" id="sealDate" value="335 AH" oninput="renderSeal()" />
+      </div>
+      <div class="doc-field">
+        <label>Motto / phrase</label>
+        <input type="text" id="sealMotto" value="Bi-amr Allah" oninput="renderSeal()" />
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1rem;background:#fff5f5;border-radius:var(--border-radius-lg);border:0.5px solid #e8b4b4">
+      <div id="sealDisplay"></div>
+      <div style="font-size:11px;color:#8b0000;margin-top:.75rem">Red impression on parchment</div>
+    </div>
+  </div>
+</div>
+
+<!-- DIPLOMATIC -->
+<div id="tab-diplomatic" class="section-card" style="display:none">
+  <div class="section-title">Diplomatic Culture Adapter</div>
+  <p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:.5rem">Select recipient culture to adapt the document conventions.</p>
+  <div class="diplo-flag" id="diploFlags">
+    <button class="diplo-btn" onclick="setDiplo(this,'byzantine')">&#9768; Byzantine</button>
+    <button class="diplo-btn" onclick="setDiplo(this,'frank')">&#x2620; Frankish</button>
+    <button class="diplo-btn" onclick="setDiplo(this,'indian')">&#x1F418; Indian</button>
+    <button class="diplo-btn" onclick="setDiplo(this,'nubian')">&#x25A0; Nubian</button>
+    <button class="diplo-btn" onclick="setDiplo(this,'persian')">&#x2665; Persian</button>
+  </div>
+  <div id="diploResult" class="diplo-result" style="display:none"></div>
+</div>
+
+<!-- INKWELL -->
+<div id="tab-inkwell" class="section-card" style="display:none">
+  <div class="section-title">Inkwell & Qalam — Dawat Diagram</div>
+  <p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:.25rem">Click a compartment to learn its function.</p>
+  <div class="inkwell-grid" id="inkwellGrid">
+    <div class="inkwell-cell" onclick="showInk(this,'Black ink (atrament): oak gall + iron sulfate + gum arabic. Main text ink. Dries fast on parchment.')">
+      <span class="inkwell-icon" style="font-size:16px">&#x25A0;</span>Black Ink
+    </div>
+    <div class="inkwell-cell" onclick="showInk(this,'Red ink (rubrication): cinnabar or red ochre. Used for headings, honorifics, and emphasis. Applied after black ink dries.')">
+      <span class="inkwell-icon" style="font-size:16px;color:#8b0000">&#x25A0;</span>Red Ink
+    </div>
+    <div class="inkwell-cell" onclick="showInk(this,'Gold ink (dhahab): powdered gold or yellow orpiment in gum arabic solution. Reserved for caliphal decrees and basmala headers.')">
+      <span class="inkwell-icon" style="font-size:16px;color:#b8960a">&#x25A0;</span>Gold Ink
+    </div>
+    <div class="inkwell-cell" onclick="showInk(this,'Qalam (reed pen): cut from Phragmites australis. Nib angle determines script type: oblique for naskh, broad for thuluth. Must be re-cut regularly.')">
+      <span class="inkwell-icon" style="font-size:16px">/</span>Qalam / Reed
+    </div>
+    <div class="inkwell-cell" onclick="showInk(this,'Pen knife (sikkin al-qalam): small curved blade for sharpening the nib, scraping errors from parchment, and trimming the split of the pen.')">
+      <span class="inkwell-icon" style="font-size:16px">&#x2702;</span>Pen Knife
+    </div>
+    <div class="inkwell-cell" onclick="showInk(this,'Blotting sand (raml): fine dry sand sprinkled on fresh ink to absorb excess moisture and accelerate drying, preventing smearing.')">
+      <span class="inkwell-icon" style="font-size:16px">~</span>Blotting Sand
+    </div>
+  </div>
+  <div id="inkDesc" class="inkwell-desc"></div>
+</div>
+
+<!-- PYRAMID -->
+<div id="tab-pyramid" class="section-card" style="display:none">
+  <div class="section-title">Bureaucracy Pyramid</div>
+  <p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:.75rem">Click any level to expand duties, pen type, salary, and typical document.</p>
+  <div id="pyramidLevels"></div>
+</div>
+
+<!-- QUIZ -->
+<div id="tab-quiz" class="section-card" style="display:none">
+  <div class="section-title">Protocol Quiz</div>
+  <div id="quizContent"></div>
+  <button class="gen-btn" onclick="resetQuiz()" id="quizReset" style="display:none;margin-top:.5rem">Restart quiz</button>
+</div>
+
+<div class="qalam-divider">
+  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="6" width="12" height="2" fill="currentColor" opacity=".3"/><ellipse cx="7" cy="7" rx="2.5" ry="2.5" fill="currentColor" opacity=".5"/></svg>
+  Tuhfat al-Qalam
+</div>
+
+<script>
+const PYRAMID_DATA = [
+  {title:'Caliph (al-Khalifa)',color:'#b8960a',dot:'#d4af37',duties:'Supreme authority. Issues all major decrees, appointments, and treaties. Signs with caliphal monogram.',pen:'Finest thuluth qalam, gold-tipped',salary:'Treasury access unlimited',doc:'Royal appointment rescript (tawqi)'},
+  {title:'Vizier (al-Wazir)',color:'#8b0000',dot:'#c0392b',duties:'Chief executive officer of the state. Oversees all chanceries. Countersigns caliphal decrees. Issues own orders within scope.',pen:'Broad thuluth qalam',salary:'300–500 dinars/month',doc:'Administrative orders, letters to governors'},
+  {title:'Chief Secretary (Katib al-Rasa\'il)',color:'#1e3a8a',dot:'#2563eb',duties:'Manages diplomatic correspondence, drafts formal insha, supervises scribal corps. Chooses correct honorifics and formulas.',pen:'Fine naskh qalam',salary:'50–100 dinars/month',doc:'Letters to foreign rulers, appointment drafts'},
+  {title:'Provincial Scribe (Katib al-Iqlim)',color:'#5c4033',dot:'#7c5c47',duties:'Records provincial tax accounts, local appointments, legal documents. Reports to chief secretary.',pen:'Medium naskh qalam',salary:'20–40 dinars/month',doc:'Tax remissions, property deeds, court records'},
+  {title:'Tax Clerk (Amil al-Kharaj)',color:'#444',dot:'#888',duties:'Lowest scribal rank. Copies tax registers, issues receipts, counts revenues, maintains ledgers in siyaq script.',pen:'Plain thin qalam',salary:'5–15 dinars/month',doc:'Tax receipts, land registers, census records'},
+];
+
+const DIPLO_DATA = {
+  byzantine:{flag:'&#9768;',name:'Byzantine Empire',basmala:'Full basmala in gold, followed by Christian greeting formula (per protocol)',greeting:'"To the great king of the Rum, honoured by his people..."',seal:'Crescent and cross — dual-symbol diplomatic seal',special:'Address acknowledges emperor\'s Christian faith; avoid Quranic verses in body text; use Byzantine titles (Basileus)',adaptation:'Cross motif permitted alongside crescent on the outer seal ring'},
+  frank:{flag:'&#x2620;',name:'Frankish Kingdoms',basmala:'Standard basmala; simpler honorifics than Byzantine',greeting:'"To the king of the Franks and their lands..."',seal:'Sword-and-crescent seal',special:'Frankish rulers addressed without elaborate genealogical chain; tone is martial and direct',adaptation:'Include mention of shared trade interests or pilgrim protections as goodwill clauses'},
+  indian:{flag:'&#x1F418;',name:'Indian Kingdoms',basmala:'Basmala followed by Sanskrit greeting transliteration if available',greeting:'"To the great raja of the land of Hind..."',seal:'Elephant seal — symbol of Indian royal power adopted by Abbasid envoy',special:'Gift protocol: mention of elephant gifts, spices, and gems expected in diplomatic preamble',adaptation:'Avoid pork references; acknowledge Hindu court customs in closing courtesies'},
+  nubian:{flag:'&#x25A0;',name:'Kingdom of Nubia',basmala:'Full basmala; reference to shared Christian Nubian faith and dhimmi protections',greeting:'"To the noble king of Nubia and lord of the Nile headwaters..."',seal:'Black stone seal — traditional Nubian diplomatic motif',special:'Nubian kings held special protected status; letters reference gold trade and slave-trade treaties',adaptation:'Reference Baqt treaty obligations; tone is fraternal rather than commanding'},
+  persian:{flag:'&#x2665;',name:'Persian Vassals / Buyids',basmala:'Elaborate basmala with Persian honorific chain',greeting:'"To the Shahanshah, protector of the faithful..."',seal:'Lion-and-sun seal — Persian royal symbol',special:'Persian vassals required longest honorific chains; Pahlavi calligraphy elements incorporated',adaptation:'Use Persian titles (Ispahbad, Marzban) alongside Arabic; include verse from Persian poetry in closing'},
+};
+
+const QUIZ_DATA = [
+  {q:'Which honorific is correct for a vizier?',opts:['al-Imam al-Mu\'azzam','al-Sayyid al-Ajal','al-Mufaddal','al-Ajall'],ans:1,exp:'The vizier receives al-Sayyid al-Ajal (the most noble lord), second only to the caliphal title.'},
+  {q:'What ink color is used for a governor\'s honorific in a formal document?',opts:['Gold — reserved for caliphs and viziers','Red — for provincial officials','Black — for all ranks','Blue — for foreign rulers'],ans:1,exp:'Red ink marks the honorifics of governors and judges; gold is reserved for caliphs and viziers only.'},
+  {q:'Which seal shape does a tax collector use?',opts:['Round caliphal seal','Octagonal vizier seal','Oval provincial seal','Plain functional stamp'],ans:3,exp:'Tax clerks use a plain functional stamp bearing only their office and district — no elaborate decoration.'},
+  {q:'In which script is the basmala traditionally written at the head of a caliphal decree?',opts:['Ghubar (micro-script)','Ruqa (small cursive)','Gold thuluth (monumental)','Siyaq (accounting script)'],ans:2,exp:'Gold thuluth — the most prestigious calligraphic form — is used for the basmala in royal decrees.'},
+  {q:'What was the Baqt treaty?',opts:['A trade agreement with Byzantium','A peace and tribute treaty with Nubia','A judicial protocol for appointed judges','A chancery fee schedule for scribes'],ans:1,exp:'The Baqt was a long-standing treaty with the Nubian kingdom regulating annual tribute, slave exchange, and mutual protection.'},
+];
+
+let currentTab = 'insha';
+let quizState = {step:0,score:0,answered:false};
+let expandedLevel = 1;
+
+function switchTab(tab){
+  document.querySelectorAll('[id^="tab-"]').forEach(el=>el.style.display='none');
+  document.getElementById('tab-'+tab).style.display='block';
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  event.target.classList.add('active');
+  currentTab = tab;
+  if(tab==='pyramid') renderPyramid();
+  if(tab==='calligraphy') updateGrade(3);
+  if(tab==='seal') renderSeal();
+  if(tab==='honorific') setHonorRankDefault();
+  if(tab==='quiz') renderQuiz();
+}
+
+function generateDoc(){
+  const type = document.getElementById('docType').value;
+  const name = document.getElementById('recipientName').value || 'Abu Ali';
+  const prov = document.getElementById('province').value || 'Egypt';
+  const date = document.getElementById('hijriDate').value || '335 AH';
+  const rank = document.getElementById('recipientRank').value;
+
+  const honorifics = {governor:'al-Mufaddal',vizier:'al-Sayyid al-Ajal',judge:'al-Ajall',secretary:'al-Katib al-Muhtaram',caliph:'al-Imam al-Mu\'azzam'};
+  const inkColor = (rank==='caliph'||rank==='vizier')?'#b8960a':'#8b0000';
+  const hon = honorifics[rank]||'al-Mufaddal';
+
+  const bodies = {
+    appointment:`In the name of the Commander of the Faithful, whose bounty encompasses all provinces — let it be known to all secretaries, officials, and peoples of ${prov} that We have appointed the noble ${name}, ${hon}, as our Governor in that land. He shall collect revenues justly, protect the dhimmis, maintain roads and markets, and render account to the Diwan al-Kharaj each season. Whosoever obeys him obeys Us; whosoever defies him shall answer to the Vizier's court. His word on matters of taxation and public order carries the weight of Our own decree.`,
+    taxation:`Let the people of ${prov} know that We, in Our mercy, remit one quarter of the land tax (kharaj) for the year ${date} on account of the flooding of the Nile and the hardship visited upon the cultivators. The treasury agent ${name} shall record this remission in the register and no further collection shall be demanded for this year's shortfall. Future seasons shall return to standard assessment.`,
+    treaty:`This truce is concluded between Our forces and the opposing party for a term of two years from ${date}, during which neither side shall raid the other's territory, all captives shall be exchanged at a fair price, and merchants of both sides shall pass freely under written safe-conduct. ${name} of ${prov} shall serve as Our representative in all matters arising from this agreement.`,
+    condolence:`We have received with grief the news of the passing of your kinsman. Death comes to all and takes even the greatest of men before their time. We commend his soul to God's mercy and write to ${name} in ${prov} to express Our sorrow and Our prayers. May God console the bereaved and grant the departed paradise.`,
+    congratulation:`On the occasion of the blessed Eid al-Adha, We send Our joy and Our prayers to ${name}, ${hon}, Governor of ${prov}. May God accept your sacrifice, increase your wealth, and preserve you in your station. The Eid celebrations in the capital were magnificent, and We pray the same joy reaches your province.`,
+    judge:`By virtue of Our authority over all Muslims in the realms of Islam, We appoint ${name}, ${hon}, as Chief Qadi of ${prov} from ${date}. He shall judge all civil and criminal matters according to the Sharia of God and the rulings of the Hanafi school. His salary shall be paid from the provincial Bayt al-Mal.`,
+  };
+
+  const parchment = document.getElementById('docParchment');
+  parchment.innerHTML = `
+    <div class="basmala">بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيمِ</div>
+    <div style="text-align:center;margin-bottom:.5rem">
+      <span class="honorific-badge" style="color:${inkColor};border-color:${inkColor};background:${rank==='governor'||rank==='judge'?'#fff5f5':'#fff8e7'}">${hon}</span>
+    </div>
+    <div style="text-align:center;font-size:15px;font-weight:500;margin-bottom:.5rem;color:#1a1a1a">${name} — ${prov}</div>
+    <div class="doc-body">${bodies[type]||bodies.appointment}</div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:.75rem">
+      <div style="font-size:12px;color:#5c4033;font-style:italic">Written at the Dar al-Insha, Baghdad</div>
+      <div class="tuqra" style="font-size:14px">${name.split(' ').map(w=>w[0]).join('·')}</div>
+    </div>
+    <div style="text-align:right;font-size:12px;color:#5c4033;margin-top:.25rem">${date}</div>
+  `;
+  document.getElementById('docOutput').classList.add('visible');
+}
+
+function setHonorRankDefault(){
+  const btns = document.querySelectorAll('#honorRanks .diplo-btn');
+  setHonorRank(btns[1],'vizier','السيد الأجل','gold','Octagonal vizier seal — name + function');
+}
+
+function setHonorRank(btn,rank,phrase,ink,seal){
+  document.querySelectorAll('#honorRanks .diplo-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('honorPhrase').textContent = phrase;
+  document.getElementById('honorMeta').textContent = `Ink: ${ink} · Seal: ${seal}`;
+  const inkColors = {gold:'#8a6800',red:'#7a1818',black:'var(--color-text-primary)'};
+  document.getElementById('honorDisplay').style.borderColor = ink==='gold'?'#d4af37':ink==='red'?'#8b0000':'#333';
+  document.getElementById('honorPhrase').style.color = inkColors[ink]||'#8a6800';
+}
+
+function updateGrade(v){
+  const grades = [
+    {name:'Ghubar',size:9,desc:'Dust-fine script for amulets and tiny scrolls',sample:'بِسْمِ اللهِ'},
+    {name:'Ruqa',size:13,desc:'Small cursive for private letters',sample:'بِسْمِ اللهِ الرَّحْمٰنِ'},
+    {name:'Naskh',size:17,desc:'Standard chancery script — most readable',sample:'بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيمِ'},
+    {name:'Thuluth',size:22,desc:'Formal calligraphy for headings and titles',sample:'بِسْمِ اللهِ'},
+    {name:'Jali Thuluth',size:30,desc:'Monumental script for inscriptions and royal decrees',sample:'اللهُ'},
+  ];
+  const g = grades[parseInt(v)-1];
+  const preview = document.getElementById('gradePreview');
+  preview.innerHTML = `<div style="text-align:center"><div style="font-size:${g.size}px;font-family:var(--font-serif);direction:rtl">${g.sample}</div><div style="font-size:11px;color:var(--color-text-secondary);margin-top:4px">${g.name} — ${g.desc}</div></div>`;
+}
+
+function renderSeal(){
+  const shape = document.getElementById('sealShape').value;
+  const name = document.getElementById('sealName').value||'Abu Ali';
+  const title = document.getElementById('sealTitle').value||'Governor of Egypt';
+  const date = document.getElementById('sealDate').value||'335 AH';
+  const motto = document.getElementById('sealMotto').value||'Bi-amr Allah';
+
+  let shapeCSS = 'border-radius:50%;width:110px;height:110px';
+  if(shape==='oval') shapeCSS = 'border-radius:50%;width:130px;height:100px';
+  if(shape==='octagon') shapeCSS = 'clip-path:polygon(30% 0%,70% 0%,100% 30%,100% 70%,70% 100%,30% 100%,0% 70%,0% 30%);border-radius:0;width:110px;height:110px';
+
+  document.getElementById('sealDisplay').innerHTML = `
+    <div style="border:2.5px solid #8b0000;${shapeCSS};display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:#fff5f5;padding:10px">
+      <div style="font-size:10px;color:#8b0000;font-weight:500;line-height:1.4">${name}</div>
+      <div style="font-size:9px;color:#8b0000;border-top:1px solid #8b000055;border-bottom:1px solid #8b000055;padding:2px 0;margin:2px 0;line-height:1.3">${title}</div>
+      <div style="font-size:8px;color:#8b0000;font-style:italic">${motto}</div>
+      <div style="font-size:8px;color:#8b0000">${date}</div>
+    </div>
+  `;
+}
+
+function setDiplo(btn,culture){
+  document.querySelectorAll('#diploFlags .diplo-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const d = DIPLO_DATA[culture];
+  if(!d) return;
+  document.getElementById('diploResult').style.display = 'block';
+  document.getElementById('diploResult').innerHTML = `
+    <div style="font-weight:500;margin-bottom:.5rem">${d.flag} ${d.name}</div>
+    <div style="margin-bottom:.4rem"><span style="color:var(--color-text-secondary);font-size:12px">Basmala: </span>${d.basmala}</div>
+    <div style="margin-bottom:.4rem"><span style="color:var(--color-text-secondary);font-size:12px">Opening greeting: </span><em>${d.greeting}</em></div>
+    <div style="margin-bottom:.4rem"><span style="color:var(--color-text-secondary);font-size:12px">Seal motif: </span>${d.seal}</div>
+    <div style="margin-bottom:.4rem"><span style="color:var(--color-text-secondary);font-size:12px">Special protocol: </span>${d.special}</div>
+    <div><span style="color:var(--color-text-secondary);font-size:12px">Adaptation note: </span>${d.adaptation}</div>
+  `;
+}
+
+function showInk(cell,desc){
+  document.querySelectorAll('.inkwell-cell').forEach(c=>c.classList.remove('active'));
+  cell.classList.add('active');
+  const d = document.getElementById('inkDesc');
+  d.textContent = desc;
+  d.classList.add('visible');
+}
+
+function renderPyramid(){
+  const container = document.getElementById('pyramidLevels');
+  container.innerHTML = '';
+  PYRAMID_DATA.forEach((level,i)=>{
+    const isExpanded = i === expandedLevel;
+    const levelEl = document.createElement('div');
+    levelEl.innerHTML = `
+      <div class="pyramid-level ${isExpanded?'expanded':''}" onclick="togglePyramid(${i})" style="padding-left:${(i*6)+8}px">
+        <div class="pyramid-dot" style="background:${level.dot};min-width:10px"></div>
+        <span style="font-size:13px;font-weight:${isExpanded?500:400};color:var(--color-text-primary)">${level.title}</span>
+        <span style="margin-left:auto;font-size:11px;color:var(--color-text-secondary)">${isExpanded?'▲':'▼'}</span>
+      </div>
+      <div class="pyramid-detail ${isExpanded?'visible':''}" id="detail-${i}">
+        <strong>Duties:</strong> ${level.duties}<br>
+        <strong>Pen:</strong> ${level.pen}<br>
+        <strong>Salary:</strong> ${level.salary}<br>
+        <strong>Typical document:</strong> ${level.doc}
+      </div>
+    `;
+    container.appendChild(levelEl);
+  });
+}
+
+function togglePyramid(i){
+  expandedLevel = (expandedLevel===i)?-1:i;
+  renderPyramid();
+}
+
+function renderQuiz(){
+  if(quizState.step >= QUIZ_DATA.length){
+    document.getElementById('quizContent').innerHTML = `<div style="text-align:center;padding:1rem"><div style="font-size:24px;margin-bottom:.5rem">&#x2710;</div><div style="font-size:16px;font-weight:500">Score: ${quizState.score} / ${QUIZ_DATA.length}</div><div style="font-size:13px;color:var(--color-text-secondary);margin-top:.25rem">${quizState.score>=4?'Excellent — you are ready to enter the chancery.':'Study the protocol manuals further.'}</div></div>`;
+    document.getElementById('quizReset').style.display='block';
+    return;
+  }
+  const q = QUIZ_DATA[quizState.step];
+  document.getElementById('quizContent').innerHTML = `
+    <div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:.5rem">Question ${quizState.step+1} of ${QUIZ_DATA.length}</div>
+    <div class="quiz-q">${q.q}</div>
+    <div class="quiz-opts">${q.opts.map((o,i)=>`<button class="quiz-opt" onclick="answerQuiz(${i},this)">${o}</button>`).join('')}</div>
+    <div id="quizExp" style="display:none;font-size:12px;color:var(--color-text-secondary);padding:.5rem;background:var(--color-background-secondary);border-radius:var(--border-radius-md);margin-top:.25rem"></div>
+    <button class="gen-btn" id="nextQBtn" style="display:none;margin-top:.5rem" onclick="nextQuestion()">Next question →</button>
+  `;
+}
+
+function answerQuiz(chosen,btn){
+  if(quizState.answered) return;
+  quizState.answered = true;
+  const q = QUIZ_DATA[quizState.step];
+  const opts = document.querySelectorAll('.quiz-opt');
+  opts.forEach((o,i)=>{
+    if(i===q.ans) o.classList.add('correct');
+    else if(i===chosen) o.classList.add('wrong');
+    o.disabled = true;
+  });
+  if(chosen===q.ans) quizState.score++;
+  const expEl = document.getElementById('quizExp');
+  expEl.style.display='block';
+  expEl.textContent = q.exp;
+  document.getElementById('nextQBtn').style.display='block';
+}
+
+function nextQuestion(){
+  quizState.step++;
+  quizState.answered = false;
+  renderQuiz();
+}
+
+function resetQuiz(){
+  quizState = {step:0,score:0,answered:false};
+  document.getElementById('quizReset').style.display='none';
+  renderQuiz();
+}
+
+generateDoc();
+updateGrade(3);
+renderSeal();
+</script>
