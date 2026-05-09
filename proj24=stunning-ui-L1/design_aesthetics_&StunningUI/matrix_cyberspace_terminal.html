@@ -1,0 +1,217 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box;}
+  .terminal{background:#000;color:#00FF00;font-family:'Courier New',monospace;padding:0;overflow:hidden;position:relative;min-height:600px;border:1px solid #00FF00;box-shadow:0 0 20px #00FF0044,inset 0 0 30px #00FF0011;}
+  canvas#rain{position:absolute;top:0;left:0;width:100%;height:100%;opacity:0.18;pointer-events:none;z-index:0;}
+  .content{position:relative;z-index:2;padding:20px;}
+  .header{display:flex;align-items:center;gap:12px;border-bottom:1px solid #00FF00;padding-bottom:12px;margin-bottom:16px;}
+  .dot{width:10px;height:10px;border-radius:50%;display:inline-block;}
+  .dot.r{background:#FF3B3B;}
+  .dot.y{background:#FFD700;}
+  .dot.g{background:#00FF00;box-shadow:0 0 6px #00FF00;}
+  .title-bar{flex:1;text-align:center;font-size:11px;letter-spacing:3px;color:#00FF00;text-shadow:0 0 8px #00FF00;}
+  .cube-row{display:flex;gap:24px;justify-content:center;margin:12px 0 20px;}
+  .cube-wrap{display:flex;flex-direction:column;align-items:center;gap:6px;}
+  .cube-label{font-size:9px;letter-spacing:2px;color:#00AA00;}
+  svg.cube{overflow:visible;}
+  .panel-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;}
+  .panel{border:1px solid #00FF00;padding:10px;background:#00FF0006;box-shadow:0 0 5px #00FF0033;}
+  .panel-title{font-size:9px;letter-spacing:3px;color:#00AA00;margin-bottom:8px;border-bottom:1px solid #004400;padding-bottom:4px;}
+  .bar-row{display:flex;align-items:center;gap:6px;margin:3px 0;}
+  .bar-label{font-size:10px;color:#00CC00;width:60px;flex-shrink:0;}
+  .bar-track{flex:1;height:8px;background:#001100;border:1px solid #003300;position:relative;}
+  .bar-fill{height:100%;background:#00FF00;box-shadow:0 0 4px #00FF00;}
+  .bar-val{font-size:10px;color:#00FF00;width:30px;text-align:right;}
+  .stat-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;}
+  .stat{border:1px solid #003300;padding:6px;text-align:center;background:#00FF0005;}
+  .stat-num{font-size:18px;color:#00FF00;text-shadow:0 0 8px #00FF00;}
+  .stat-lbl{font-size:8px;color:#009900;letter-spacing:1px;margin-top:2px;}
+  .log{font-size:10px;line-height:1.7;color:#00CC00;height:88px;overflow:hidden;position:relative;}
+  .log-line{display:flex;gap:6px;}
+  .log-ts{color:#006600;flex-shrink:0;}
+  .log-msg{color:#00CC00;}
+  .log-ok{color:#00FF00;}
+  .log-warn{color:#FFFF00;}
+  .log-err{color:#FF4444;}
+  .cli-row{display:flex;align-items:center;gap:8px;border-top:1px solid #003300;padding-top:10px;margin-top:4px;}
+  .prompt{color:#00FF00;font-size:12px;text-shadow:0 0 6px #00FF00;white-space:nowrap;}
+  #cli-input{flex:1;background:transparent;border:none;outline:none;color:#00FF00;font-family:'Courier New',monospace;font-size:12px;caret-color:#00FF00;}
+  .cursor{display:inline-block;width:8px;height:14px;background:#00FF00;animation:blink 1s step-end infinite;vertical-align:text-bottom;margin-left:1px;}
+  @keyframes blink{0%,100%{opacity:1;}50%{opacity:0;}}
+  .scan{position:absolute;top:0;left:0;width:100%;height:2px;background:linear-gradient(to bottom,transparent,#00FF0033,transparent);animation:scan 4s linear infinite;pointer-events:none;z-index:3;}
+  @keyframes scan{0%{top:-2px;}100%{top:100%;}}
+  .crt-lines{position:absolute;top:0;left:0;width:100%;height:100%;background:repeating-linear-gradient(to bottom,transparent,transparent 2px,#00000018 2px,#00000018 4px);pointer-events:none;z-index:1;}
+  .network-map{position:relative;height:80px;margin-top:4px;}
+  .ping-dot{position:absolute;width:6px;height:6px;border-radius:50%;background:#00FF00;box-shadow:0 0 6px #00FF00;animation:ping 2s ease-in-out infinite;}
+  @keyframes ping{0%,100%{transform:scale(1);opacity:1;}50%{transform:scale(1.6);opacity:.5;}}
+  .node-line{position:absolute;background:#003300;height:1px;}
+  .section-label{font-size:9px;letter-spacing:2px;color:#006600;margin-bottom:6px;}
+  .log-output{border:1px solid #002200;background:#000800;padding:8px;font-size:10px;line-height:1.6;margin-top:8px;color:#00CC00;}
+</style>
+
+<div class="terminal" id="terminal">
+  <canvas id="rain"></canvas>
+  <div class="crt-lines"></div>
+  <div class="scan"></div>
+  <div class="content">
+
+    <div class="header">
+      <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+      <div class="title-bar">// CYBERSPACE TERMINAL v4.2.1 — ROOT ACCESS GRANTED //</div>
+    </div>
+
+    <div class="cube-row">
+      <div class="cube-wrap">
+        <svg class="cube" width="72" height="72" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <g id="wf-cube" stroke="#00FF00" stroke-width="1" stroke-linejoin="round" fill="none" style="filter:drop-shadow(0 0 3px #00FF00)">
+            <polygon points="36,8 60,20 60,48 36,60 12,48 12,20" />
+            <polygon points="36,8 60,20 36,32 12,20" />
+            <line x1="36" y1="32" x2="36" y2="60"/>
+            <line x1="36" y1="32" x2="60" y2="20"/>
+            <line x1="36" y1="32" x2="12" y2="20"/>
+          </g>
+        </svg>
+        <div class="cube-label">NODE_01</div>
+      </div>
+      <div class="cube-wrap">
+        <svg class="cube" width="72" height="72" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <g stroke="#00FF00" stroke-width="1" fill="none" style="filter:drop-shadow(0 0 3px #00FF00)">
+            <rect x="16" y="16" width="26" height="26" rx="0"/>
+            <rect x="30" y="30" width="26" height="26" rx="0"/>
+            <line x1="16" y1="16" x2="30" y2="30"/>
+            <line x1="42" y1="16" x2="56" y2="30"/>
+            <line x1="42" y1="42" x2="56" y2="56"/>
+            <line x1="16" y1="42" x2="30" y2="56"/>
+          </g>
+        </svg>
+        <div class="cube-label">NODE_02</div>
+      </div>
+      <div class="cube-wrap">
+        <svg class="cube" width="72" height="72" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <g stroke="#00FF00" stroke-width="1" fill="none" style="filter:drop-shadow(0 0 3px #00FF00)">
+            <circle cx="36" cy="36" r="24"/>
+            <ellipse cx="36" cy="36" rx="24" ry="10"/>
+            <ellipse cx="36" cy="36" rx="10" ry="24"/>
+            <line x1="12" y1="36" x2="60" y2="36"/>
+            <line x1="36" y1="12" x2="36" y2="60"/>
+          </g>
+        </svg>
+        <div class="cube-label">NODE_03</div>
+      </div>
+    </div>
+
+    <div class="panel-grid">
+      <div class="panel">
+        <div class="panel-title">&gt; SYS_VITALS</div>
+        <div class="bar-row"><div class="bar-label">CPU</div><div class="bar-track"><div class="bar-fill" style="width:73%"></div></div><div class="bar-val">73%</div></div>
+        <div class="bar-row"><div class="bar-label">MEMORY</div><div class="bar-track"><div class="bar-fill" style="width:58%"></div></div><div class="bar-val">58%</div></div>
+        <div class="bar-row"><div class="bar-label">NET_I/O</div><div class="bar-track"><div class="bar-fill" style="width:91%"></div></div><div class="bar-val">91%</div></div>
+        <div class="bar-row"><div class="bar-label">DISK</div><div class="bar-track"><div class="bar-fill" style="width:44%"></div></div><div class="bar-val">44%</div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">&gt; NET_STATUS</div>
+        <div class="stat-grid">
+          <div class="stat"><div class="stat-num" id="pkt">2,847</div><div class="stat-lbl">PACKETS</div></div>
+          <div class="stat"><div class="stat-num">12</div><div class="stat-lbl">NODES</div></div>
+          <div class="stat"><div class="stat-num" style="color:#FFFF00;text-shadow:0 0 8px #FFFF00">3</div><div class="stat-lbl">ALERTS</div></div>
+          <div class="stat"><div class="stat-num">99.8</div><div class="stat-lbl">UPTIME%</div></div>
+          <div class="stat"><div class="stat-num">42ms</div><div class="stat-lbl">LATENCY</div></div>
+          <div class="stat"><div class="stat-num" style="color:#00FF00">OK</div><div class="stat-lbl">FIREWALL</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">&gt; SYSTEM_LOG</div>
+      <div class="log" id="syslog">
+        <div class="log-line"><span class="log-ts">[04:31:07]</span><span class="log-ok">✓ AUTH</span><span class="log-msg"> — ROOT access granted via SSH tunnel</span></div>
+        <div class="log-line"><span class="log-ts">[04:31:09]</span><span class="log-ok">✓ CONN</span><span class="log-msg"> — Proxy chain established: 7 hops</span></div>
+        <div class="log-line"><span class="log-ts">[04:31:12]</span><span class="log-warn">⚠ WARN</span><span class="log-msg"> — Intrusion detection sweep incoming</span></div>
+        <div class="log-line"><span class="log-ts">[04:31:15]</span><span class="log-ok">✓ MASK</span><span class="log-msg"> — Identity spoofed: MAC rotated</span></div>
+        <div class="log-line"><span class="log-ts">[04:31:18]</span><span class="log-msg">  INFO — Payload encryption: AES-256-GCM active</span></div>
+        <div class="log-line"><span class="log-ts">[04:31:21]</span><span class="log-ok">✓ SYNC</span><span class="log-msg"> — Node cluster handshake complete</span></div>
+      </div>
+    </div>
+
+    <div style="margin-top:10px;border:1px solid #003300;padding:8px 10px;background:#000500;">
+      <div class="section-label">&gt; COMMAND_INTERFACE</div>
+      <div class="cli-row">
+        <span class="prompt">root@ZION:~#</span>
+        <input id="cli-input" type="text" placeholder="enter command..." autocomplete="off" spellcheck="false" />
+        <span class="cursor"></span>
+      </div>
+      <div class="log-output" id="cli-out" style="display:none;"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function(){
+  const canvas = document.getElementById('rain');
+  const ctx = canvas.getContext('2d');
+  const chars = 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン0123456789ABCDEF<>{}[]|/\\;:.,?!@#$%^&*()+-=~`';
+  let cols, drops;
+
+  function resize(){
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+    cols = Math.floor(canvas.width/14);
+    drops = Array(cols).fill(1);
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  function drawRain(){
+    ctx.fillStyle='rgba(0,0,0,0.05)';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle='#00FF00';
+    ctx.font='13px Courier New';
+    for(let i=0;i<drops.length;i++){
+      const c=chars[Math.floor(Math.random()*chars.length)];
+      ctx.fillText(c,i*14,drops[i]*14);
+      if(drops[i]*14>canvas.height&&Math.random()>0.975) drops[i]=0;
+      drops[i]++;
+    }
+  }
+  setInterval(drawRain,55);
+
+  let pkts=2847;
+  setInterval(()=>{
+    pkts+=Math.floor(Math.random()*20+5);
+    const el=document.getElementById('pkt');
+    if(el) el.textContent=pkts.toLocaleString();
+  },1200);
+
+  const responses={
+    'help':'AVAILABLE CMDS: status | scan | decrypt | trace | ping | whoami | clear',
+    'status':'[ONLINE] All systems nominal. Firewall: ACTIVE. VPN: TUNNELED.',
+    'whoami':'root — ghost protocol active. No trace.',
+    'scan':'Scanning subnet 10.0.0.0/24 ... found 12 nodes. 3 unidentified.',
+    'ping':'PING 10.0.0.1: 4 packets tx, 4 rx, 0% loss. avg 42ms.',
+    'decrypt':'Decrypting payload ... AES-256 cracked in 0.003s. Data extracted.',
+    'trace':'Traceroute blocked. Proxy chain obfuscating origin.',
+    'clear':null,
+  };
+
+  const input=document.getElementById('cli-input');
+  const out=document.getElementById('cli-out');
+
+  input.addEventListener('keydown',e=>{
+    if(e.key!=='Enter') return;
+    const cmd=input.value.trim().toLowerCase();
+    input.value='';
+    if(!cmd) return;
+    if(cmd==='clear'){out.style.display='none';out.textContent='';return;}
+    const resp=responses[cmd]||`bash: ${cmd}: command not found`;
+    out.style.display='block';
+    out.textContent='';
+    let i=0;
+    const iv=setInterval(()=>{
+      out.textContent+=resp[i++];
+      if(i>=resp.length) clearInterval(iv);
+    },18);
+  });
+})();
+</script>

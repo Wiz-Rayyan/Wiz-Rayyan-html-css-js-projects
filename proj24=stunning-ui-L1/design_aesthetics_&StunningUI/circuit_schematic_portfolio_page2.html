@@ -1,0 +1,639 @@
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.pcb{background:#000;padding:1.5rem;font-family:'Courier New',monospace;color:#0f0}
+.mono{font-family:'Courier New',monospace}
+.dim{color:#060}
+.mid{color:#0a0}
+.bright{color:#0f0}
+.blink{animation:blink 1s step-start infinite}
+@keyframes blink{50%{opacity:0}}
+@keyframes scanline{0%{top:-10%}100%{top:110%}}
+@keyframes pulse{0%,100%{opacity:.3}50%{opacity:1}}
+
+.topbar{display:flex;align-items:center;gap:1rem;border-bottom:1px solid #0f04;padding-bottom:1rem;margin-bottom:1.2rem}
+.tb-title{font-size:15px;font-weight:700;letter-spacing:.2em;color:#0f0}
+.tb-sub{font-size:9px;color:#060;letter-spacing:.2em;margin-top:2px}
+.tb-tabs{display:flex;gap:2px;margin-left:auto}
+.tab{font-size:9px;padding:3px 10px;border:1px solid #0a04;color:#060;cursor:pointer;letter-spacing:.1em;background:#000;transition:all .15s}
+.tab.active{border-color:#0f0;color:#0f0;background:#0f01}
+.tab:hover:not(.active){color:#0a0;border-color:#0a0}
+
+.page{display:none}
+.page.active{display:block}
+
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.8rem}
+.panel{border:1px solid #0f03;padding:1rem;position:relative}
+.panel-title{font-size:9px;color:#060;letter-spacing:.15em;margin-bottom:.7rem;border-bottom:1px dashed #0f02;padding-bottom:.4rem}
+.panel::before{content:attr(data-ref);position:absolute;top:3px;right:6px;font-size:8px;color:#0f02}
+
+.osc-screen{background:#010a01;border:1px solid #0a0;padding:.5rem;position:relative;overflow:hidden;height:120px}
+.osc-grid{position:absolute;inset:0;opacity:.15}
+.osc-scanline{position:absolute;left:0;right:0;height:2px;background:#0f04;animation:scanline 3s linear infinite}
+.osc-wave{position:absolute;left:0;right:0;top:0;bottom:0}
+
+.knob-row{display:flex;gap:.7rem;margin-top:.6rem;align-items:center}
+.knob-wrap{display:flex;flex-direction:column;align-items:center;gap:3px}
+.knob{width:28px;height:28px;border-radius:50%;border:1px solid #0a0;background:#010a01;cursor:pointer;position:relative;display:flex;align-items:center;justify-content:center}
+.knob-tick{width:2px;height:8px;background:#0f0;border-radius:1px;transform-origin:50% 100%;position:absolute;bottom:50%}
+.knob-label{font-size:8px;color:#060;letter-spacing:.05em}
+.knob-val{font-size:9px;color:#0f0}
+
+.freq-display{background:#010a01;border:1px solid #0a0;padding:.4rem .6rem;font-size:20px;letter-spacing:.15em;color:#0f0;text-align:right;font-weight:700;margin-bottom:.5rem}
+.freq-unit{font-size:10px;color:#0a0;margin-left:4px}
+
+.btn-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:.6rem}
+.pcb-btn{background:#000;border:1px solid #0a0;color:#0a0;font-family:'Courier New',monospace;font-size:9px;padding:4px 6px;cursor:pointer;letter-spacing:.05em;transition:all .15s}
+.pcb-btn:hover{border-color:#0f0;color:#0f0;background:#0f01}
+.pcb-btn.active{background:#0f02;color:#0f0;border-color:#0f0}
+.pcb-btn.danger{border-color:#f00a;color:#f008}
+.pcb-btn.danger:hover{background:#f001;color:#f00;border-color:#f00}
+
+.meter-row{display:flex;flex-direction:column;gap:.4rem;margin-top:.4rem}
+.meter{position:relative;height:14px;background:#010a01;border:1px solid #0a04}
+.meter-fill{height:100%;background:#0f0;transition:width .3s}
+.meter-fill.warn{background:#ff0}
+.meter-fill.crit{background:#f00}
+.meter-label{position:absolute;left:4px;top:50%;transform:translateY(-50%);font-size:8px;color:#000;mix-blend-mode:difference;letter-spacing:.05em;white-space:nowrap}
+.meter-val{position:absolute;right:4px;top:50%;transform:translateY(-50%);font-size:8px;color:#0f0}
+
+.log-box{background:#010a01;border:1px solid #0a04;padding:.5rem;height:100px;overflow:hidden;font-size:9px;line-height:1.7;color:#0a0}
+.log-line{display:flex;gap:.5rem}
+.log-time{color:#060;min-width:52px}
+.log-ok{color:#0f0}
+.log-warn{color:#ff0}
+.log-err{color:#f00}
+
+.pinout{display:grid;grid-template-columns:auto 1fr auto;gap:2px 6px;font-size:9px;margin-top:.5rem;align-items:center}
+.pin-num{color:#060;text-align:right;min-width:18px}
+.pin-bar{height:8px;background:#0f0;border-radius:0;min-width:4px}
+.pin-name{color:#0a0}
+.pin-bar.gnd{background:#f00a;outline:1px solid #f004}
+.pin-bar.vcc{background:#ff04;outline:1px solid #ff02}
+.pin-bar.sig{background:#0f04}
+.pin-bar.clk{background:#0af4;outline:1px solid #0af2}
+
+.waveform-svg{width:100%;height:60px;display:block;margin-top:.5rem}
+
+.slider-row{display:flex;align-items:center;gap:.5rem;margin:.3rem 0}
+.slider-lbl{font-size:9px;color:#060;min-width:40px;letter-spacing:.05em}
+.pcb-range{-webkit-appearance:none;appearance:none;flex:1;height:3px;background:#0f03;outline:none;cursor:pointer}
+.pcb-range::-webkit-slider-thumb{-webkit-appearance:none;width:10px;height:10px;background:#0f0;border-radius:0;cursor:pointer}
+.pcb-range::-moz-range-thumb{width:10px;height:10px;background:#0f0;border-radius:0;border:none;cursor:pointer}
+.slider-out{font-size:9px;color:#0f0;min-width:32px;text-align:right}
+
+.matrix-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:2px;margin-top:.5rem}
+.matrix-cell{aspect-ratio:1;border:1px solid #0f03;cursor:pointer;transition:background .1s}
+.matrix-cell.on{background:#0f0}
+.matrix-cell.off{background:#000}
+.matrix-cell:hover{background:#0f04}
+
+.serial-box{background:#010a01;border:1px solid #0a04;padding:.4rem;font-size:9px;color:#0a0;height:80px;overflow:hidden;line-height:1.6}
+.serial-input-row{display:flex;gap:4px;margin-top:4px}
+.serial-in{background:#000;border:1px solid #0a0;color:#0f0;font-family:'Courier New',monospace;font-size:9px;padding:2px 6px;flex:1;outline:none}
+.serial-in:focus{border-color:#0f0}
+.serial-send{background:#000;border:1px solid #0a0;color:#0a0;font-family:'Courier New',monospace;font-size:9px;padding:2px 8px;cursor:pointer}
+.serial-send:hover{color:#0f0;border-color:#0f0}
+
+.schematic-area{position:relative;height:180px;background:#000;border:1px solid #0f03;overflow:hidden;margin-top:.4rem}
+.sch-label{font-size:8px;color:#060;position:absolute;letter-spacing:.05em}
+
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;margin-bottom:1rem}
+.stat{border:1px solid #0f03;padding:.5rem;text-align:center}
+.stat-val{font-size:16px;color:#0f0;font-weight:700;letter-spacing:.1em}
+.stat-lbl{font-size:8px;color:#060;margin-top:2px;letter-spacing:.1em}
+.stat.warn .stat-val{color:#ff0}
+.stat.ok .stat-val{color:#0f0}
+</style>
+
+<div class="pcb">
+<h2 style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">Circuit schematic portfolio page 2 — interactive oscilloscope, signal generator, system monitor, and serial terminal</h2>
+
+<div class="topbar">
+  <div>
+    <div class="tb-title">MAKER.IO</div>
+    <div class="tb-sub">PCB PORTFOLIO · PAGE 2 · REV 3.1</div>
+  </div>
+  <div style="font-size:9px;color:#060;line-height:1.8">PWR <span class="bright blink">■</span> &nbsp;CLK <span class="mid">16MHz</span> &nbsp;TEMP <span id="cputemp" class="bright">42°C</span></div>
+  <div class="tb-tabs">
+    <div class="tab active" onclick="switchTab('scope')">SCOPE</div>
+    <div class="tab" onclick="switchTab('siggen')">SIGGEN</div>
+    <div class="tab" onclick="switchTab('sysmon')">SYSMON</div>
+    <div class="tab" onclick="switchTab('serial')">SERIAL</div>
+  </div>
+</div>
+
+<div class="page active" id="tab-scope">
+  <div class="stat-row">
+    <div class="stat ok"><div class="stat-val" id="sc-freq">1.00kHz</div><div class="stat-lbl">FREQ</div></div>
+    <div class="stat ok"><div class="stat-val" id="sc-vpp">3.3V</div><div class="stat-lbl">VPP</div></div>
+    <div class="stat ok"><div class="stat-val" id="sc-duty">50%</div><div class="stat-lbl">DUTY</div></div>
+    <div class="stat ok"><div class="stat-val" id="sc-wave">SINE</div><div class="stat-lbl">WAVEFORM</div></div>
+  </div>
+  <div class="two-col">
+    <div class="panel" data-ref="CH1">
+      <div class="panel-title">CHANNEL 1 — OSCILLOSCOPE</div>
+      <div class="osc-screen" id="osc-screen">
+        <svg class="osc-grid" viewBox="0 0 200 100" preserveAspectRatio="none">
+          <defs><pattern id="g" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M20,0L0,0L0,20" stroke="#0f0" stroke-width=".5" fill="none"/></pattern></defs>
+          <rect width="200" height="100" fill="url(#g)"/>
+          <line x1="100" y1="0" x2="100" y2="100" stroke="#0f0" stroke-width="1"/>
+          <line x1="0" y1="50" x2="200" y2="50" stroke="#0f0" stroke-width="1"/>
+        </svg>
+        <div class="osc-scanline"></div>
+        <canvas id="osc-canvas" width="360" height="120" style="position:absolute;inset:0;width:100%;height:100%"></canvas>
+      </div>
+      <div class="knob-row">
+        <div class="knob-wrap">
+          <div class="knob" id="k-vdiv" onclick="cycleVdiv()"><div class="knob-tick" id="kt-vdiv" style="transform:rotate(0deg)"></div></div>
+          <div class="knob-label">V/DIV</div>
+          <div class="knob-val" id="kv-vdiv">1V</div>
+        </div>
+        <div class="knob-wrap">
+          <div class="knob" id="k-tdiv" onclick="cycleTdiv()"><div class="knob-tick" id="kt-tdiv" style="transform:rotate(0deg)"></div></div>
+          <div class="knob-label">T/DIV</div>
+          <div class="knob-val" id="kv-tdiv">1ms</div>
+        </div>
+        <div class="knob-wrap">
+          <div class="knob" id="k-trig" onclick="cycleTrig()"><div class="knob-tick" id="kt-trig"></div></div>
+          <div class="knob-label">TRIG</div>
+          <div class="knob-val" id="kv-trig">RISE</div>
+        </div>
+        <div style="flex:1"></div>
+        <div class="btn-grid" style="grid-template-columns:1fr 1fr;width:120px">
+          <button class="pcb-btn active" id="btn-run" onclick="toggleRun()">RUN</button>
+          <button class="pcb-btn" onclick="captureScope()">CAPTURE</button>
+          <button class="pcb-btn" onclick="cycleWave()">WAVE</button>
+          <button class="pcb-btn" onclick="autoScale()">AUTO</button>
+        </div>
+      </div>
+    </div>
+    <div class="panel" data-ref="MEAS">
+      <div class="panel-title">MEASUREMENTS &amp; ANALYSIS</div>
+      <div class="slider-row">
+        <span class="slider-lbl">FREQ</span>
+        <input type="range" class="pcb-range" min="1" max="100" value="10" id="sl-freq" oninput="updateScopeParams()">
+        <span class="slider-out" id="out-freq">1.0kHz</span>
+      </div>
+      <div class="slider-row">
+        <span class="slider-lbl">AMP</span>
+        <input type="range" class="pcb-range" min="1" max="33" value="16" id="sl-amp" oninput="updateScopeParams()">
+        <span class="slider-out" id="out-amp">1.6V</span>
+      </div>
+      <div class="slider-row">
+        <span class="slider-lbl">OFFSET</span>
+        <input type="range" class="pcb-range" min="-20" max="20" value="0" id="sl-offset" oninput="updateScopeParams()">
+        <span class="slider-out" id="out-offset">0.0V</span>
+      </div>
+      <div class="slider-row">
+        <span class="slider-lbl">NOISE</span>
+        <input type="range" class="pcb-range" min="0" max="20" value="3" id="sl-noise" oninput="updateScopeParams()">
+        <span class="slider-out" id="out-noise">3</span>
+      </div>
+      <div style="margin-top:.6rem;font-size:9px;line-height:2;border-top:1px dashed #0f02;padding-top:.5rem">
+        <span class="dim">RISE TIME &nbsp;</span><span class="bright" id="m-rise">0.35ms</span>&nbsp;&nbsp;
+        <span class="dim">PERIOD &nbsp;</span><span class="bright" id="m-period">1.00ms</span><br>
+        <span class="dim">RMS &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="bright" id="m-rms">1.13V</span>&nbsp;&nbsp;
+        <span class="dim">THD &nbsp;&nbsp;&nbsp;</span><span class="bright" id="m-thd">0.0%</span>
+      </div>
+      <button class="pcb-btn" style="width:100%;margin-top:.5rem" onclick="sendPrompt('Explain what these oscilloscope measurements mean for my circuit design')">ANALYSE IN CLAUDE ↗</button>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="tab-siggen">
+  <div class="two-col">
+    <div class="panel" data-ref="SG1">
+      <div class="panel-title">SIGNAL GENERATOR</div>
+      <div class="freq-display" id="sg-display">1000.0 <span class="freq-unit">Hz</span></div>
+      <div class="slider-row">
+        <span class="slider-lbl">FREQ</span>
+        <input type="range" class="pcb-range" min="1" max="1000" value="100" id="sg-freq" oninput="updateSigGen()">
+        <span class="slider-out" id="sg-freq-out">1000Hz</span>
+      </div>
+      <div class="slider-row">
+        <span class="slider-lbl">AMP</span>
+        <input type="range" class="pcb-range" min="0" max="33" value="16" id="sg-amp" oninput="updateSigGen()">
+        <span class="slider-out" id="sg-amp-out">1.6V</span>
+      </div>
+      <div class="slider-row">
+        <span class="slider-lbl">DUTY</span>
+        <input type="range" class="pcb-range" min="5" max="95" value="50" id="sg-duty" oninput="updateSigGen()">
+        <span class="slider-out" id="sg-duty-out">50%</span>
+      </div>
+      <div class="btn-grid" style="margin-top:.7rem">
+        <button class="pcb-btn active" id="sg-sine" onclick="setSGWave('SINE')">SINE</button>
+        <button class="pcb-btn" id="sg-square" onclick="setSGWave('SQR')">SQUARE</button>
+        <button class="pcb-btn" id="sg-tri" onclick="setSGWave('TRI')">TRIANGLE</button>
+        <button class="pcb-btn" id="sg-saw" onclick="setSGWave('SAW')">SAWTOOTH</button>
+      </div>
+    </div>
+    <div class="panel" data-ref="PREV">
+      <div class="panel-title">WAVEFORM PREVIEW</div>
+      <canvas id="sg-canvas" width="300" height="100" style="width:100%;height:100px;background:#010a01;border:1px solid #0a04;display:block;margin-top:.2rem"></canvas>
+      <div style="margin-top:.6rem;font-size:9px;line-height:2">
+        <span class="dim">WAVELENGTH &nbsp;</span><span class="bright" id="sg-wl">1.00ms</span><br>
+        <span class="dim">AMPLITUDE &nbsp;&nbsp;</span><span class="bright" id="sg-av">1.6Vpp</span>&nbsp;&nbsp;
+        <span class="dim">RMS </span><span class="bright" id="sg-rms">1.13V</span>
+      </div>
+      <div class="matrix-grid" id="led-matrix">
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="tab-sysmon">
+  <div class="stat-row">
+    <div class="stat" id="st-cpu"><div class="stat-val" id="sv-cpu">34%</div><div class="stat-lbl">CPU</div></div>
+    <div class="stat" id="st-mem"><div class="stat-val" id="sv-mem">61%</div><div class="stat-lbl">MEM</div></div>
+    <div class="stat" id="st-temp"><div class="stat-val" id="sv-temp">42°C</div><div class="stat-lbl">TEMP</div></div>
+    <div class="stat ok"><div class="stat-val" id="sv-up">04:12:07</div><div class="stat-lbl">UPTIME</div></div>
+  </div>
+  <div class="two-col">
+    <div class="panel" data-ref="MON">
+      <div class="panel-title">SYSTEM VITALS</div>
+      <div class="meter-row" id="meter-rows"></div>
+    </div>
+    <div class="panel" data-ref="LOG">
+      <div class="panel-title">SYSTEM LOG</div>
+      <div class="log-box" id="log-box"></div>
+      <div class="btn-grid" style="margin-top:.5rem">
+        <button class="pcb-btn" onclick="addLog('INFO','Manual ping sent','log-ok')">PING</button>
+        <button class="pcb-btn" onclick="addLog('WARN','Force GC cycle','log-warn')">GC</button>
+        <button class="pcb-btn danger" onclick="addLog('ERR','Watchdog reset!','log-err')">RESET</button>
+        <button class="pcb-btn" onclick="clearLog()">CLEAR</button>
+      </div>
+    </div>
+  </div>
+  <div class="panel" data-ref="PROC" style="margin-top:.8rem">
+    <div class="panel-title">PROCESS TABLE</div>
+    <div style="font-size:9px;line-height:2;color:#0a0">
+      <span class="dim">PID &nbsp;&nbsp;&nbsp; NAME &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; CPU &nbsp;&nbsp; MEM &nbsp;&nbsp; STATE</span><br>
+      <span class="dim">001 &nbsp;&nbsp;&nbsp;</span><span class="bright">KERNEL &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="mid" id="p-kern">2% &nbsp;&nbsp;</span><span class="mid">12MB &nbsp;&nbsp;</span><span style="color:#0f0">RUN</span><br>
+      <span class="dim">002 &nbsp;&nbsp;&nbsp;</span><span class="bright">NET_STACK &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="mid" id="p-net">1% &nbsp;&nbsp;</span><span class="mid">4MB &nbsp;&nbsp;&nbsp;</span><span style="color:#0f0">WAIT</span><br>
+      <span class="dim">003 &nbsp;&nbsp;&nbsp;</span><span class="bright">SENSOR_MGR &nbsp;&nbsp;&nbsp;</span><span class="mid" id="p-sensor">8% &nbsp;&nbsp;</span><span class="mid">8MB &nbsp;&nbsp;&nbsp;</span><span style="color:#0f0">RUN</span><br>
+      <span class="dim">004 &nbsp;&nbsp;&nbsp;</span><span class="bright">MQTT_CLIENT &nbsp;&nbsp;</span><span class="mid" id="p-mqtt">3% &nbsp;&nbsp;</span><span class="mid">6MB &nbsp;&nbsp;&nbsp;</span><span style="color:#ff0">IDLE</span><br>
+      <span class="dim">005 &nbsp;&nbsp;&nbsp;</span><span class="bright">OTA_DAEMON &nbsp;&nbsp;&nbsp;</span><span class="mid" id="p-ota">0% &nbsp;&nbsp;</span><span class="mid">2MB &nbsp;&nbsp;&nbsp;</span><span style="color:#0a0">SLEEP</span>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="tab-serial">
+  <div class="two-col">
+    <div class="panel" data-ref="UART">
+      <div class="panel-title">UART TERMINAL — 115200 8N1</div>
+      <div class="serial-box" id="serial-out"></div>
+      <div class="serial-input-row">
+        <input class="serial-in" id="serial-in" placeholder="send command..." onkeydown="if(event.key==='Enter')serialSend()">
+        <button class="serial-send" onclick="serialSend()">TX</button>
+      </div>
+      <div class="btn-grid" style="margin-top:.5rem">
+        <button class="pcb-btn" onclick="serialCmd('AT')">AT</button>
+        <button class="pcb-btn" onclick="serialCmd('AT+RST')">RESET</button>
+        <button class="pcb-btn" onclick="serialCmd('AT+GMR')">VERSION</button>
+        <button class="pcb-btn" onclick="serialCmd('AT+CWLAP')">SCAN WIFI</button>
+      </div>
+    </div>
+    <div class="panel" data-ref="PIN">
+      <div class="panel-title">PIN STATUS — ESP32</div>
+      <div class="pinout" id="pinout-grid"></div>
+      <div style="margin-top:.6rem;font-size:9px;color:#060;border-top:1px dashed #0f02;padding-top:.5rem;line-height:1.8">
+        <span style="color:#f00">■</span> GND &nbsp;
+        <span style="color:#ff0">■</span> VCC &nbsp;
+        <span style="color:#0f0">■</span> SIG &nbsp;
+        <span style="color:#0af">■</span> CLK
+      </div>
+      <button class="pcb-btn" style="width:100%;margin-top:.6rem" onclick="sendPrompt('How do I wire an I2C sensor to an ESP32 using these pins?')">WIRING HELP ↗</button>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+var scopeRunning=true, scopeWave='SINE', sgWave='SINE';
+var vdivSteps=['100mV','500mV','1V','2V','5V'], vdivIdx=2;
+var tdivSteps=['100us','500us','1ms','5ms','10ms'], tdivIdx=2;
+var trigSteps=['RISE','FALL','ANY'], trigIdx=0;
+var uptimeStart=Date.now()-((4*3600+12*60+7)*1000);
+
+function switchTab(t){
+  document.querySelectorAll('.tab').forEach(function(el){el.classList.remove('active')});
+  document.querySelectorAll('.page').forEach(function(el){el.classList.remove('active')});
+  document.getElementById('tab-'+t).classList.add('active');
+  event.target.classList.add('active');
+}
+
+var oscCtx, oscAnim;
+function initOsc(){
+  var canvas=document.getElementById('osc-canvas');
+  if(!canvas)return;
+  oscCtx=canvas.getContext('2d');
+  drawOsc();
+}
+function getParams(){
+  var freq=parseFloat(document.getElementById('sl-freq').value);
+  var amp=parseFloat(document.getElementById('sl-amp').value)/10;
+  var offset=parseFloat(document.getElementById('sl-offset').value)/10;
+  var noise=parseFloat(document.getElementById('sl-noise').value)/100;
+  return{freq:freq,amp:amp,offset:offset,noise:noise};
+}
+var oscPhase=0;
+function drawOsc(){
+  var canvas=document.getElementById('osc-canvas');
+  if(!canvas){return}
+  var ctx=canvas.getContext('2d');
+  var w=canvas.width,h=canvas.height;
+  ctx.clearRect(0,0,w,h);
+  ctx.strokeStyle='#0f0';
+  ctx.lineWidth=1.5;
+  var p=getParams();
+  if(scopeRunning) oscPhase+=0.04;
+  ctx.beginPath();
+  for(var i=0;i<w;i++){
+    var x=i/w;
+    var t=x*p.freq+oscPhase;
+    var v;
+    if(scopeWave==='SINE') v=Math.sin(t*Math.PI*2);
+    else if(scopeWave==='SQR') v=(Math.sin(t*Math.PI*2)>0?1:-1);
+    else if(scopeWave==='TRI') v=2*Math.abs(2*(t-Math.floor(t+0.5)))-1;
+    else v=2*(t-Math.floor(t+0.5));
+    v=(v*p.amp+p.offset)*(1+(Math.random()-0.5)*p.noise*0.4);
+    var py=h/2-v*(h/3);
+    if(i===0) ctx.moveTo(i,py); else ctx.lineTo(i,py);
+  }
+  ctx.stroke();
+  if(scopeRunning) requestAnimationFrame(drawOsc);
+}
+function toggleRun(){
+  scopeRunning=!scopeRunning;
+  var btn=document.getElementById('btn-run');
+  btn.classList.toggle('active',scopeRunning);
+  btn.textContent=scopeRunning?'RUN':'STOP';
+  if(scopeRunning) drawOsc();
+}
+function cycleVdiv(){vdivIdx=(vdivIdx+1)%vdivSteps.length;document.getElementById('kv-vdiv').textContent=vdivSteps[vdivIdx];document.getElementById('kt-vdiv').style.transform='rotate('+(vdivIdx*72-144)+'deg)'}
+function cycleTdiv(){tdivIdx=(tdivIdx+1)%tdivSteps.length;document.getElementById('kv-tdiv').textContent=tdivSteps[tdivIdx];document.getElementById('kt-tdiv').style.transform='rotate('+(tdivIdx*72-144)+'deg)'}
+function cycleTrig(){trigIdx=(trigIdx+1)%trigSteps.length;document.getElementById('kv-trig').textContent=trigSteps[trigIdx]}
+function cycleWave(){var waves=['SINE','SQR','TRI','SAW'];var i=waves.indexOf(scopeWave);scopeWave=waves[(i+1)%waves.length];document.getElementById('sc-wave').textContent=scopeWave}
+function autoScale(){document.getElementById('sl-amp').value=16;document.getElementById('sl-offset').value=0;updateScopeParams()}
+function captureScope(){scopeRunning=false;document.getElementById('btn-run').classList.remove('active');document.getElementById('btn-run').textContent='STOP'}
+function updateScopeParams(){
+  var f=parseFloat(document.getElementById('sl-freq').value)*10;
+  var a=parseFloat(document.getElementById('sl-amp').value)/10;
+  var o=parseFloat(document.getElementById('sl-offset').value)/10;
+  var n=parseFloat(document.getElementById('sl-noise').value);
+  document.getElementById('out-freq').textContent=(f>=1000?(f/1000).toFixed(1)+'kHz':f.toFixed(0)+'Hz');
+  document.getElementById('out-amp').textContent=a.toFixed(1)+'V';
+  document.getElementById('out-offset').textContent=o.toFixed(1)+'V';
+  document.getElementById('out-noise').textContent=n.toFixed(0);
+  document.getElementById('sc-freq').textContent=(f>=1000?(f/1000).toFixed(2)+'kHz':f.toFixed(0)+'Hz');
+  document.getElementById('sc-vpp').textContent=(a*2).toFixed(1)+'V';
+  document.getElementById('m-rise').textContent=(0.35/f*1000).toFixed(2)+'ms';
+  document.getElementById('m-period').textContent=(1000/f).toFixed(2)+'ms';
+  document.getElementById('m-rms').textContent=(a*0.707).toFixed(2)+'V';
+  document.getElementById('m-thd').textContent=(n*0.5).toFixed(1)+'%';
+}
+
+var sgCtx;
+function initSG(){
+  var c=document.getElementById('sg-canvas');
+  if(c) sgCtx=c.getContext('2d');
+  updateSigGen();
+  initLEDMatrix();
+}
+function setSGWave(w){
+  sgWave=w;
+  ['sine','square','tri','saw'].forEach(function(id){document.getElementById('sg-'+id).classList.remove('active')});
+  var map={SINE:'sine',SQR:'square',TRI:'tri',SAW:'saw'};
+  document.getElementById('sg-'+map[w]).classList.add('active');
+  updateSigGen();
+}
+function updateSigGen(){
+  var f=parseFloat(document.getElementById('sg-freq').value)*10;
+  var a=parseFloat(document.getElementById('sg-amp').value)/10;
+  var d=parseFloat(document.getElementById('sg-duty').value);
+  document.getElementById('sg-freq-out').textContent=(f>=1000?(f/1000).toFixed(1)+'kHz':f.toFixed(0)+'Hz');
+  document.getElementById('sg-amp-out').textContent=a.toFixed(1)+'V';
+  document.getElementById('sg-duty-out').textContent=d.toFixed(0)+'%';
+  document.getElementById('sg-display').innerHTML=(f>=1000?(f/1000).toFixed(1):f.toFixed(0))+' <span class="freq-unit">'+(f>=1000?'kHz':'Hz')+'</span>';
+  document.getElementById('sg-wl').textContent=(1000/f).toFixed(2)+'ms';
+  document.getElementById('sg-av').textContent=(a*2).toFixed(1)+'Vpp';
+  document.getElementById('sg-rms').textContent=(a*0.707).toFixed(2)+'V';
+  document.getElementById('sc-duty').textContent=d.toFixed(0)+'%';
+  drawSG(f,a,d);
+  updateLEDMatrix(f);
+}
+function drawSG(f,a,d){
+  var c=document.getElementById('sg-canvas');
+  if(!c)return;
+  var ctx=c.getContext('2d');
+  var w=c.width,h=c.height;
+  ctx.clearRect(0,0,w,h);
+  ctx.strokeStyle='#0f0';
+  ctx.lineWidth=2;
+  ctx.beginPath();
+  for(var i=0;i<w;i++){
+    var x=i/w*4;
+    var v;
+    if(sgWave==='SINE') v=Math.sin(x*Math.PI*2);
+    else if(sgWave==='SQR'){var p=x%1;v=(p<d/100)?1:-1;}
+    else if(sgWave==='TRI') v=2*Math.abs(2*(x-Math.floor(x+0.5)))-1;
+    else v=2*(x%1)-1;
+    var py=h/2-v*a*(h/2.5);
+    if(i===0) ctx.moveTo(i,py); else ctx.lineTo(i,py);
+  }
+  ctx.stroke();
+  ctx.strokeStyle='#0f02';
+  ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(0,h/2);ctx.lineTo(w,h/2);ctx.stroke();
+}
+function initLEDMatrix(){
+  var m=document.getElementById('led-matrix');
+  if(!m)return;
+  m.innerHTML='';
+  for(var i=0;i<64;i++){
+    var c=document.createElement('div');
+    c.className='matrix-cell off';
+    c.dataset.idx=i;
+    c.onclick=function(){this.classList.toggle('on');this.classList.toggle('off')};
+    m.appendChild(c);
+  }
+}
+function updateLEDMatrix(f){
+  var cells=document.querySelectorAll('.matrix-cell');
+  if(!cells.length)return;
+  var lit=Math.round((f/10000)*64);
+  cells.forEach(function(c,i){
+    if(i<lit){c.classList.add('on');c.classList.remove('off')}
+    else{c.classList.add('off');c.classList.remove('on')}
+  });
+}
+
+var meters=[
+  {lbl:'CPU LOAD',id:'m-cpu',val:34,unit:'%',warn:70,crit:90},
+  {lbl:'RAM USED',id:'m-ram',val:61,unit:'%',warn:75,crit:90},
+  {lbl:'FLASH',id:'m-flash',val:45,unit:'%',warn:80,crit:95},
+  {lbl:'TEMP',id:'m-temp',val:42,unit:'°C',warn:70,crit:85},
+  {lbl:'VCC',id:'m-vcc',val:91,unit:'%',warn:20,crit:10},
+  {lbl:'WIFI RSSI',id:'m-rssi',val:72,unit:'%',warn:30,crit:15}
+];
+function initMeters(){
+  var cont=document.getElementById('meter-rows');
+  if(!cont)return;
+  cont.innerHTML='';
+  meters.forEach(function(m){
+    var cls=m.val>=m.crit?'crit':(m.val<=m.warn&&(m.id==='m-rssi'||m.id==='m-vcc'))&&m.val<m.warn?'warn':'';
+    if(m.id==='m-cpu'&&m.val>=m.warn)cls='warn';
+    if(m.id==='m-cpu'&&m.val>=m.crit)cls='crit';
+    var row=document.createElement('div');row.className='meter';
+    var fill=document.createElement('div');fill.className='meter-fill '+cls;fill.style.width=m.val+'%';fill.id=m.id+'-fill';
+    var lbl=document.createElement('div');lbl.className='meter-label';lbl.textContent=m.lbl;
+    var val=document.createElement('div');val.className='meter-val';val.textContent=m.val+m.unit;val.id=m.id+'-val';
+    row.appendChild(fill);row.appendChild(lbl);row.appendChild(val);
+    cont.appendChild(row);
+  });
+}
+var logLines=[];
+var logPreset=[
+  {t:'00:00:01',msg:'System boot OK',cls:'log-ok'},
+  {t:'00:00:02',msg:'WiFi connected · 192.168.1.42',cls:'log-ok'},
+  {t:'00:00:05',msg:'MQTT broker connected',cls:'log-ok'},
+  {t:'00:12:34',msg:'Sensor I2C timeout',cls:'log-warn'},
+  {t:'01:04:11',msg:'OTA check: no update',cls:'log-ok'},
+  {t:'04:11:55',msg:'Heap frag: 12%',cls:'log-warn'}
+];
+function initLog(){
+  logLines=logPreset.slice();
+  renderLog();
+}
+function renderLog(){
+  var box=document.getElementById('log-box');
+  if(!box)return;
+  box.innerHTML='';
+  logLines.slice(-8).forEach(function(l){
+    var row=document.createElement('div');row.className='log-line';
+    row.innerHTML='<span class="log-time">['+l.t+']</span><span class="'+l.cls+'">'+l.msg+'</span>';
+    box.appendChild(row);
+  });
+  box.scrollTop=box.scrollHeight;
+}
+function addLog(lvl,msg,cls){
+  var d=new Date(Date.now()-uptimeStart);
+  var h=String(Math.floor(d/3600000)).padStart(2,'0');
+  var m=String(Math.floor(d/60000)%60).padStart(2,'0');
+  var s=String(Math.floor(d/1000)%60).padStart(2,'0');
+  logLines.push({t:h+':'+m+':'+s,msg:lvl+' '+msg,cls:cls});
+  renderLog();
+}
+function clearLog(){logLines=[];renderLog()}
+
+var serialLines=[];
+var atResponses={
+  'AT':'OK',
+  'AT+RST':'ets Jun  8 2016\r\nrst:0x1\r\nready',
+  'AT+GMR':'AT version:2.2.0.0\r\nSDK version:v4.4\r\nOK',
+  'AT+CWLAP':'+CWLAP:(3,"HomeNet",-42,"aa:bb:cc:dd:ee:ff",6)\r\n+CWLAP:(3,"Office_5G",-67,"...",36)\r\nOK'
+};
+function initSerial(){
+  serialLines=[
+    {txt:'UART0 115200 8N1 ready',cls:'mid'},
+    {txt:'ESP-IDF v5.1.0',cls:'dim'},
+    {txt:'Type AT commands below',cls:'dim'}
+  ];
+  renderSerial();
+  initPinout();
+}
+function renderSerial(){
+  var box=document.getElementById('serial-out');
+  if(!box)return;
+  box.innerHTML='';
+  serialLines.slice(-6).forEach(function(l){
+    var d=document.createElement('div');d.className=l.cls||'';d.textContent=l.txt;
+    box.appendChild(d);
+  });
+}
+function serialSend(){
+  var inp=document.getElementById('serial-in');
+  var cmd=inp.value.trim().toUpperCase();
+  if(!cmd)return;
+  serialLines.push({txt:'> '+cmd,cls:'bright'});
+  inp.value='';
+  var resp=atResponses[cmd]||'ERROR';
+  resp.split('\r\n').forEach(function(line){
+    serialLines.push({txt:line,cls:resp==='ERROR'?'log-err':'log-ok'});
+  });
+  renderSerial();
+}
+function serialCmd(c){document.getElementById('serial-in').value=c;serialSend()}
+
+var pins=[
+  {num:1,name:'EN',type:'sig'},{num:2,name:'GPIO0',type:'sig'},{num:3,name:'TXD0',type:'clk'},
+  {num:4,name:'RXD0',type:'clk'},{num:5,name:'GPIO2',type:'sig'},{num:6,name:'GPIO4',type:'sig'},
+  {num:7,name:'GPIO5',type:'sig'},{num:8,name:'3V3',type:'vcc'},{num:9,name:'GND',type:'gnd'},
+  {num:10,name:'GPIO12',type:'sig'},{num:11,name:'GPIO13',type:'sig'},{num:12,name:'GPIO14',type:'clk'}
+];
+function initPinout(){
+  var g=document.getElementById('pinout-grid');
+  if(!g)return;
+  g.innerHTML='';
+  pins.forEach(function(p){
+    var num=document.createElement('div');num.className='pin-num';num.textContent=p.num;
+    var bar=document.createElement('div');bar.className='pin-bar '+p.type;bar.style.width=(20+Math.random()*60)+'px';
+    var name=document.createElement('div');name.className='pin-name';name.textContent=p.name;
+    g.appendChild(num);g.appendChild(bar);g.appendChild(name);
+  });
+}
+
+function updateUptime(){
+  var d=Date.now()-uptimeStart;
+  var h=String(Math.floor(d/3600000)).padStart(2,'0');
+  var m=String(Math.floor(d/60000)%60).padStart(2,'0');
+  var s=String(Math.floor(d/1000)%60).padStart(2,'0');
+  var el=document.getElementById('sv-up');
+  if(el)el.textContent=h+':'+m+':'+s;
+}
+function jitter(v,range){return Math.min(100,Math.max(0,v+(Math.random()-0.5)*range))}
+function updateMeters(){
+  var vals={cpu:jitter(34,20),mem:jitter(61,5),temp:jitter(42,3),vcc:91,rssi:jitter(72,8),flash:45};
+  document.getElementById('sv-cpu').textContent=Math.round(vals.cpu)+'%';
+  document.getElementById('sv-mem').textContent=Math.round(vals.mem)+'%';
+  document.getElementById('sv-temp').textContent=Math.round(vals.temp)+'°C';
+  document.getElementById('cputemp').textContent=Math.round(vals.temp)+'°C';
+  var stcpu=document.getElementById('st-cpu');
+  if(vals.cpu>70){stcpu.className='stat warn';document.getElementById('sv-cpu').style.color='#ff0'}
+  else{stcpu.className='stat ok';document.getElementById('sv-cpu').style.color='#0f0'}
+  var fvcc=document.getElementById('m-vcc-fill');
+  var fvcv=document.getElementById('m-vcc-val');
+  var fcpu=document.getElementById('m-cpu-fill');
+  var fcpv=document.getElementById('m-cpu-val');
+  var ftemp=document.getElementById('m-temp-fill');
+  var ftv=document.getElementById('m-temp-val');
+  if(fvcc){fvcc.style.width=vals.vcc+'%';fvcv.textContent=vals.vcc.toFixed(0)+'%'}
+  if(fcpu){fcpu.style.width=vals.cpu+'%';fcpv.textContent=Math.round(vals.cpu)+'%';fcpu.className='meter-fill'+(vals.cpu>90?' crit':vals.cpu>70?' warn':'')}
+  if(ftemp){ftemp.style.width=(vals.temp/100*100)+'%';ftv.textContent=Math.round(vals.temp)+'°C';ftemp.className='meter-fill'+(vals.temp>80?' crit':vals.temp>65?' warn':'')}
+  ['kern','net','sensor','mqtt','ota'].forEach(function(id){
+    var el=document.getElementById('p-'+id);
+    if(el){var v=Math.round(Math.random()*12);el.textContent=v+'% '}
+  });
+}
+setTimeout(function(){
+  initOsc();
+  initSG();
+  initMeters();
+  initLog();
+  initSerial();
+  setInterval(updateUptime,1000);
+  setInterval(updateMeters,2000);
+  setInterval(function(){
+    var msgs=[
+      {msg:'Sensor read OK',cls:'log-ok'},
+      {msg:'Heap: '+Math.round(200+Math.random()*50)+'KB free',cls:'log-ok'},
+      {msg:'TX packet queued',cls:'log-ok'},
+      {msg:'ADC noise: '+(Math.random()*2).toFixed(1)+'mV',cls:'log-warn'}
+    ];
+    var pick=msgs[Math.floor(Math.random()*msgs.length)];
+    addLog('INFO',pick.msg,pick.cls);
+  },4000);
+},100);
+</script>

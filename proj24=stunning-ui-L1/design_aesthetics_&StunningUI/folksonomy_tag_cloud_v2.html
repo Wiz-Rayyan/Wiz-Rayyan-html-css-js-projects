@@ -1,0 +1,361 @@
+
+<h2 style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">Interactive folksonomy tag cloud with search, filtering, custom tags, and size controls</h2>
+
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; }
+#toolbar {
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  padding: 1rem 1rem 0.5rem;
+}
+#toolbar input[type=text] { flex: 1; min-width: 140px; font-size: 13px; }
+#toolbar input[type=range] { width: 90px; }
+#toolbar select { font-size: 13px; }
+#topic-bar {
+  display: flex; gap: 6px; flex-wrap: wrap;
+  padding: 0.5rem 1rem 0.25rem;
+}
+#topic-bar button { font-size: 12px; padding: 3px 10px; border-radius: 20px; }
+#topic-bar button.active {
+  background: var(--color-background-secondary);
+  border-color: var(--color-border-primary);
+  font-weight: 500;
+}
+#stats {
+  padding: 0.25rem 1rem 0.25rem;
+  font-size: 12px; color: var(--color-text-tertiary);
+  display: flex; gap: 16px; flex-wrap: wrap;
+}
+#cloud {
+  padding: 1rem 1rem 1.5rem;
+  line-height: 2.4;
+  min-height: 180px;
+}
+.tag {
+  display: inline-block;
+  margin: 4px 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.15s, transform 0.12s;
+  font-family: var(--font-sans);
+  border-radius: 3px;
+  user-select: none;
+}
+.tag:hover { opacity: 0.6; transform: scale(1.1); }
+.tag.selected {
+  background: var(--color-background-secondary);
+  outline: 1.5px solid var(--color-border-secondary);
+  padding: 1px 4px;
+}
+.tag.faded { opacity: 0.18; pointer-events: none; }
+#add-bar {
+  display: flex; gap: 8px; align-items: center;
+  padding: 0 1rem 0.75rem;
+  border-top: 0.5px solid var(--color-border-tertiary);
+  padding-top: 0.75rem;
+}
+#add-bar input { flex: 1; font-size: 13px; }
+#add-bar input[type=range] { width: 80px; flex: none; }
+#selected-panel {
+  padding: 0.5rem 1rem 0.75rem;
+  border-top: 0.5px solid var(--color-border-tertiary);
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  min-height: 36px;
+}
+#selected-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.sel-pill {
+  background: var(--color-background-secondary);
+  border: 0.5px solid var(--color-border-secondary);
+  border-radius: 20px;
+  padding: 2px 10px;
+  font-size: 12px;
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+.sel-pill:hover { border-color: var(--color-border-primary); }
+#empty-msg {
+  color: var(--color-text-tertiary); font-size: 13px;
+  padding: 2rem 0; text-align: center; display: none;
+}
+</style>
+
+<div id="toolbar">
+  <input type="text" id="search" placeholder="Filter tags...">
+  <select id="sort">
+    <option value="random">Shuffle</option>
+    <option value="alpha">A–Z</option>
+    <option value="size-desc">Largest first</option>
+    <option value="size-asc">Smallest first</option>
+  </select>
+  <label style="font-size:12px;color:var(--color-text-secondary);">density</label>
+  <input type="range" id="density" min="10" max="100" value="100" step="5">
+  <span id="density-out" style="font-size:12px;min-width:32px;color:var(--color-text-secondary);">100%</span>
+  <button id="shuffle-btn">↺ shuffle</button>
+</div>
+
+<div id="topic-bar"></div>
+<div id="stats"></div>
+<div id="cloud"><div id="empty-msg">No tags match your filter.</div></div>
+
+<div id="selected-panel">
+  <span style="color:var(--color-text-tertiary);font-size:12px;">selected tags</span>
+  <div id="selected-tags"><span id="no-sel" style="color:var(--color-text-tertiary);font-size:12px;">none — click a tag to select it</span></div>
+  <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;" id="sel-actions" style="display:none">
+    <button id="ask-sel">ask about selected ↗</button>
+    <button id="clear-sel">clear selection</button>
+  </div>
+</div>
+
+<div id="add-bar">
+  <input type="text" id="new-tag" placeholder="Add your own tag...">
+  <label style="font-size:12px;color:var(--color-text-secondary);">size</label>
+  <input type="range" id="new-size" min="1" max="10" value="5" step="1">
+  <span id="new-size-out" style="font-size:12px;min-width:16px;color:var(--color-text-secondary);">5</span>
+  <button id="add-btn">+ add</button>
+</div>
+
+<script>
+const PALETTES = {
+  vivid: ["#7F77DD","#1D9E75","#D85A30","#D4537E","#378ADD","#639922","#BA7517","#985FA5","#0F6E56","#993C1D","#185FA5","#3B6D11","#534AB7","#993556","#854F0B","#E24B4A"],
+  warm:  ["#D85A30","#BA7517","#E24B4A","#D4537E","#993C1D","#854F0B","#993556","#712B13","#A32D2D","#633806","#72243E","#4A1B0C"],
+  cool:  ["#7F77DD","#1D9E75","#378ADD","#185FA5","#534AB7","#0F6E56","#985FA5","#085041","#0C447C","#3B6D11","#26215C","#04342C"],
+  mono:  ["#888780","#5F5E5A","#444441","#2C2C2A","#B4B2A9","#D3D1C7","#6F6E6A","#4F4F4C"]
+};
+
+const BASE_TOPICS = {
+  "internet & web": [
+    ["hyperlink",58],["browser",50],["protocol",44],["server",52],["domain",46],
+    ["network",55],["bandwidth",38],["router",32],["firewall",30],["proxy",28],
+    ["cache",42],["cookie",48],["session",36],["latency",34],["packet",30],
+    ["DNS",44],["HTTP",52],["TCP/IP",38],["socket",32],["port",28],
+    ["API",56],["REST",46],["webhook",34],["endpoint",40],["payload",36],
+    ["CDN",38],["SSL",44],["HTTPS",50],["certificate",32],["encryption",46],
+    ["hosting",42],["uptime",30],["deploy",40],["cloud",58],["VPN",44],
+    ["URL",52],["URI",34],["redirect",36],["iframe",28],["header",40],
+    ["ping",30],["subnet",24],["gateway",32],["NAT",26],["streaming",52],["CDN",38]
+  ],
+  "music": [
+    ["melody",58],["harmony",52],["rhythm",56],["tempo",46],["beat",60],
+    ["chord",50],["scale",44],["key",38],["pitch",42],["tone",48],
+    ["bass",54],["treble",36],["notation",32],["measure",34],["verse",56],
+    ["chorus",58],["bridge",44],["hook",52],["riff",46],["solo",48],
+    ["album",56],["track",50],["playlist",58],["remix",42],["producer",44],
+    ["mixing",38],["mastering",32],["studio",46],["session",34],["vinyl",42],
+    ["streaming",54],["genre",50],["indie",44],["acoustic",40],["synthesizer",36],
+    ["sample",40],["loop",34],["reverb",30],["concert",52],["setlist",36],
+    ["encore",40],["venue",44],["festival",56],["overdub",26],["glitch",30]
+  ],
+  "design": [
+    ["typography",56],["layout",52],["whitespace",48],["grid",44],["hierarchy",46],
+    ["contrast",54],["color",60],["palette",50],["hue",38],["saturation",34],
+    ["alignment",42],["balance",46],["proximity",36],["repetition",32],["flow",44],
+    ["gestalt",30],["kerning",34],["leading",30],["tracking",28],["baseline",32],
+    ["serif",44],["sans-serif",52],["monospace",34],["weight",40],["italic",36],
+    ["icon",50],["symbol",42],["logo",58],["brand",56],["identity",44],
+    ["mockup",46],["wireframe",40],["prototype",42],["figma",52],["sketch",44],
+    ["vector",48],["raster",36],["SVG",44],["pixel",38],["resolution",32],
+    ["UX",58],["UI",60],["usability",46],["affordance",30],["signifier",26]
+  ],
+  "science": [
+    ["hypothesis",54],["experiment",58],["data",60],["analysis",52],["result",46],
+    ["theory",56],["model",48],["variable",44],["control",42],["sample",38],
+    ["observation",50],["measurement",44],["peer review",36],["replication",32],["bias",34],
+    ["quantum",52],["gravity",50],["entropy",46],["evolution",58],["genome",44],
+    ["neuron",48],["synapse",38],["catalyst",36],["isotope",30],["photon",34],
+    ["algorithm",56],["simulation",48],["probability",44],["statistics",50],["uncertainty",40],
+    ["fossil",38],["climate",56],["ecosystem",50],["mutation",42],["protein",40],
+    ["telescope",44],["microscope",40],["spectrum",46],["radiation",36],["plasma",32],
+    ["friction",30],["momentum",38],["velocity",42],["orbit",44],["molecule",48]
+  ]
+};
+
+let topics = JSON.parse(JSON.stringify(BASE_TOPICS));
+let currentTopic = "internet & web";
+let selectedWords = new Set();
+let currentPalette = "vivid";
+let searchVal = "";
+let sortMode = "random";
+let densityPct = 100;
+let shuffleSeed = Math.random();
+let userTags = {};
+
+function hash(s) {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) & 0xffff;
+  return h;
+}
+
+function pickColor(word) {
+  const pal = PALETTES[currentPalette];
+  return pal[hash(word) % pal.length];
+}
+
+function seededRand(seed, i) {
+  let x = Math.sin(seed * 9301 + i * 49297 + 233) * 1e5;
+  return x - Math.floor(x);
+}
+
+function getWords() {
+  const base = topics[currentTopic] || [];
+  const extra = Object.entries(userTags[currentTopic] || {}).map(([w,s]) => [w, s]);
+  return [...base, ...extra];
+}
+
+function render() {
+  const cloud = document.getElementById("cloud");
+  const emptyMsg = document.getElementById("empty-msg");
+  cloud.innerHTML = "";
+  cloud.appendChild(emptyMsg);
+
+  let words = getWords();
+  const min = Math.min(...words.map(w=>w[1]));
+  const max = Math.max(...words.map(w=>w[1]));
+
+  if (searchVal) {
+    words = words.filter(([w]) => w.toLowerCase().includes(searchVal.toLowerCase()));
+  }
+
+  const total = words.length;
+  const showCount = Math.max(3, Math.round(total * densityPct / 100));
+
+  if (sortMode === "random") {
+    words = [...words].sort((a, b) => seededRand(shuffleSeed, words.indexOf(a)) - seededRand(shuffleSeed, words.indexOf(b)));
+  } else if (sortMode === "alpha") {
+    words = [...words].sort((a,b) => a[0].localeCompare(b[0]));
+  } else if (sortMode === "size-desc") {
+    words = [...words].sort((a,b) => b[1] - a[1]);
+  } else if (sortMode === "size-asc") {
+    words = [...words].sort((a,b) => a[1] - b[1]);
+  }
+
+  words = words.slice(0, showCount);
+
+  if (words.length === 0) {
+    emptyMsg.style.display = "block";
+    updateStats(0, total);
+    return;
+  }
+  emptyMsg.style.display = "none";
+
+  words.forEach(([word, weight]) => {
+    const size = 13 + Math.round(((weight - min) / (max - min + 1)) * 46);
+    const span = document.createElement("span");
+    span.className = "tag" + (selectedWords.has(word) ? " selected" : "");
+    span.textContent = word;
+    span.style.fontSize = size + "px";
+    span.style.color = pickColor(word);
+    span.title = "weight " + weight;
+    span.onclick = () => toggleSelect(word, span);
+    cloud.appendChild(span);
+  });
+
+  updateStats(words.length, total);
+}
+
+function toggleSelect(word, el) {
+  if (selectedWords.has(word)) {
+    selectedWords.delete(word);
+    el.classList.remove("selected");
+  } else {
+    selectedWords.add(word);
+    el.classList.add("selected");
+  }
+  updateSelectedPanel();
+}
+
+function updateSelectedPanel() {
+  const container = document.getElementById("selected-tags");
+  const noSel = document.getElementById("no-sel");
+  const actions = document.getElementById("sel-actions");
+  container.innerHTML = "";
+  if (selectedWords.size === 0) {
+    const ns = document.createElement("span");
+    ns.id = "no-sel";
+    ns.style.cssText = "color:var(--color-text-tertiary);font-size:12px;";
+    ns.textContent = "none — click a tag to select it";
+    container.appendChild(ns);
+    if (actions) actions.style.display = "none";
+  } else {
+    selectedWords.forEach(w => {
+      const pill = document.createElement("span");
+      pill.className = "sel-pill";
+      pill.textContent = w + " ×";
+      pill.onclick = () => { selectedWords.delete(w); render(); updateSelectedPanel(); };
+      container.appendChild(pill);
+    });
+    if (actions) actions.style.display = "flex";
+  }
+}
+
+function updateStats(shown, total) {
+  const allWords = getWords();
+  document.getElementById("stats").innerHTML =
+    "<span>" + shown + " of " + total + " tags shown</span>" +
+    "<span>" + allWords.length + " in topic</span>" +
+    "<span>" + selectedWords.size + " selected</span>";
+}
+
+function buildTopicBar() {
+  const bar = document.getElementById("topic-bar");
+  bar.innerHTML = "";
+  Object.keys(topics).forEach(t => {
+    const b = document.createElement("button");
+    b.textContent = t;
+    if (t === currentTopic) b.classList.add("active");
+    b.onclick = () => {
+      currentTopic = t;
+      document.querySelectorAll("#topic-bar button").forEach(x => x.classList.remove("active"));
+      b.classList.add("active");
+      selectedWords.clear();
+      updateSelectedPanel();
+      render();
+    };
+    bar.appendChild(b);
+  });
+}
+
+document.getElementById("search").oninput = e => { searchVal = e.target.value; render(); };
+document.getElementById("sort").onchange = e => { sortMode = e.target.value; render(); };
+document.getElementById("density").oninput = e => {
+  densityPct = parseInt(e.target.value);
+  document.getElementById("density-out").textContent = densityPct + "%";
+  render();
+};
+document.getElementById("shuffle-btn").onclick = () => { shuffleSeed = Math.random(); render(); };
+
+document.getElementById("new-size").oninput = e => {
+  document.getElementById("new-size-out").textContent = e.target.value;
+};
+
+document.getElementById("add-btn").onclick = () => {
+  const input = document.getElementById("new-tag");
+  const sizeInput = document.getElementById("new-size");
+  const word = input.value.trim();
+  if (!word) return;
+  const sizeVal = Math.round(10 + parseInt(sizeInput.value) * 5);
+  if (!userTags[currentTopic]) userTags[currentTopic] = {};
+  userTags[currentTopic][word] = sizeVal;
+  input.value = "";
+  render();
+};
+
+document.getElementById("new-tag").onkeydown = e => {
+  if (e.key === "Enter") document.getElementById("add-btn").click();
+};
+
+document.getElementById("ask-sel").onclick = () => {
+  const words = [...selectedWords].join(", ");
+  sendPrompt("What do these tags have in common and how are they related: " + words);
+};
+
+document.getElementById("clear-sel").onclick = () => {
+  selectedWords.clear();
+  updateSelectedPanel();
+  render();
+};
+
+buildTopicBar();
+render();
+updateSelectedPanel();
+</script>

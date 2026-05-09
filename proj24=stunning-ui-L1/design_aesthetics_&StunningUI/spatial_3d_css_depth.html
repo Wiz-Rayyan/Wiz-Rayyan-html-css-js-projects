@@ -1,0 +1,147 @@
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.scene{width:100%;min-height:580px;perspective:1200px;perspective-origin:50% 38%;overflow:hidden;padding:2rem 0 2rem;position:relative;background:transparent}
+.grid-plane{position:absolute;bottom:-20px;left:50%;transform:translateX(-50%) rotateX(72deg);width:900px;height:600px;background-image:linear-gradient(rgba(128,128,128,0.18) 1px,transparent 1px),linear-gradient(90deg,rgba(128,128,128,0.18) 1px,transparent 1px);background-size:55px 55px;pointer-events:none}
+.stage{transform-style:preserve-3d;position:relative;width:100%;min-height:480px;display:flex;align-items:center;justify-content:center}
+.cw{position:absolute;transform-style:preserve-3d;transition:transform 0.55s cubic-bezier(.25,.8,.25,1)}
+.card{background:var(--color-background-primary);border:0.5px solid var(--color-border-secondary);border-radius:12px;padding:1.1rem 0.9rem;width:152px;cursor:pointer;transition:border-color 0.25s}
+.card:hover{border-color:var(--color-border-primary)}
+.c-icon{width:30px;height:30px;border-radius:7px;margin-bottom:9px;display:flex;align-items:center;justify-content:center;font-size:16px}
+.c-tag{font-size:11px;font-weight:500;padding:2px 7px;border-radius:20px;display:inline-block;margin-bottom:8px}
+.c-title{font-size:14px;font-weight:500;color:var(--color-text-primary);margin-bottom:3px;line-height:1.3}
+.c-sub{font-size:11px;color:var(--color-text-secondary);line-height:1.5}
+.controls{margin:0 auto;width:90%;max-width:540px}
+.row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.row label{font-size:12px;color:var(--color-text-secondary);width:90px;flex-shrink:0}
+.row input[type=range]{flex:1}
+.row .val{font-size:12px;font-weight:500;color:var(--color-text-primary);width:55px;text-align:right}
+.btns{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:10px}
+.btn{font-size:12px;padding:5px 12px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-secondary);border-radius:8px;cursor:pointer;color:var(--color-text-primary);transition:background 0.15s}
+.btn:hover{background:var(--color-background-tertiary)}
+.btn.on{border-color:var(--color-border-primary);background:var(--color-background-tertiary)}
+.leg{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:10px}
+.li{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--color-text-secondary)}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+</style>
+
+<h2 style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">3D CSS depth layering demo — four cards at different Z depths with interactive perspective and mode controls</h2>
+
+<div class="scene" id="scene">
+  <div class="grid-plane"></div>
+  <div class="stage" id="stage">
+    <div class="cw" id="c0" style="transform:translateX(-230px) translateY(28px) translateZ(0px)">
+      <div class="card">
+        <div class="c-icon" style="background:#E6F1FB">&#9679;</div>
+        <span class="c-tag" style="background:#E6F1FB;color:#0C447C">Z: 0px</span>
+        <div class="c-title">Far plane</div>
+        <div class="c-sub">Furthest — smallest apparent size</div>
+      </div>
+    </div>
+    <div class="cw" id="c1" style="transform:translateX(-70px) translateY(-18px) translateZ(90px)">
+      <div class="card">
+        <div class="c-icon" style="background:#E1F5EE">&#9650;</div>
+        <span class="c-tag" style="background:#E1F5EE;color:#085041">Z: +90px</span>
+        <div class="c-title">Mid layer</div>
+        <div class="c-sub">Secondary — floating forward</div>
+      </div>
+    </div>
+    <div class="cw" id="c2" style="transform:translateX(95px) translateY(8px) translateZ(180px)">
+      <div class="card">
+        <div class="c-icon" style="background:#EEEDFE">&#9670;</div>
+        <span class="c-tag" style="background:#EEEDFE;color:#3C3489">Z: +180px</span>
+        <div class="c-title">Front layer</div>
+        <div class="c-sub">Feature card — pops toward user</div>
+      </div>
+    </div>
+    <div class="cw" id="c3" style="transform:translateX(240px) translateY(-25px) translateZ(270px)">
+      <div class="card">
+        <div class="c-icon" style="background:#FAECE7">&#9733;</div>
+        <span class="c-tag" style="background:#FAECE7;color:#712B13">Z: +270px</span>
+        <div class="c-title">Hero plane</div>
+        <div class="c-sub">Nearest — max pop-out effect</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="controls">
+  <div class="row">
+    <label>Perspective</label>
+    <input type="range" min="300" max="2400" value="1200" step="50" id="pslider">
+    <span class="val" id="pval">1200px</span>
+  </div>
+  <div class="row">
+    <label>Tilt X</label>
+    <input type="range" min="-30" max="30" value="0" step="1" id="txslider">
+    <span class="val" id="txval">0°</span>
+  </div>
+  <div class="btns">
+    <button class="btn on" id="bspread" onclick="setMode('spread',this)">Spread</button>
+    <button class="btn" id="bpull" onclick="setMode('pull',this)">Pull forward</button>
+    <button class="btn" id="brotate" onclick="setMode('rotate',this)">Rotate Y</button>
+    <button class="btn" id="bstack" onclick="setMode('stack',this)">Stack flat</button>
+  </div>
+</div>
+
+<div class="leg">
+  <div class="li"><div class="dot" style="background:#185FA5"></div>Far Z:0</div>
+  <div class="li"><div class="dot" style="background:#0F6E56"></div>Mid +90px</div>
+  <div class="li"><div class="dot" style="background:#534AB7"></div>Front +180px</div>
+  <div class="li"><div class="dot" style="background:#993C1D"></div>Hero +270px</div>
+</div>
+
+<script>
+const sc = document.getElementById('scene');
+const ps = document.getElementById('pslider');
+const pv = document.getElementById('pval');
+const tx = document.getElementById('txslider');
+const tv = document.getElementById('txval');
+const base = [{x:-230,y:28,z:0},{x:-70,y:-18,z:90},{x:95,y:8,z:180},{x:240,y:-25,z:270}];
+let cur = 'spread';
+
+ps.oninput = () => { pv.textContent = ps.value+'px'; sc.style.perspective = ps.value+'px'; };
+tx.oninput = () => { tv.textContent = tx.value+'°'; document.getElementById('stage').style.transform = `rotateX(${tx.value}deg)`; };
+
+function getZ(i, m) {
+  if(m==='spread') return base[i].z;
+  if(m==='pull') return base[i].z * 2.2;
+  if(m==='rotate') return base[i].z;
+  return 0;
+}
+function getR(i, m) {
+  if(m==='rotate') return (i-1.5)*32;
+  return 0;
+}
+function getX(i, m) {
+  if(m==='stack') return (i-1.5)*42;
+  return base[i].x;
+}
+function getY(i, m) {
+  if(m==='stack') return 0;
+  return base[i].y;
+}
+
+function apply(m) {
+  for(let i=0;i<4;i++) {
+    const c = document.getElementById('c'+i);
+    c.style.transform = `translateX(${getX(i,m)}px) translateY(${getY(i,m)}px) translateZ(${getZ(i,m)}px) rotateY(${getR(i,m)}deg)`;
+  }
+}
+
+function setMode(m, el) {
+  cur = m;
+  document.querySelectorAll('.btn').forEach(b => b.classList.remove('on'));
+  el.classList.add('on');
+  apply(m);
+}
+
+for(let i=0;i<4;i++) {
+  const c = document.getElementById('c'+i);
+  c.addEventListener('mouseenter', () => {
+    const z = getZ(i,cur);
+    const r = getR(i,cur);
+    c.style.transform = `translateX(${getX(i,cur)}px) translateY(${getY(i,cur)}px) translateZ(${z+60}px) rotateY(${r}deg) scale(1.04)`;
+  });
+  c.addEventListener('mouseleave', () => apply(cur));
+}
+</script>

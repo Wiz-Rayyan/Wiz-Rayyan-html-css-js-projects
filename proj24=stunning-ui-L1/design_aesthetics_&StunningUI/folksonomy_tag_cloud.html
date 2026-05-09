@@ -1,4 +1,6 @@
 
+<h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);">Interactive tag cloud showing words sized by frequency/importance in a folksonomy style</h2>
+
 <style>
   #cloud { padding: 1.5rem 1rem; line-height: 2.2; }
   .tag {
@@ -6,119 +8,117 @@
     margin: 5px 7px;
     cursor: pointer;
     white-space: nowrap;
-    transition: opacity 0.15s;
+    transition: opacity 0.2s, transform 0.15s;
     font-family: var(--font-sans);
+    font-weight: 400;
     text-decoration: none;
   }
-  .tag:hover { opacity: 0.6; }
+  .tag:hover { opacity: 0.65; transform: scale(1.08); }
   #topic-bar {
-    display: flex; align-items: center; gap: 10px;
+    display: flex; gap: 8px; flex-wrap: wrap;
     padding: 0 1rem 1rem;
-    flex-wrap: wrap;
   }
-  #topic-bar input {
-    flex: 1; min-width: 180px; max-width: 320px;
-    font-size: 14px;
+  #topic-bar button {
+    font-size: 12px; padding: 4px 12px;
+    border-radius: 20px;
   }
-  #topic-bar button { font-size: 13px; padding: 6px 14px; }
-  #status { font-size: 12px; color: var(--color-text-tertiary); margin: 0 1rem 0.5rem; min-height: 16px; }
+  #topic-bar button.active {
+    background: var(--color-background-secondary);
+    border-color: var(--color-border-primary);
+  }
 </style>
 
-<h2 class="sr-only">Folksonomy tag cloud — words sized by importance, colored from a pastel palette</h2>
-
-<div id="topic-bar">
-  <input type="text" id="topic-input" placeholder="Enter a topic…" value="the early internet" />
-  <button id="gen-btn" onclick="generateCloud()">Generate cloud ↗</button>
-</div>
-<div id="status"></div>
+<div id="topic-bar"></div>
 <div id="cloud"></div>
 
 <script>
-const PASTELS = [
-  "#e05c8a","#c45bb8","#7b5ea7","#4e78c4","#3a9fbf",
-  "#2aaa88","#5ab552","#c8a020","#d4622a","#bf3f5e",
-  "#8e5ccc","#2d9e6b","#d97c3a","#4e9ad4","#b84f9e",
-  "#e07040","#45a88c","#a060d0","#c03060","#3868b8"
+const pastel = [
+  "#7F77DD","#1D9E75","#D85A30","#D4537E",
+  "#378ADD","#639922","#BA7517","#985FA5",
+  "#0F6E56","#993C1D","#185FA5","#3B6D11",
+  "#534AB7","#993556","#E24B4A","#854F0B"
 ];
 
-function pickColor() {
-  return PASTELS[Math.floor(Math.random() * PASTELS.length)];
+const topics = {
+  "internet & web": [
+    ["hyperlink",58],["browser",50],["protocol",44],["server",52],["domain",46],
+    ["network",55],["bandwidth",38],["router",32],["firewall",30],["proxy",28],
+    ["cache",42],["cookie",48],["session",36],["latency",34],["packet",30],
+    ["DNS",44],["HTTP",52],["TCP/IP",38],["socket",32],["port",28],
+    ["API",56],["REST",46],["webhook",34],["endpoint",40],["payload",36],
+    ["CDN",38],["SSL",44],["HTTPS",50],["certificate",32],["encryption",46],
+    ["hosting",42],["uptime",30],["deploy",40],["cloud",58],["VPN",44],
+    ["URL",52],["URI",34],["redirect",36],["iframe",28],["header",40],
+    ["ping",30],["traceroute",22],["subnet",24],["gateway",32],["NAT",26],
+  ],
+  "music": [
+    ["melody",58],["harmony",52],["rhythm",56],["tempo",46],["beat",60],
+    ["chord",50],["scale",44],["key",38],["pitch",42],["tone",48],
+    ["bass",54],["treble",36],["clef",28],["notation",32],["measure",34],
+    ["verse",56],["chorus",58],["bridge",44],["hook",52],["riff",46],
+    ["solo",48],["album",56],["track",50],["playlist",58],["remix",42],
+    ["producer",44],["mixing",38],["mastering",32],["studio",46],["session",34],
+    ["vinyl",42],["streaming",54],["genre",50],["indie",44],["acoustic",40],
+    ["synthesizer",36],["sample",40],["loop",34],["overdub",26],["reverb",30],
+    ["concert",52],["setlist",36],["encore",40],["venue",44],["festival",56],
+  ],
+  "design": [
+    ["typography",56],["layout",52],["whitespace",48],["grid",44],["hierarchy",46],
+    ["contrast",54],["color",60],["palette",50],["hue",38],["saturation",34],
+    ["alignment",42],["balance",46],["proximity",36],["repetition",32],["flow",44],
+    ["gestalt",30],["kerning",34],["leading",30],["tracking",28],["baseline",32],
+    ["serif",44],["sans-serif",52],["monospace",34],["weight",40],["italic",36],
+    ["icon",50],["symbol",42],["logo",58],["brand",56],["identity",44],
+    ["mockup",46],["wireframe",40],["prototype",42],["figma",52],["sketch",44],
+    ["vector",48],["raster",36],["SVG",44],["pixel",38],["resolution",32],
+    ["UX",58],["UI",60],["usability",46],["affordance",30],["signifier",26],
+  ]
+};
+
+let currentTopic = "internet & web";
+
+function pickColor(word) {
+  let h = 0;
+  for (let i = 0; i < word.length; i++) h = (h * 31 + word.charCodeAt(i)) & 0xffff;
+  return pastel[h % pastel.length];
 }
 
-function sizePx(weight) {
-  return Math.round(13 + weight * 47);
-}
-
-function renderCloud(words) {
+function render(topic) {
+  const words = topics[topic];
+  const min = Math.min(...words.map(w=>w[1]));
+  const max = Math.max(...words.map(w=>w[1]));
   const cloud = document.getElementById('cloud');
   cloud.innerHTML = '';
-  words.forEach(({word, weight}) => {
+  const shuffled = [...words].sort(() => Math.random() - 0.5);
+  shuffled.forEach(([word, weight]) => {
+    const size = 13 + Math.round(((weight - min) / (max - min)) * 46);
     const a = document.createElement('span');
     a.className = 'tag';
     a.textContent = word;
-    a.style.fontSize = sizePx(weight) + 'px';
-    a.style.color = pickColor();
-    a.style.fontWeight = weight > 0.6 ? '500' : '400';
-    a.onclick = () => sendPrompt('Tell me more about "' + word + '" in the context of the tag cloud topic');
+    a.style.fontSize = size + 'px';
+    a.style.color = pickColor(word);
+    a.title = word;
+    a.onclick = () => sendPrompt('Tell me more about "' + word + '" in the context of ' + topic);
     cloud.appendChild(a);
   });
 }
 
-async function generateCloud() {
-  const topic = document.getElementById('topic-input').value.trim() || 'the internet';
-  const btn = document.getElementById('gen-btn');
-  const status = document.getElementById('status');
-  btn.disabled = true;
-  btn.textContent = 'Generating…';
-  status.textContent = 'Asking Claude for words…';
-
-  const prompt = `Generate a folksonomy tag cloud for the topic: "${topic}".
-Return ONLY a JSON array of 60 objects, each with "word" (string) and "weight" (float 0.0–1.0).
-Higher weight = more important/frequent. Vary weights realistically — most between 0.1–0.5, a handful at 0.7–1.0.
-Mix nouns, adjectives, verbs, and proper nouns. No duplicates. No markdown, no explanation, just the JSON array.`;
-
-  try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 1000,
-        messages: [{ role: "user", content: prompt }]
-      })
-    });
-    const data = await res.json();
-    const raw = data.content.map(b => b.text || '').join('');
-    const clean = raw.replace(/```json|```/g, '').trim();
-    const words = JSON.parse(clean);
-    renderCloud(words);
-    status.textContent = topic + ' — ' + words.length + ' tags';
-  } catch(e) {
-    status.textContent = 'Error generating cloud. Try again.';
-    console.error(e);
-  }
-  btn.disabled = false;
-  btn.textContent = 'Generate cloud ↗';
+function buildTopicBar() {
+  const bar = document.getElementById('topic-bar');
+  Object.keys(topics).forEach(t => {
+    const b = document.createElement('button');
+    b.textContent = t;
+    if (t === currentTopic) b.classList.add('active');
+    b.onclick = () => {
+      currentTopic = t;
+      document.querySelectorAll('#topic-bar button').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      render(t);
+    };
+    bar.appendChild(b);
+  });
 }
 
-const DEMO = [
-  {word:"hyperlink",weight:0.85},{word:"blogroll",weight:0.7},{word:"RSS",weight:0.9},
-  {word:"folksonomy",weight:0.75},{word:"syndication",weight:0.55},{word:"permalink",weight:0.8},
-  {word:"meme",weight:0.65},{word:"trackback",weight:0.5},{word:"aggregator",weight:0.45},
-  {word:"del.icio.us",weight:0.95},{word:"Flickr",weight:0.88},{word:"Technorati",weight:0.6},
-  {word:"tagging",weight:1.0},{word:"social",weight:0.82},{word:"bookmarks",weight:0.77},
-  {word:"wiki",weight:0.7},{word:"open source",weight:0.6},{word:"pingback",weight:0.4},
-  {word:"remix",weight:0.5},{word:"community",weight:0.68},{word:"microformat",weight:0.35},
-  {word:"attention",weight:0.45},{word:"digg",weight:0.72},{word:"slashdot",weight:0.65},
-  {word:"read/write web",weight:0.8},{word:"amateur",weight:0.3},{word:"participation",weight:0.55},
-  {word:"crowdsource",weight:0.6},{word:"long tail",weight:0.78},{word:"niche",weight:0.42},
-  {word:"metadata",weight:0.65},{word:"API",weight:0.7},{word:"mashup",weight:0.75},
-  {word:"embed",weight:0.5},{word:"widget",weight:0.6},{word:"user-generated",weight:0.85},
-  {word:"collaboration",weight:0.58},{word:"viral",weight:0.72},{word:"hype cycle",weight:0.4},
-  {word:"bubble",weight:0.38},{word:"MySpace",weight:0.8},{word:"LiveJournal",weight:0.68},
-  {word:"XHTML",weight:0.42},{word:"micropost",weight:0.32},{word:"stream",weight:0.55},
-  {word:"subscribe",weight:0.62},{word:"share",weight:0.9},{word:"link economy",weight:0.5},
-  {word:"attention data",weight:0.3},{word:"infinite scroll",weight:0.4},{word:"beta",weight:0.7}
-];
-renderCloud(DEMO);
+buildTopicBar();
+render(currentTopic);
 </script>

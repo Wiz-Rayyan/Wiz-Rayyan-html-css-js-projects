@@ -1,392 +1,563 @@
-
+<!DOCTYPE html>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Share+Tech+Mono&display=swap');
-  
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Share+Tech+Mono&display=swap');
 
-  .cv-root {
-    background: #1E1A2F;
-    min-height: 620px;
-    padding: 0;
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #1E1A2F;
+    --bg2: #150F28;
+    --gold: #C9933A;
+    --gold2: #F0C060;
+    --cyan: #00F5FF;
+    --magenta: #FF2D78;
+    --purple: #7B3FA0;
+    --text: #E8DFC8;
+    --text-dim: #8A7D6B;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Playfair Display', Georgia, serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .scanline-overlay {
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.12) 2px, rgba(0,0,0,0.12) 4px);
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  .noise {
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 99;
+    opacity: 0.4;
+  }
+
+  /* Header */
+  .header {
+    border-bottom: 1px solid rgba(201,147,58,0.3);
+    padding: 16px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(30,26,47,0.95);
+    backdrop-filter: blur(4px);
     position: relative;
-    overflow: hidden;
-    font-family: Georgia, serif;
   }
-
-  .cv-noise {
-    position: absolute; inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
-    pointer-events: none; z-index: 0;
+  .header::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+    opacity: 0.5;
   }
-
-  .cv-scanlines {
-    position: absolute; inset: 0;
-    background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,255,255,0.012) 3px, rgba(0,255,255,0.012) 4px);
-    pointer-events: none; z-index: 1;
+  .logo-text {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    letter-spacing: 4px;
+    color: var(--gold2);
+    text-transform: uppercase;
+    text-shadow: 0 0 12px rgba(201,147,58,0.6), 0 0 2px var(--cyan);
   }
-
-  .cv-content { position: relative; z-index: 2; padding: 32px 36px 36px; }
-
-  /* ── top ornament bar ── */
-  .cv-topbar {
-    display: flex; align-items: center; gap: 12px;
-    margin-bottom: 28px;
-  }
-  .cv-topbar-line {
-    flex: 1; height: 1px;
-    background: linear-gradient(90deg, transparent, #B8960C 30%, #FFD700 60%, #B8960C 80%, transparent);
-  }
-  .cv-topbar-diamond {
-    width: 10px; height: 10px;
-    background: #FFD700;
-    transform: rotate(45deg);
-    box-shadow: 0 0 8px #FFD700, 0 0 20px rgba(255,215,0,0.3);
-    flex-shrink: 0;
-  }
-  .cv-topbar-glyph {
-    font-family: 'Cinzel', Georgia, serif;
-    color: #B8960C; font-size: 11px; letter-spacing: 3px;
-    text-shadow: 0 0 6px rgba(184,150,12,0.6);
-    flex-shrink: 0;
-  }
-
-  /* ── main frame ── */
-  .cv-frame {
-    border: 1px solid #B8960C;
-    position: relative;
-    padding: 28px 30px 30px;
-    background: rgba(10,8,22,0.7);
-  }
-
-  /* corner ornaments */
-  .cv-corner {
-    position: absolute; width: 24px; height: 24px;
-  }
-  .cv-corner svg { display: block; }
-  .cv-corner.tl { top: -1px; left: -1px; }
-  .cv-corner.tr { top: -1px; right: -1px; transform: scaleX(-1); }
-  .cv-corner.bl { bottom: -1px; left: -1px; transform: scaleY(-1); }
-  .cv-corner.br { bottom: -1px; right: -1px; transform: scale(-1,-1); }
-
-  /* ── header ── */
-  .cv-eyebrow {
+  .nav {
+    display: flex;
+    gap: 32px;
+    list-style: none;
     font-family: 'Share Tech Mono', monospace;
-    color: #00FFFF; font-size: 10px; letter-spacing: 4px;
-    text-shadow: 0 0 8px #00FFFF, 0 0 20px rgba(0,255,255,0.4);
-    margin-bottom: 10px;
-    animation: flicker 6s ease-in-out infinite;
-  }
-
-  @keyframes flicker {
-    0%,94%,96%,98%,100% { opacity: 1; }
-    95% { opacity: 0.3; }
-    97% { opacity: 0.7; }
-    99% { opacity: 0.4; }
-  }
-
-  .cv-title {
-    font-family: 'Cinzel', Georgia, serif;
-    font-size: 36px; font-weight: 700;
-    color: #F5E6B0;
-    line-height: 1.1;
-    text-shadow: 0 0 2px rgba(245,230,176,0.4);
+    font-size: 12px;
     letter-spacing: 2px;
-    margin-bottom: 6px;
   }
-  .cv-title .cv-glitch {
-    position: relative; display: inline-block;
-  }
-  .cv-title .cv-glitch:hover::before {
-    content: attr(data-text);
-    position: absolute; left: 2px; top: 0;
-    color: #FF00FF; clip-path: polygon(0 30%, 100% 30%, 100% 55%, 0 55%);
-    text-shadow: -1px 0 #00FFFF;
-    animation: glitch-clip 0.2s steps(1) forwards;
-  }
-  .cv-title .cv-glitch:hover::after {
-    content: attr(data-text);
-    position: absolute; left: -2px; top: 0;
-    color: #00FFFF; clip-path: polygon(0 60%, 100% 60%, 100% 80%, 0 80%);
-    text-shadow: 1px 0 #FF00FF;
-    animation: glitch-clip2 0.2s steps(1) 0.05s forwards;
-  }
-  @keyframes glitch-clip { 0%,100%{clip-path:polygon(0 30%,100% 30%,100% 55%,0 55%)} 50%{clip-path:polygon(0 25%,100% 25%,100% 50%,0 50%)} }
-  @keyframes glitch-clip2 { 0%,100%{clip-path:polygon(0 60%,100% 60%,100% 80%,0 80%)} 50%{clip-path:polygon(0 65%,100% 65%,100% 85%,0 85%)} }
-
-  .cv-subtitle {
-    font-family: Georgia, serif;
-    font-size: 14px; color: #9B8E7A;
-    font-style: italic; letter-spacing: 1px;
-    margin-bottom: 24px;
-  }
-
-  /* ── divider ── */
-  .cv-divider {
-    display: flex; align-items: center; gap: 10px;
-    margin-bottom: 24px;
-  }
-  .cv-divider-line { flex:1; height:1px; background:rgba(184,150,12,0.35); }
-  .cv-divider-icon { color:#B8960C; font-size:14px; flex-shrink:0; }
-
-  /* ── two-column body ── */
-  .cv-body { display: flex; gap: 24px; align-items: flex-start; margin-bottom: 28px; }
-
-  /* gas lamp column */
-  .cv-lamp-col { flex-shrink:0; }
-
-  /* text column */
-  .cv-text-col { flex:1; }
-  .cv-lead {
-    font-family: Georgia, serif;
-    font-size: 14px; color: #C8BFAA; line-height: 1.75;
-    margin-bottom: 18px;
-  }
-  .cv-lead em { color: #00FFFF; font-style:normal; text-shadow: 0 0 6px rgba(0,255,255,0.5); }
-
-  /* ── data readout panel ── */
-  .cv-readout {
-    background: rgba(0,20,30,0.8);
-    border: 1px solid rgba(0,255,255,0.2);
-    box-shadow: inset 0 0 20px rgba(255,0,255,0.07), 0 0 12px rgba(0,255,255,0.08);
-    padding: 12px 14px;
-    font-family: 'Share Tech Mono', monospace;
-    margin-bottom: 18px;
-  }
-  .cv-readout-title {
-    font-size: 9px; color: #00FFFF; letter-spacing: 3px;
-    text-shadow: 0 0 6px rgba(0,255,255,0.6);
-    margin-bottom: 8px;
-  }
-  .cv-readout-row {
-    display: flex; justify-content: space-between;
-    font-size: 11px; color: #7ABFBF;
-    padding: 3px 0; border-bottom: 1px solid rgba(0,255,255,0.06);
-  }
-  .cv-readout-row:last-child { border-bottom:none; }
-  .cv-readout-val {
-    color: #00FFFF; text-shadow: 0 0 4px rgba(0,255,255,0.4);
-  }
-  .cv-readout-val.blink { animation: dataBlink 2s steps(1) infinite; }
-  @keyframes dataBlink { 0%,49%{opacity:1} 50%,100%{opacity:0.3} }
-
-  /* ── three action panels ── */
-  .cv-panels { display: flex; gap: 14px; }
-  .cv-panel {
-    flex:1; border: 1px solid rgba(184,150,12,0.4);
-    background: rgba(20,14,35,0.6);
-    padding: 16px 14px;
-    cursor: pointer;
-    position: relative;
-    transition: border-color 0.2s, box-shadow 0.2s;
-  }
-  .cv-panel:hover {
-    border-color: #00FFFF;
-    box-shadow: 0 0 14px rgba(0,255,255,0.15), inset 0 0 16px rgba(255,0,255,0.06);
-  }
-  .cv-panel:hover .cv-panel-head { color: #00FFFF; text-shadow: 0 0 8px #00FFFF; }
-  .cv-panel-icon { font-size: 20px; margin-bottom: 8px; }
-  .cv-panel-head {
-    font-family: 'Cinzel', Georgia, serif;
-    font-size: 12px; color: #D4B44A; letter-spacing: 1px;
-    margin-bottom: 5px;
+  .nav a {
+    color: var(--text-dim);
+    text-decoration: none;
+    text-transform: uppercase;
     transition: color 0.2s, text-shadow 0.2s;
   }
-  .cv-panel-body { font-size: 11px; color: #7A7060; line-height: 1.5; }
-  .cv-panel-tag {
-    position: absolute; top: 8px; right: 8px;
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 8px; color: rgba(0,255,255,0.45); letter-spacing:1px;
+  .nav a:hover {
+    color: var(--cyan);
+    text-shadow: 0 0 8px var(--cyan);
   }
 
-  /* ── bottom bar ── */
-  .cv-bottombar {
-    display: flex; align-items: center; justify-content: space-between;
-    margin-top: 24px;
-    padding-top: 16px;
-    border-top: 1px solid rgba(184,150,12,0.25);
+  /* Hero */
+  .hero {
+    padding: 80px 40px 60px;
+    position: relative;
+    text-align: center;
+    overflow: hidden;
   }
-  .cv-status {
-    display: flex; align-items: center; gap: 8px;
+  .hero-bg-glow {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 60% 50% at 50% 30%, rgba(123,63,160,0.18) 0%, transparent 70%),
+                radial-gradient(ellipse 40% 30% at 80% 80%, rgba(0,245,255,0.06) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  .ornate-frame {
+    display: inline-block;
+    position: relative;
+    padding: 40px 60px;
+    margin-bottom: 32px;
+  }
+  .ornate-frame::before, .ornate-frame::after {
+    content: '';
+    position: absolute;
+    border: 1px solid var(--gold);
+    opacity: 0.5;
+  }
+  .ornate-frame::before {
+    inset: 0;
+  }
+  .ornate-frame::after {
+    inset: 6px;
+    border-color: rgba(201,147,58,0.25);
+  }
+  .corner {
+    position: absolute;
+    width: 22px;
+    height: 22px;
+  }
+  .corner svg { width: 100%; height: 100%; }
+  .corner-tl { top: -1px; left: -1px; }
+  .corner-tr { top: -1px; right: -1px; transform: scaleX(-1); }
+  .corner-bl { bottom: -1px; left: -1px; transform: scaleY(-1); }
+  .corner-br { bottom: -1px; right: -1px; transform: scale(-1); }
+
+  .eyebrow {
     font-family: 'Share Tech Mono', monospace;
-    font-size: 10px; color: #3A7A4A;
-    text-shadow: 0 0 6px rgba(0,255,100,0.4);
+    font-size: 11px;
+    letter-spacing: 5px;
+    color: var(--cyan);
+    text-shadow: 0 0 6px var(--cyan);
+    text-transform: uppercase;
+    margin-bottom: 16px;
   }
-  .cv-status-dot {
-    width: 6px; height: 6px; border-radius: 50%;
-    background: #00FF88;
-    box-shadow: 0 0 6px #00FF88;
+  .hero-title {
+    font-size: 52px;
+    font-weight: 700;
+    line-height: 1.1;
+    color: var(--gold2);
+    text-shadow: 0 0 2px rgba(240,192,96,0.4), 0 2px 20px rgba(201,147,58,0.2);
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+  }
+  .hero-title em {
+    font-style: italic;
+    color: var(--text);
+    text-shadow: 0 0 8px var(--cyan), 0 0 2px white;
+    font-size: 46px;
+  }
+  .hero-subtitle {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    margin-top: 16px;
+  }
+
+  /* Glitch button */
+  .btn-group {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    margin-top: 40px;
+    flex-wrap: wrap;
+  }
+  .btn-primary {
+    position: relative;
+    padding: 13px 36px;
+    background: transparent;
+    border: 1px solid var(--gold);
+    color: var(--gold2);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    cursor: pointer;
+    overflow: hidden;
+    transition: box-shadow 0.3s, color 0.3s;
+  }
+  .btn-primary::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(201,147,58,0.1), rgba(0,245,255,0.04));
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .btn-primary:hover {
+    color: var(--gold2);
+    box-shadow: 0 0 18px rgba(201,147,58,0.3), inset 0 0 20px rgba(255,45,120,0.08);
+    animation: glitch 0.3s steps(1) 1;
+  }
+  .btn-primary:hover::before { opacity: 1; }
+
+  .btn-secondary {
+    padding: 13px 36px;
+    background: transparent;
+    border: 1px solid rgba(0,245,255,0.35);
+    color: var(--cyan);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: box-shadow 0.3s, text-shadow 0.3s;
+  }
+  .btn-secondary:hover {
+    box-shadow: 0 0 16px rgba(0,245,255,0.25), inset 0 0 16px rgba(0,245,255,0.06);
+    text-shadow: 0 0 10px var(--cyan);
+  }
+
+  @keyframes glitch {
+    0%   { transform: translate(0); clip-path: none; }
+    20%  { transform: translate(-3px, 1px); filter: hue-rotate(90deg); }
+    40%  { transform: translate(3px, -1px); filter: hue-rotate(-90deg); }
+    60%  { transform: translate(-2px, 2px); }
+    80%  { transform: translate(2px, -2px); }
+    100% { transform: translate(0); filter: none; }
+  }
+
+  /* Divider */
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 0 40px;
+    margin: 20px 0;
+  }
+  .divider-line {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(201,147,58,0.4), transparent);
+  }
+  .divider-ornament {
+    color: var(--gold);
+    font-size: 18px;
+    opacity: 0.7;
+    text-shadow: 0 0 6px var(--cyan);
+  }
+
+  /* Data readouts */
+  .readouts {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    padding: 0 40px;
+    background: rgba(201,147,58,0.15);
+    margin-bottom: 2px;
+  }
+  .readout {
+    background: var(--bg2);
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(201,147,58,0.15);
+    position: relative;
+    overflow: hidden;
+  }
+  .readout::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(0,245,255,0.4), transparent);
+  }
+  .readout-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .readout-value {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 22px;
+    color: var(--cyan);
+    text-shadow: 0 0 8px rgba(0,245,255,0.6);
+    letter-spacing: 1px;
+  }
+  .readout-value.amber { color: var(--gold2); text-shadow: 0 0 8px rgba(240,192,96,0.5); }
+  .readout-value.magenta { color: var(--magenta); text-shadow: 0 0 8px rgba(255,45,120,0.5); }
+  .readout-unit {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+
+  /* Cards */
+  .cards-section {
+    padding: 48px 40px;
+  }
+  .cards-title {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 5px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 28px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .cards-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(201,147,58,0.2);
+  }
+
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+  .card {
+    background: rgba(21,15,40,0.8);
+    border: 1px solid rgba(201,147,58,0.25);
+    padding: 28px 24px;
+    position: relative;
+    cursor: pointer;
+    transition: border-color 0.3s, box-shadow 0.3s;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(0,245,255,0.03) 0%, transparent 50%);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .card:hover {
+    border-color: rgba(0,245,255,0.5);
+    box-shadow: inset 0 0 24px rgba(255,45,120,0.07), 0 0 20px rgba(0,245,255,0.1);
+  }
+  .card:hover::before { opacity: 1; }
+  .card:hover .card-title { text-shadow: 0 0 8px var(--cyan); animation: glitch 0.25s steps(1) 1; }
+
+  .card-icon {
+    width: 40px;
+    height: 40px;
+    margin-bottom: 16px;
+    opacity: 0.85;
+  }
+  .card-number {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: rgba(201,147,58,0.4);
+    letter-spacing: 2px;
+  }
+  .card-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    color: var(--gold2);
+    margin-bottom: 10px;
+    letter-spacing: 1px;
+    transition: text-shadow 0.3s;
+  }
+  .card-body {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    line-height: 1.7;
+    letter-spacing: 0.5px;
+  }
+  .card-tag {
+    display: inline-block;
+    margin-top: 16px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    padding: 3px 8px;
+    border: 1px solid rgba(0,245,255,0.3);
+    color: var(--cyan);
+    text-transform: uppercase;
+  }
+
+  /* Gas lamp SVG card accent */
+  .lamp-accent {
+    position: absolute;
+    bottom: 12px;
+    right: 16px;
+    opacity: 0.12;
+    transition: opacity 0.3s;
+  }
+  .card:hover .lamp-accent { opacity: 0.3; }
+
+  /* Footer */
+  .footer {
+    border-top: 1px solid rgba(201,147,58,0.2);
+    padding: 24px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(21,15,40,0.6);
+  }
+  .footer-text {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+  }
+  .status-dot {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: #4AE878;
+    letter-spacing: 1px;
+  }
+  .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #4AE878;
+    box-shadow: 0 0 6px #4AE878;
     animation: pulse 2s ease-in-out infinite;
   }
-  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.8)} }
-
-  .cv-cta {
-    font-family: 'Cinzel', Georgia, serif;
-    font-size: 11px; letter-spacing: 2px;
-    color: #1E1A2F;
-    background: linear-gradient(135deg, #D4B44A, #FFD700, #B8960C);
-    border: none; cursor: pointer;
-    padding: 9px 22px;
-    clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
-    transition: filter 0.2s, box-shadow 0.2s;
-  }
-  .cv-cta:hover {
-    filter: brightness(1.15);
-    box-shadow: 0 0 20px rgba(255,215,0,0.35), 0 0 8px rgba(0,255,255,0.2);
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
   }
 </style>
 
-<div class="cv-root">
-  <div class="cv-noise"></div>
-  <div class="cv-scanlines"></div>
-  <div class="cv-content">
+<div class="scanline-overlay"></div>
+<div class="noise"></div>
 
-    <div class="cv-topbar">
-      <div class="cv-topbar-line"></div>
-      <div class="cv-topbar-diamond"></div>
-      <div class="cv-topbar-glyph">AETHERIC SYSTEMS</div>
-      <div class="cv-topbar-diamond"></div>
-      <div class="cv-topbar-line"></div>
+<header class="header">
+  <div class="logo-text">⚙ Aetheria Co.</div>
+  <nav><ul class="nav">
+    <li><a href="#">Catalogue</a></li>
+    <li><a href="#">Archives</a></li>
+    <li><a href="#">Dispatch</a></li>
+    <li><a href="#">Connect</a></li>
+  </ul></nav>
+</header>
+
+<section class="hero">
+  <div class="hero-bg-glow"></div>
+  <div class="ornate-frame">
+    <div class="corner corner-tl"><svg viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 21V5C1 2.79 2.79 1 5 1H21" stroke="#C9933A" stroke-width="1"/><circle cx="5" cy="5" r="2.5" stroke="#C9933A" stroke-width="0.8" fill="none"/><path d="M1 11H4M11 1V4" stroke="#C9933A" stroke-width="0.6" opacity="0.5"/></svg></div>
+    <div class="corner corner-tr"><svg viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 21V5C1 2.79 2.79 1 5 1H21" stroke="#C9933A" stroke-width="1"/><circle cx="5" cy="5" r="2.5" stroke="#C9933A" stroke-width="0.8" fill="none"/><path d="M1 11H4M11 1V4" stroke="#C9933A" stroke-width="0.6" opacity="0.5"/></svg></div>
+    <div class="corner corner-bl"><svg viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 21V5C1 2.79 2.79 1 5 1H21" stroke="#C9933A" stroke-width="1"/><circle cx="5" cy="5" r="2.5" stroke="#C9933A" stroke-width="0.8" fill="none"/><path d="M1 11H4M11 1V4" stroke="#C9933A" stroke-width="0.6" opacity="0.5"/></svg></div>
+    <div class="corner corner-br"><svg viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 21V5C1 2.79 2.79 1 5 1H21" stroke="#C9933A" stroke-width="1"/><circle cx="5" cy="5" r="2.5" stroke="#C9933A" stroke-width="0.8" fill="none"/><path d="M1 11H4M11 1V4" stroke="#C9933A" stroke-width="0.6" opacity="0.5"/></svg></div>
+    <div class="eyebrow">Est. 1884 · Holographic Division</div>
+    <h1 class="hero-title">The Age of<br><em>Luminous Machines</em></h1>
+    <p class="hero-subtitle">// where brass meets byte &nbsp;·&nbsp; signal_strength: ████░ 82%</p>
+  </div>
+  <div class="btn-group">
+    <button class="btn-primary">Enter the Orrery</button>
+    <button class="btn-secondary">View Schematics</button>
+  </div>
+</section>
+
+<div class="divider">
+  <div class="divider-line"></div>
+  <div class="divider-ornament">⚙ ✦ ⚙</div>
+  <div class="divider-line"></div>
+</div>
+
+<div class="readouts">
+  <div class="readout">
+    <div class="readout-label">Aether Pressure</div>
+    <div class="readout-value">4.71</div>
+    <div class="readout-unit">atm · nominal</div>
+  </div>
+  <div class="readout">
+    <div class="readout-label">Signal Lattice</div>
+    <div class="readout-value amber">99.2%</div>
+    <div class="readout-unit">uptime · stable</div>
+  </div>
+  <div class="readout">
+    <div class="readout-label">Lux Emissions</div>
+    <div class="readout-value magenta">3,847</div>
+    <div class="readout-unit">lumens · gas-phase</div>
+  </div>
+  <div class="readout">
+    <div class="readout-label">Epoch Cycle</div>
+    <div class="readout-value">Ω.7</div>
+    <div class="readout-unit">trans-victorian era</div>
+  </div>
+</div>
+
+<section class="cards-section">
+  <div class="cards-title">Featured Modules</div>
+  <div class="cards-grid">
+    <div class="card">
+      <span class="card-number">01</span>
+      <svg class="card-icon" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="20" cy="14" r="7" stroke="#C9933A" stroke-width="1"/>
+        <path d="M20 7V5M20 21v2M13 14h-2M29 14h2" stroke="#C9933A" stroke-width="0.8" stroke-linecap="round"/>
+        <path d="M20 21v8M16 29h8" stroke="#C9933A" stroke-width="1.2" stroke-linecap="round"/>
+        <circle cx="20" cy="14" r="3" fill="rgba(0,245,255,0.12)" stroke="#00F5FF" stroke-width="0.6"/>
+        <circle cx="20" cy="14" r="1.5" fill="#00F5FF" opacity="0.7"/>
+        <ellipse cx="20" cy="14" rx="10" ry="4" stroke="#00F5FF" stroke-width="0.4" opacity="0.2"/>
+      </svg>
+      <div class="card-title">Luminiferous Engine</div>
+      <div class="card-body">Gaseous photon amplification cascades through a lattice of hand-blown crystal diodes, rendering the invisible spectrum manifest.</div>
+      <div class="card-tag">Illumination</div>
+      <svg class="lamp-accent" width="48" height="64" viewBox="0 0 48 64" fill="none">
+        <path d="M24 4v6M18 10h12l-3 14H21L18 10z" stroke="#C9933A" stroke-width="1.2"/>
+        <path d="M21 24h6v4h-6z" stroke="#C9933A" stroke-width="1"/>
+        <path d="M22 28v28M26 28v28" stroke="#C9933A" stroke-width="0.8"/>
+        <circle cx="24" cy="18" r="5" stroke="#F0C060" stroke-width="0.6" fill="rgba(240,192,96,0.05)"/>
+      </svg>
     </div>
 
-    <div class="cv-frame">
+    <div class="card">
+      <span class="card-number">02</span>
+      <svg class="card-icon" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="6" y="8" width="28" height="20" rx="2" stroke="#C9933A" stroke-width="1"/>
+        <path d="M10 12h8M10 16h6M10 20h9" stroke="#00F5FF" stroke-width="0.8" stroke-linecap="round" opacity="0.8"/>
+        <path d="M26 12l4 4-4 4" stroke="#FF2D78" stroke-width="1" stroke-linecap="round"/>
+        <path d="M13 28v4M27 28v4M10 32h20" stroke="#C9933A" stroke-width="1" stroke-linecap="round"/>
+      </svg>
+      <div class="card-title">Holographic Codex</div>
+      <div class="card-body">Encrypted dispatches encoded in standing aetherwaves, projected via a miniaturised Nicol prism array into legible phantasms.</div>
+      <div class="card-tag">Cryptography</div>
+      <svg class="lamp-accent" width="48" height="64" viewBox="0 0 48 64" fill="none">
+        <path d="M24 4v6M18 10h12l-3 14H21L18 10z" stroke="#C9933A" stroke-width="1.2"/>
+        <path d="M21 24h6v4h-6z" stroke="#C9933A" stroke-width="1"/>
+        <path d="M22 28v28M26 28v28" stroke="#C9933A" stroke-width="0.8"/>
+        <circle cx="24" cy="18" r="5" stroke="#F0C060" stroke-width="0.6" fill="rgba(240,192,96,0.05)"/>
+      </svg>
+    </div>
 
-      <!-- corner ornaments -->
-      <div class="cv-corner tl">
-        <svg width="24" height="24" viewBox="0 0 24 24">
-          <path d="M0 24 L0 0 L24 0" fill="none" stroke="#B8960C" stroke-width="1"/>
-          <path d="M0 20 L4 20 L4 16" fill="none" stroke="#FFD700" stroke-width="0.8"/>
-          <circle cx="0" cy="0" r="3" fill="#B8960C"/>
-        </svg>
-      </div>
-      <div class="cv-corner tr">
-        <svg width="24" height="24" viewBox="0 0 24 24">
-          <path d="M0 24 L0 0 L24 0" fill="none" stroke="#B8960C" stroke-width="1"/>
-          <path d="M0 20 L4 20 L4 16" fill="none" stroke="#FFD700" stroke-width="0.8"/>
-          <circle cx="0" cy="0" r="3" fill="#B8960C"/>
-        </svg>
-      </div>
-      <div class="cv-corner bl">
-        <svg width="24" height="24" viewBox="0 0 24 24">
-          <path d="M0 24 L0 0 L24 0" fill="none" stroke="#B8960C" stroke-width="1"/>
-          <path d="M0 20 L4 20 L4 16" fill="none" stroke="#FFD700" stroke-width="0.8"/>
-          <circle cx="0" cy="0" r="3" fill="#B8960C"/>
-        </svg>
-      </div>
-      <div class="cv-corner br">
-        <svg width="24" height="24" viewBox="0 0 24 24">
-          <path d="M0 24 L0 0 L24 0" fill="none" stroke="#B8960C" stroke-width="1"/>
-          <path d="M0 20 L4 20 L4 16" fill="none" stroke="#FFD700" stroke-width="0.8"/>
-          <circle cx="0" cy="0" r="3" fill="#B8960C"/>
-        </svg>
-      </div>
+    <div class="card">
+      <span class="card-number">03</span>
+      <svg class="card-icon" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="20" cy="20" r="12" stroke="#C9933A" stroke-width="1"/>
+        <circle cx="20" cy="20" r="7" stroke="rgba(0,245,255,0.4)" stroke-width="0.6" stroke-dasharray="3 2"/>
+        <circle cx="20" cy="20" r="2.5" fill="#00F5FF" opacity="0.8"/>
+        <path d="M20 8v4M20 28v4M8 20h4M28 20h4" stroke="#C9933A" stroke-width="0.8" stroke-linecap="round"/>
+        <path d="M13.5 13.5l2.5 2.5M24 24l2.5 2.5M26.5 13.5l-2.5 2.5M16 24l-2.5 2.5" stroke="#C9933A" stroke-width="0.6" stroke-linecap="round" opacity="0.6"/>
+      </svg>
+      <div class="card-title">Chrono-Navigatrix</div>
+      <div class="card-body">A mechanical orrery reimagined as a recursive temporal sextant, interfacing with the City's synchronised pneumatic time-signal grid.</div>
+      <div class="card-tag">Navigation</div>
+      <svg class="lamp-accent" width="48" height="64" viewBox="0 0 48 64" fill="none">
+        <path d="M24 4v6M18 10h12l-3 14H21L18 10z" stroke="#C9933A" stroke-width="1.2"/>
+        <path d="M21 24h6v4h-6z" stroke="#C9933A" stroke-width="1"/>
+        <path d="M22 28v28M26 28v28" stroke="#C9933A" stroke-width="0.8"/>
+        <circle cx="24" cy="18" r="5" stroke="#F0C060" stroke-width="0.6" fill="rgba(240,192,96,0.05)"/>
+      </svg>
+    </div>
+  </div>
+</section>
 
-      <div class="cv-eyebrow">◈ TRANSMISSION RECEIVED · ANNO DOMINI 1889.7 ◈</div>
-
-      <div class="cv-title">
-        <span class="cv-glitch" data-text="IRON &amp; ETHER">IRON &amp; ETHER</span>
-      </div>
-      <div class="cv-subtitle">Merchants of Arcane Computation &amp; Luminous Apparatus</div>
-
-      <div class="cv-divider">
-        <div class="cv-divider-line"></div>
-        <div class="cv-divider-icon">⚙</div>
-        <div class="cv-divider-line"></div>
-        <div class="cv-divider-icon">◆</div>
-        <div class="cv-divider-line"></div>
-        <div class="cv-divider-icon">⚙</div>
-        <div class="cv-divider-line"></div>
-      </div>
-
-      <div class="cv-body">
-
-        <!-- gas lamp SVG -->
-        <div class="cv-lamp-col">
-          <svg width="72" height="170" viewBox="0 0 72 170" xmlns="http://www.w3.org/2000/svg">
-            <!-- glow halo -->
-            <ellipse cx="36" cy="52" rx="28" ry="28" fill="rgba(0,255,255,0.04)"/>
-            <ellipse cx="36" cy="52" rx="20" ry="20" fill="rgba(255,200,60,0.08)"/>
-            <!-- lamp cap -->
-            <path d="M20 28 Q36 14 52 28 L54 34 L18 34 Z" fill="#8B6914" stroke="#D4A017" stroke-width="0.8"/>
-            <rect x="16" y="34" width="40" height="4" rx="1" fill="#D4A017"/>
-            <!-- glass globe -->
-            <ellipse cx="36" cy="60" rx="18" ry="26" fill="rgba(255,220,80,0.12)" stroke="#B8960C" stroke-width="0.8"/>
-            <!-- flame -->
-            <ellipse cx="36" cy="60" rx="6" ry="12" fill="rgba(255,180,0,0.35)"/>
-            <ellipse cx="36" cy="62" rx="3" ry="7" fill="rgba(255,240,120,0.5)"/>
-            <!-- neon cyan flicker on glass -->
-            <ellipse cx="36" cy="60" rx="18" ry="26" fill="none" stroke="rgba(0,255,255,0.25)" stroke-width="1" style="animation: lampFlicker 3s ease-in-out infinite;"/>
-            <!-- holographic data lines on glass -->
-            <line x1="24" y1="50" x2="48" y2="50" stroke="rgba(0,255,255,0.3)" stroke-width="0.5" stroke-dasharray="2,3"/>
-            <line x1="22" y1="58" x2="50" y2="58" stroke="rgba(0,255,255,0.2)" stroke-width="0.5" stroke-dasharray="1,4"/>
-            <line x1="24" y1="66" x2="48" y2="66" stroke="rgba(255,0,255,0.2)" stroke-width="0.5" stroke-dasharray="2,2"/>
-            <!-- post / pole -->
-            <rect x="33" y="86" width="6" height="50" fill="#5A4010" stroke="#8B6914" stroke-width="0.5"/>
-            <!-- base -->
-            <path d="M22 136 L50 136 L54 146 L18 146 Z" fill="#6B4C10" stroke="#B8960C" stroke-width="0.8"/>
-            <rect x="18" y="146" width="36" height="6" rx="2" fill="#8B6914"/>
-            <!-- ornate bracket arms -->
-            <path d="M33 100 Q20 100 20 88" fill="none" stroke="#8B6914" stroke-width="1"/>
-            <path d="M39 100 Q52 100 52 88" fill="none" stroke="#8B6914" stroke-width="1"/>
-            <circle cx="20" cy="88" r="2" fill="#D4A017"/>
-            <circle cx="52" cy="88" r="2" fill="#D4A017"/>
-            <!-- holographic readout floating beside lamp -->
-            <rect x="54" y="44" width="16" height="36" rx="1" fill="rgba(0,20,30,0.8)" stroke="rgba(0,255,255,0.35)" stroke-width="0.5"/>
-            <text x="62" y="55" text-anchor="middle" font-family="monospace" font-size="5" fill="rgba(0,255,255,0.7)">HZ</text>
-            <text x="62" y="63" text-anchor="middle" font-family="monospace" font-size="5" fill="rgba(0,255,255,0.9)">88.4</text>
-            <line x1="56" y1="67" x2="68" y2="67" stroke="rgba(0,255,255,0.3)" stroke-width="0.5"/>
-            <text x="62" y="74" text-anchor="middle" font-family="monospace" font-size="4" fill="rgba(255,0,255,0.6)">◈ OK</text>
-          </svg>
-          <style>
-            @keyframes lampFlicker { 0%,100%{opacity:1} 30%{opacity:0.4} 60%{opacity:0.8} 80%{opacity:0.3} }
-          </style>
-        </div>
-
-        <div class="cv-text-col">
-          <p class="cv-lead">
-            In the age where <em>analytical engines</em> hum beneath gas-lit streets, we offer instruments of extraordinary capability — woven from brass filigree and <em>holographic aether</em>. Each device is part clockwork, part data-stream.
-          </p>
-
-          <div class="cv-readout">
-            <div class="cv-readout-title">▸ AETHERIC DIAGNOSTICS · LIVE FEED</div>
-            <div class="cv-readout-row"><span>ETHER PRESSURE</span><span class="cv-readout-val">4.82 atm</span></div>
-            <div class="cv-readout-row"><span>LUMEN FLUX</span><span class="cv-readout-val blink">88.4 Hz</span></div>
-            <div class="cv-readout-row"><span>ANALYTICAL ENGINE</span><span class="cv-readout-val">NOMINAL</span></div>
-            <div class="cv-readout-row"><span>NEON RESONANCE</span><span class="cv-readout-val">CYAN ◈</span></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- panels -->
-      <div class="cv-panels">
-        <div class="cv-panel">
-          <div class="cv-panel-tag">SYS::01</div>
-          <div class="cv-panel-icon">🕰</div>
-          <div class="cv-panel-head">CHRONOMETRIC ENGINES</div>
-          <div class="cv-panel-body">Precision brass automata interfaced with holographic time-lace arrays.</div>
-        </div>
-        <div class="cv-panel">
-          <div class="cv-panel-tag">SYS::02</div>
-          <div class="cv-panel-icon">⚗️</div>
-          <div class="cv-panel-head">ALCHEMICAL CIRCUITS</div>
-          <div class="cv-panel-body">Distilled logic encoded in crystalline valves. Glitch-resistant manifolds.</div>
-        </div>
-        <div class="cv-panel">
-          <div class="cv-panel-tag">SYS::03</div>
-          <div class="cv-panel-icon">📡</div>
-          <div class="cv-panel-head">AETHERIC TRANSMITTERS</div>
-          <div class="cv-panel-body">Neon-cast signal towers bridging the material and data planes.</div>
-        </div>
-      </div>
-
-      <!-- bottom bar -->
-      <div class="cv-bottombar">
-        <div class="cv-status">
-          <div class="cv-status-dot"></div>
-          ALL SYSTEMS OPERATIONAL · LONDON AETHERNET
-        </div>
-        <button class="cv-cta">ENQUIRE NOW</button>
-      </div>
-
-    </div><!-- /frame -->
-  </div><!-- /content -->
-</div>
+<footer class="footer">
+  <div class="footer-text">© 1884–2184 Aetheria Co. Ltd. · Patent Pending · All Aethereal Rights Reserved</div>
+  <div class="status-dot"><span class="dot"></span>SIGNAL NOMINAL</div>
+</footer>

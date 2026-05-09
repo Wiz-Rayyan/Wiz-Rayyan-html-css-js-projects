@@ -1,0 +1,532 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Playfair+Display:wght@700;900&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  .sp { background: #2C1810; color: #D7CCC8; font-family: 'Courier Prime', monospace; padding: 20px; border: 3px inset #8D6E63; position: relative; overflow: hidden; }
+
+  .gear-bg { position: absolute; top: 0; left: 0; right: 0; bottom: 0; opacity: 0.04; pointer-events: none; }
+  .g1 { animation: spin 14s linear infinite; transform-origin: 580px 100px; }
+  .g2 { animation: spinr 9s linear infinite; transform-origin: 60px 460px; }
+  .g3 { animation: spin 22s linear infinite; transform-origin: 320px 560px; }
+  @keyframes spin  { to { transform: rotate(360deg); } }
+  @keyframes spinr { to { transform: rotate(-360deg); } }
+
+  .rb { border: 2px dotted #8D6E63; outline: 2px inset #5D4037; outline-offset: -4px; border-radius: 4px; }
+
+  .sp-title { font-family: 'Playfair Display', serif; font-size: 24px; font-weight: 900; color: #B8860B; letter-spacing: 4px; text-transform: uppercase; }
+  .sp-sub { font-size: 10px; color: #8D6E63; letter-spacing: 5px; text-transform: uppercase; margin-top: 2px; }
+  .divider { border: none; border-top: 1px solid #5D4037; margin: 10px 0; position: relative; }
+  .divider::before { content: '◆'; position: absolute; left: 50%; transform: translateX(-50%) translateY(-50%); background: #2C1810; color: #B8860B; padding: 0 8px; font-size: 10px; }
+
+  .panel { background: #1A0F0A; padding: 14px; position: relative; }
+  .plabel { font-size: 9px; letter-spacing: 3px; text-transform: uppercase; color: #8D6E63; margin-bottom: 8px; }
+
+  .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  .g3c { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+
+  /* TABS */
+  .tab-bar { display: flex; gap: 0; margin-bottom: 0; }
+  .tab { padding: 7px 16px; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; cursor: pointer; border: 1px solid #5D4037; background: #1A0F0A; color: #8D6E63; border-bottom: none; transition: all 0.2s; }
+  .tab:hover { color: #D7CCC8; background: #2C1810; }
+  .tab.active { background: #3E2723; color: #B8860B; border-color: #8D6E63; border-bottom: 1px solid #3E2723; }
+  .tab-body { background: #3E2723; border: 1px solid #8D6E63; padding: 16px; margin-bottom: 14px; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* STEAM CHART */
+  .chart-wrap { position: relative; height: 120px; }
+  .chart-svg { width: 100%; height: 120px; }
+  .c-grid { stroke: #3E2723; stroke-width: 0.5; }
+  .c-line { fill: none; stroke: #B8860B; stroke-width: 2; stroke-linejoin: round; }
+  .c-line2 { fill: none; stroke: #B87333; stroke-width: 1.5; stroke-linejoin: round; stroke-dasharray: 4 2; }
+  .c-area { fill: url(#agold); opacity: 0.3; }
+
+  /* DIALS interactive */
+  .dial-wrap { display: flex; flex-direction: column; align-items: center; }
+  .dial-svg { width: 100px; height: 70px; cursor: pointer; }
+  .dial-lbl { font-size: 9px; color: #8D6E63; letter-spacing: 2px; text-transform: uppercase; margin-top: 2px; text-align: center; }
+
+  /* TOGGLE SWITCHES */
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px dotted #3E2723; }
+  .toggle-row:last-child { border-bottom: none; }
+  .toggle-name { font-size: 11px; color: #A1887F; }
+  .toggle { width: 40px; height: 20px; background: #3E2723; border: 1px solid #5D4037; border-radius: 10px; position: relative; cursor: pointer; transition: background 0.3s; }
+  .toggle.on { background: #5D4E1A; border-color: #B8860B; }
+  .toggle::after { content: ''; position: absolute; width: 14px; height: 14px; background: radial-gradient(circle at 40% 35%, #E0C97F, #8D6E63); border-radius: 50%; top: 2px; left: 3px; transition: left 0.3s; border: 1px solid #5D4037; }
+  .toggle.on::after { left: 22px; }
+
+  /* COMMAND INPUT */
+  .cmd-input { width: 100%; background: #0D0705; border: 1px solid #5D4037; color: #B8860B; font-family: 'Courier Prime', monospace; font-size: 12px; padding: 8px 10px; outline: none; }
+  .cmd-input:focus { border-color: #B8860B; }
+  .cmd-input::placeholder { color: #4E342E; }
+  .cmd-btn { background: #3E2723; border: 1px solid #8D6E63; color: #B8860B; font-family: 'Courier Prime', monospace; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; padding: 8px 14px; cursor: pointer; transition: all 0.2s; margin-top: 6px; }
+  .cmd-btn:hover { background: #5D4037; color: #FFD54F; }
+  .cmd-log { font-size: 10px; color: #6D4C41; margin-top: 8px; max-height: 80px; overflow-y: auto; }
+  .cmd-entry { padding: 2px 0; border-bottom: 1px dotted #3E2723; }
+  .cmd-entry .ts { color: #B8860B; margin-right: 6px; }
+  .cmd-entry .ok { color: #4CAF50; }
+  .cmd-entry .err { color: #F44336; }
+
+  /* VALVE SLIDERS */
+  .valve-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .valve-name { font-size: 10px; color: #A1887F; min-width: 80px; letter-spacing: 1px; }
+  .valve-slider { flex: 1; -webkit-appearance: none; appearance: none; height: 8px; background: #3E2723; border: 1px inset #5D4037; outline: none; cursor: pointer; }
+  .valve-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 22px; background: linear-gradient(180deg, #E0C97F, #8D6E63); border: 1px solid #5D4037; cursor: pointer; border-radius: 2px; }
+  .valve-val { font-family: 'Playfair Display', serif; font-size: 14px; color: #B8860B; min-width: 38px; text-align: right; }
+
+  /* ALERT TICKER */
+  .ticker-wrap { background: #0D0705; border: 1px solid #5D4037; overflow: hidden; height: 26px; margin-bottom: 14px; }
+  .ticker-inner { display: flex; animation: ticker 22s linear infinite; white-space: nowrap; padding: 5px 0; }
+  .ticker-item { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; padding: 0 30px; border-right: 1px solid #3E2723; }
+  .ticker-item.warn { color: #FFC107; }
+  .ticker-item.ok { color: #4CAF50; }
+  .ticker-item.crit { color: #F44336; }
+  .ticker-item.info { color: #B8860B; }
+  @keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+  /* POWER DISTRIBUTION */
+  .pwr-bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+  .pwr-label { font-size: 10px; color: #A1887F; min-width: 90px; }
+  .pwr-track { flex: 1; height: 10px; background: #3E2723; border: 1px inset #5D4037; }
+  .pwr-fill { height: 100%; transition: width 1s; }
+  .pwr-num { font-size: 10px; color: #B8860B; min-width: 30px; text-align: right; }
+
+  /* CLOCK */
+  .clock-svg { display: block; margin: 0 auto; }
+  .clock-face { fill: #1A0F0A; stroke: #8D6E63; stroke-width: 2; }
+  .clock-tick { stroke: #5D4037; stroke-width: 1; }
+  .clock-tick-major { stroke: #8D6E63; stroke-width: 2; }
+  .clock-hand-h { stroke: #B8860B; stroke-width: 3; stroke-linecap: round; }
+  .clock-hand-m { stroke: #D7CCC8; stroke-width: 2; stroke-linecap: round; }
+  .clock-hand-s { stroke: #F44336; stroke-width: 1; stroke-linecap: round; }
+  .clock-center { fill: #B8860B; }
+
+  /* BLINKER */
+  .bl { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 5px; }
+  .bl-g { background: #4CAF50; animation: blk 2s ease-in-out infinite; box-shadow: 0 0 4px #4CAF50; }
+  .bl-a { background: #FFC107; animation: blk 1.5s ease-in-out infinite 0.3s; box-shadow: 0 0 4px #FFC107; }
+  .bl-r { background: #F44336; animation: blk 0.8s ease-in-out infinite 0.6s; box-shadow: 0 0 4px #F44336; }
+  @keyframes blk { 0%,100%{opacity:1} 50%{opacity:0.15} }
+
+  .rivet { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #E0C97F, #8D6E63); border: 1px solid #5D4037; margin-right: 6px; vertical-align: middle; }
+
+  .stat-num { font-family: 'Playfair Display', serif; font-size: 28px; font-weight: 700; color: #B8860B; line-height: 1; }
+  .stat-unit { font-size: 10px; color: #8D6E63; margin-left: 3px; }
+
+  .corner { position: absolute; width: 14px; height: 14px; border-color: #8D6E63; border-style: solid; }
+  .ctlr { top: 4px; left: 4px; border-width: 2px 0 0 2px; }
+  .ctrr { top: 4px; right: 4px; border-width: 2px 2px 0 0; }
+  .cblr { bottom: 4px; left: 4px; border-width: 0 0 2px 2px; }
+  .cbrr { bottom: 4px; right: 4px; border-width: 0 2px 2px 0; }
+
+  .inset-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px dotted #3E2723; font-size: 11px; color: #A1887F; }
+  .inset-row:last-child { border: none; }
+  .badge { font-size: 9px; padding: 2px 6px; letter-spacing: 1px; text-transform: uppercase; }
+  .badge-ok { background: #1B3A1E; color: #4CAF50; border: 1px solid #2E5C32; }
+  .badge-warn { background: #3A2F00; color: #FFC107; border: 1px solid #5C4A00; }
+  .badge-crit { background: #3A0D0D; color: #F44336; border: 1px solid #5C1A1A; }
+
+  scrollbar-width: thin; scrollbar-color: #5D4037 #1A0F0A;
+</style>
+
+<div class="sp rb">
+  <div class="corner ctlr"></div><div class="corner ctrr"></div>
+  <div class="corner cblr"></div><div class="corner cbrr"></div>
+
+  <svg class="gear-bg" viewBox="0 0 680 640" xmlns="http://www.w3.org/2000/svg">
+    <g class="g1">
+      <circle cx="580" cy="100" r="65" fill="none" stroke="#D7CCC8" stroke-width="9"/>
+      <circle cx="580" cy="100" r="48" fill="none" stroke="#D7CCC8" stroke-width="3"/>
+      <circle cx="580" cy="100" r="13" fill="#D7CCC8"/>
+      <g stroke="#D7CCC8" stroke-width="9">
+        <line x1="580" y1="30" x2="580" y2="18"/><line x1="580" y1="170" x2="580" y2="182"/>
+        <line x1="510" y1="100" x2="498" y2="100"/><line x1="650" y1="100" x2="662" y2="100"/>
+        <line x1="531" y1="51" x2="523" y2="43"/><line x1="629" y1="51" x2="637" y2="43"/>
+        <line x1="531" y1="149" x2="523" y2="157"/><line x1="629" y1="149" x2="637" y2="157"/>
+      </g>
+    </g>
+    <g class="g2">
+      <circle cx="60" cy="460" r="55" fill="none" stroke="#D7CCC8" stroke-width="8"/>
+      <circle cx="60" cy="460" r="40" fill="none" stroke="#D7CCC8" stroke-width="2"/>
+      <circle cx="60" cy="460" r="11" fill="#D7CCC8"/>
+      <g stroke="#D7CCC8" stroke-width="8">
+        <line x1="60" y1="400" x2="60" y2="390"/><line x1="60" y1="520" x2="60" y2="530"/>
+        <line x1="0" y1="460" x2="-10" y2="460"/><line x1="120" y1="460" x2="130" y2="460"/>
+        <line x1="21" y1="421" x2="14" y2="414"/><line x1="99" y1="421" x2="106" y2="414"/>
+        <line x1="21" y1="499" x2="14" y2="506"/><line x1="99" y1="499" x2="106" y2="506"/>
+      </g>
+    </g>
+    <g class="g3">
+      <circle cx="320" cy="570" r="42" fill="none" stroke="#D7CCC8" stroke-width="6"/>
+      <circle cx="320" cy="570" r="31" fill="none" stroke="#D7CCC8" stroke-width="2"/>
+      <circle cx="320" cy="570" r="9" fill="#D7CCC8"/>
+      <g stroke="#D7CCC8" stroke-width="6">
+        <line x1="320" y1="523" x2="320" y2="515"/><line x1="320" y1="617" x2="320" y2="625"/>
+        <line x1="273" y1="570" x2="265" y2="570"/><line x1="367" y1="570" x2="375" y2="570"/>
+        <line x1="287" y1="537" x2="281" y2="531"/><line x1="353" y1="537" x2="359" y2="531"/>
+      </g>
+    </g>
+  </svg>
+
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;">
+    <div>
+      <div class="sp-title">Operations Theatre · Page II</div>
+      <div class="sp-sub">Control & Command · Aetheric Engine Mk. IV · 1887</div>
+    </div>
+    <div style="text-align:right;">
+      <svg id="clock" class="clock-svg" width="72" height="72" viewBox="0 0 72 72">
+        <circle cx="36" cy="36" r="34" class="clock-face"/>
+        <circle cx="36" cy="36" r="34" fill="none" stroke="#B8860B" stroke-width="1" stroke-dasharray="2 4"/>
+        <g id="ticks"></g>
+        <line id="hhand" x1="36" y1="36" x2="36" y2="18" class="clock-hand-h"/>
+        <line id="mhand" x1="36" y1="36" x2="36" y2="10" class="clock-hand-m"/>
+        <line id="shand" x1="36" y1="36" x2="36" y2="8" class="clock-hand-s"/>
+        <line id="shand-tail" x1="36" y1="36" x2="36" y2="44" class="clock-hand-s"/>
+        <circle cx="36" cy="36" r="3" class="clock-center"/>
+      </svg>
+      <div id="clock-text" style="font-size:10px;color:#8D6E63;text-align:center;letter-spacing:2px;margin-top:2px;"></div>
+    </div>
+  </div>
+
+  <div class="ticker-wrap">
+    <div class="ticker-inner" id="ticker">
+      <span class="ticker-item warn">⚠ Pneumatic relay flutter detected — valve 3B</span>
+      <span class="ticker-item ok">✓ Boiler A nominal — 78 PSI steady</span>
+      <span class="ticker-item crit">✗ Auxiliary chamber seal compromised — isolate!</span>
+      <span class="ticker-item info">◆ Coal loading complete — 62% capacity</span>
+      <span class="ticker-item ok">✓ Differential engine recalibrated at 1200 RPM</span>
+      <span class="ticker-item warn">⚠ Analytical fluid reserve below 40% threshold</span>
+      <span class="ticker-item info">◆ Scheduled maintenance: Condenser Array — 16:00</span>
+      <span class="ticker-item warn">⚠ Pneumatic relay flutter detected — valve 3B</span>
+      <span class="ticker-item ok">✓ Boiler A nominal — 78 PSI steady</span>
+      <span class="ticker-item crit">✗ Auxiliary chamber seal compromised — isolate!</span>
+      <span class="ticker-item info">◆ Coal loading complete — 62% capacity</span>
+      <span class="ticker-item ok">✓ Differential engine recalibrated at 1200 RPM</span>
+      <span class="ticker-item warn">⚠ Analytical fluid reserve below 40% threshold</span>
+      <span class="ticker-item info">◆ Scheduled maintenance: Condenser Array — 16:00</span>
+    </div>
+  </div>
+
+  <div class="tab-bar">
+    <div class="tab active" onclick="switchTab('analytics')">Analytics</div>
+    <div class="tab" onclick="switchTab('valves')">Valve Control</div>
+    <div class="tab" onclick="switchTab('systems')">Systems</div>
+    <div class="tab" onclick="switchTab('command')">Command</div>
+  </div>
+
+  <div class="tab-body">
+    <!-- ANALYTICS TAB -->
+    <div class="tab-panel active" id="tab-analytics">
+      <div style="display:grid;grid-template-columns:2fr 1fr;gap:14px;">
+        <div>
+          <div class="plabel">Steam Pressure · Historical Record (PSI)</div>
+          <div class="chart-wrap">
+            <svg class="chart-svg" id="chartsvg" viewBox="0 0 400 120" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="agold" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#B8860B" stop-opacity="0.5"/>
+                  <stop offset="100%" stop-color="#B8860B" stop-opacity="0"/>
+                </linearGradient>
+              </defs>
+              <line x1="0" y1="30" x2="400" y2="30" class="c-grid"/>
+              <line x1="0" y1="60" x2="400" y2="60" class="c-grid"/>
+              <line x1="0" y1="90" x2="400" y2="90" class="c-grid"/>
+              <text x="2" y="28" font-size="8" fill="#5D4037" font-family="Courier Prime,monospace">100</text>
+              <text x="2" y="58" font-size="8" fill="#5D4037" font-family="Courier Prime,monospace">66</text>
+              <text x="2" y="88" font-size="8" fill="#5D4037" font-family="Courier Prime,monospace">33</text>
+              <path id="areapath" class="c-area"/>
+              <path id="linepath" class="c-line"/>
+              <path id="linepath2" class="c-line2"/>
+            </svg>
+          </div>
+          <div style="display:flex;gap:16px;margin-top:8px;font-size:9px;color:#6D4C41;letter-spacing:2px;">
+            <span><span style="display:inline-block;width:16px;height:2px;background:#B8860B;vertical-align:middle;margin-right:4px;"></span>PRESSURE</span>
+            <span><span style="display:inline-block;width:16px;height:2px;background:#B87333;border-top:1px dashed #B87333;vertical-align:middle;margin-right:4px;"></span>TARGET</span>
+            <span style="margin-left:auto;color:#8D6E63;" id="chart-range-lbl">Last 12 hours</span>
+          </div>
+          <div style="display:flex;gap:6px;margin-top:6px;">
+            <button class="cmd-btn" style="font-size:9px;padding:4px 10px;" onclick="setRange(12)">12H</button>
+            <button class="cmd-btn" style="font-size:9px;padding:4px 10px;" onclick="setRange(24)">24H</button>
+            <button class="cmd-btn" style="font-size:9px;padding:4px 10px;" onclick="setRange(48)">48H</button>
+          </div>
+        </div>
+        <div>
+          <div class="plabel">Live Readings</div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div class="panel rb" style="padding:10px;">
+              <div class="plabel">Peak PSI</div>
+              <div class="stat-num">94<span class="stat-unit">psi</span></div>
+            </div>
+            <div class="panel rb" style="padding:10px;">
+              <div class="plabel">Avg PSI</div>
+              <div class="stat-num" id="avg-psi">72<span class="stat-unit">psi</span></div>
+            </div>
+            <div class="panel rb" style="padding:10px;">
+              <div class="plabel">Variance</div>
+              <div class="stat-num">±<span id="variance">8</span><span class="stat-unit">psi</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VALVES TAB -->
+    <div class="tab-panel" id="tab-valves">
+      <div class="g2">
+        <div>
+          <div class="plabel">Valve Aperture Control</div>
+          <div id="valves-list"></div>
+          <div style="margin-top:12px;">
+            <button class="cmd-btn" onclick="allValves(100)">Open All</button>
+            <button class="cmd-btn" onclick="allValves(0)" style="margin-left:6px;">Close All</button>
+            <button class="cmd-btn" onclick="allValves(50)" style="margin-left:6px;">Balance</button>
+          </div>
+        </div>
+        <div>
+          <div class="plabel">System Toggles</div>
+          <div id="toggle-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SYSTEMS TAB -->
+    <div class="tab-panel" id="tab-systems">
+      <div class="g2">
+        <div>
+          <div class="plabel">Power Distribution</div>
+          <div id="pwr-list"></div>
+          <div style="margin-top:10px;font-size:10px;color:#8D6E63;display:flex;justify-content:space-between;">
+            <span>Total allocated:</span><span id="pwr-total" style="color:#B8860B;font-family:'Playfair Display',serif;">0%</span>
+          </div>
+        </div>
+        <div>
+          <div class="plabel">Subsystem Health Matrix</div>
+          <div id="health-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMMAND TAB -->
+    <div class="tab-panel" id="tab-command">
+      <div class="g2">
+        <div>
+          <div class="plabel">Telegraphic Command Interface</div>
+          <div style="display:flex;gap:6px;">
+            <input class="cmd-input" id="cmd-in" placeholder="Enter directive..." style="flex:1;" onkeydown="if(event.key==='Enter')sendCmd()"/>
+            <button class="cmd-btn" onclick="sendCmd()">Transmit ↗</button>
+          </div>
+          <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;" id="quick-cmds"></div>
+          <div class="cmd-log" id="cmd-log"></div>
+        </div>
+        <div>
+          <div class="plabel">Emergency Protocols</div>
+          <div style="display:flex;flex-direction:column;gap:8px;" id="emergency-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="g3c">
+    <div class="panel rb">
+      <div class="plabel">Output Today</div>
+      <div class="stat-num">4<span class="stat-unit">kW·h</span></div>
+      <div style="font-size:10px;color:#4CAF50;margin-top:4px;">↑ 12% vs yesterday</div>
+    </div>
+    <div class="panel rb">
+      <div class="plabel">Active Faults</div>
+      <div class="stat-num" id="fault-count" style="color:#F44336;">2</div>
+      <div style="font-size:10px;color:#8D6E63;margin-top:4px;">Auxiliary · Pneumatic</div>
+    </div>
+    <div class="panel rb">
+      <div class="plabel">Engine Uptime</div>
+      <div class="stat-num">6<span class="stat-unit">h 14m</span></div>
+      <div style="font-size:10px;color:#8D6E63;margin-top:4px;">Since 08:00 ignition</div>
+    </div>
+  </div>
+
+  <hr class="divider">
+  <div style="text-align:center;font-size:9px;letter-spacing:3px;color:#4E342E;text-transform:uppercase;">
+    Mk. IV Analytical Apparatus · City of London · 1887 · Page II of IV
+  </div>
+</div>
+
+<script>
+  const valveData = [
+    { name: 'Main Steam', val: 78 }, { name: 'Boiler Feed', val: 91 },
+    { name: 'Relief Line', val: 34 }, { name: 'Condenser In', val: 62 },
+    { name: 'Exhaust', val: 55 }, { name: 'Bypass A', val: 20 },
+  ];
+  const toggleData = [
+    { name: 'Auto-Pressure Reg.', on: true }, { name: 'Safety Cutoff', on: true },
+    { name: 'Night Mode Damper', on: false }, { name: 'Auxiliary Heating', on: false },
+    { name: 'Data Recorder', on: true }, { name: 'Alarm Klaxon', on: true },
+    { name: 'Remote Override', on: false },
+  ];
+  const pwrData = [
+    { name: 'Primary Drive', pct: 42, cls: 'brass' }, { name: 'Analytical Eng.', pct: 28, cls: 'copper' },
+    { name: 'Lighting Array', pct: 10, cls: 'steel' }, { name: 'Teletype Relay', pct: 8, cls: 'amber2' },
+    { name: 'Auxil. Systems', pct: 7, cls: 'brass' },
+  ];
+  const healthData = [
+    { name: 'Primary Boiler', status: 'ok' }, { name: 'Differential Eng.', status: 'ok' },
+    { name: 'Pneumatic Relay', status: 'warn' }, { name: 'Teletype Output', status: 'ok' },
+    { name: 'Auxiliary Chamber', status: 'crit' }, { name: 'Condenser Array', status: 'ok' },
+    { name: 'Coal Feeder', status: 'ok' }, { name: 'Water Pump B', status: 'warn' },
+  ];
+  const emergencyData = [
+    { name: 'Emergency Shutdown', cls: 'badge-crit' },
+    { name: 'Isolate Auxiliary', cls: 'badge-warn' },
+    { name: 'Release Safety Valve', cls: 'badge-warn' },
+    { name: 'Full Pressure Vent', cls: 'badge-crit' },
+    { name: 'Restore Defaults', cls: 'badge-ok' },
+  ];
+  const quickCmds = ['STATUS', 'VENT', 'RESET', 'LOG DUMP', 'PRESSURIZE'];
+
+  function brass(cls){ return ({brass:'linear-gradient(90deg,#8D6E63,#B8860B,#FFB300,#B8860B)',copper:'linear-gradient(90deg,#5D4037,#B87333,#E8955A,#B87333)',steel:'linear-gradient(90deg,#455A64,#78909C,#90A4AE,#78909C)',amber2:'linear-gradient(90deg,#4E342E,#E65100,#FF8F00,#E65100)'})[cls]||''; }
+
+  function initValves(){
+    const el = document.getElementById('valves-list');
+    el.innerHTML = valveData.map((v,i)=>`<div class="valve-row">
+      <span class="valve-name"><span class="rivet"></span>${v.name}</span>
+      <input type="range" min="0" max="100" value="${v.val}" class="valve-slider" oninput="updateValve(${i},this.value)" id="vs${i}"/>
+      <span class="valve-val" id="vv${i}">${v.val}%</span>
+    </div>`).join('');
+  }
+  function updateValve(i,v){ document.getElementById('vv'+i).textContent=Math.round(v)+'%'; valveData[i].val=+v; }
+  function allValves(v){ valveData.forEach((_,i)=>{ document.getElementById('vs'+i).value=v; updateValve(i,v); }); }
+
+  function initToggles(){
+    const el = document.getElementById('toggle-list');
+    el.innerHTML = toggleData.map((t,i)=>`<div class="toggle-row">
+      <span class="toggle-name"><span class="bl ${t.on?'bl-g':'bl-r'}"></span>${t.name}</span>
+      <div class="toggle ${t.on?'on':''}" id="tg${i}" onclick="toggleSwitch(${i})"></div>
+    </div>`).join('');
+  }
+  function toggleSwitch(i){ toggleData[i].on=!toggleData[i].on; const el=document.getElementById('tg'+i); el.classList.toggle('on'); el.previousElementSibling.querySelector('.bl').className='bl '+(toggleData[i].on?'bl-g':'bl-r'); }
+
+  function initPower(){
+    const el = document.getElementById('pwr-list');
+    el.innerHTML = pwrData.map(p=>`<div class="pwr-bar-row">
+      <span class="pwr-label">${p.name}</span>
+      <div class="pwr-track"><div class="pwr-fill" style="width:${p.pct}%;background:${brass(p.cls)};"></div></div>
+      <span class="pwr-num">${p.pct}%</span>
+    </div>`).join('');
+    document.getElementById('pwr-total').textContent = pwrData.reduce((a,p)=>a+p.pct,0)+'%';
+  }
+
+  function initHealth(){
+    const el = document.getElementById('health-list');
+    el.innerHTML = healthData.map(h=>`<div class="inset-row">
+      <span class="rivet"></span>
+      <span style="flex:1">${h.name}</span>
+      <span class="badge badge-${h.status}">${h.status==='ok'?'NOMINAL':h.status==='warn'?'CAUTION':'FAULT'}</span>
+    </div>`).join('');
+  }
+
+  function initEmergency(){
+    const el = document.getElementById('emergency-list');
+    el.innerHTML = emergencyData.map(e=>`<button class="cmd-btn" style="text-align:left;width:100%;padding:10px 14px;" onclick="triggerEmergency('${e.name}')">
+      <span class="badge ${e.cls}" style="margin-right:8px;">${e.cls.includes('crit')?'CRIT':e.cls.includes('warn')?'WARN':'OK'}</span>${e.name}
+    </button>`).join('');
+  }
+
+  function initQuickCmds(){
+    const el = document.getElementById('quick-cmds');
+    el.innerHTML = quickCmds.map(c=>`<button class="cmd-btn" style="font-size:9px;padding:4px 10px;" onclick="runQuick('${c}')">${c}</button>`).join('');
+  }
+
+  const cmdResponses = {
+    STATUS: 'All systems polled. 2 faults detected. Pressure nominal.',
+    VENT: 'Venting procedure initiated on secondary line.',
+    RESET: 'Resetting non-critical subsystems...',
+    'LOG DUMP': 'Transmitting 847 log entries via teletype.',
+    PRESSURIZE: 'Pressurisation sequence engaged on main boiler.',
+  };
+
+  function getTime(){ const n=new Date(); return n.toTimeString().slice(0,8); }
+
+  function logCmd(text, ok=true){
+    const el=document.getElementById('cmd-log');
+    const d=document.createElement('div');
+    d.className='cmd-entry';
+    d.innerHTML=`<span class="ts">${getTime()}</span><span class="${ok?'ok':'err'}">${ok?'✓':'✗'}</span> ${text}`;
+    el.prepend(d);
+  }
+
+  function sendCmd(){
+    const inp=document.getElementById('cmd-in');
+    const val=inp.value.trim().toUpperCase();
+    if(!val) return;
+    const resp=cmdResponses[val]||'Unknown directive. Consult operator manual §4.2.';
+    logCmd(`[${val}] — ${resp}`, !!cmdResponses[val]);
+    inp.value='';
+  }
+
+  function runQuick(cmd){
+    document.getElementById('cmd-in').value=cmd;
+    sendCmd();
+  }
+
+  function triggerEmergency(name){
+    logCmd(`EMERGENCY — ${name} engaged.`, name!=='Full Pressure Vent');
+    switchTab('command');
+  }
+
+  function switchTab(id){
+    document.querySelectorAll('.tab').forEach((t,i)=>{ t.classList.toggle('active', ['analytics','valves','systems','command'][i]===id); });
+    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+    document.getElementById('tab-'+id).classList.add('active');
+  }
+
+  /* CHART */
+  const ranges = { 12: 12, 24: 24, 48: 48 };
+  function genData(n){ const d=[]; let v=72; for(let i=0;i<n;i++){ v+=((Math.random()-0.48)*8); v=Math.max(40,Math.min(98,v)); d.push(Math.round(v)); } return d; }
+  let currentRange = 12;
+  function setRange(r){ currentRange=r; document.getElementById('chart-range-lbl').textContent='Last '+r+' hours'; drawChart(genData(r*6)); }
+
+  function drawChart(data){
+    const W=400, H=120, pad=20;
+    const max=110, min=20;
+    const pts = data.map((v,i)=>{ const x=pad+(i/(data.length-1))*(W-pad*2); const y=H-pad-(v-min)/(max-min)*(H-pad*2); return [x,y]; });
+    const line=pts.map((p,i)=>(i===0?'M':'L')+p[0]+','+p[1]).join(' ');
+    const area=line+` L${pts[pts.length-1][0]},${H} L${pts[0][0]},${H} Z`;
+    const target=pts.map((p,i)=>(i===0?'M':'L')+p[0]+','+(H-pad-((75-min)/(max-min))*(H-pad*2))).join(' ');
+    document.getElementById('linepath').setAttribute('d',line);
+    document.getElementById('areapath').setAttribute('d',area);
+    document.getElementById('linepath2').setAttribute('d',target);
+    const avg=Math.round(data.reduce((a,b)=>a+b,0)/data.length);
+    const variance=Math.round(Math.max(...data)-Math.min(...data))/2|0;
+    document.getElementById('avg-psi').innerHTML=avg+'<span class="stat-unit">psi</span>';
+    document.getElementById('variance').textContent=variance;
+  }
+
+  /* CLOCK */
+  function initTicks(){
+    const g=document.getElementById('ticks'); let html='';
+    for(let i=0;i<60;i++){
+      const a=(i/60)*360; const r=i%5===0?28:30; const r2=33;
+      const x1=36+r*Math.sin(a*Math.PI/180), y1=36-r*Math.cos(a*Math.PI/180);
+      const x2=36+r2*Math.sin(a*Math.PI/180), y2=36-r2*Math.cos(a*Math.PI/180);
+      html+=`<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" class="${i%5===0?'clock-tick-major':'clock-tick'}"/>`;
+    }
+    g.innerHTML=html;
+  }
+
+  function updateClock(){
+    const n=new Date();
+    const s=n.getSeconds(), m=n.getMinutes(), h=n.getHours()%12;
+    const sa=(s/60)*360, ma=((m+s/60)/60)*360, ha=((h+m/60)/12)*360;
+    function handPos(a,len,tail=0){ return { x2:(36+len*Math.sin(a*Math.PI/180)).toFixed(1), y2:(36-len*Math.cos(a*Math.PI/180)).toFixed(1), x1:(36-tail*Math.sin(a*Math.PI/180)).toFixed(1), y1:(36+tail*Math.cos(a*Math.PI/180)).toFixed(1) }; }
+    const sp=handPos(sa,26,6), mp=handPos(ma,22), hp=handPos(ha,16);
+    Object.assign(document.getElementById('shand'), sp); Object.assign(document.getElementById('shand-tail'), {x1:sp.x1,y1:sp.y1,x2:'36',y2:'36'});
+    ['x1','y1','x2','y2'].forEach(a=>{ document.getElementById('shand').setAttribute(a,sp[a]); document.getElementById('mhand').setAttribute(a,mp[a]); document.getElementById('hhand').setAttribute(a,hp[a]); });
+    document.getElementById('shand-tail').setAttribute('x1',sp.x1); document.getElementById('shand-tail').setAttribute('y1',sp.y1); document.getElementById('shand-tail').setAttribute('x2','36'); document.getElementById('shand-tail').setAttribute('y2','36');
+    document.getElementById('clock-text').textContent=n.toTimeString().slice(0,5);
+  }
+
+  initTicks(); initValves(); initToggles(); initPower(); initHealth(); initEmergency(); initQuickCmds();
+  drawChart(genData(72));
+  updateClock(); setInterval(updateClock, 1000);
+</script>

@@ -1,0 +1,408 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  .cp-root {
+    background: #0B0C10;
+    color: #00FFFF;
+    font-family: 'Share Tech Mono', monospace;
+    padding: 20px;
+    min-height: 600px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .scanlines {
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(
+      to bottom,
+      transparent 0px,
+      transparent 3px,
+      rgba(0,0,0,0.18) 3px,
+      rgba(0,0,0,0.18) 4px
+    );
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  .grid-bg {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(0,255,255,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,255,255,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .cp-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    position: relative;
+    z-index: 2;
+  }
+
+  .cp-logo {
+    font-family: 'Orbitron', monospace;
+    font-size: 22px;
+    font-weight: 900;
+    color: #00FFFF;
+    text-shadow: 0 0 8px #00FFFF, 0 0 20px #00FFFF66;
+    letter-spacing: 3px;
+    cursor: pointer;
+    transition: all 0.1s;
+  }
+
+  .cp-logo:hover {
+    animation: glitch 0.3s infinite;
+  }
+
+  @keyframes glitch {
+    0% { transform: skewX(0deg); opacity: 1; }
+    20% { transform: skewX(-4deg); opacity: 0.85; color: #FF00FF; text-shadow: 0 0 8px #FF00FF; }
+    40% { transform: skewX(3deg); opacity: 1; color: #00FFFF; text-shadow: 0 0 8px #00FFFF; }
+    60% { transform: skewX(-2deg); opacity: 0.9; color: #FFFF00; text-shadow: 0 0 8px #FFFF00; }
+    80% { transform: skewX(1deg); opacity: 1; }
+    100% { transform: skewX(0deg); opacity: 1; }
+  }
+
+  .cp-status {
+    display: flex; gap: 16px; align-items: center;
+  }
+
+  .status-dot {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px; color: #00FF88;
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+
+  .status-dot::before {
+    content: '';
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: #00FF88;
+    box-shadow: 0 0 6px #00FF88;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  .cp-time {
+    font-size: 11px; color: #FF00FF;
+    text-shadow: 0 0 6px #FF00FF88;
+    letter-spacing: 2px;
+  }
+
+  .cp-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: auto auto auto;
+    gap: 12px;
+    position: relative;
+    z-index: 2;
+  }
+
+  .cp-card {
+    background: rgba(0,255,255,0.03);
+    border: 1px solid rgba(0,255,255,0.25);
+    padding: 16px;
+    position: relative;
+    clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+
+  .cp-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #00FFFF, transparent);
+  }
+
+  .cp-card:hover {
+    background: rgba(0,255,255,0.07);
+    border-color: rgba(0,255,255,0.6);
+    box-shadow: 0 0 20px rgba(0,255,255,0.15), inset 0 0 20px rgba(0,255,255,0.03);
+    transform: skewX(-0.5deg);
+  }
+
+  .cp-card.magenta {
+    border-color: rgba(255,0,255,0.3);
+  }
+  .cp-card.magenta::before {
+    background: linear-gradient(90deg, transparent, #FF00FF, transparent);
+  }
+  .cp-card.magenta:hover {
+    border-color: rgba(255,0,255,0.6);
+    box-shadow: 0 0 20px rgba(255,0,255,0.15), inset 0 0 20px rgba(255,0,255,0.03);
+  }
+
+  .cp-card.yellow {
+    border-color: rgba(255,255,0,0.3);
+  }
+  .cp-card.yellow::before {
+    background: linear-gradient(90deg, transparent, #FFFF00, transparent);
+  }
+  .cp-card.yellow:hover {
+    border-color: rgba(255,255,0,0.6);
+    box-shadow: 0 0 20px rgba(255,255,0,0.15), inset 0 0 20px rgba(255,255,0,0.03);
+  }
+
+  .cp-card.span2 { grid-column: span 2; }
+  .cp-card.span3 { grid-column: span 3; }
+
+  .card-label {
+    font-size: 9px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: rgba(0,255,255,0.5);
+    margin-bottom: 8px;
+  }
+  .cp-card.magenta .card-label { color: rgba(255,0,255,0.5); }
+  .cp-card.yellow .card-label { color: rgba(255,255,0,0.5); }
+
+  .card-value {
+    font-family: 'Orbitron', monospace;
+    font-size: 28px;
+    font-weight: 700;
+    color: #00FFFF;
+    text-shadow: 0 0 10px #00FFFF88;
+    line-height: 1;
+  }
+  .cp-card.magenta .card-value { color: #FF00FF; text-shadow: 0 0 10px #FF00FF88; }
+  .cp-card.yellow .card-value { color: #FFFF00; text-shadow: 0 0 10px #FFFF0088; }
+
+  .card-sub {
+    font-size: 10px;
+    color: rgba(0,255,255,0.4);
+    margin-top: 4px;
+    letter-spacing: 1px;
+  }
+  .cp-card.magenta .card-sub { color: rgba(255,0,255,0.4); }
+  .cp-card.yellow .card-sub { color: rgba(255,255,0,0.4); }
+
+  .bar-chart { margin-top: 14px; display: flex; flex-direction: column; gap: 6px; }
+
+  .bar-row { display: flex; align-items: center; gap: 10px; }
+
+  .bar-name { font-size: 10px; color: rgba(0,255,255,0.6); width: 50px; flex-shrink: 0; }
+
+  .bar-track {
+    flex: 1; height: 6px;
+    background: rgba(0,255,255,0.08);
+    position: relative;
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 4px 100%);
+  }
+
+  .bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #00FFFF, #FF00FF);
+    box-shadow: 0 0 8px #00FFFF88;
+    transition: width 1s ease;
+  }
+
+  .bar-pct { font-size: 10px; color: #00FFFF88; width: 32px; text-align: right; flex-shrink: 0; }
+
+  .activity-feed { margin-top: 12px; display: flex; flex-direction: column; gap: 7px; }
+
+  .activity-item {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 10px; color: rgba(0,255,255,0.55);
+    border-left: 2px solid rgba(0,255,255,0.2);
+    padding-left: 8px;
+    letter-spacing: 0.5px;
+  }
+
+  .activity-time { color: rgba(255,0,255,0.6); flex-shrink: 0; }
+  .activity-dot { width: 4px; height: 4px; border-radius: 50%; background: #00FFFF; box-shadow: 0 0 4px #00FFFF; flex-shrink: 0; }
+
+  .waveform { display: flex; align-items: flex-end; gap: 3px; height: 48px; margin-top: 14px; }
+
+  .wave-bar {
+    flex: 1;
+    background: linear-gradient(to top, #FF00FF, #00FFFF);
+    box-shadow: 0 0 6px #FF00FF66;
+    border-radius: 1px;
+    animation: wave 1.5s ease-in-out infinite alternate;
+    min-height: 4px;
+  }
+
+  @keyframes wave {
+    from { opacity: 0.6; }
+    to { opacity: 1; }
+  }
+
+  .glitch-text {
+    font-family: 'Orbitron', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    color: #FF00FF;
+    text-shadow: 0 0 6px #FF00FF;
+    letter-spacing: 1px;
+  }
+
+  .corner-decor {
+    position: absolute;
+    bottom: 10px; right: 10px;
+    width: 16px; height: 16px;
+    border-right: 1px solid rgba(0,255,255,0.4);
+    border-bottom: 1px solid rgba(0,255,255,0.4);
+  }
+
+  .terminal-line {
+    font-size: 10px;
+    color: rgba(0,255,255,0.45);
+    margin-top: 5px;
+    letter-spacing: 0.5px;
+    line-height: 1.6;
+  }
+
+  .blink { animation: blink 1s step-end infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  .neon-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #00FFFF44, #FF00FF44, transparent);
+    margin: 6px 0;
+  }
+
+  .mini-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+
+  .mini-stat { text-align: center; }
+  .mini-stat-val { font-family: 'Orbitron', monospace; font-size: 16px; color: #FFFF00; text-shadow: 0 0 8px #FFFF0066; }
+  .mini-stat-lbl { font-size: 9px; color: rgba(255,255,0,0.4); letter-spacing: 1px; margin-top: 2px; }
+</style>
+
+<div class="cp-root">
+  <div class="grid-bg"></div>
+  <div class="scanlines"></div>
+
+  <div class="cp-header">
+    <div class="cp-logo" title="hover to glitch">NØIR//SYS</div>
+    <div class="cp-status">
+      <div class="status-dot">link active</div>
+      <div class="cp-time" id="cp-clock">--:--:--</div>
+    </div>
+  </div>
+
+  <div class="cp-grid">
+
+    <div class="cp-card">
+      <div class="card-label">// Neural Load</div>
+      <div class="card-value" id="cpu-val">87<span style="font-size:14px">%</span></div>
+      <div class="card-sub">↑ 12% since last cycle</div>
+      <div class="corner-decor"></div>
+    </div>
+
+    <div class="cp-card magenta">
+      <div class="card-label">// Data Flux</div>
+      <div class="card-value">3.2<span style="font-size:14px">TB</span></div>
+      <div class="card-sub">⟶ outbound encrypted</div>
+      <div class="corner-decor" style="border-color:rgba(255,0,255,0.4)"></div>
+    </div>
+
+    <div class="cp-card yellow">
+      <div class="card-label">// Threat Index</div>
+      <div class="card-value" id="threat-val">04</div>
+      <div class="card-sub">⚠ elevated sector 9</div>
+      <div class="corner-decor" style="border-color:rgba(255,255,0,0.4)"></div>
+    </div>
+
+    <div class="cp-card span2">
+      <div class="card-label">// Sector Breach Analysis</div>
+      <div class="bar-chart">
+        <div class="bar-row"><span class="bar-name">ALPHA-7</span><div class="bar-track"><div class="bar-fill" style="width:82%"></div></div><span class="bar-pct">82%</span></div>
+        <div class="bar-row"><span class="bar-name">DELTA-3</span><div class="bar-track"><div class="bar-fill" style="width:61%"></div></div><span class="bar-pct">61%</span></div>
+        <div class="bar-row"><span class="bar-name">OMEGA-X</span><div class="bar-track"><div class="bar-fill" style="width:44%"></div></div><span class="bar-pct">44%</span></div>
+        <div class="bar-row"><span class="bar-name">NOVA-1</span><div class="bar-track"><div class="bar-fill" style="width:29%"></div></div><span class="bar-pct">29%</span></div>
+      </div>
+      <div class="corner-decor"></div>
+    </div>
+
+    <div class="cp-card yellow">
+      <div class="card-label">// Signal Monitor</div>
+      <div class="waveform" id="waveform"></div>
+      <div class="neon-divider"></div>
+      <div class="mini-grid">
+        <div class="mini-stat"><div class="mini-stat-val">441</div><div class="mini-stat-lbl">Hz freq</div></div>
+        <div class="mini-stat"><div class="mini-stat-val">−12</div><div class="mini-stat-lbl">dB noise</div></div>
+      </div>
+    </div>
+
+    <div class="cp-card span3">
+      <div class="card-label">// System Feed — live telemetry</div>
+      <div class="activity-feed" id="activity-feed">
+        <div class="activity-item"><div class="activity-dot"></div><span class="activity-time">02:14:09</span>Node KRVN-88 handshake accepted — tunnel open</div>
+        <div class="activity-item"><div class="activity-dot" style="background:#FF00FF;box-shadow:0 0 4px #FF00FF"></div><span class="activity-time">02:13:51</span><span style="color:rgba(255,0,255,0.7)">AUTH FAIL</span> × 3 attempts — blacklist applied</div>
+        <div class="activity-item"><div class="activity-dot" style="background:#FFFF00;box-shadow:0 0 4px #FFFF00"></div><span class="activity-time">02:13:44</span><span style="color:rgba(255,255,0,0.7)">ANOMALY</span> sector 9 — packet fragmentation detected</div>
+        <div class="activity-item"><div class="activity-dot"></div><span class="activity-time">02:13:20</span>Ghost protocol initiated — identity masked</div>
+        <div class="activity-item"><div class="activity-dot"></div><span class="activity-time">02:12:58</span>Uplink to relay mesh VANTA confirmed<span class="blink">_</span></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  function updateClock() {
+    const now = new Date();
+    const h = String(now.getHours()).padStart(2,'0');
+    const m = String(now.getMinutes()).padStart(2,'0');
+    const s = String(now.getSeconds()).padStart(2,'0');
+    document.getElementById('cp-clock').textContent = h + ':' + m + ':' + s;
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+
+  const wf = document.getElementById('waveform');
+  const heights = [12,28,18,42,22,36,14,48,20,32,10,44,26,38,16,34,24,40,18,30,12,46,22,36,14,42,20,28,16,44,10,38,24,32,18,48,14,30,22,40,12,36,20,44,16,28,26,34];
+  heights.forEach((h,i) => {
+    const bar = document.createElement('div');
+    bar.className = 'wave-bar';
+    bar.style.height = h + 'px';
+    bar.style.animationDelay = (i * 0.06) + 's';
+    bar.style.animationDuration = (1.2 + Math.random() * 0.8) + 's';
+    wf.appendChild(bar);
+  });
+
+  const cpuEl = document.getElementById('cpu-val');
+  const threatEl = document.getElementById('threat-val');
+  setInterval(() => {
+    const v = 78 + Math.floor(Math.random() * 18);
+    cpuEl.innerHTML = v + '<span style="font-size:14px">%</span>';
+    const t = Math.floor(Math.random() * 8).toString().padStart(2,'0');
+    threatEl.textContent = t;
+  }, 3000);
+
+  const feedEl = document.getElementById('activity-feed');
+  const msgs = [
+    ['cyan','Proxy relay ECHO-9 re-established — latency 4ms'],
+    ['magenta','INTRUSION attempt blocked — sig hash 7F3A'],
+    ['yellow','ALERT entropy spike in memory block C'],
+    ['cyan','Encryption key rotated — AES-512 active'],
+    ['cyan','Shadow node PHLOX-2 joined mesh network'],
+  ];
+  let mIdx = 0;
+  setInterval(() => {
+    const now = new Date();
+    const h = String(now.getHours()).padStart(2,'0');
+    const m = String(now.getMinutes()).padStart(2,'0');
+    const s = String(now.getSeconds()).padStart(2,'0');
+    const [type, text] = msgs[mIdx % msgs.length];
+    mIdx++;
+    const colors = { cyan:'#00FFFF', magenta:'#FF00FF', yellow:'#FFFF00' };
+    const col = colors[type];
+    const item = document.createElement('div');
+    item.className = 'activity-item';
+    item.innerHTML = `<div class="activity-dot" style="background:${col};box-shadow:0 0 4px ${col}"></div><span class="activity-time">${h}:${m}:${s}</span>${text}`;
+    feedEl.insertBefore(item, feedEl.firstChild);
+    if (feedEl.children.length > 5) feedEl.removeChild(feedEl.lastChild);
+  }, 4000);
+</script>

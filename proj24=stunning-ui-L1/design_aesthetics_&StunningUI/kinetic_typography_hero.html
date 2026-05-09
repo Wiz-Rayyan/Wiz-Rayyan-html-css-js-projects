@@ -1,0 +1,225 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: transparent; }
+  #stage {
+    width: 100%;
+    min-height: 420px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    background: #0a0a0f;
+    border-radius: 16px;
+    cursor: none;
+  }
+  #headline {
+    display: flex;
+    gap: clamp(12px, 3vw, 32px);
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    padding: 2rem;
+  }
+  .word {
+    font-family: 'Arial Black', 'Helvetica Neue', sans-serif;
+    font-size: clamp(32px, 7vw, 64px);
+    font-weight: 900;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    position: relative;
+    will-change: transform, opacity, letter-spacing, color;
+    display: inline-block;
+    transform-origin: center center;
+  }
+  #w1 { color: #e8e8ff; opacity: 0; }
+  #w2 { color: #a0e8ff; transform: scale(0.4); }
+  #w3 { color: #ffd580; transform-origin: center; }
+  #w4 { color: hsl(0, 95%, 70%); }
+
+  #subtitle {
+    font-family: 'Arial', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.25);
+    margin-top: 2rem;
+  }
+  #cursor {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.6);
+    position: absolute;
+    pointer-events: none;
+    transform: translate(-50%,-50%);
+    transition: transform 0.1s ease;
+    box-shadow: 0 0 12px rgba(255,255,255,0.4);
+  }
+  #lines {
+    position: absolute;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+  .dot { width: 4px; height: 4px; border-radius: 50%; background: rgba(255,255,255,0.2); }
+  .dot.active { background: rgba(255,255,255,0.7); }
+</style>
+
+<div id="stage">
+  <div id="cursor"></div>
+  <div id="headline">
+    <span class="word" id="w1">Design</span>
+    <span class="word" id="w2">Moves</span>
+    <span class="word" id="w3">You</span>
+    <span class="word" id="w4">.</span>
+  </div>
+  <p id="subtitle">Move your mouse &nbsp;·&nbsp; Kinetic typography</p>
+  <div id="lines">
+    <div class="dot" id="d1"></div>
+    <div class="dot" id="d2"></div>
+    <div class="dot" id="d3"></div>
+    <div class="dot" id="d4"></div>
+  </div>
+</div>
+
+<script>
+const stage = document.getElementById('stage');
+const cursor = document.getElementById('cursor');
+const w1 = document.getElementById('w1');
+const w2 = document.getElementById('w2');
+const w3 = document.getElementById('w3');
+const w4 = document.getElementById('w4');
+const dots = [d1,d2,d3,d4];
+
+let mouseX = 0, mouseY = 0;
+let animFrame = 0;
+let phase = 0; // 0=intro, 1=loop
+let t0 = performance.now();
+let loopStart = 0;
+
+stage.addEventListener('mousemove', e => {
+  const r = stage.getBoundingClientRect();
+  mouseX = e.clientX - r.left;
+  mouseY = e.clientY - r.top;
+  cursor.style.left = mouseX + 'px';
+  cursor.style.top = mouseY + 'px';
+});
+stage.addEventListener('mouseleave', () => {
+  mouseX = stage.offsetWidth / 2;
+  mouseY = stage.offsetHeight / 2;
+});
+mouseX = stage.offsetWidth / 2;
+mouseY = stage.offsetHeight / 2;
+
+function ease(t, type='inout') {
+  if (type === 'in') return t * t * t;
+  if (type === 'out') return 1 - Math.pow(1 - t, 3);
+  return t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2;
+}
+function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+function lerp(a,b,t){ return a+(b-a)*t; }
+
+const CW = 5400; // cycle duration ms
+const INTRO = 1600; // intro phase
+
+function setDot(i) {
+  dots.forEach((d,j) => d.className = 'dot' + (j===i?' active':''));
+}
+
+function tick(now) {
+  const elapsed = now - t0;
+
+  // Mouse influence on letter-spacing (all words)
+  const mx = stage.offsetWidth / 2;
+  const distX = (mouseX - mx) / mx; // -1 to 1
+  const trackingShift = distX * 8; // max 8px shift per word
+
+  if (phase === 0) {
+    // INTRO: stagger each word in
+    // w1: fade in 0-400ms
+    const p1 = clamp((elapsed) / 400, 0, 1);
+    w1.style.opacity = ease(p1, 'out');
+    w1.style.transform = `translateY(${lerp(18,0,ease(p1,'out'))}px)`;
+    w1.style.letterSpacing = (0.05 + trackingShift * 0.01) + 'em';
+
+    // w2: scale up 200-700ms
+    const p2 = clamp((elapsed - 200) / 500, 0, 1);
+    const sc2 = lerp(0.4, 1, ease(p2, 'out'));
+    w2.style.transform = `scale(${sc2})`;
+    w2.style.opacity = Math.min(p2 * 3, 1);
+    w2.style.letterSpacing = (0.05 + trackingShift * 0.01) + 'em';
+
+    // w3: rotate in 500-1000ms
+    const p3 = clamp((elapsed - 500) / 500, 0, 1);
+    const rot3 = lerp(-90, 0, ease(p3, 'out'));
+    w3.style.transform = `rotate(${rot3}deg)`;
+    w3.style.opacity = Math.min(p3 * 2, 1);
+    w3.style.letterSpacing = (0.05 + trackingShift * 0.01) + 'em';
+
+    // w4: rainbow from 800ms
+    const p4 = clamp((elapsed - 800) / 400, 0, 1);
+    const hue = (elapsed * 0.15) % 360;
+    w4.style.color = `hsl(${hue}, 95%, 68%)`;
+    w4.style.opacity = ease(p4, 'in');
+    w4.style.letterSpacing = (0.05 + trackingShift * 0.01) + 'em';
+
+    if (elapsed > INTRO) {
+      phase = 1;
+      loopStart = now;
+    }
+    setDot(0);
+  } else {
+    // LOOP
+    const lt = (now - loopStart) % CW;
+    const lf = lt / CW;
+
+    // Determine which 'beat' we're on (4 beats of CW/4 each)
+    const beat = Math.floor(lf * 4);
+    setDot(beat);
+
+    // W1: fade out then in, with a slight float
+    const phase1 = (lt % (CW/2)) / (CW/2); // repeats twice per cycle
+    const fadeVal = Math.abs(Math.sin(Math.PI * lf * 2));
+    w1.style.opacity = 0.3 + 0.7 * fadeVal;
+    w1.style.transform = `translateY(${Math.sin(lf * Math.PI * 2) * 6}px)`;
+    w1.style.letterSpacing = (0.05 + distX * 0.06 + Math.sin(lf * Math.PI * 4) * 0.02) + 'em';
+
+    // W2: breathe scale
+    const scalePulse = 1 + Math.sin(lf * Math.PI * 2) * 0.12;
+    w2.style.transform = `scale(${scalePulse})`;
+    w2.style.opacity = '1';
+    w2.style.letterSpacing = (0.05 + distX * 0.05) + 'em';
+
+    // W3: gentle continuous rotation
+    const rotVal = Math.sin(lf * Math.PI * 2) * 12;
+    w3.style.transform = `rotate(${rotVal}deg) skewX(${distX * 4}deg)`;
+    w3.style.opacity = '1';
+    w3.style.letterSpacing = (0.05 + distX * 0.04) + 'em';
+
+    // W4: rainbow cycle + size pulse
+    const hue4 = (lf * 360 * 2) % 360;
+    w4.style.color = `hsl(${hue4}, 95%, 68%)`;
+    const sizeBoost = 1 + Math.sin(lf * Math.PI * 4) * 0.08;
+    w4.style.transform = `scale(${sizeBoost})`;
+    w4.style.opacity = '1';
+    w4.style.letterSpacing = (0.05 + distX * 0.06) + 'em';
+
+    // Color modulation for w1/w2/w3 based on mouse Y
+    const my = stage.offsetHeight / 2;
+    const distY = (mouseY - my) / my;
+    const brightness = 80 + distY * -15;
+    w1.style.color = `hsl(240, 40%, ${brightness}%)`;
+    w2.style.color = `hsl(195, 80%, ${brightness}%)`;
+    w3.style.color = `hsl(45, 90%, ${brightness}%)`;
+  }
+
+  requestAnimationFrame(tick);
+}
+
+requestAnimationFrame(tick);
+</script>

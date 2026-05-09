@@ -1,0 +1,743 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+@keyframes bgPulse { 0%,100%{opacity:.6} 50%{opacity:1} }
+@keyframes float1 { 0%,100%{transform:translateY(0) scale(1)} 50%{transform:translateY(-14px) scale(1.04)} }
+@keyframes float2 { 0%,100%{transform:translateY(0) rotate(0deg)} 50%{transform:translateY(-9px) rotate(3deg)} }
+@keyframes orbPulse { 0%,100%{r:18; opacity:.8} 50%{r:22; opacity:1} }
+@keyframes ringExpand { 0%{r:22;opacity:.5} 100%{r:45;opacity:0} }
+@keyframes scanLine { 0%{transform:translateY(0)} 100%{transform:translateY(300px)} }
+@keyframes textGlow { 0%,100%{text-shadow:0 0 8px #39ff7066} 50%{text-shadow:0 0 20px #39ff70cc,0 0 40px #39ff7044} }
+@keyframes barFill { from{width:0} to{width:var(--w)} }
+@keyframes cardIn { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+@keyframes tentWave {
+  0%,100%{d:path("M0,0 C10,-25 25,-20 20,-55 C15,-85 5,-90 15,-120")}
+  50%{d:path("M0,0 C-8,-28 8,-35 10,-65 C12,-90 25,-95 10,-120")}
+}
+@keyframes pulse3 { 0%,100%{transform:scale(1);opacity:.7} 50%{transform:scale(1.15);opacity:1} }
+@keyframes radarSweep { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+@keyframes blipOn { 0%,100%{opacity:.2;r:2} 50%{opacity:1;r:4} }
+
+.xeno-page {
+  background: radial-gradient(ellipse at 20% 50%, #1a0a2e 0%, #080012 45%, #000d08 100%);
+  font-family: 'Inter','Helvetica Neue',sans-serif;
+  color: #c8b8e8;
+  min-height: 900px;
+  position: relative;
+  overflow: hidden;
+}
+
+.top-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-bottom: 1px solid rgba(140,80,255,0.2);
+  position: relative;
+  z-index: 20;
+}
+.nav-logo {
+  font-size: 13px;
+  letter-spacing: 4px;
+  color: #b06eff;
+  text-transform: uppercase;
+  font-weight: 300;
+  filter: drop-shadow(0 0 6px #b06eff66);
+}
+.nav-links {
+  display: flex;
+  gap: 24px;
+}
+.nav-link {
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #7a5c99;
+  cursor: pointer;
+  transition: color .2s;
+  border: none;
+  background: none;
+  padding: 0;
+}
+.nav-link:hover,.nav-link.active { color: #39ff70; filter: drop-shadow(0 0 4px #39ff7088); }
+.nav-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: #39ff70;
+}
+.status-dot {
+  width: 6px; height: 6px;
+  background: #39ff70;
+  border-radius: 50%;
+  box-shadow: 0 0 6px #39ff70;
+  animation: pulse3 2s ease-in-out infinite;
+}
+
+.main-layout {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 0;
+  min-height: 840px;
+  position: relative;
+  z-index: 10;
+}
+
+.sidebar {
+  border-right: 1px solid rgba(140,80,255,0.15);
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sidebar-label {
+  font-size: 10px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: #4a3666;
+  margin-bottom: 8px;
+}
+
+.filter-group { display: flex; flex-direction: column; gap: 6px; }
+
+.filter-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(140,80,255,0.15);
+  background: rgba(80,20,140,0.1);
+  cursor: pointer;
+  transition: all .2s;
+  font-size: 12px;
+  letter-spacing: 1px;
+  color: #9a7cbb;
+}
+.filter-chip:hover { border-color: rgba(180,80,255,0.4); color: #c8a8f8; }
+.filter-chip.active { border-color: #39ff70; color: #39ff70; background: rgba(57,255,112,0.06); }
+.filter-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.filter-count {
+  margin-left: auto;
+  font-size: 10px;
+  color: #4a3666;
+}
+
+.threat-meter {
+  background: rgba(0,0,0,0.3);
+  border: 1px solid rgba(140,80,255,0.2);
+  border-radius: 8px;
+  padding: 14px;
+}
+.threat-label { font-size: 10px; letter-spacing: 2px; color: #4a3666; text-transform: uppercase; margin-bottom: 10px; }
+.threat-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.threat-name { font-size: 11px; color: #7a6899; width: 70px; flex-shrink: 0; }
+.threat-bar-bg { flex: 1; height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; }
+.threat-bar { height: 100%; border-radius: 2px; animation: barFill .8s ease-out both; }
+.threat-val { font-size: 10px; width: 28px; text-align: right; }
+
+.radar-wrap {
+  background: rgba(0,0,0,0.3);
+  border: 1px solid rgba(140,80,255,0.2);
+  border-radius: 8px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.content-area { padding: 20px; display: flex; flex-direction: column; gap: 20px; }
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.section-title {
+  font-size: 11px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: #4a3666;
+}
+.specimen-count {
+  font-size: 11px;
+  color: #39ff70;
+  letter-spacing: 1px;
+}
+
+.specimens-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.specimen-card {
+  background: rgba(20,5,40,0.8);
+  border: 1px solid rgba(140,80,255,0.2);
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color .2s, transform .2s;
+  animation: cardIn .4s ease-out both;
+}
+.specimen-card:hover { border-color: rgba(180,80,255,0.5); transform: translateY(-2px); }
+.specimen-card.selected { border-color: #39ff70; box-shadow: 0 0 16px rgba(57,255,112,0.15); }
+
+.card-visual {
+  height: 90px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card-body { padding: 10px 12px; }
+.card-name {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  color: #d8c8f0;
+  margin-bottom: 2px;
+}
+.card-class {
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #4a3666;
+  margin-bottom: 8px;
+}
+.card-tags { display: flex; gap: 4px; flex-wrap: wrap; }
+.tag {
+  font-size: 9px;
+  letter-spacing: 1px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  text-transform: uppercase;
+}
+
+.detail-panel {
+  background: rgba(10,3,25,0.9);
+  border: 1px solid rgba(140,80,255,0.25);
+  border-radius: 10px;
+  padding: 20px;
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 20px;
+  animation: cardIn .3s ease-out both;
+}
+
+.detail-visual {
+  background: rgba(0,0,0,0.4);
+  border: 1px solid rgba(140,80,255,0.15);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 180px;
+  position: relative;
+  overflow: hidden;
+}
+
+.detail-info { display: flex; flex-direction: column; gap: 12px; }
+.detail-name {
+  font-size: 18px;
+  font-weight: 200;
+  letter-spacing: 3px;
+  color: #e8d0ff;
+  text-transform: uppercase;
+}
+.detail-latin {
+  font-size: 11px;
+  font-style: italic;
+  color: #5a4477;
+  letter-spacing: 1px;
+  margin-top: -8px;
+}
+.detail-desc {
+  font-size: 12px;
+  line-height: 1.7;
+  color: #7a6899;
+  font-weight: 300;
+}
+.stats-row { display: flex; gap: 12px; }
+.stat-box {
+  flex: 1;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid rgba(140,80,255,0.15);
+  border-radius: 6px;
+  padding: 8px 10px;
+  text-align: center;
+}
+.stat-val { font-size: 16px; font-weight: 200; color: #d0b8f0; letter-spacing: 1px; }
+.stat-lbl { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: #4a3666; margin-top: 2px; }
+
+.action-row { display: flex; gap: 8px; margin-top: 4px; }
+.action-btn {
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: 1px solid;
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  background: transparent;
+  transition: all .2s;
+}
+.action-btn.primary { border-color: #39ff70; color: #39ff70; }
+.action-btn.primary:hover { background: rgba(57,255,112,0.1); }
+.action-btn.secondary { border-color: rgba(180,80,255,0.4); color: #b06eff; }
+.action-btn.secondary:hover { background: rgba(180,80,255,0.08); }
+
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid rgba(140,80,255,0.2);
+  border-radius: 6px;
+  padding: 8px 14px;
+}
+.search-bar input {
+  background: none;
+  border: none;
+  outline: none;
+  color: #c8b8e8;
+  font-size: 12px;
+  letter-spacing: 1px;
+  flex: 1;
+  font-family: inherit;
+}
+.search-bar input::placeholder { color: #4a3666; }
+.search-icon { color: #4a3666; font-size: 14px; }
+
+.bg-blob {
+  position: absolute;
+  border-radius: 50%;
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
+.scan-overlay {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(transparent, rgba(57,255,112,0.3), transparent);
+  animation: scanLine 3s linear infinite;
+  pointer-events: none;
+}
+
+.field-dispatch {
+  background: rgba(0,0,0,0.4);
+  border: 1px solid rgba(57,255,112,0.2);
+  border-radius: 8px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.dispatch-text {
+  font-size: 11px;
+  color: #5a7a5a;
+  letter-spacing: 1px;
+  line-height: 1.6;
+}
+.dispatch-text span { color: #39ff70; }
+</style>
+
+<div class="xeno-page">
+
+  <div class="bg-blob" style="width:400px;height:400px;background:radial-gradient(circle,rgba(100,20,200,.25) 0%,transparent 70%);top:-100px;left:-80px;animation:float1 8s ease-in-out infinite;"></div>
+  <div class="bg-blob" style="width:300px;height:300px;background:radial-gradient(circle,rgba(0,180,100,.15) 0%,transparent 70%);bottom:0;right:50px;animation:float2 10s ease-in-out infinite;"></div>
+
+  <nav class="top-nav">
+    <div class="nav-logo">Xenoflora Collective</div>
+    <div class="nav-links">
+      <button class="nav-link" onclick="sendPrompt('Show me the Xenoflora landing page 1 design')">Overview</button>
+      <button class="nav-link active">Specimens</button>
+      <button class="nav-link" onclick="sendPrompt('Design a Xenoflora biome map page with sector navigation')">Biome Map</button>
+      <button class="nav-link" onclick="sendPrompt('Design a Xenoflora field log / expedition journal page')">Field Log</button>
+    </div>
+    <div class="nav-status"><div class="status-dot"></div>Expedition VII Active</div>
+  </nav>
+
+  <div class="main-layout">
+
+    <aside class="sidebar">
+      <div>
+        <div class="sidebar-label">Filter by Class</div>
+        <div class="filter-group" id="filters">
+          <div class="filter-chip active" data-filter="all" onclick="filterSpecimens('all',this)">
+            <div class="filter-dot" style="background:#b06eff;box-shadow:0 0 4px #b06eff"></div>
+            All Specimens
+            <span class="filter-count">12</span>
+          </div>
+          <div class="filter-chip" data-filter="predatory" onclick="filterSpecimens('predatory',this)">
+            <div class="filter-dot" style="background:#ff4444;box-shadow:0 0 4px #ff444466"></div>
+            Predatory
+            <span class="filter-count">4</span>
+          </div>
+          <div class="filter-chip" data-filter="symbiotic" onclick="filterSpecimens('symbiotic',this)">
+            <div class="filter-dot" style="background:#39ff70;box-shadow:0 0 4px #39ff7066"></div>
+            Symbiotic
+            <span class="filter-count">3</span>
+          </div>
+          <div class="filter-chip" data-filter="spore" onclick="filterSpecimens('spore',this)">
+            <div class="filter-dot" style="background:#ffaa00;box-shadow:0 0 4px #ffaa0066"></div>
+            Spore-bearing
+            <span class="filter-count">3</span>
+          </div>
+          <div class="filter-chip" data-filter="sessile" onclick="filterSpecimens('sessile',this)">
+            <div class="filter-dot" style="background:#4488ff;box-shadow:0 0 4px #4488ff66"></div>
+            Sessile
+            <span class="filter-count">2</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="threat-meter">
+        <div class="threat-label">Biome Threat Index</div>
+        <div class="threat-row">
+          <div class="threat-name" style="font-size:11px;color:#7a6899">Toxicity</div>
+          <div class="threat-bar-bg"><div class="threat-bar" style="width:72%;background:linear-gradient(90deg,#ff6600,#ff4400);--w:72%"></div></div>
+          <div class="threat-val" style="color:#ff6644">72</div>
+        </div>
+        <div class="threat-row">
+          <div class="threat-name" style="font-size:11px;color:#7a6899">Motion</div>
+          <div class="threat-bar-bg"><div class="threat-bar" style="width:55%;background:linear-gradient(90deg,#cc44ff,#aa22dd);--w:55%"></div></div>
+          <div class="threat-val" style="color:#cc44ff">55</div>
+        </div>
+        <div class="threat-row">
+          <div class="threat-name" style="font-size:11px;color:#7a6899">Spore</div>
+          <div class="threat-bar-bg"><div class="threat-bar" style="width:88%;background:linear-gradient(90deg,#ffcc00,#ff8800);--w:88%"></div></div>
+          <div class="threat-val" style="color:#ffaa00">88</div>
+        </div>
+        <div class="threat-row">
+          <div class="threat-name" style="font-size:11px;color:#7a6899">Neural</div>
+          <div class="threat-bar-bg"><div class="threat-bar" style="width:31%;background:linear-gradient(90deg,#39ff70,#00cc55);--w:31%"></div></div>
+          <div class="threat-val" style="color:#39ff70">31</div>
+        </div>
+      </div>
+
+      <div class="radar-wrap">
+        <div class="sidebar-label" style="align-self:flex-start">Proximity Radar</div>
+        <svg viewBox="0 0 120 120" width="120" height="120">
+          <circle cx="60" cy="60" r="55" fill="none" stroke="rgba(57,255,112,0.08)" stroke-width="1"/>
+          <circle cx="60" cy="60" r="38" fill="none" stroke="rgba(57,255,112,0.08)" stroke-width="1"/>
+          <circle cx="60" cy="60" r="20" fill="none" stroke="rgba(57,255,112,0.1)" stroke-width="1"/>
+          <line x1="60" y1="5" x2="60" y2="115" stroke="rgba(57,255,112,0.06)" stroke-width="0.5"/>
+          <line x1="5" y1="60" x2="115" y2="60" stroke="rgba(57,255,112,0.06)" stroke-width="0.5"/>
+          <g style="transform-origin:60px 60px;animation:radarSweep 4s linear infinite">
+            <path d="M60,60 L60,5 A55,55 0 0,1 115,60 Z" fill="rgba(57,255,112,0.06)"/>
+            <line x1="60" y1="60" x2="60" y2="5" stroke="rgba(57,255,112,0.6)" stroke-width="1"/>
+          </g>
+          <circle cx="82" cy="38" r="3" fill="#ff4444" opacity=".9"><animate attributeName="opacity" values=".3;1;.3" dur="1.8s" repeatCount="indefinite"/></circle>
+          <circle cx="40" cy="72" r="2" fill="#ffaa00" opacity=".8"><animate attributeName="opacity" values=".2;.9;.2" dur="2.4s" begin=".5s" repeatCount="indefinite"/></circle>
+          <circle cx="68" cy="85" r="2.5" fill="#39ff70" opacity=".9"><animate attributeName="opacity" values=".4;1;.4" dur="1.5s" begin="1s" repeatCount="indefinite"/></circle>
+          <circle cx="28" cy="42" r="2" fill="#cc44ff" opacity=".7"><animate attributeName="opacity" values=".2;.8;.2" dur="3s" begin=".3s" repeatCount="indefinite"/></circle>
+          <circle cx="94" cy="70" r="1.5" fill="#4488ff" opacity=".6"><animate attributeName="opacity" values=".1;.7;.1" dur="2.2s" begin="1.5s" repeatCount="indefinite"/></circle>
+          <circle cx="60" cy="60" r="3" fill="rgba(57,255,112,0.3)" stroke="#39ff70" stroke-width="0.5"/>
+        </svg>
+        <div style="font-size:10px;letter-spacing:1px;color:#39ff70;margin-top:4px">5 contacts detected</div>
+      </div>
+
+      <div class="field-dispatch">
+        <div>
+          <div style="font-size:9px;letter-spacing:2px;color:#2a4a2a;text-transform:uppercase;margin-bottom:4px">Field Dispatch</div>
+          <div class="dispatch-text">Sector <span>7-G</span> elevated spore activity. Ventral mutation observed in <span>Glaukophyte cluster B</span>.</div>
+        </div>
+        <button class="action-btn primary" style="white-space:nowrap" onclick="sendPrompt('Tell me more about Glaukophyte cluster B mutation and what it means for the expedition')">Log ↗</button>
+      </div>
+    </aside>
+
+    <div class="content-area">
+      <div style="display:flex;gap:10px;align-items:center">
+        <div class="search-bar" style="flex:1">
+          <span class="search-icon">◈</span>
+          <input type="text" placeholder="Search specimens by name, trait, sector..." id="searchInput" oninput="handleSearch(this.value)"/>
+        </div>
+        <button class="action-btn secondary" onclick="sendPrompt('Generate a full xenobotanical report for all 12 specimens in Expedition VII')">Export Report ↗</button>
+      </div>
+
+      <div>
+        <div class="section-header">
+          <div class="section-title">Catalogued Specimens</div>
+          <div class="specimen-count" id="countLabel">12 / 12 shown</div>
+        </div>
+        <div class="specimens-grid" id="specimenGrid"></div>
+      </div>
+
+      <div id="detailPanel"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const specimens = [
+  {
+    id:1, name:"Vorath Tendril", latin:"Vorathix penetrans", class:"predatory",
+    color:"#ff4444", glow:"#ff444466",
+    tags:[{l:"Carnivorous",c:"rgba(255,68,68,.15)",tc:"#ff8888"},{l:"Neural",c:"rgba(200,68,255,.12)",tc:"#cc88ff"}],
+    desc:"Subsurface root network capable of sensing ground vibration at 40m range. Deploys neurotoxic barbs on contact. Highly territorial.",
+    stats:[{v:"8.4m",l:"Avg Reach"},{v:"3.2s",l:"Strike Speed"},{v:"97%",l:"Lethality"}],
+    threat:"Critical", threatColor:"#ff4444",
+    svgShape: `<ellipse cx="60" cy="60" rx="18" ry="28" fill="#330008" stroke="#ff4444" stroke-width="1" opacity=".9"/>
+      <path d="M60,32 C70,20 80,15 75,5" fill="none" stroke="#ff4444" stroke-width="1.5" stroke-linecap="round" opacity=".8"><animate attributeName="d" values="M60,32 C70,20 80,15 75,5;M60,32 C65,18 85,12 78,3;M60,32 C70,20 80,15 75,5" dur="3s" repeatCount="indefinite"/></path>
+      <path d="M60,32 C50,18 40,14 44,4" fill="none" stroke="#cc2222" stroke-width="1.2" stroke-linecap="round" opacity=".7"><animate attributeName="d" values="M60,32 C50,18 40,14 44,4;M60,32 C48,22 35,18 38,6;M60,32 C50,18 40,14 44,4" dur="4s" begin=".5s" repeatCount="indefinite"/></path>
+      <circle cx="60" cy="60" r="8" fill="#ff2200" opacity=".6"><animate attributeName="r" values="8;11;8" dur="2s" repeatCount="indefinite"/></circle>
+      <circle cx="57" cy="57" r="2" fill="#fff" opacity=".8"/>`,
+  },
+  {
+    id:2, name:"Glaukophyte", latin:"Glaukos luminaris", class:"symbiotic",
+    color:"#39ff70", glow:"#39ff7066",
+    tags:[{l:"Symbiotic",c:"rgba(57,255,112,.12)",tc:"#39ff70"},{l:"Luminescent",c:"rgba(100,200,255,.12)",tc:"#88ddff"}],
+    desc:"Mutualistic cluster that exchanges mineral nutrients with host organisms through bioluminescent filament networks. Non-aggressive.",
+    stats:[{v:"12yr",l:"Lifespan"},{v:"∞",l:"Filaments"},{v:"0%",l:"Toxicity"}],
+    threat:"Benign", threatColor:"#39ff70",
+    svgShape: `<circle cx="60" cy="65" r="22" fill="#001a08" stroke="#39ff70" stroke-width="0.8" opacity=".8"/>
+      <circle cx="60" cy="65" r="14" fill="#002d10" opacity=".9"/>
+      <circle cx="60" cy="65" r="8" fill="#39ff70" opacity=".5"><animate attributeName="r" values="8;12;8" dur="2.5s" repeatCount="indefinite"/><animate attributeName="opacity" values=".5;.9;.5" dur="2.5s" repeatCount="indefinite"/></circle>
+      <circle cx="60" cy="65" r="20" fill="none" stroke="#39ff70" stroke-width="0.5" opacity=".3"><animate attributeName="r" values="20;35;20" dur="2.5s" repeatCount="indefinite"/><animate attributeName="opacity" values=".3;0;.3" dur="2.5s" repeatCount="indefinite"/></circle>
+      <line x1="60" y1="43" x2="60" y2="28" stroke="#39ff70" stroke-width="1" opacity=".6"><animate attributeName="opacity" values=".3;.9;.3" dur="1.8s" repeatCount="indefinite"/></line>
+      <line x1="38" y1="55" x2="25" y2="48" stroke="#39ff70" stroke-width="1" opacity=".5"><animate attributeName="opacity" values=".2;.8;.2" dur="2.2s" begin=".4s" repeatCount="indefinite"/></line>
+      <line x1="82" y1="55" x2="95" y2="48" stroke="#39ff70" stroke-width="1" opacity=".5"><animate attributeName="opacity" values=".2;.7;.2" dur="2.6s" begin=".8s" repeatCount="indefinite"/></line>`,
+  },
+  {
+    id:3, name:"Xeraphon Pod", latin:"Xeraphon spiculis", class:"spore",
+    color:"#ffaa00", glow:"#ffaa0066",
+    tags:[{l:"Spore-bearing",c:"rgba(255,170,0,.12)",tc:"#ffcc44"},{l:"Explosive",c:"rgba(255,80,0,.12)",tc:"#ff8844"}],
+    desc:"Pressurized seed pods that detonate upon touch or thermal shock, dispersing spores up to 200m. Spores cause mild dermal irritation.",
+    stats:[{v:"200m",l:"Dispersal"},{v:"0.08s",l:"Detonation"},{v:"44°C",l:"Trigger Temp"}],
+    threat:"Moderate", threatColor:"#ffaa00",
+    svgShape: `<ellipse cx="60" cy="68" rx="20" ry="25" fill="#1a0800" stroke="#ffaa00" stroke-width="1" opacity=".9"/>
+      <ellipse cx="60" cy="68" rx="12" ry="16" fill="#2a1000" opacity=".8"/>
+      <circle cx="60" cy="52" r="6" fill="#ffaa00" opacity=".8"><animate attributeName="r" values="6;9;6" dur="1.8s" repeatCount="indefinite"/></circle>
+      <circle cx="44" cy="62" r="4" fill="#ff8800" opacity=".6"><animate attributeName="r" values="4;6;4" dur="2.2s" begin=".3s" repeatCount="indefinite"/></circle>
+      <circle cx="76" cy="62" r="3" fill="#ffcc00" opacity=".6"><animate attributeName="r" values="3;5;3" dur="2.5s" begin=".7s" repeatCount="indefinite"/></circle>
+      <line x1="60" y1="43" x2="60" y2="32" stroke="#ffaa00" stroke-width="1.5" stroke-linecap="round" opacity=".7"/>`,
+  },
+  {
+    id:4, name:"Cephalovore", latin:"Cephalus devorans", class:"predatory",
+    color:"#ff4444", glow:"#ff444466",
+    tags:[{l:"Predatory",c:"rgba(255,68,68,.15)",tc:"#ff8888"},{l:"Ambush",c:"rgba(150,0,100,.12)",tc:"#ff44aa"}],
+    desc:"Mimics dormant rock formations until prey ventures within 0.5m. Engulfs prey using inward-collapsing fibrous mantle.",
+    stats:[{v:"0.5m",l:"Strike Range"},{v:"18kg",l:"Max Prey Size"},{v:"200yr",l:"Lifespan"}],
+    threat:"High", threatColor:"#ff6644",
+    svgShape: `<path d="M60,85 C30,85 25,65 30,50 C35,35 45,30 60,28 C75,30 85,35 90,50 C95,65 90,85 60,85Z" fill="#1a0010" stroke="#ff4444" stroke-width="0.8" opacity=".8"/>
+      <ellipse cx="60" cy="55" rx="22" ry="18" fill="#2a0018" opacity=".7"/>
+      <circle cx="52" cy="50" r="5" fill="#ff0000" opacity=".8"><animate attributeName="r" values="5;7;5" dur="2s" repeatCount="indefinite"/></circle>
+      <circle cx="68" cy="50" r="5" fill="#ff0000" opacity=".8"><animate attributeName="r" values="5;7;5" dur="2s" begin=".3s" repeatCount="indefinite"/></circle>
+      <circle cx="52" cy="50" r="2" fill="#fff" opacity=".9"/>
+      <circle cx="68" cy="50" r="2" fill="#fff" opacity=".9"/>`,
+  },
+  {
+    id:5, name:"Pallid Wraith", latin:"Pallidus spectralis", class:"sessile",
+    color:"#4488ff", glow:"#4488ff66",
+    tags:[{l:"Sessile",c:"rgba(68,136,255,.12)",tc:"#88aaff"},{l:"Psionic",c:"rgba(180,80,255,.12)",tc:"#cc88ff"}],
+    desc:"Rooted entirely in substrate. Emits low-frequency psionic signals that cause mild disorientation in passing fauna.",
+    stats:[{v:"0m",l:"Mobility"},{v:"30m",l:"Psi Range"},{v:"40%",l:"Confusion"}],
+    threat:"Low", threatColor:"#4488ff",
+    svgShape: `<rect x="50" y="72" width="20" height="18" rx="3" fill="#000820" stroke="#4488ff" stroke-width="0.8" opacity=".8"/>
+      <line x1="60" y1="72" x2="55" y2="30" stroke="#4488ff" stroke-width="1" stroke-linecap="round" opacity=".7"/>
+      <line x1="60" y1="72" x2="65" y2="35" stroke="#2266cc" stroke-width="1" stroke-linecap="round" opacity=".6"/>
+      <line x1="60" y1="72" x2="48" y2="45" stroke="#6699ff" stroke-width="0.8" stroke-linecap="round" opacity=".5"/>
+      <ellipse cx="55" cy="28" rx="7" ry="9" fill="#000d33" stroke="#4488ff" stroke-width="0.8" opacity=".9">
+        <animate attributeName="ry" values="9;12;9" dur="3s" repeatCount="indefinite"/>
+      </ellipse>
+      <ellipse cx="65" cy="33" rx="6" ry="8" fill="#000d33" stroke="#2266cc" stroke-width="0.8" opacity=".8">
+        <animate attributeName="ry" values="8;11;8" dur="3.5s" begin=".5s" repeatCount="indefinite"/>
+      </ellipse>`,
+  },
+  {
+    id:6, name:"Sporophage Maw", latin:"Sporophagus abyssus", class:"spore",
+    color:"#ffaa00", glow:"#ffaa0066",
+    tags:[{l:"Spore-bearing",c:"rgba(255,170,0,.12)",tc:"#ffcc44"},{l:"Carnivorous",c:"rgba(255,68,68,.12)",tc:"#ff8888"}],
+    desc:"Dual-mode organism: photosynthetic during dormancy, carnivorous spore-trap when light levels drop below 20 lux.",
+    stats:[{v:"20lux",l:"Mode Switch"},{v:"60cm",l:"Trap Radius"},{v:"Dual",l:"Metabolism"}],
+    threat:"High", threatColor:"#ff8800",
+    svgShape: `<path d="M60,90 C40,90 32,75 35,60 C38,45 48,38 60,36 C72,38 82,45 85,60 C88,75 80,90 60,90Z" fill="#1a0d00" stroke="#ff8800" stroke-width="1" opacity=".8"/>
+      <circle cx="60" cy="62" r="16" fill="#2a1500" opacity=".8"/>
+      <circle cx="60" cy="62" r="9" fill="#ff6600" opacity=".4"><animate attributeName="r" values="9;13;9" dur="2s" repeatCount="indefinite"/></circle>
+      <circle cx="54" cy="42" r="3" fill="#ffaa00" opacity=".7"/>
+      <circle cx="66" cy="40" r="2.5" fill="#ff8800" opacity=".6"/>
+      <circle cx="42" cy="55" r="2" fill="#ffcc00" opacity=".5"/>`,
+  },
+  {
+    id:7, name:"Thread Parasite", latin:"Filius parasiticus", class:"symbiotic",
+    color:"#39ff70", glow:"#39ff7066",
+    tags:[{l:"Symbiotic",c:"rgba(57,255,112,.12)",tc:"#39ff70"},{l:"Parasitic",c:"rgba(255,80,80,.1)",tc:"#ff9988"}],
+    desc:"Attaches to host vascular system but provides enhanced mineral absorption in exchange. Considered mutualistic by most xenobiologists.",
+    stats:[{v:"+34%",l:"Host Growth"},{v:"2-8yr",l:"Bond Duration"},{v:"Mixed",l:"Classification"}],
+    threat:"Unclear", threatColor:"#aaaa44",
+    svgShape: `<circle cx="60" cy="60" r="16" fill="#001a08" stroke="#39ff70" stroke-width="0.8" opacity=".8"/>
+      <path d="M60,44 C80,40 95,50 90,65" fill="none" stroke="#39ff70" stroke-width="1.2" stroke-linecap="round" opacity=".7"/>
+      <path d="M60,44 C40,38 22,48 28,63" fill="none" stroke="#22cc55" stroke-width="1" stroke-linecap="round" opacity=".6"/>
+      <path d="M44,72 C35,85 40,95 55,92" fill="none" stroke="#39ff70" stroke-width="1" stroke-linecap="round" opacity=".5"/>
+      <circle cx="60" cy="60" r="7" fill="#39ff70" opacity=".3"><animate attributeName="opacity" values=".3;.7;.3" dur="2s" repeatCount="indefinite"/></circle>`,
+  },
+  {
+    id:8, name:"Iron Bulb", latin:"Ferrus globosus", class:"sessile",
+    color:"#4488ff", glow:"#4488ff55",
+    tags:[{l:"Sessile",c:"rgba(68,136,255,.12)",tc:"#88aaff"},{l:"Magnetic",c:"rgba(150,150,255,.1)",tc:"#aaaaff"}],
+    desc:"Dense ferrous internal structure creates measurable magnetic field. Disrupts compass navigation and electronic sensors within 15m.",
+    stats:[{v:"15m",l:"Mag Field"},{v:"4.2T",l:"Field Strength"},{v:"800yr",l:"Lifespan Est."}],
+    threat:"Low", threatColor:"#4488ff",
+    svgShape: `<circle cx="60" cy="62" r="24" fill="#080820" stroke="#4488ff" stroke-width="1" opacity=".9"/>
+      <circle cx="60" cy="62" r="16" fill="#0d1040" opacity=".9"/>
+      <circle cx="60" cy="62" r="8" fill="#4488ff" opacity=".5"><animate attributeName="opacity" values=".4;.8;.4" dur="3s" repeatCount="indefinite"/></circle>
+      <ellipse cx="60" cy="62" rx="28" ry="10" fill="none" stroke="#4488ff" stroke-width="0.5" opacity=".3"><animate attributeName="ry" values="10;14;10" dur="3s" repeatCount="indefinite"/></ellipse>
+      <ellipse cx="60" cy="62" rx="10" ry="28" fill="none" stroke="#2266cc" stroke-width="0.5" opacity=".25"><animate attributeName="rx" values="10;14;10" dur="3.5s" begin=".5s" repeatCount="indefinite"/></ellipse>`,
+  },
+  {
+    id:9, name:"Vex Stalker", latin:"Vexus callidus", class:"predatory",
+    color:"#ff4444", glow:"#ff444466",
+    tags:[{l:"Predatory",c:"rgba(255,68,68,.15)",tc:"#ff8888"},{l:"Mobile",c:"rgba(200,100,255,.1)",tc:"#dd88ff"}],
+    desc:"Locomotive carnivore capable of 12 km/h pursuit bursts. Uses chromatic camouflage to blend with bioluminescent flora.",
+    stats:[{v:"12km/h",l:"Max Speed"},{v:"2.1m",l:"Body Length"},{v:"6km",l:"Hunt Range"}],
+    threat:"Critical", threatColor:"#ff2222",
+    svgShape: `<ellipse cx="60" cy="65" rx="24" ry="14" fill="#1a0008" stroke="#ff4444" stroke-width="1" opacity=".9"/>
+      <ellipse cx="60" cy="65" rx="16" ry="9" fill="#2a0010" opacity=".8"/>
+      <circle cx="44" cy="60" r="5" fill="#ff0000" opacity=".9"><animate attributeName="opacity" values=".6;1;.6" dur="1.5s" repeatCount="indefinite"/></circle>
+      <circle cx="76" cy="60" r="5" fill="#ff0000" opacity=".9"><animate attributeName="opacity" values=".6;1;.6" dur="1.5s" begin=".3s" repeatCount="indefinite"/></circle>
+      <circle cx="44" cy="60" r="2" fill="#fff" opacity=".9"/>
+      <circle cx="76" cy="60" r="2" fill="#fff" opacity=".9"/>
+      <path d="M36,65 C28,58 22,62 18,56" fill="none" stroke="#cc0000" stroke-width="1.5" stroke-linecap="round" opacity=".7"/>
+      <path d="M84,65 C92,58 98,62 102,56" fill="none" stroke="#cc0000" stroke-width="1.5" stroke-linecap="round" opacity=".7"/>`,
+  },
+  {
+    id:10, name:"Nimbus Crown", latin:"Nimbus aureolus", class:"spore",
+    color:"#ffaa00", glow:"#ffaa0066",
+    tags:[{l:"Spore-bearing",c:"rgba(255,170,0,.12)",tc:"#ffcc44"},{l:"Hallucinogenic",c:"rgba(200,80,255,.12)",tc:"#dd88ff"}],
+    desc:"Releases psychoactive spore clouds at dusk. Affected fauna exhibit prolonged disorientation and altered spatial perception.",
+    stats:[{v:"Dusk",l:"Release Time"},{v:"500m²",l:"Cloud Coverage"},{v:"4-6hr",l:"Effect Duration"}],
+    threat:"High", threatColor:"#ff8800",
+    svgShape: `<circle cx="60" cy="72" r="12" fill="#1a0d00" stroke="#ffaa00" stroke-width="0.8" opacity=".9"/>
+      <circle cx="60" cy="50" r="18" fill="#120800" stroke="#ff8800" stroke-width="0.8" opacity=".8"/>
+      <circle cx="60" cy="50" r="11" fill="none" stroke="#ffaa00" stroke-width="0.5" opacity=".4">
+        <animate attributeName="r" values="11;22;11" dur="2.5s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values=".5;0;.5" dur="2.5s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="42" cy="38" r="5" fill="#cc6600" opacity=".6"><animate attributeName="r" values="5;8;5" dur="3s" begin=".3s" repeatCount="indefinite"/></circle>
+      <circle cx="78" cy="42" r="4" fill="#ffcc00" opacity=".5"><animate attributeName="r" values="4;7;4" dur="2.8s" begin=".8s" repeatCount="indefinite"/></circle>`,
+  },
+  {
+    id:11, name:"Barb Lily", latin:"Aculeatus florens", class:"predatory",
+    color:"#ff4444", glow:"#ff444466",
+    tags:[{l:"Predatory",c:"rgba(255,68,68,.15)",tc:"#ff8888"},{l:"Chemical",c:"rgba(0,200,150,.12)",tc:"#44ffcc"}],
+    desc:"Mimics attractive flower structures. Contact with petals injects paralytic compound. Seeds are distributed by immobilized prey decomposition.",
+    stats:[{v:"100%",l:"Contact Toxin"},{v:"8s",l:"Paralysis Onset"},{v:"48hr",l:"Effect Duration"}],
+    threat:"Critical", threatColor:"#ff4444",
+    svgShape: `<rect x="55" y="72" width="10" height="20" rx="3" fill="#0d0800" stroke="#cc4400" stroke-width="0.8" opacity=".8"/>
+      <circle cx="60" cy="52" r="10" fill="#1a0800" stroke="#ff4444" stroke-width="0.8" opacity=".9"/>
+      <ellipse cx="60" cy="36" rx="8" ry="12" fill="#220010" stroke="#ff2266" stroke-width="0.8" opacity=".8"/>
+      <ellipse cx="44" cy="52" rx="10" ry="7" fill="#1a0008" stroke="#ff4444" stroke-width="0.8" opacity=".7" transform="rotate(-30 44 52)"/>
+      <ellipse cx="76" cy="52" rx="10" ry="7" fill="#1a0008" stroke="#cc2244" stroke-width="0.8" opacity=".7" transform="rotate(30 76 52)"/>
+      <circle cx="60" cy="52" r="4" fill="#ff0044" opacity=".7"><animate attributeName="r" values="4;6;4" dur="2s" repeatCount="indefinite"/></circle>`,
+  },
+  {
+    id:12, name:"Lattice Weave", latin:"Reticulus fabricans", class:"symbiotic",
+    color:"#39ff70", glow:"#39ff7066",
+    tags:[{l:"Symbiotic",c:"rgba(57,255,112,.12)",tc:"#39ff70"},{l:"Structural",c:"rgba(100,150,255,.1)",tc:"#88aaff"}],
+    desc:"Forms structural organic scaffolding across forest floors. Other species root into its lattice, creating an interconnected biome substrate.",
+    stats:[{v:"∞",l:"Network Nodes"},{v:"2km²",l:"Max Coverage"},{v:"All",l:"Compatible Species"}],
+    threat:"Benign", threatColor:"#39ff70",
+    svgShape: `<line x1="20" y1="50" x2="100" y2="50" stroke="#39ff70" stroke-width="0.8" opacity=".4"/>
+      <line x1="60" y1="15" x2="60" y2="95" stroke="#39ff70" stroke-width="0.8" opacity=".4"/>
+      <line x1="25" y1="25" x2="95" y2="75" stroke="#22cc55" stroke-width="0.6" opacity=".3"/>
+      <line x1="95" y1="25" x2="25" y2="75" stroke="#22cc55" stroke-width="0.6" opacity=".3"/>
+      <circle cx="60" cy="50" r="6" fill="#001a08" stroke="#39ff70" stroke-width="1" opacity=".9"/>
+      <circle cx="20" cy="50" r="4" fill="#001408" stroke="#39ff70" stroke-width="0.8" opacity=".7"/>
+      <circle cx="100" cy="50" r="4" fill="#001408" stroke="#39ff70" stroke-width="0.8" opacity=".7"/>
+      <circle cx="60" cy="15" r="4" fill="#001408" stroke="#39ff70" stroke-width="0.8" opacity=".7"/>
+      <circle cx="60" cy="95" r="4" fill="#001408" stroke="#39ff70" stroke-width="0.8" opacity=".7"/>
+      <circle cx="38" cy="32" r="3" fill="#001408" stroke="#22cc55" stroke-width="0.6" opacity=".5"/>
+      <circle cx="82" cy="68" r="3" fill="#001408" stroke="#22cc55" stroke-width="0.6" opacity=".5"/>`,
+  },
+];
+
+let currentFilter = 'all';
+let selectedId = null;
+let searchTerm = '';
+
+function filterSpecimens(f, el) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderGrid();
+}
+
+function handleSearch(v) {
+  searchTerm = v.toLowerCase();
+  renderGrid();
+}
+
+function getFiltered() {
+  return specimens.filter(s => {
+    const matchFilter = currentFilter === 'all' || s.class === currentFilter;
+    const matchSearch = !searchTerm || s.name.toLowerCase().includes(searchTerm) || s.latin.toLowerCase().includes(searchTerm) || s.desc.toLowerCase().includes(searchTerm);
+    return matchFilter && matchSearch;
+  });
+}
+
+function renderGrid() {
+  const filtered = getFiltered();
+  const grid = document.getElementById('specimenGrid');
+  document.getElementById('countLabel').textContent = filtered.length + ' / ' + specimens.length + ' shown';
+  grid.innerHTML = filtered.map((s, i) => `
+    <div class="specimen-card ${selectedId === s.id ? 'selected' : ''}" onclick="selectSpecimen(${s.id})" style="animation-delay:${i*0.05}s">
+      <div class="card-visual" style="background:radial-gradient(circle at 50% 50%, ${s.glow} 0%, rgba(0,0,0,0.6) 70%)">
+        <div class="scan-overlay"></div>
+        <svg viewBox="0 0 120 110" width="100" height="90">${s.svgShape}</svg>
+      </div>
+      <div class="card-body">
+        <div class="card-name">${s.name}</div>
+        <div class="card-class">${s.class}</div>
+        <div class="card-tags">${s.tags.map(t=>`<span class="tag" style="background:${t.c};color:${t.tc}">${t.l}</span>`).join('')}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function selectSpecimen(id) {
+  selectedId = selectedId === id ? null : id;
+  renderGrid();
+  renderDetail();
+}
+
+function renderDetail() {
+  const panel = document.getElementById('detailPanel');
+  if (!selectedId) { panel.innerHTML = ''; return; }
+  const s = specimens.find(x => x.id === selectedId);
+  panel.innerHTML = `
+    <div class="detail-panel">
+      <div class="detail-visual" style="background:radial-gradient(circle at 50% 40%, ${s.glow} 0%, rgba(0,0,0,0.7) 70%)">
+        <div class="scan-overlay"></div>
+        <svg viewBox="0 0 120 110" width="160" height="148">${s.svgShape}</svg>
+      </div>
+      <div class="detail-info">
+        <div>
+          <div class="detail-name">${s.name}</div>
+          <div class="detail-latin">${s.latin}</div>
+        </div>
+        <div class="detail-desc">${s.desc}</div>
+        <div class="stats-row">
+          ${s.stats.map(st => `<div class="stat-box"><div class="stat-val" style="color:${s.color}">${st.v}</div><div class="stat-lbl">${st.l}</div></div>`).join('')}
+          <div class="stat-box"><div class="stat-val" style="color:${s.threatColor};font-size:13px">${s.threat}</div><div class="stat-lbl">Threat</div></div>
+        </div>
+        <div class="action-row">
+          <button class="action-btn primary" onclick="sendPrompt('Give me a full xenobotanical analysis of ${s.name} (${s.latin}), including habitat, biology, defense mechanisms, and expedition safety protocols')">Full Analysis ↗</button>
+          <button class="action-btn secondary" onclick="sendPrompt('What field equipment and protective measures should I use when approaching a ${s.name} specimen?')">Safety Protocol ↗</button>
+          <button class="action-btn secondary" onclick="sendPrompt('Compare ${s.name} to similar organisms — are there any Earth analogues or sci-fi equivalents that inspired this type of organism?')">Compare ↗</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+renderGrid();
+</script>
