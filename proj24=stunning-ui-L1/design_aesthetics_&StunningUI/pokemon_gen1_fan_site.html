@@ -1,0 +1,654 @@
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --poke-red: #CC0000;
+  --poke-red-dark: #8B0000;
+  --poke-red-light: #FF3333;
+  --poke-white: #F8F8F8;
+  --poke-black: #1a1a1a;
+  --poke-yellow: #FFCB05;
+  --poke-blue: #3B4CCA;
+  --poke-gray: #AAAAAA;
+  --poke-light-gray: #E8E8E8;
+  --pixel: 4px;
+}
+
+.poke-site {
+  font-family: 'Press Start 2P', monospace;
+  background: var(--poke-red);
+  color: var(--poke-white);
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+  font-size: 8px;
+  line-height: 1.6;
+  padding: 0;
+}
+
+.tall-grass-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.header-bar {
+  position: relative;
+  z-index: 10;
+  background: var(--poke-red-dark);
+  border-bottom: 4px solid var(--poke-yellow);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.site-title {
+  font-size: 13px;
+  color: var(--poke-yellow);
+  text-shadow: 3px 3px 0 var(--poke-red-dark), -1px -1px 0 #000;
+  letter-spacing: 1px;
+  flex: 1;
+  min-width: 200px;
+}
+
+.nav-pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.nav-pill {
+  background: var(--poke-yellow);
+  color: var(--poke-red-dark);
+  padding: 4px 8px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 7px;
+  border: 2px solid var(--poke-black);
+  cursor: pointer;
+  box-shadow: 2px 2px 0 var(--poke-black);
+  transition: transform 0.1s;
+  text-transform: uppercase;
+}
+.nav-pill:hover { transform: translate(-1px,-1px); box-shadow: 3px 3px 0 var(--poke-black); }
+.nav-pill:active { transform: translate(1px,1px); box-shadow: 1px 1px 0 var(--poke-black); }
+
+.main-grid {
+  position: relative;
+  z-index: 5;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 14px;
+}
+
+@media (max-width: 540px) {
+  .main-grid { grid-template-columns: 1fr; }
+}
+
+.panel {
+  background: var(--poke-white);
+  color: var(--poke-black);
+  border: 3px solid var(--poke-black);
+  box-shadow: 4px 4px 0 var(--poke-black);
+  border-radius: 0;
+  overflow: hidden;
+}
+
+.panel-header {
+  background: var(--poke-red);
+  color: var(--poke-yellow);
+  padding: 6px 10px;
+  font-size: 8px;
+  border-bottom: 3px solid var(--poke-black);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.panel-body { padding: 10px; }
+
+.trainer-card {
+  grid-column: 1;
+}
+
+.trainer-layout {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.trainer-sprite {
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+  image-rendering: pixelated;
+  border: 2px solid var(--poke-gray);
+  background: var(--poke-light-gray);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.trainer-info { flex: 1; }
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 7px;
+  padding: 3px 0;
+  border-bottom: 1px solid var(--poke-light-gray);
+  gap: 8px;
+}
+.info-label { color: var(--poke-gray); flex-shrink: 0; }
+.info-val { color: var(--poke-black); font-weight: bold; text-align: right; }
+
+.badges-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.badge-item {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--poke-black);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  background: var(--poke-yellow);
+  box-shadow: 1px 1px 0 var(--poke-black);
+}
+
+.party-panel { grid-column: 2; grid-row: 1 / 3; }
+
+.party-slot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px;
+  border-bottom: 2px solid var(--poke-light-gray);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.party-slot:last-child { border-bottom: none; }
+.party-slot:hover { background: var(--poke-light-gray); }
+
+.sprite-box {
+  width: 48px;
+  height: 48px;
+  border: 2px solid var(--poke-gray);
+  background: #E0E8F0;
+  flex-shrink: 0;
+  image-rendering: pixelated;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mon-info { flex: 1; }
+.mon-name { font-size: 8px; color: var(--poke-black); margin-bottom: 3px; text-transform: uppercase; }
+.mon-meta { font-size: 6px; color: var(--poke-gray); }
+
+.hp-bar-bg {
+  width: 100%;
+  height: 6px;
+  background: #ddd;
+  border: 1px solid #aaa;
+  margin-top: 4px;
+}
+.hp-bar-fill {
+  height: 100%;
+  background: #4CAF50;
+  transition: width 0.3s;
+}
+.hp-bar-fill.low { background: #FF5722; }
+.hp-bar-fill.mid { background: #FFC107; }
+
+.type-badge {
+  font-size: 6px;
+  padding: 2px 5px;
+  border: 1px solid;
+  display: inline-block;
+  margin-right: 2px;
+}
+.type-fire { background: #FF8C00; color: white; border-color: #CC5500; }
+.type-water { background: #4169E1; color: white; border-color: #2244AA; }
+.type-grass { background: #228B22; color: white; border-color: #145214; }
+.type-electric { background: #FFD700; color: #333; border-color: #CCA800; }
+.type-normal { background: #999; color: white; border-color: #666; }
+.type-psychic { background: #FF1493; color: white; border-color: #CC0066; }
+
+.pokedex-panel { grid-column: 1; }
+
+.dex-entry {
+  font-size: 7px;
+  color: #333;
+  line-height: 2;
+  padding: 6px;
+  background: #f0f8ff;
+  border: 2px solid #99c0e0;
+  margin-bottom: 6px;
+}
+
+.dex-number {
+  font-size: 10px;
+  color: var(--poke-red);
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dex-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin-top: 6px;
+}
+.dex-stat { font-size: 6px; color: #555; }
+.dex-stat span { color: var(--poke-red-dark); font-weight: bold; }
+
+.ticker {
+  position: relative;
+  z-index: 10;
+  background: var(--poke-black);
+  color: var(--poke-yellow);
+  padding: 5px 0;
+  font-size: 7px;
+  overflow: hidden;
+  white-space: nowrap;
+  border-top: 2px solid var(--poke-yellow);
+  border-bottom: 2px solid var(--poke-yellow);
+  margin: 0;
+}
+.ticker-inner {
+  display: inline-block;
+  animation: ticker 28s linear infinite;
+  padding-left: 100%;
+}
+@keyframes ticker {
+  from { transform: translateX(0); }
+  to { transform: translateX(-100%); }
+}
+
+.pokeball-deco {
+  position: absolute;
+  opacity: 0.07;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.blink { animation: blink 1.2s step-end infinite; }
+@keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0;} }
+
+.press-start {
+  text-align: center;
+  font-size: 7px;
+  color: var(--poke-yellow);
+  padding: 8px;
+  position: relative;
+  z-index: 10;
+  text-shadow: 1px 1px 0 var(--poke-red-dark);
+}
+
+.footer-bar {
+  position: relative;
+  z-index: 10;
+  background: var(--poke-red-dark);
+  border-top: 4px solid var(--poke-yellow);
+  padding: 8px 16px;
+  font-size: 6px;
+  color: rgba(255,255,255,0.7);
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.pixel-cursor {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background: var(--poke-black);
+  margin-left: 2px;
+  vertical-align: middle;
+  animation: blink 0.8s step-end infinite;
+}
+</style>
+
+<div class="poke-site">
+
+<svg class="tall-grass-bg" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+  <defs>
+    <pattern id="grass" x="0" y="0" width="24" height="24" patternUnits="userSpaceOnUse">
+      <rect width="24" height="24" fill="none"/>
+      <line x1="4" y1="24" x2="4" y2="12" stroke="#006600" stroke-width="2" opacity="0.4"/>
+      <line x1="4" y1="12" x2="2" y2="6" stroke="#006600" stroke-width="2" opacity="0.4"/>
+      <line x1="12" y1="24" x2="12" y2="8" stroke="#008800" stroke-width="2" opacity="0.3"/>
+      <line x1="12" y1="8" x2="14" y2="2" stroke="#008800" stroke-width="2" opacity="0.3"/>
+      <line x1="20" y1="24" x2="20" y2="14" stroke="#005500" stroke-width="2" opacity="0.35"/>
+      <line x1="20" y1="14" x2="18" y2="7" stroke="#005500" stroke-width="2" opacity="0.35"/>
+    </pattern>
+  </defs>
+  <rect width="100%" height="100%" fill="url(#grass)"/>
+</svg>
+
+<svg class="pokeball-deco" style="width:300px;height:300px;right:-60px;top:-60px;" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="50" cy="50" r="48" fill="white" stroke="#ccc" stroke-width="1"/>
+  <path d="M2,50 Q2,2 50,2 Q98,2 98,50 Z" fill="#CC0000"/>
+  <rect x="0" y="45" width="100" height="10" fill="#333"/>
+  <circle cx="50" cy="50" r="14" fill="#eee" stroke="#333" stroke-width="3"/>
+  <circle cx="50" cy="50" r="8" fill="white" stroke="#ccc" stroke-width="1"/>
+</svg>
+
+<svg class="pokeball-deco" style="width:200px;height:200px;left:-40px;bottom:40px;" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="50" cy="50" r="48" fill="white" stroke="#ccc" stroke-width="1"/>
+  <path d="M2,50 Q2,2 50,2 Q98,2 98,50 Z" fill="#CC0000"/>
+  <rect x="0" y="45" width="100" height="10" fill="#333"/>
+  <circle cx="50" cy="50" r="14" fill="#eee" stroke="#333" stroke-width="3"/>
+  <circle cx="50" cy="50" r="8" fill="white" stroke="#ccc" stroke-width="1"/>
+</svg>
+
+<div class="ticker">
+  <div class="ticker-inner">
+    ★ PROF. OAK: There's a time and place for everything, but not now! ★ &nbsp;&nbsp;&nbsp; ★ Wild GENGAR appeared! ★ &nbsp;&nbsp;&nbsp; ★ MISTY wants to battle! ★ &nbsp;&nbsp;&nbsp; ★ CHARIZARD won't obey! ★ &nbsp;&nbsp;&nbsp; ★ Got HM01 CUT! ★ &nbsp;&nbsp;&nbsp; ★ GARY used ESCAPE ROPE ★ &nbsp;&nbsp;&nbsp; ★ PIKACHU used THUNDERBOLT! It's super effective! ★ &nbsp;&nbsp;&nbsp; ★ Healed at POKÉMON CENTER! ★
+  </div>
+</div>
+
+<div class="header-bar">
+  <div class="site-title">☆ POKÉMON WORLD ☆</div>
+  <div class="nav-pills">
+    <div class="nav-pill">POKÉDEX</div>
+    <div class="nav-pill">TRAINER</div>
+    <div class="nav-pill">BATTLE</div>
+    <div class="nav-pill">TRADE</div>
+  </div>
+  <svg width="32" height="32" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
+    <circle cx="32" cy="32" r="30" fill="white" stroke="#FFCB05" stroke-width="3"/>
+    <path d="M2,32 Q2,2 32,2 Q62,2 62,32 Z" fill="#CC0000"/>
+    <rect x="0" y="28" width="64" height="8" fill="#333"/>
+    <circle cx="32" cy="32" r="10" fill="#eee" stroke="#FFCB05" stroke-width="2"/>
+    <circle cx="32" cy="32" r="5" fill="white"/>
+  </svg>
+</div>
+
+<div class="main-grid">
+
+  <div class="panel trainer-card">
+    <div class="panel-header">
+      <svg width="12" height="12" viewBox="0 0 64 64" style="flex-shrink:0"><circle cx="32" cy="32" r="30" fill="white"/><path d="M2,32 Q2,2 32,2 Q62,2 62,32 Z" fill="#CC0000"/><rect x="0" y="28" width="64" height="8" fill="#333"/><circle cx="32" cy="32" r="8" fill="#eee"/></svg>
+      ★ TRAINER CARD
+    </div>
+    <div class="panel-body">
+      <div class="trainer-layout">
+        <div class="trainer-sprite">
+          <svg width="52" height="52" viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg" style="image-rendering:pixelated">
+            <rect x="18" y="4" width="16" height="4" fill="#FFCC88"/>
+            <rect x="14" y="8" width="24" height="4" fill="#FFCC88"/>
+            <rect x="14" y="12" width="24" height="4" fill="#FFCC88"/>
+            <rect x="14" y="16" width="4" height="4" fill="#222"/>
+            <rect x="34" y="16" width="4" height="4" fill="#222"/>
+            <rect x="20" y="20" width="12" height="4" fill="#CC0000"/>
+            <rect x="16" y="20" width="4" height="4" fill="#FFCC88"/>
+            <rect x="36" y="20" width="4" height="4" fill="#FFCC88"/>
+            <rect x="12" y="24" width="4" height="12" fill="#FFCC88"/>
+            <rect x="36" y="24" width="4" height="12" fill="#FFCC88"/>
+            <rect x="16" y="24" width="20" height="16" fill="#CC0000"/>
+            <rect x="8" y="4" width="8" height="8" fill="#CC0000"/>
+            <rect x="8" y="4" width="8" height="8" fill="#CC0000"/>
+            <rect x="4" y="8" width="8" height="8" fill="#CC0000"/>
+            <rect x="16" y="40" width="8" height="8" fill="#334"/>
+            <rect x="28" y="40" width="8" height="8" fill="#334"/>
+            <rect x="14" y="48" width="8" height="4" fill="#444"/>
+            <rect x="30" y="48" width="8" height="4" fill="#444"/>
+          </svg>
+        </div>
+        <div class="trainer-info">
+          <div class="info-row"><span class="info-label">NAME</span><span class="info-val">RED</span></div>
+          <div class="info-row"><span class="info-label">ID NO.</span><span class="info-val">00001</span></div>
+          <div class="info-row"><span class="info-label">MONEY</span><span class="info-val">₽999999</span></div>
+          <div class="info-row"><span class="info-label">TIME</span><span class="info-val">99:59</span></div>
+          <div class="info-row"><span class="info-label">SEEN</span><span class="info-val">151</span></div>
+          <div class="info-row"><span class="info-label">OWN</span><span class="info-val">151 ✓</span></div>
+        </div>
+      </div>
+
+      <div style="margin-top:8px;font-size:7px;color:#666;">GYM BADGES</div>
+      <div class="badges-row">
+        <div class="badge-item" title="Boulder Badge">⬟</div>
+        <div class="badge-item" title="Cascade Badge">◈</div>
+        <div class="badge-item" title="Thunder Badge">⚡</div>
+        <div class="badge-item" title="Rainbow Badge">❋</div>
+        <div class="badge-item" title="Soul Badge">♥</div>
+        <div class="badge-item" title="Marsh Badge">◉</div>
+        <div class="badge-item" title="Volcano Badge">▲</div>
+        <div class="badge-item" title="Earth Badge" style="background:#4169E1;color:white;">✦</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel party-panel">
+    <div class="panel-header">
+      ★ PARTY (6/6)
+    </div>
+    <div id="party-list"></div>
+  </div>
+
+  <div class="panel pokedex-panel">
+    <div class="panel-header">
+      ★ POKÉDEX ENTRY
+    </div>
+    <div class="panel-body" id="dex-panel">
+      <div class="dex-entry">
+        <div class="dex-number" id="dex-num">No.006 CHARIZARD</div>
+        <div id="dex-text" style="font-size:7px;color:#333;line-height:2;">
+          Spits fire that is hot enough to melt boulders. Known to cause forest fires unintentionally.
+        </div>
+        <div class="dex-stats" id="dex-stats">
+          <div class="dex-stat">HT: <span>5'07"</span></div>
+          <div class="dex-stat">WT: <span>199.5 lbs</span></div>
+          <div class="dex-stat">HP: <span>78</span></div>
+          <div class="dex-stat">ATK: <span>84</span></div>
+          <div class="dex-stat">DEF: <span>78</span></div>
+          <div class="dex-stat">SPD: <span>100</span></div>
+        </div>
+      </div>
+      <div style="font-size:6px;color:#999;margin-top:4px;">▲ CLICK A POKÉMON TO VIEW ENTRY</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="press-start">
+  <span class="blink">▶</span> GOTTA CATCH 'EM ALL <span class="pixel-cursor"></span>
+</div>
+
+<div class="footer-bar">
+  <span>© 1996 GAME FREAK / NINTENDO / CREATURES</span>
+  <span>POKÉMON RED & BLUE VERSION</span>
+  <span>GEN I — KANTO REGION</span>
+</div>
+
+</div>
+
+<script>
+const party = [
+  { name:"CHARIZARD", num:"006", types:["fire"], hp:100, maxHp:100, level:81,
+    dex:"Spits fire that is hot enough to melt boulders. Known to cause forest fires unintentionally.",
+    ht:"5'07\"", wt:"199.5 lbs", statHp:78, atk:84, def:78, spd:100,
+    color:"#FF6030", sprite: drawCharizard },
+  { name:"BLASTOISE", num:"009", types:["water"], hp:88, maxHp:100, level:79,
+    dex:"A brutal Pokémon with pressurized water jets on its shell. They are used for high-speed tackles.",
+    ht:"5'03\"", wt:"188.5 lbs", statHp:79, atk:83, def:100, spd:78,
+    color:"#4169E1", sprite: drawBlastoise },
+  { name:"VENUSAUR", num:"003", types:["grass"], hp:65, maxHp:100, level:80,
+    dex:"The plant blooms when it is absorbing solar energy. It stays on the move to seek sunlight.",
+    ht:"6'07\"", wt:"220.5 lbs", statHp:80, atk:82, def:83, spd:80,
+    color:"#228B22", sprite: drawVenusaur },
+  { name:"PIKACHU", num:"025", types:["electric"], hp:45, maxHp:100, level:81,
+    dex:"When several of these Pokémon gather, their electricity can build and cause lightning storms.",
+    ht:"1'04\"", wt:"13.2 lbs", statHp:35, atk:55, def:30, spd:90,
+    color:"#FFD700", sprite: drawPikachu },
+  { name:"SNORLAX", num:"143", types:["normal"], hp:92, maxHp:100, level:78,
+    dex:"Very lazy. Just eats and sleeps. As its rotund bulk builds, it becomes steadily more slothful.",
+    ht:"6'11\"", wt:"1014.1 lbs", statHp:160, atk:110, def:65, spd:30,
+    color:"#708090", sprite: drawSnorlax },
+  { name:"MEWTWO", num:"150", types:["psychic"], hp:30, maxHp:100, level:70,
+    dex:"A Pokémon that was created by genetic manipulation. However, even science cannot explain its vicious heart.",
+    ht:"6'07\"", wt:"269.0 lbs", statHp:106, atk:110, def:90, spd:130,
+    color:"#CC66CC", sprite: drawMewtwo },
+];
+
+function drawCharizard(svg) {
+  const s = `<rect x="18" y="2" width="12" height="4" fill="#FF6030"/>
+  <rect x="14" y="6" width="20" height="4" fill="#FF6030"/>
+  <rect x="12" y="10" width="24" height="4" fill="#FF6030"/>
+  <rect x="10" y="14" width="4" height="4" fill="#FF6030"/>
+  <rect x="34" y="14" width="4" height="4" fill="#FF6030"/>
+  <rect x="12" y="18" width="24" height="8" fill="#FF6030"/>
+  <rect x="18" y="26" width="12" height="8" fill="#FF6030"/>
+  <rect x="14" y="34" width="8" height="10" fill="#FF8844"/>
+  <rect x="26" y="34" width="8" height="10" fill="#FF8844"/>
+  <rect x="8" y="10" width="6" height="12" fill="#FF6030"/>
+  <rect x="34" y="10" width="6" height="12" fill="#FF6030"/>
+  <rect x="30" y="38" width="12" height="4" fill="#FF6030"/>
+  <rect x="34" y="42" width="8" height="4" fill="#FF9900"/>
+  <rect x="14" y="16" width="4" height="4" fill="#222"/>
+  <rect x="30" y="16" width="4" height="4" fill="#222"/>`;
+  svg.innerHTML = s;
+}
+
+function drawBlastoise(svg) {
+  svg.innerHTML = `<rect x="14" y="4" width="20" height="4" fill="#4169E1"/>
+  <rect x="10" y="8" width="28" height="4" fill="#4169E1"/>
+  <rect x="8" y="12" width="32" height="12" fill="#4169E1"/>
+  <rect x="12" y="24" width="24" height="10" fill="#4169E1"/>
+  <rect x="14" y="34" width="8" height="8" fill="#2244BB"/>
+  <rect x="26" y="34" width="8" height="8" fill="#2244BB"/>
+  <rect x="10" y="14" width="4" height="4" fill="#fff"/>
+  <rect x="34" y="14" width="4" height="4" fill="#fff"/>
+  <rect x="10" y="14" width="2" height="2" fill="#111"/>
+  <rect x="34" y="14" width="2" height="2" fill="#111"/>
+  <rect x="16" y="12" width="16" height="6" fill="#6688DD"/>
+  <rect x="30" y="8" width="8" height="10" fill="#5577CC"/>
+  <rect x="10" y="8" width="8" height="10" fill="#5577CC"/>`;
+}
+
+function drawVenusaur(svg) {
+  svg.innerHTML = `<rect x="12" y="6" width="24" height="6" fill="#558B2F"/>
+  <rect x="8" y="12" width="32" height="10" fill="#558B2F"/>
+  <rect x="10" y="22" width="28" height="10" fill="#558B2F"/>
+  <rect x="12" y="32" width="8" height="10" fill="#33691E"/>
+  <rect x="28" y="32" width="8" height="10" fill="#33691E"/>
+  <rect x="16" y="2" width="16" height="8" fill="#E91E63"/>
+  <rect x="14" y="0" width="20" height="6" fill="#FF4081"/>
+  <rect x="20" y="0" width="8" height="4" fill="#FF80AB"/>
+  <rect x="14" y="14" width="4" height="4" fill="#222"/>
+  <rect x="30" y="14" width="4" height="4" fill="#222"/>`;
+}
+
+function drawPikachu(svg) {
+  svg.innerHTML = `<rect x="16" y="6" width="16" height="4" fill="#FFD700"/>
+  <rect x="12" y="10" width="24" height="4" fill="#FFD700"/>
+  <rect x="10" y="14" width="28" height="8" fill="#FFD700"/>
+  <rect x="12" y="22" width="24" height="8" fill="#FFD700"/>
+  <rect x="14" y="30" width="8" height="8" fill="#FFD700"/>
+  <rect x="26" y="30" width="8" height="8" fill="#FFD700"/>
+  <rect x="6" y="6" width="8" height="12" fill="#FFD700"/>
+  <rect x="6" y="2" width="6" height="8" fill="#333"/>
+  <rect x="34" y="6" width="8" height="12" fill="#FFD700"/>
+  <rect x="36" y="2" width="6" height="8" fill="#333"/>
+  <rect x="14" y="16" width="4" height="4" fill="#222"/>
+  <rect x="30" y="16" width="4" height="4" fill="#222"/>
+  <rect x="10" y="22" width="8" height="6" fill="#FF6699"/>
+  <rect x="30" y="22" width="8" height="6" fill="#FF6699"/>
+  <rect x="20" y="20" width="8" height="4" fill="#CC9900"/>`;
+}
+
+function drawSnorlax(svg) {
+  svg.innerHTML = `<rect x="10" y="4" width="28" height="6" fill="#708090"/>
+  <rect x="6" y="10" width="36" height="10" fill="#708090"/>
+  <rect x="4" y="20" width="40" height="12" fill="#708090"/>
+  <rect x="8" y="32" width="12" height="8" fill="#556070"/>
+  <rect x="28" y="32" width="12" height="8" fill="#556070"/>
+  <rect x="4" y="18" width="10" height="12" fill="#708090"/>
+  <rect x="34" y="18" width="10" height="12" fill="#708090"/>
+  <rect x="12" y="14" width="24" height="10" fill="#F5DEB3"/>
+  <rect x="14" y="12" width="6" height="6" fill="#333"/>
+  <rect x="28" y="12" width="6" height="6" fill="#333"/>`;
+}
+
+function drawMewtwo(svg) {
+  svg.innerHTML = `<rect x="18" y="2" width="12" height="4" fill="#D8B4D8"/>
+  <rect x="14" y="6" width="20" height="6" fill="#D8B4D8"/>
+  <rect x="12" y="12" width="24" height="8" fill="#D8B4D8"/>
+  <rect x="14" y="20" width="20" height="8" fill="#D8B4D8"/>
+  <rect x="16" y="28" width="8" height="12" fill="#B088B0"/>
+  <rect x="24" y="28" width="8" height="12" fill="#B088B0"/>
+  <rect x="6" y="12" width="8" height="14" fill="#D8B4D8"/>
+  <rect x="34" y="12" width="8" height="14" fill="#D8B4D8"/>
+  <rect x="32" y="10" width="10" height="20" fill="#D8B4D8"/>
+  <rect x="16" y="14" width="4" height="4" fill="#5B2C8D"/>
+  <rect x="28" y="14" width="4" height="4" fill="#5B2C8D"/>`;
+}
+
+function buildParty() {
+  const list = document.getElementById('party-list');
+  party.forEach((mon, i) => {
+    const slot = document.createElement('div');
+    slot.className = 'party-slot';
+    const hpPct = (mon.hp / mon.maxHp) * 100;
+    const hpClass = hpPct > 60 ? '' : hpPct > 25 ? 'mid' : 'low';
+    const typeHtml = mon.types.map(t => `<span class="type-badge type-${t}">${t.toUpperCase()}</span>`).join('');
+    
+    const svgEl = document.createElementNS('http://www.w3.org/2000/svg','svg');
+    svgEl.setAttribute('width','44'); svgEl.setAttribute('height','44');
+    svgEl.setAttribute('viewBox','0 0 48 48');
+    svgEl.style.imageRendering = 'pixelated';
+    mon.sprite(svgEl);
+
+    const box = document.createElement('div');
+    box.className = 'sprite-box';
+    box.appendChild(svgEl);
+
+    slot.innerHTML = `<div class="mon-info">
+      <div class="mon-name">No.${mon.num} ${mon.name}</div>
+      <div class="mon-meta">Lv.${mon.level} &nbsp; ${typeHtml}</div>
+      <div class="hp-bar-bg"><div class="hp-bar-fill ${hpClass}" style="width:${hpPct}%"></div></div>
+      <div class="mon-meta" style="margin-top:2px;">HP: ${mon.hp}/${mon.maxHp}</div>
+    </div>`;
+    slot.insertBefore(box, slot.firstChild);
+    
+    slot.addEventListener('click', () => selectMon(i));
+    list.appendChild(slot);
+  });
+}
+
+function selectMon(i) {
+  const mon = party[i];
+  document.getElementById('dex-num').textContent = `No.${mon.num} ${mon.name}`;
+  document.getElementById('dex-text').textContent = mon.dex;
+  document.getElementById('dex-stats').innerHTML = `
+    <div class="dex-stat">HT: <span>${mon.ht}</span></div>
+    <div class="dex-stat">WT: <span>${mon.wt}</span></div>
+    <div class="dex-stat">HP: <span>${mon.statHp}</span></div>
+    <div class="dex-stat">ATK: <span>${mon.atk}</span></div>
+    <div class="dex-stat">DEF: <span>${mon.def}</span></div>
+    <div class="dex-stat">SPD: <span>${mon.spd}</span></div>`;
+  document.querySelectorAll('.party-slot').forEach((s,j) => {
+    s.style.background = j === i ? '#ffe0e0' : '';
+  });
+}
+
+buildParty();
+</script>

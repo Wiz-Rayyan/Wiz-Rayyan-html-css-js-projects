@@ -1,0 +1,483 @@
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+:root {
+  --px-black: #0f0f0f;
+  --px-dark: #1a1a2e;
+  --px-navy: #16213e;
+  --px-blue: #0f3460;
+  --px-green: #00ff41;
+  --px-yellow: #ffe600;
+  --px-red: #ff2244;
+  --px-orange: #ff6b00;
+  --px-white: #e8e8e8;
+  --px-gray: #888;
+  --px-teal: #00b4d8;
+  --px-purple: #9b5de5;
+  --px-pink: #f72585;
+  --tile-size: 32px;
+}
+
+* { image-rendering: pixelated; image-rendering: crisp-edges; }
+
+#retro-root {
+  font-family: 'Press Start 2P', monospace;
+  background: var(--px-dark);
+  color: var(--px-white);
+  padding: 0;
+  min-height: 620px;
+  position: relative;
+  overflow: hidden;
+  border: 3px solid var(--px-green);
+  box-shadow: none;
+}
+
+.tile-bg {
+  position: absolute; inset: 0;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 31px,
+      rgba(0,255,65,0.04) 31px,
+      rgba(0,255,65,0.04) 32px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 31px,
+      rgba(0,255,65,0.04) 31px,
+      rgba(0,255,65,0.04) 32px
+    ),
+    linear-gradient(180deg, #0d0d1a 0%, #0a1628 50%, #0d1117 100%);
+  pointer-events: none;
+}
+
+.scanline {
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(0,0,0,0.08) 3px,
+    rgba(0,0,0,0.08) 4px
+  );
+  pointer-events: none;
+  z-index: 10;
+}
+
+.stars {
+  position: absolute; inset: 0;
+  background-image:
+    radial-gradient(1px 1px at 10% 15%, rgba(255,255,255,0.6) 0%, transparent 100%),
+    radial-gradient(1px 1px at 30% 40%, rgba(255,255,255,0.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 55% 10%, rgba(255,255,255,0.7) 0%, transparent 100%),
+    radial-gradient(1px 1px at 75% 25%, rgba(255,255,255,0.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 90% 60%, rgba(255,255,255,0.6) 0%, transparent 100%),
+    radial-gradient(2px 2px at 20% 70%, rgba(255,230,0,0.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 60% 80%, rgba(255,255,255,0.3) 0%, transparent 100%);
+  pointer-events: none;
+}
+
+.game-content {
+  position: relative;
+  z-index: 2;
+  padding: 16px;
+}
+
+.hud-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(0,0,0,0.6);
+  border: 2px solid var(--px-green);
+  padding: 8px 12px;
+  margin-bottom: 16px;
+  font-size: 6px;
+  letter-spacing: 1px;
+}
+
+.hud-score { color: var(--px-yellow); }
+.hud-level { color: var(--px-teal); }
+.hud-timer { color: var(--px-green); animation: blink 1s step-end infinite; }
+
+@keyframes blink { 50% { opacity: 0; } }
+
+.lives {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.heart {
+  width: 12px; height: 12px;
+  display: inline-block;
+  background: var(--px-red);
+  clip-path: polygon(50% 0%, 100% 30%, 100% 70%, 50% 100%, 0% 70%, 0% 30%);
+  image-rendering: pixelated;
+}
+.heart.empty { background: #333; }
+
+.hero-section {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+.sprite-avatar {
+  flex-shrink: 0;
+  width: 64px; height: 96px;
+  position: relative;
+  image-rendering: pixelated;
+}
+
+.sprite-avatar svg {
+  width: 100%; height: 100%;
+  image-rendering: pixelated;
+}
+
+.hero-info {
+  flex: 1;
+}
+
+.hero-name {
+  font-size: 10px;
+  color: var(--px-yellow);
+  margin-bottom: 8px;
+  text-shadow: 2px 2px 0 var(--px-orange);
+}
+
+.hero-class {
+  font-size: 6px;
+  color: var(--px-teal);
+  margin-bottom: 10px;
+}
+
+.stat-bars { margin-top: 8px; }
+.stat-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.stat-label { font-size: 5px; color: var(--px-gray); width: 36px; }
+.stat-bar-bg {
+  flex: 1; height: 8px;
+  background: #111;
+  border: 1px solid #333;
+  position: relative;
+  overflow: hidden;
+}
+.stat-bar-fill {
+  height: 100%;
+  image-rendering: pixelated;
+}
+.stat-bar-fill.code { background: repeating-linear-gradient(90deg, var(--px-green) 0, var(--px-green) 6px, #006620 6px, #006620 8px); }
+.stat-bar-fill.design { background: repeating-linear-gradient(90deg, var(--px-purple) 0, var(--px-purple) 6px, #4a1570 6px, #4a1570 8px); }
+.stat-bar-fill.xp { background: repeating-linear-gradient(90deg, var(--px-yellow) 0, var(--px-yellow) 6px, #806200 6px, #806200 8px); }
+
+.section-title {
+  font-size: 7px;
+  color: var(--px-green);
+  border-bottom: 2px solid var(--px-green);
+  padding-bottom: 4px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.coin-icon {
+  width: 10px; height: 10px;
+  background: var(--px-yellow);
+  border-radius: 50%;
+  border: 2px solid var(--px-orange);
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.projects-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.project-card {
+  border: 2px solid;
+  padding: 8px;
+  cursor: pointer;
+  transition: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.project-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: repeating-linear-gradient(90deg, transparent 0, transparent 4px, currentColor 4px, currentColor 6px);
+}
+
+.project-card.fire { border-color: var(--px-red); color: var(--px-red); background: rgba(255,34,68,0.06); }
+.project-card.water { border-color: var(--px-teal); color: var(--px-teal); background: rgba(0,180,216,0.06); }
+.project-card.earth { border-color: var(--px-green); color: var(--px-green); background: rgba(0,255,65,0.06); }
+.project-card.thunder { border-color: var(--px-yellow); color: var(--px-yellow); background: rgba(255,230,0,0.06); }
+.project-card.shadow { border-color: var(--px-purple); color: var(--px-purple); background: rgba(155,93,229,0.06); }
+.project-card.ice { border-color: #88ccff; color: #88ccff; background: rgba(136,204,255,0.06); }
+
+.project-card:hover { filter: brightness(1.3); transform: translate(-2px, -2px); }
+.project-card:active { transform: translate(0,0); }
+
+.proj-icon {
+  font-size: 18px;
+  margin-bottom: 4px;
+  display: block;
+}
+.proj-name {
+  font-size: 5px;
+  color: var(--px-white);
+  margin-bottom: 4px;
+  line-height: 1.6;
+}
+.proj-coins {
+  font-size: 5px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.mini-coin {
+  width: 6px; height: 6px;
+  background: var(--px-yellow);
+  border-radius: 50%;
+  border: 1px solid var(--px-orange);
+  display: inline-block;
+}
+
+.skills-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.skill-chip {
+  font-size: 5px;
+  padding: 4px 6px;
+  border: 2px solid;
+  background: transparent;
+  cursor: default;
+  white-space: nowrap;
+}
+.skill-chip.s1 { border-color: var(--px-green); color: var(--px-green); }
+.skill-chip.s2 { border-color: var(--px-teal); color: var(--px-teal); }
+.skill-chip.s3 { border-color: var(--px-purple); color: var(--px-purple); }
+.skill-chip.s4 { border-color: var(--px-yellow); color: var(--px-yellow); }
+.skill-chip.s5 { border-color: var(--px-pink); color: var(--px-pink); }
+.skill-chip.s6 { border-color: var(--px-orange); color: var(--px-orange); }
+
+.contact-row {
+  display: flex;
+  gap: 8px;
+}
+.contact-btn {
+  flex: 1;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 6px;
+  padding: 10px 4px;
+  border: 2px solid;
+  background: transparent;
+  cursor: pointer;
+  text-align: center;
+  letter-spacing: 0px;
+  transition: none;
+}
+.contact-btn.primary { border-color: var(--px-green); color: var(--px-green); }
+.contact-btn.primary:hover { background: var(--px-green); color: var(--px-black); }
+.contact-btn.secondary { border-color: var(--px-teal); color: var(--px-teal); }
+.contact-btn.secondary:hover { background: var(--px-teal); color: var(--px-black); }
+.contact-btn.tertiary { border-color: var(--px-yellow); color: var(--px-yellow); }
+.contact-btn.tertiary:hover { background: var(--px-yellow); color: var(--px-black); }
+
+.marquee-bar {
+  background: var(--px-green);
+  color: var(--px-black);
+  font-size: 5px;
+  padding: 4px 0;
+  margin-top: 14px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.marquee-inner {
+  display: inline-block;
+  animation: marquee 16s linear infinite;
+}
+@keyframes marquee { from { transform: translateX(100%); } to { transform: translateX(-100%); } }
+
+.xp-bar-section {
+  margin-bottom: 14px;
+  background: rgba(0,0,0,0.4);
+  border: 2px solid #333;
+  padding: 8px 10px;
+}
+.xp-label { font-size: 5px; color: var(--px-gray); margin-bottom: 4px; }
+.xp-track {
+  height: 10px;
+  background: #111;
+  border: 1px solid #444;
+  overflow: hidden;
+  position: relative;
+}
+.xp-fill {
+  width: 73%;
+  height: 100%;
+  background: repeating-linear-gradient(90deg, var(--px-purple) 0, var(--px-purple) 6px, #4a1570 6px, #4a1570 8px);
+  animation: xp-pulse 2s ease-in-out infinite alternate;
+}
+@keyframes xp-pulse { from { opacity: 0.85; } to { opacity: 1; } }
+.xp-nums { font-size: 5px; color: var(--px-purple); margin-top: 3px; text-align: right; }
+
+.sprite-walk {
+  animation: float 0.8s step-end infinite;
+}
+@keyframes float {
+  0%,100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+</style>
+
+<div id="retro-root" aria-label="Pixel Perfect Retro Game Portfolio">
+  <div class="tile-bg"></div>
+  <div class="stars"></div>
+  <div class="scanline"></div>
+
+  <div class="game-content">
+    <div class="hud-bar">
+      <div class="hud-score">SCORE <span style="color:var(--px-white)">048250</span></div>
+      <div class="lives">
+        <div class="heart"></div>
+        <div class="heart"></div>
+        <div class="heart"></div>
+        <div class="heart empty"></div>
+        <div class="heart empty"></div>
+      </div>
+      <div class="hud-level">LVL <span style="color:var(--px-white)">07</span></div>
+      <div class="hud-timer">● ONLINE</div>
+    </div>
+
+    <div class="hero-section">
+      <div class="sprite-avatar">
+        <svg viewBox="0 0 16 24" xmlns="http://www.w3.org/2000/svg" class="sprite-walk">
+          <rect x="5" y="0" width="6" height="6" fill="#f5c842"/>
+          <rect x="4" y="6" width="8" height="8" fill="#3a86ff"/>
+          <rect x="5" y="7" width="2" height="2" fill="#fff"/>
+          <rect x="9" y="7" width="2" height="2" fill="#fff"/>
+          <rect x="6" y="10" width="4" height="1" fill="#ff6b6b"/>
+          <rect x="2" y="6" width="2" height="6" fill="#3a86ff"/>
+          <rect x="12" y="6" width="2" height="6" fill="#3a86ff"/>
+          <rect x="0" y="10" width="2" height="2" fill="#f5c842"/>
+          <rect x="14" y="10" width="2" height="2" fill="#f5c842"/>
+          <rect x="5" y="14" width="2" height="6" fill="#2d6a4f"/>
+          <rect x="9" y="14" width="2" height="6" fill="#2d6a4f"/>
+          <rect x="4" y="20" width="3" height="4" fill="#333"/>
+          <rect x="9" y="20" width="3" height="4" fill="#333"/>
+          <rect x="4" y="1" width="1" height="1" fill="#ffe600"/>
+          <rect x="11" y="1" width="1" height="1" fill="#ffe600"/>
+        </svg>
+      </div>
+
+      <div class="hero-info">
+        <div class="hero-name">DEVMASTER<br>ALEX_99</div>
+        <div class="hero-class">✦ FULLSTACK WIZARD ✦</div>
+        <div class="stat-bars">
+          <div class="stat-row">
+            <div class="stat-label">CODE</div>
+            <div class="stat-bar-bg"><div class="stat-bar-fill code" style="width:88%"></div></div>
+          </div>
+          <div class="stat-row">
+            <div class="stat-label">DESIGN</div>
+            <div class="stat-bar-bg"><div class="stat-bar-fill design" style="width:72%"></div></div>
+          </div>
+          <div class="stat-row">
+            <div class="stat-label">XP</div>
+            <div class="stat-bar-bg"><div class="stat-bar-fill xp" style="width:63%"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="xp-bar-section">
+      <div class="xp-label">LEVEL PROGRESS — NEXT: SENIOR ARCHITECT</div>
+      <div class="xp-track"><div class="xp-fill"></div></div>
+      <div class="xp-nums">7300 / 10000 XP</div>
+    </div>
+
+    <div class="section-title">
+      <div class="coin-icon"></div>
+      QUEST LOG — PROJECTS
+    </div>
+
+    <div class="projects-grid">
+      <div class="project-card fire">
+        <span class="proj-icon">🔥</span>
+        <div class="proj-name">PIXEL<br>RPG ENGINE</div>
+        <div class="proj-coins"><div class="mini-coin"></div><div class="mini-coin"></div><div class="mini-coin"></div> 3800</div>
+      </div>
+      <div class="project-card water">
+        <span class="proj-icon">🌊</span>
+        <div class="proj-name">WAVE<br>SYNTH APP</div>
+        <div class="proj-coins"><div class="mini-coin"></div><div class="mini-coin"></div> 2140</div>
+      </div>
+      <div class="project-card earth">
+        <span class="proj-icon">🌿</span>
+        <div class="proj-name">ECO<br>TRACKER</div>
+        <div class="proj-coins"><div class="mini-coin"></div><div class="mini-coin"></div><div class="mini-coin"></div> 4200</div>
+      </div>
+      <div class="project-card thunder">
+        <span class="proj-icon">⚡</span>
+        <div class="proj-name">BOLT<br>DASHBOARD</div>
+        <div class="proj-coins"><div class="mini-coin"></div> 900</div>
+      </div>
+      <div class="project-card shadow">
+        <span class="proj-icon">🌙</span>
+        <div class="proj-name">NIGHT<br>MODE OS</div>
+        <div class="proj-coins"><div class="mini-coin"></div><div class="mini-coin"></div> 1680</div>
+      </div>
+      <div class="project-card ice">
+        <span class="proj-icon">❄️</span>
+        <div class="proj-name">CRYO<br>API SUITE</div>
+        <div class="proj-coins"><div class="mini-coin"></div><div class="mini-coin"></div><div class="mini-coin"></div> 5100</div>
+      </div>
+    </div>
+
+    <div class="section-title">★ EQUIPPED SKILLS</div>
+
+    <div class="skills-row">
+      <div class="skill-chip s1">REACT</div>
+      <div class="skill-chip s2">TYPESCRIPT</div>
+      <div class="skill-chip s3">NODE.JS</div>
+      <div class="skill-chip s4">PYTHON</div>
+      <div class="skill-chip s5">RUST</div>
+      <div class="skill-chip s6">WEBGL</div>
+      <div class="skill-chip s1">THREE.JS</div>
+      <div class="skill-chip s2">POSTGRES</div>
+      <div class="skill-chip s3">DOCKER</div>
+      <div class="skill-chip s4">FIGMA</div>
+    </div>
+
+    <div class="section-title">📡 TRANSMISSION</div>
+
+    <div class="contact-row">
+      <button class="contact-btn primary" onclick="sendPrompt('Tell me more about this pixel portfolio and how to customize it')">★ HIRE ME</button>
+      <button class="contact-btn secondary">◈ GITHUB</button>
+      <button class="contact-btn tertiary">✉ CONTACT</button>
+    </div>
+
+    <div class="marquee-bar">
+      <span class="marquee-inner">
+        ★ AVAILABLE FOR QUESTS ★ OPEN TO PARTY INVITES ★ 7+ YEARS XP ★ SHIPPED 50+ DUNGEONS ★ CURRENTLY GRINDING: AI SPELLS + WEBGL MAGIC ★ INSERT COIN TO CONTINUE ★ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+      </span>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vellichor — The Catalogue</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --wood: #241510;
+    --wood-mid: #3E2723;
+    --shelf: #2e1c14;
+    --paper: #D7CCC8;
+    --paper-warm: #C8B89A;
+    --paper-dim: rgba(215,204,200,0.55);
+    --ink: #1C0F0A;
+    --gold: #B8860B;
+    --gold-light: #D4A843;
+    --rule: rgba(180,140,100,0.18);
+  }
+
+  html, body {
+    width: 100%; min-height: 100%;
+    background: var(--wood);
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    color: var(--paper);
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0; right: 0;
+    width: 50%; height: 60%;
+    background: radial-gradient(ellipse at 90% 5%, rgba(255,210,100,0.14) 0%, rgba(200,140,60,0.06) 45%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 30px, rgba(180,140,100,0.03) 30px, rgba(180,140,100,0.03) 31px);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .dust-layer { position: fixed; inset: 0; pointer-events: none; z-index: 1; overflow: hidden; }
+  .mote { position: absolute; border-radius: 50%; background: rgba(220,195,150,0.5); animation: float linear infinite; }
+  @keyframes float {
+    0%   { transform: translateY(0) translateX(0); opacity: 0; }
+    10%  { opacity: 1; }
+    90%  { opacity: 0.6; }
+    100% { transform: translateY(-90vh) translateX(8px); opacity: 0; }
+  }
+
+  nav {
+    position: relative; z-index: 10;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 28px 60px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .wordmark { font-size: 13px; letter-spacing: 0.35em; text-transform: uppercase; color: var(--gold-light); font-weight: 300; }
+  .nav-links { display: flex; gap: 40px; list-style: none; }
+  .nav-links a { font-size: 13px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--paper-warm); text-decoration: none; font-weight: 300; transition: color 0.3s; }
+  .nav-links a:hover, .nav-links a.active { color: var(--gold-light); }
+  .nav-links a.active { border-bottom: 1px solid rgba(212,168,67,0.4); padding-bottom: 2px; }
+
+  .page-header {
+    position: relative; z-index: 5;
+    padding: 64px 60px 40px;
+    display: flex; justify-content: space-between; align-items: flex-end;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .page-header h1 {
+    font-size: 56px; font-weight: 300; line-height: 1.05;
+    letter-spacing: -0.01em; color: var(--paper);
+  }
+  .page-header h1 em { font-style: italic; color: var(--paper-warm); }
+
+  .filter-row {
+    display: flex; gap: 12px; align-items: center; padding-bottom: 6px;
+  }
+  .filter-btn {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase;
+    color: var(--paper-dim); background: transparent;
+    border: 1px solid rgba(180,140,100,0.2);
+    padding: 8px 18px; cursor: pointer;
+    transition: all 0.3s;
+  }
+  .filter-btn:hover, .filter-btn.active {
+    color: var(--gold-light); border-color: rgba(212,168,67,0.4);
+    background: rgba(180,130,50,0.08);
+  }
+
+  .main-content {
+    position: relative; z-index: 5;
+    display: grid; grid-template-columns: 280px 1fr;
+    min-height: 600px;
+  }
+
+  .sidebar {
+    border-right: 1px solid var(--rule);
+    padding: 40px 36px;
+  }
+
+  .sidebar-section { margin-bottom: 40px; }
+  .sidebar-label {
+    font-size: 10px; letter-spacing: 0.5em; text-transform: uppercase;
+    color: var(--gold); opacity: 0.6; font-weight: 400;
+    margin-bottom: 18px; display: block;
+  }
+
+  .sidebar-item {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 9px 0;
+    border-bottom: 1px solid rgba(180,140,100,0.08);
+    cursor: pointer; transition: color 0.2s;
+  }
+  .sidebar-item:hover .si-name { color: var(--gold-light); }
+  .sidebar-item.active .si-name { color: var(--gold-light); }
+  .si-name { font-size: 14px; font-weight: 300; color: var(--paper-warm); letter-spacing: 0.02em; }
+  .si-count { font-size: 11px; color: rgba(215,204,200,0.3); font-style: italic; }
+
+  .price-range {
+    padding: 10px 0;
+  }
+  .price-inputs { display: flex; gap: 10px; align-items: center; }
+  .price-input {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 14px; background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(180,140,100,0.2); color: var(--paper);
+    padding: 7px 12px; width: 90px; font-style: italic;
+  }
+  .price-sep { color: var(--paper-dim); font-size: 13px; }
+
+  .condition-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+  .cond-tag {
+    font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase;
+    border: 1px solid rgba(180,140,100,0.2); padding: 5px 12px;
+    color: var(--paper-dim); cursor: pointer; transition: all 0.25s;
+  }
+  .cond-tag:hover, .cond-tag.active { color: var(--gold-light); border-color: rgba(212,168,67,0.4); }
+
+  .catalogue-grid {
+    padding: 40px 50px;
+    display: grid; grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .book-row {
+    display: grid;
+    grid-template-columns: 80px 1fr auto;
+    gap: 28px;
+    padding: 28px 0;
+    border-bottom: 1px solid rgba(180,140,100,0.1);
+    align-items: start;
+    cursor: pointer;
+    transition: background 0.25s;
+  }
+  .book-row:hover { background: rgba(180,130,50,0.04); margin: 0 -20px; padding-left: 20px; padding-right: 20px; }
+  .book-row:first-child { padding-top: 0; }
+
+  .book-thumb {
+    width: 80px; height: 110px;
+    border-radius: 2px 6px 6px 2px;
+    flex-shrink: 0;
+    position: relative;
+    box-shadow: -3px 0 8px rgba(0,0,0,0.5), inset -2px 0 8px rgba(0,0,0,0.25);
+  }
+
+  .book-info { padding-top: 4px; }
+  .bi-genre {
+    font-size: 10px; letter-spacing: 0.4em; text-transform: uppercase;
+    color: var(--gold); opacity: 0.6; margin-bottom: 8px; display: block;
+  }
+  .bi-title { font-size: 22px; font-weight: 400; line-height: 1.2; color: var(--paper); margin-bottom: 6px; }
+  .bi-author { font-size: 13px; font-style: italic; color: var(--paper-dim); margin-bottom: 14px; letter-spacing: 0.05em; }
+  .bi-desc { font-size: 14px; font-weight: 300; line-height: 1.65; color: rgba(215,204,200,0.55); max-width: 460px; }
+  .bi-tags { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+  .bi-tag {
+    font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase;
+    border: 1px solid rgba(180,140,100,0.18); padding: 3px 10px;
+    color: rgba(180,140,100,0.5);
+  }
+
+  .book-aside { text-align: right; padding-top: 4px; min-width: 100px; }
+  .ba-year { font-size: 12px; font-style: italic; color: rgba(215,204,200,0.3); margin-bottom: 6px; }
+  .ba-condition {
+    font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase;
+    color: rgba(180,140,100,0.55); margin-bottom: 16px; display: block;
+  }
+  .ba-price { font-size: 28px; font-weight: 300; font-style: italic; color: var(--paper-warm); margin-bottom: 14px; }
+  .ba-btn {
+    display: block; width: 100%;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase;
+    color: var(--gold-light); background: transparent;
+    border: 1px solid rgba(212,168,67,0.35);
+    padding: 8px 0; cursor: pointer; transition: all 0.3s;
+    margin-bottom: 8px;
+  }
+  .ba-btn:hover { background: rgba(180,130,50,0.12); border-color: var(--gold-light); }
+  .ba-save {
+    font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase;
+    color: rgba(215,204,200,0.28); background: none; border: none;
+    cursor: pointer; font-family: inherit; display: block; width: 100%;
+    transition: color 0.3s;
+  }
+  .ba-save:hover { color: var(--paper-warm); }
+
+  .pagination {
+    position: relative; z-index: 5;
+    display: flex; justify-content: center; align-items: center;
+    gap: 6px; padding: 50px 0 60px;
+    border-top: 1px solid var(--rule);
+  }
+  .pg-btn {
+    font-family: 'Cormorant Garamond', serif;
+    width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+    font-size: 14px; color: var(--paper-dim); background: transparent;
+    border: 1px solid rgba(180,140,100,0.15); cursor: pointer;
+    transition: all 0.25s;
+  }
+  .pg-btn.active { color: var(--gold-light); border-color: rgba(212,168,67,0.4); }
+  .pg-btn:hover:not(.active) { border-color: rgba(180,140,100,0.3); color: var(--paper); }
+  .pg-dots { color: rgba(215,204,200,0.25); font-size: 14px; padding: 0 8px; letter-spacing: 4px; }
+
+  footer {
+    position: relative; z-index: 5;
+    padding: 30px 60px;
+    border-top: 1px solid rgba(180,140,100,0.1);
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 12px; color: rgba(215,204,200,0.25); letter-spacing: 0.15em;
+  }
+  footer span { font-style: italic; }
+</style>
+</head>
+<body>
+
+<div class="dust-layer" id="dustLayer"></div>
+
+<nav>
+  <div class="wordmark">Vellichor</div>
+  <ul class="nav-links">
+    <li><a href="#">Catalogue</a></li>
+    <li><a href="#" class="active">Collections</a></li>
+    <li><a href="#">Provenance</a></li>
+    <li><a href="#">Correspondence</a></li>
+  </ul>
+</nav>
+
+<div class="page-header">
+  <h1>The <em>Catalogue</em></h1>
+  <div class="filter-row">
+    <button class="filter-btn active">All volumes</button>
+    <button class="filter-btn">First editions</button>
+    <button class="filter-btn">Illustrated</button>
+    <button class="filter-btn">Marginalia</button>
+  </div>
+</div>
+
+<div class="main-content">
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <span class="sidebar-label">By subject</span>
+      <div class="sidebar-item active"><span class="si-name">All subjects</span><span class="si-count">214</span></div>
+      <div class="sidebar-item"><span class="si-name">Natural philosophy</span><span class="si-count">38</span></div>
+      <div class="sidebar-item"><span class="si-name">Poetry & elegy</span><span class="si-count">51</span></div>
+      <div class="sidebar-item"><span class="si-name">Travel & cartography</span><span class="si-count">29</span></div>
+      <div class="sidebar-item"><span class="si-name">Occult & esoterica</span><span class="si-count">22</span></div>
+      <div class="sidebar-item"><span class="si-name">Epistolary fiction</span><span class="si-count">17</span></div>
+      <div class="sidebar-item"><span class="si-name">Melancholy & grief</span><span class="si-count">41</span></div>
+      <div class="sidebar-item"><span class="si-name">Unclassified</span><span class="si-count">16</span></div>
+    </div>
+
+    <div class="sidebar-section">
+      <span class="sidebar-label">Price</span>
+      <div class="price-range">
+        <div class="price-inputs">
+          <input class="price-input" type="text" placeholder="£ min" value="£ 10">
+          <span class="price-sep">—</span>
+          <input class="price-input" type="text" placeholder="£ max" value="£ 400">
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <span class="sidebar-label">Condition</span>
+      <div class="condition-grid">
+        <div class="cond-tag active">Fine</div>
+        <div class="cond-tag active">Good</div>
+        <div class="cond-tag">Fair</div>
+        <div class="cond-tag">Poor</div>
+        <div class="cond-tag">Reading copy</div>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <span class="sidebar-label">Era</span>
+      <div class="sidebar-item"><span class="si-name">Pre-1850</span><span class="si-count">34</span></div>
+      <div class="sidebar-item"><span class="si-name">1850 – 1900</span><span class="si-count">67</span></div>
+      <div class="sidebar-item"><span class="si-name">1900 – 1950</span><span class="si-count">89</span></div>
+      <div class="sidebar-item"><span class="si-name">Post-1950</span><span class="si-count">24</span></div>
+    </div>
+  </aside>
+
+  <div class="catalogue-grid">
+
+    <div class="book-row">
+      <div class="book-thumb" style="background: linear-gradient(160deg, #3b2012 0%, #6b3a1f 55%, #2a1508 100%);"></div>
+      <div class="book-info">
+        <span class="bi-genre">Navigation · 1923</span>
+        <div class="bi-title">The Cartographer of Forgotten Shores</div>
+        <div class="bi-author">M. L. Voss &ensp;·&ensp; London: Aldgate Press</div>
+        <div class="bi-desc">A posthumously published atlas of coastlines that no longer exist — compiled from the author's thirty years of correspondence with lighthouse keepers. The maps are wrong in ways that feel true.</div>
+        <div class="bi-tags">
+          <span class="bi-tag">First edition</span>
+          <span class="bi-tag">Marginalia</span>
+          <span class="bi-tag">Illustrated</span>
+        </div>
+      </div>
+      <div class="book-aside">
+        <div class="ba-year">1923</div>
+        <span class="ba-condition">Fine</span>
+        <div class="ba-price">£48</div>
+        <button class="ba-btn">Enquire</button>
+        <button class="ba-save">Save to list</button>
+      </div>
+    </div>
+
+    <div class="book-row">
+      <div class="book-thumb" style="background: linear-gradient(170deg, #1a2a2a 0%, #2d4a3e 55%, #111e1c 100%);"></div>
+      <div class="book-info">
+        <span class="bi-genre">Poetry · 1908</span>
+        <div class="bi-title">Elegies for the Unnamed Stars</div>
+        <div class="bi-author">R. Halsworth &ensp;·&ensp; Edinburgh: Canongate</div>
+        <div class="bi-desc">Sixty-one elegies for celestial objects catalogued but never named — a grief for things observed only once and never again. The previous owner has underlined seventeen of them, the same ones twice.</div>
+        <div class="bi-tags">
+          <span class="bi-tag">First edition</span>
+          <span class="bi-tag">Marginalia</span>
+        </div>
+      </div>
+      <div class="book-aside">
+        <div class="ba-year">1908</div>
+        <span class="ba-condition">Good</span>
+        <div class="ba-price">£32</div>
+        <button class="ba-btn">Enquire</button>
+        <button class="ba-save">Save to list</button>
+      </div>
+    </div>
+
+    <div class="book-row">
+      <div class="book-thumb" style="background: linear-gradient(155deg, #2a1f0e 0%, #4a3520 50%, #1c1208 100%);"></div>
+      <div class="book-info">
+        <span class="bi-genre">Philosophy · 1937</span>
+        <div class="bi-title">A Field Guide to Melancholy</div>
+        <div class="bi-author">Dr. C. Enright &ensp;·&ensp; Oxford: Clarendon Press</div>
+        <div class="bi-desc">Written as a taxonomy — species of sadness arranged by habitat, season, and symptom. More accurate than anything written since. Includes the author's own handwritten addendum, dated 1951, that contradicts everything.</div>
+        <div class="bi-tags">
+          <span class="bi-tag">Signed</span>
+          <span class="bi-tag">Marginalia</span>
+        </div>
+      </div>
+      <div class="book-aside">
+        <div class="ba-year">1937</div>
+        <span class="ba-condition">Fine</span>
+        <div class="ba-price">£65</div>
+        <button class="ba-btn">Enquire</button>
+        <button class="ba-save">Save to list</button>
+      </div>
+    </div>
+
+    <div class="book-row">
+      <div class="book-thumb" style="background: linear-gradient(165deg, #251520 0%, #4a2840 55%, #180d18 100%);"></div>
+      <div class="book-info">
+        <span class="bi-genre">Epistolary · 1952</span>
+        <div class="bi-title">Correspondences with the Dead</div>
+        <div class="bi-author">Anon. &ensp;·&ensp; Publisher unknown</div>
+        <div class="bi-desc">Letters addressed to the deceased — no replies, no explanations. Found in a cardboard box at an estate sale in Worcestershire. We have never been able to identify the author or their correspondents. We are not certain we want to.</div>
+        <div class="bi-tags">
+          <span class="bi-tag">Provenance unknown</span>
+          <span class="bi-tag">Unique copy</span>
+        </div>
+      </div>
+      <div class="book-aside">
+        <div class="ba-year">1952</div>
+        <span class="ba-condition">Fair</span>
+        <div class="ba-price">£29</div>
+        <button class="ba-btn">Enquire</button>
+        <button class="ba-save">Save to list</button>
+      </div>
+    </div>
+
+    <div class="book-row">
+      <div class="book-thumb" style="background: linear-gradient(160deg, #0d1e2a 0%, #1a3545 55%, #091418 100%);"></div>
+      <div class="book-info">
+        <span class="bi-genre">Natural philosophy · 1881</span>
+        <div class="bi-title">On the Duration of Things Not Yet Named</div>
+        <div class="bi-author">Prof. W. Bale &ensp;·&ensp; Cambridge: University Press</div>
+        <div class="bi-desc">A Victorian treatise on the lifespan of phenomena — fog, grief, the warmth left in a chair — measured in units of the author's own devising. The appendix contains a table of conversions that makes no mathematical sense.</div>
+        <div class="bi-tags">
+          <span class="bi-tag">First edition</span>
+          <span class="bi-tag">Illustrated</span>
+          <span class="bi-tag">Foxing</span>
+        </div>
+      </div>
+      <div class="book-aside">
+        <div class="ba-year">1881</div>
+        <span class="ba-condition">Good</span>
+        <div class="ba-price">£110</div>
+        <button class="ba-btn">Enquire</button>
+        <button class="ba-save">Save to list</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="pagination">
+  <button class="pg-btn">&lsaquo;</button>
+  <button class="pg-btn active">1</button>
+  <button class="pg-btn">2</button>
+  <button class="pg-btn">3</button>
+  <span class="pg-dots">···</span>
+  <button class="pg-btn">18</button>
+  <button class="pg-btn">&rsaquo;</button>
+</div>
+
+<footer>
+  <span>Vellichor Rare Books &ensp;·&ensp; 12 Aldgate Lane</span>
+  <span>214 volumes in current catalogue</span>
+</footer>
+
+<script>
+  const layer = document.getElementById('dustLayer');
+  for (let i = 0; i < 20; i++) {
+    const m = document.createElement('div');
+    m.className = 'mote';
+    const size = Math.random() * 3 + 1;
+    m.style.cssText = `width:${size}px;height:${size}px;left:${Math.random()*80+10}%;top:${Math.random()*80+80}%;animation-duration:${Math.random()*20+12}s;animation-delay:${Math.random()*-28}s;opacity:${Math.random()*0.45+0.15};`;
+    layer.appendChild(m);
+  }
+
+  document.querySelectorAll('.filter-btn').forEach(b => {
+    b.addEventListener('click', () => { document.querySelectorAll('.filter-btn').forEach(x => x.classList.remove('active')); b.classList.add('active'); });
+  });
+  document.querySelectorAll('.sidebar-item').forEach(b => {
+    b.addEventListener('click', () => { document.querySelectorAll('.sidebar-item').forEach(x => x.classList.remove('active')); b.classList.add('active'); });
+  });
+  document.querySelectorAll('.cond-tag').forEach(b => {
+    b.addEventListener('click', () => b.classList.toggle('active'));
+  });
+  document.querySelectorAll('.pg-btn').forEach(b => {
+    b.addEventListener('click', () => { if (!['‹','›'].includes(b.textContent.trim())) { document.querySelectorAll('.pg-btn').forEach(x => x.classList.remove('active')); b.classList.add('active'); } });
+  });
+</script>
+</body>
+</html>

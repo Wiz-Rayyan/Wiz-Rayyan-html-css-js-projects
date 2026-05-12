@@ -1,0 +1,449 @@
+
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gb-darkest: #0F380F;
+    --gb-dark: #306230;
+    --gb-mid: #8BAC0F;
+    --gb-light: #9BBC0F;
+  }
+  .gb-wrap {
+    background: transparent;
+    display: flex;
+    justify-content: center;
+    padding: 2rem 0;
+    font-family: 'Press Start 2P', 'Courier New', monospace;
+  }
+  .gb-shell {
+    background: #b8b894;
+    border-radius: 12px 12px 60px 12px;
+    width: 320px;
+    padding: 20px 20px 30px;
+    box-sizing: border-box;
+    border: 2px solid #888870;
+    position: relative;
+  }
+  .gb-speaker-top {
+    display: flex;
+    gap: 4px;
+    justify-content: flex-end;
+    margin-bottom: 8px;
+  }
+  .gb-speaker-top span {
+    width: 3px;
+    height: 12px;
+    background: #888870;
+    border-radius: 2px;
+    display: block;
+  }
+  .gb-screen-bezel {
+    background: #5a5a42;
+    border-radius: 6px 6px 30px 6px;
+    padding: 14px;
+    margin-bottom: 16px;
+    border: 2px solid #3a3a2a;
+  }
+  .gb-screen-label {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 5px;
+    color: #888870;
+    text-align: center;
+    letter-spacing: 4px;
+    margin-bottom: 8px;
+  }
+  .gb-screen {
+    background: var(--gb-light);
+    border: 2px solid var(--gb-darkest);
+    width: 100%;
+    box-sizing: border-box;
+    aspect-ratio: 160 / 144;
+    position: relative;
+    overflow: hidden;
+    image-rendering: pixelated;
+  }
+  .gb-scanlines {
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 3px,
+      rgba(15,56,15,0.06) 3px,
+      rgba(15,56,15,0.06) 4px
+    );
+    pointer-events: none;
+    z-index: 10;
+  }
+  .gb-ui {
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    height: 100%;
+    box-sizing: border-box;
+  }
+  .gb-title-bar {
+    background: var(--gb-darkest);
+    color: var(--gb-light);
+    font-size: 6px;
+    padding: 3px 5px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid var(--gb-dark);
+    letter-spacing: 1px;
+  }
+  .gb-window {
+    background: var(--gb-mid);
+    border: 2px solid var(--gb-darkest);
+    flex: 1;
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .gb-menu-item {
+    font-size: 5px;
+    color: var(--gb-darkest);
+    padding: 2px 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    letter-spacing: 0.5px;
+  }
+  .gb-menu-item.selected {
+    background: var(--gb-darkest);
+    color: var(--gb-light);
+  }
+  .gb-menu-item::before {
+    content: ' ';
+    width: 4px;
+    height: 4px;
+    display: inline-block;
+  }
+  .gb-menu-item.selected::before {
+    content: '▶';
+    color: var(--gb-light);
+    font-size: 4px;
+  }
+  .gb-status {
+    background: var(--gb-darkest);
+    color: var(--gb-light);
+    font-size: 5px;
+    padding: 2px 4px;
+    display: flex;
+    justify-content: space-between;
+    letter-spacing: 0.5px;
+  }
+  .gb-pixel-art {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 1px;
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+  }
+  .gb-pixel-art div {
+    aspect-ratio: 1;
+  }
+  .gb-dialog {
+    background: var(--gb-light);
+    border: 2px solid var(--gb-darkest);
+    padding: 4px;
+    font-size: 5px;
+    color: var(--gb-darkest);
+    line-height: 1.6;
+    letter-spacing: 0.3px;
+  }
+  .gb-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 4px;
+    padding: 0 8px;
+  }
+  .dpad {
+    display: grid;
+    grid-template-columns: repeat(3, 18px);
+    grid-template-rows: repeat(3, 18px);
+    gap: 1px;
+  }
+  .dpad-btn {
+    background: #333322;
+    border: 1px solid #222211;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 7px;
+    color: #555544;
+    cursor: pointer;
+    user-select: none;
+    border-radius: 1px;
+  }
+  .dpad-btn:active { background: #444433; }
+  .dpad-center { background: #444433; border-radius: 1px; }
+  .dpad-empty { background: transparent; border: none; }
+  .ab-buttons {
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+    transform: rotate(-20deg);
+  }
+  .ab-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid #444;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .btn-b { background: #7a3f5a; color: #f0c0d8; border-color: #4a2040; }
+  .btn-a { background: #8a0000; color: #ffaaaa; border-color: #500000; }
+  .btn-b:active { background: #5a2040; }
+  .btn-a:active { background: #600000; }
+  .gb-start-select {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 8px;
+  }
+  .ss-btn {
+    background: #555544;
+    border: 1px solid #333322;
+    border-radius: 8px;
+    width: 36px;
+    height: 10px;
+    cursor: pointer;
+  }
+  .ss-label {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 4px;
+    color: #555544;
+    text-align: center;
+    margin-top: 2px;
+  }
+  .power-led {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #00cc00;
+    box-shadow: 0 0 4px #00cc00;
+    position: absolute;
+    top: 14px;
+    left: 20px;
+  }
+  .gb-battery {
+    font-size: 5px;
+  }
+  .blink { animation: blink 1s step-end infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+</style>
+
+<div class="gb-wrap">
+  <div class="gb-shell">
+    <div class="power-led"></div>
+
+    <div class="gb-speaker-top">
+      <span></span><span></span><span></span><span></span>
+    </div>
+
+    <div class="gb-screen-bezel">
+      <div class="gb-screen-label">· DOT MATRIX WITH STEREO SOUND ·</div>
+      <div class="gb-screen" id="screen">
+        <div class="gb-scanlines"></div>
+        <div class="gb-ui" id="screenUI">
+          <!-- default: menu screen -->
+          <div class="gb-title-bar">
+            <span>HOMEBREW OS</span>
+            <span id="clock">00:00</span>
+          </div>
+          <div class="gb-window" id="mainWindow">
+            <div class="gb-menu-item selected" onclick="selectItem(0)">▶ NEW GAME</div>
+            <div class="gb-menu-item" onclick="selectItem(1)">  CONTINUE</div>
+            <div class="gb-menu-item" onclick="selectItem(2)">  OPTIONS</div>
+            <div class="gb-menu-item" onclick="selectItem(3)">  GALLERY</div>
+            <div class="gb-menu-item" onclick="selectItem(4)">  CREDITS</div>
+          </div>
+          <div class="gb-status">
+            <span>HP ████░</span>
+            <span id="bat">♥♥♥</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="gb-controls">
+      <div>
+        <div class="dpad">
+          <div class="dpad-empty"></div>
+          <div class="dpad-btn" onclick="dpadPress('up')">▲</div>
+          <div class="dpad-empty"></div>
+          <div class="dpad-btn" onclick="dpadPress('left')">◀</div>
+          <div class="dpad-btn dpad-center"></div>
+          <div class="dpad-btn" onclick="dpadPress('right')">▶</div>
+          <div class="dpad-empty"></div>
+          <div class="dpad-btn" onclick="dpadPress('down')">▼</div>
+          <div class="dpad-empty"></div>
+        </div>
+      </div>
+      <div class="ab-buttons">
+        <div>
+          <div class="ab-btn btn-b" onclick="pressB()">B</div>
+        </div>
+        <div>
+          <div class="ab-btn btn-a" onclick="pressA()">A</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="gb-start-select">
+      <div>
+        <div class="ss-btn" onclick="pressSelect()"></div>
+        <div class="ss-label">SELECT</div>
+      </div>
+      <div>
+        <div class="ss-btn" onclick="pressStart()"></div>
+        <div class="ss-label">START</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const screens = {
+  menu: `
+    <div class="gb-title-bar">
+      <span>HOMEBREW OS</span>
+      <span id="clock">00:00</span>
+    </div>
+    <div class="gb-window">
+      <div class="gb-menu-item selected" onclick="selectItem(0)">▶ NEW GAME</div>
+      <div class="gb-menu-item" onclick="selectItem(1)">  CONTINUE</div>
+      <div class="gb-menu-item" onclick="selectItem(2)">  OPTIONS</div>
+      <div class="gb-menu-item" onclick="selectItem(3)">  GALLERY</div>
+      <div class="gb-menu-item" onclick="selectItem(4)">  CREDITS</div>
+    </div>
+    <div class="gb-status">
+      <span>HP ████░</span>
+      <span>♥♥♥</span>
+    </div>`,
+  newgame: `
+    <div class="gb-title-bar"><span>NEW GAME</span><span>LV.01</span></div>
+    <div class="gb-window" style="justify-content:center;align-items:center;gap:6px">
+      <div style="font-size:5px;color:var(--gb-darkest);text-align:center;line-height:2">
+        ENTER NAME:<br>
+        <span style="background:var(--gb-darkest);color:var(--gb-light);padding:2px 6px">HERO_</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(9,1fr);gap:1px;margin-top:4px">
+        ${Array.from('ABCDEFGHI').map(c=>`<div style="font-size:4px;color:var(--gb-darkest);text-align:center;padding:1px;border:1px solid var(--gb-dark);cursor:pointer">${c}</div>`).join('')}
+        ${Array.from('JKLMNOPQR').map(c=>`<div style="font-size:4px;color:var(--gb-darkest);text-align:center;padding:1px;border:1px solid var(--gb-dark);cursor:pointer">${c}</div>`).join('')}
+      </div>
+    </div>
+    <div class="gb-status"><span>A:CONFIRM</span><span>B:BACK</span></div>`,
+  options: `
+    <div class="gb-title-bar"><span>OPTIONS</span><span>SET</span></div>
+    <div class="gb-window" style="gap:5px">
+      <div style="font-size:5px;color:var(--gb-darkest);display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--gb-dark);padding-bottom:3px">
+        <span>SOUND</span><span style="background:var(--gb-darkest);color:var(--gb-light);padding:1px 3px">ON</span>
+      </div>
+      <div style="font-size:5px;color:var(--gb-darkest);display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--gb-dark);padding-bottom:3px">
+        <span>SPEED</span><span style="background:var(--gb-darkest);color:var(--gb-light);padding:1px 3px">FAST</span>
+      </div>
+      <div style="font-size:5px;color:var(--gb-darkest);display:flex;justify-content:space-between;align-items:center">
+        <span>CONTRAST</span>
+        <span style="font-size:5px;color:var(--gb-darkest)">████░░</span>
+      </div>
+    </div>
+    <div class="gb-status"><span>D-PAD:ADJUST</span><span>B:BACK</span></div>`,
+  gallery: `
+    <div class="gb-title-bar"><span>GALLERY</span><span>4 PCS</span></div>
+    <div class="gb-window" style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
+      ${[['0F','30','8B','9B'],['9B','8B','30','0F'],['30','9B','0F','8B'],['8B','0F','9B','30']].map((p,i)=>`
+        <div style="border:1px solid var(--gb-darkest);padding:2px;display:flex;flex-direction:column;gap:1px;align-items:center">
+          <div style="display:grid;grid-template-columns:repeat(4,6px);gap:1px">
+            ${p.map(c=>`<div style="width:6px;height:6px;background:#${c}${c=='0F'?'380F':c=='30'?'6230':c=='8B'?'AC0F':'BBC0F'}"></div>`).join('')}
+          </div>
+          <div style="font-size:4px;color:var(--gb-darkest)">ART ${i+1}</div>
+        </div>`).join('')}
+    </div>
+    <div class="gb-status"><span>A:VIEW</span><span>B:BACK</span></div>`,
+  credits: `
+    <div class="gb-title-bar"><span>CREDITS</span><span>FIN</span></div>
+    <div class="gb-window" style="align-items:center;justify-content:center">
+      <div class="gb-dialog" style="font-size:4.5px;line-height:2;text-align:center">
+        GAME BOY™<br>
+        TRIBUTE UI<br>
+        ──────────<br>
+        4 SHADES OF<br>
+        OLIVE GREEN<br>
+        ──────────<br>
+        160 × 144<br>
+        PIXELS
+      </div>
+    </div>
+    <div class="gb-status"><span>©1989 STYLE</span><span>B:BACK</span></div>`
+};
+
+let currentScreen = 'menu';
+let selectedIdx = 0;
+const itemKeys = ['newgame','continue','options','gallery','credits'];
+
+function showScreen(name) {
+  currentScreen = name;
+  document.getElementById('screenUI').innerHTML = screens[name] || screens.menu;
+  updateClock();
+}
+
+function selectItem(i) {
+  selectedIdx = i;
+  const items = document.querySelectorAll('.gb-menu-item');
+  items.forEach((el,j) => {
+    el.classList.toggle('selected', i===j);
+    const txt = el.textContent.trim().replace(/^▶\s*/,'');
+    el.textContent = (i===j ? '▶ ' : '  ') + txt;
+  });
+}
+
+function pressA() {
+  if(currentScreen === 'menu') {
+    const k = itemKeys[selectedIdx];
+    if(k && screens[k]) showScreen(k);
+  } else if(currentScreen !== 'menu') {
+    showScreen('menu');
+  }
+}
+
+function pressB() {
+  if(currentScreen !== 'menu') showScreen('menu');
+}
+
+function pressStart() { pressA(); }
+function pressSelect() { showScreen('menu'); }
+
+function dpadPress(dir) {
+  if(currentScreen !== 'menu') return;
+  const items = document.querySelectorAll('.gb-menu-item');
+  const n = items.length;
+  if(dir === 'up') selectedIdx = (selectedIdx - 1 + n) % n;
+  if(dir === 'down') selectedIdx = (selectedIdx + 1) % n;
+  selectItem(selectedIdx);
+}
+
+function updateClock() {
+  const el = document.getElementById('clock');
+  if(el) {
+    const now = new Date();
+    el.textContent = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+  }
+}
+
+updateClock();
+setInterval(updateClock, 30000);
+</script>

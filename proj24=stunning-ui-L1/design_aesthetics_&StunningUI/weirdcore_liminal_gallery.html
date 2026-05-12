@@ -1,0 +1,495 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Arial+Rounded+MT+Bold&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  .wc-root {
+    background: #c8c0d4;
+    min-height: 100vh;
+    padding: 2rem 1.5rem;
+    font-family: 'Arial Rounded MT Bold', 'Arial', sans-serif;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .grain-overlay {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 100;
+    opacity: 0.38;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+    background-size: 180px 180px;
+    mix-blend-mode: overlay;
+  }
+
+  .scanlines {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 99;
+    background: repeating-linear-gradient(
+      to bottom,
+      transparent 0px,
+      transparent 3px,
+      rgba(0,0,0,0.06) 3px,
+      rgba(0,0,0,0.06) 4px
+    );
+  }
+
+  .vhs-flicker {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: rgba(180,200,255,0.5);
+    z-index: 101;
+    animation: vhsTrack 7s linear infinite;
+    pointer-events: none;
+  }
+
+  @keyframes vhsTrack {
+    0%   { top: -4px; opacity: 0; }
+    5%   { opacity: 1; }
+    40%  { top: 105vh; opacity: 0.7; }
+    41%  { opacity: 0; top: -4px; }
+    100% { top: -4px; opacity: 0; }
+  }
+
+  .wc-header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+    position: relative;
+    z-index: 10;
+  }
+
+  .wc-title {
+    font-size: 13px;
+    letter-spacing: 0.25em;
+    color: #7a6e8a;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+
+  .wc-subtitle {
+    font-size: 28px;
+    color: #3a2d4a;
+    line-height: 1.2;
+    filter: contrast(1.1);
+  }
+
+  .wc-subtitle span {
+    color: #8878aa;
+  }
+
+  .gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1.5rem;
+    position: relative;
+    z-index: 10;
+  }
+
+  .card {
+    position: relative;
+    overflow: hidden;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: transform 0.3s ease;
+  }
+
+  .card:nth-child(1) { transform: rotate(-2.1deg) translateY(4px); }
+  .card:nth-child(2) { transform: rotate(1.4deg) translateY(-6px); }
+  .card:nth-child(3) { transform: rotate(-0.8deg) translateY(2px); }
+  .card:nth-child(4) { transform: rotate(2.2deg) translateY(8px); }
+  .card:nth-child(5) { transform: rotate(-1.6deg) translateY(-3px); }
+  .card:nth-child(6) { transform: rotate(0.9deg) translateY(5px); }
+
+  .card:hover { transform: rotate(0deg) scale(1.02) translateY(-4px) !important; z-index: 20; }
+
+  .card-img {
+    width: 100%;
+    aspect-ratio: 3/4;
+    display: block;
+    filter: contrast(1.2) brightness(0.88) saturate(0.55);
+    position: relative;
+  }
+
+  .card-img svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .card-overlay {
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      to bottom,
+      transparent 0px,
+      transparent 2px,
+      rgba(140,120,180,0.07) 2px,
+      rgba(140,120,180,0.07) 4px
+    );
+    mix-blend-mode: overlay;
+    pointer-events: none;
+  }
+
+  .card-label {
+    position: absolute;
+    bottom: 0;
+    left: 0; right: 0;
+    padding: 0.75rem 0.6rem 0.5rem;
+    background: linear-gradient(transparent, rgba(30,20,50,0.72));
+    color: rgba(210,200,230,0.9);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .card-num {
+    position: absolute;
+    top: 8px; right: 10px;
+    font-size: 10px;
+    color: rgba(200,190,220,0.6);
+    letter-spacing: 0.2em;
+  }
+
+  .floating-obj {
+    position: absolute;
+    pointer-events: none;
+    z-index: 5;
+    opacity: 0.28;
+  }
+
+  .obj1 { top: 12%; left: 7%; font-size: 22px; transform: rotate(-15deg); animation: floatA 9s ease-in-out infinite; }
+  .obj2 { top: 45%; right: 5%; font-size: 16px; transform: rotate(20deg); animation: floatB 11s ease-in-out infinite; }
+  .obj3 { bottom: 20%; left: 3%; font-size: 18px; transform: rotate(-8deg); animation: floatA 13s ease-in-out infinite reverse; }
+
+  @keyframes floatA {
+    0%,100% { transform: rotate(-15deg) translateY(0); }
+    50% { transform: rotate(-10deg) translateY(-12px); }
+  }
+  @keyframes floatB {
+    0%,100% { transform: rotate(20deg) translateY(0); }
+    50% { transform: rotate(25deg) translateY(10px); }
+  }
+
+  .wc-footer {
+    text-align: center;
+    margin-top: 2.5rem;
+    color: rgba(90,75,110,0.6);
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    z-index: 10;
+    position: relative;
+  }
+
+  .timestamp {
+    font-size: 10px;
+    color: rgba(90,75,110,0.5);
+    letter-spacing: 0.15em;
+    margin-top: 4px;
+  }
+</style>
+
+<div class="wc-root">
+  <div class="grain-overlay"></div>
+  <div class="scanlines"></div>
+  <div class="vhs-flicker"></div>
+
+  <div class="floating-obj obj1">○</div>
+  <div class="floating-obj obj2">△</div>
+  <div class="floating-obj obj3">□</div>
+
+  <div class="wc-header">
+    <div class="wc-title">liminal archive — vol. 7</div>
+    <div class="wc-subtitle">you were <span>just here</span></div>
+  </div>
+
+  <div class="gallery">
+
+    <!-- Card 1: Empty mall -->
+    <div class="card">
+      <div class="card-img">
+        <svg viewBox="0 0 200 266" xmlns="http://www.w3.org/2000/svg">
+          <rect width="200" height="266" fill="#b8afc8"/>
+          <rect x="0" y="180" width="200" height="86" fill="#a09ab5"/>
+          <rect x="0" y="0" width="200" height="180" fill="#c4bdd6"/>
+          <!-- ceiling tiles -->
+          <line x1="0" y1="30" x2="200" y2="30" stroke="#b0a8c2" stroke-width="0.5"/>
+          <line x1="50" y1="0" x2="50" y2="30" stroke="#b0a8c2" stroke-width="0.5"/>
+          <line x1="100" y1="0" x2="100" y2="30" stroke="#b0a8c2" stroke-width="0.5"/>
+          <line x1="150" y1="0" x2="150" y2="30" stroke="#b0a8c2" stroke-width="0.5"/>
+          <!-- floor tiles -->
+          <line x1="0" y1="220" x2="200" y2="220" stroke="#9890b0" stroke-width="0.5"/>
+          <line x1="0" y1="250" x2="200" y2="250" stroke="#9890b0" stroke-width="0.5"/>
+          <line x1="60" y1="180" x2="20" y2="266" stroke="#9890b0" stroke-width="0.5"/>
+          <line x1="100" y1="180" x2="100" y2="266" stroke="#9890b0" stroke-width="0.5"/>
+          <line x1="140" y1="180" x2="180" y2="266" stroke="#9890b0" stroke-width="0.5"/>
+          <!-- storefront left -->
+          <rect x="10" y="60" width="55" height="120" fill="#d8d0e8" opacity="0.7"/>
+          <rect x="12" y="62" width="51" height="100" fill="#b8b0cc" opacity="0.6"/>
+          <rect x="25" y="80" width="25" height="40" fill="#ccc4de" opacity="0.5"/>
+          <!-- storefront right -->
+          <rect x="135" y="60" width="55" height="120" fill="#d8d0e8" opacity="0.7"/>
+          <rect x="137" y="62" width="51" height="100" fill="#b8b0cc" opacity="0.6"/>
+          <rect x="150" y="80" width="25" height="40" fill="#ccc4de" opacity="0.5"/>
+          <!-- corridor -->
+          <rect x="65" y="60" width="70" height="120" fill="#c0b8d4" opacity="0.4"/>
+          <!-- fluorescent light bar -->
+          <rect x="80" y="28" width="40" height="5" fill="#e8e4f0" opacity="0.8"/>
+          <!-- distant door -->
+          <rect x="88" y="90" width="24" height="50" fill="#a098b8" opacity="0.6"/>
+          <circle cx="109" cy="115" r="2" fill="#8880a4" opacity="0.5"/>
+          <!-- floor reflection -->
+          <rect x="65" y="180" width="70" height="60" fill="#ccc4de" opacity="0.2"/>
+        </svg>
+      </div>
+      <div class="card-overlay"></div>
+      <div class="card-num">001</div>
+      <div class="card-label">east wing — closed</div>
+    </div>
+
+    <!-- Card 2: Pool -->
+    <div class="card">
+      <div class="card-img">
+        <svg viewBox="0 0 200 266" xmlns="http://www.w3.org/2000/svg">
+          <rect width="200" height="266" fill="#a8c0c8"/>
+          <!-- walls -->
+          <rect x="0" y="0" width="200" height="80" fill="#c4d4da"/>
+          <rect x="0" y="200" width="200" height="66" fill="#9ab4bc"/>
+          <!-- pool water -->
+          <rect x="20" y="100" width="160" height="100" fill="#7aa8b8" opacity="0.7"/>
+          <!-- water lines -->
+          <line x1="20" y1="120" x2="180" y2="120" stroke="#88b8c8" stroke-width="0.8" opacity="0.5"/>
+          <line x1="20" y1="140" x2="180" y2="140" stroke="#88b8c8" stroke-width="0.8" opacity="0.5"/>
+          <line x1="20" y1="160" x2="180" y2="160" stroke="#88b8c8" stroke-width="0.8" opacity="0.5"/>
+          <line x1="20" y1="180" x2="180" y2="180" stroke="#88b8c8" stroke-width="0.8" opacity="0.5"/>
+          <!-- lane dividers -->
+          <line x1="60" y1="100" x2="60" y2="200" stroke="#c8d8e0" stroke-width="1" stroke-dasharray="4 4" opacity="0.6"/>
+          <line x1="100" y1="100" x2="100" y2="200" stroke="#c8d8e0" stroke-width="1" stroke-dasharray="4 4" opacity="0.6"/>
+          <line x1="140" y1="100" x2="140" y2="200" stroke="#c8d8e0" stroke-width="1" stroke-dasharray="4 4" opacity="0.6"/>
+          <!-- pool edge -->
+          <rect x="20" y="98" width="160" height="4" fill="#b8cccc" opacity="0.8"/>
+          <rect x="18" y="100" width="4" height="100" fill="#b8cccc" opacity="0.6"/>
+          <rect x="178" y="100" width="4" height="100" fill="#b8cccc" opacity="0.6"/>
+          <!-- ceiling light reflection on water -->
+          <ellipse cx="100" cy="150" rx="35" ry="15" fill="#d0e4ea" opacity="0.18"/>
+          <!-- ceiling -->
+          <rect x="0" y="0" width="200" height="20" fill="#c8d8de"/>
+          <!-- light fixtures -->
+          <rect x="30" y="15" width="30" height="6" fill="#e4eeee" opacity="0.9"/>
+          <rect x="140" y="15" width="30" height="6" fill="#e4eeee" opacity="0.9"/>
+          <!-- exit sign faint -->
+          <rect x="88" y="40" width="24" height="10" fill="#d08888" opacity="0.35"/>
+          <rect x="90" y="42" width="20" height="6" fill="#f0a0a0" opacity="0.3"/>
+          <!-- ladder -->
+          <line x1="170" y1="95" x2="170" y2="200" stroke="#a8bcc4" stroke-width="1.5" opacity="0.5"/>
+          <line x1="178" y1="95" x2="178" y2="200" stroke="#a8bcc4" stroke-width="1.5" opacity="0.5"/>
+          <line x1="170" y1="110" x2="178" y2="110" stroke="#a8bcc4" stroke-width="1" opacity="0.5"/>
+          <line x1="170" y1="125" x2="178" y2="125" stroke="#a8bcc4" stroke-width="1" opacity="0.5"/>
+        </svg>
+      </div>
+      <div class="card-overlay"></div>
+      <div class="card-num">002</div>
+      <div class="card-label">pool — 3am</div>
+    </div>
+
+    <!-- Card 3: Parking garage -->
+    <div class="card">
+      <div class="card-img">
+        <svg viewBox="0 0 200 266" xmlns="http://www.w3.org/2000/svg">
+          <rect width="200" height="266" fill="#b0b0bc"/>
+          <!-- ceiling -->
+          <rect x="0" y="0" width="200" height="50" fill="#a8a8b4"/>
+          <!-- concrete pillars -->
+          <rect x="30" y="50" width="16" height="180" fill="#989898"/>
+          <rect x="154" y="50" width="16" height="180" fill="#989898"/>
+          <!-- floor -->
+          <rect x="0" y="210" width="200" height="56" fill="#a0a0ac"/>
+          <!-- parking lines -->
+          <line x1="55" y1="210" x2="55" y2="260" stroke="#c8c8cc" stroke-width="0.8" opacity="0.6"/>
+          <line x1="78" y1="210" x2="78" y2="260" stroke="#c8c8cc" stroke-width="0.8" opacity="0.6"/>
+          <line x1="101" y1="210" x2="101" y2="260" stroke="#c8c8cc" stroke-width="0.8" opacity="0.6"/>
+          <line x1="124" y1="210" x2="124" y2="260" stroke="#c8c8cc" stroke-width="0.8" opacity="0.6"/>
+          <line x1="147" y1="210" x2="147" y2="260" stroke="#c8c8cc" stroke-width="0.8" opacity="0.6"/>
+          <!-- bare ceiling pipes -->
+          <line x1="0" y1="35" x2="200" y2="35" stroke="#909099" stroke-width="2" opacity="0.5"/>
+          <line x1="0" y1="20" x2="200" y2="20" stroke="#909099" stroke-width="1.5" opacity="0.4"/>
+          <!-- flickering light -->
+          <rect x="70" y="30" width="60" height="8" fill="#d8d8e4" opacity="0.75"/>
+          <rect x="70" y="30" width="60" height="8" fill="#ffffff" opacity="0.2"/>
+          <!-- exit ramp back -->
+          <rect x="46" y="60" width="108" height="150" fill="#a8a8b8" opacity="0.5"/>
+          <!-- vanishing lines -->
+          <line x1="46" y1="60" x2="100" y2="130" stroke="#989898" stroke-width="0.5" opacity="0.4"/>
+          <line x1="154" y1="60" x2="100" y2="130" stroke="#989898" stroke-width="0.5" opacity="0.4"/>
+          <!-- far wall door -->
+          <rect x="84" y="100" width="32" height="58" fill="#909098" opacity="0.6"/>
+          <circle cx="114" cy="128" r="2" fill="#787880" opacity="0.5"/>
+          <!-- stain on floor -->
+          <ellipse cx="90" cy="235" rx="12" ry="5" fill="#909090" opacity="0.3"/>
+        </svg>
+      </div>
+      <div class="card-overlay"></div>
+      <div class="card-num">003</div>
+      <div class="card-label">level b2 — no exit</div>
+    </div>
+
+    <!-- Card 4: Hotel corridor -->
+    <div class="card">
+      <div class="card-img">
+        <svg viewBox="0 0 200 266" xmlns="http://www.w3.org/2000/svg">
+          <rect width="200" height="266" fill="#c8b8c4"/>
+          <!-- carpet -->
+          <rect x="0" y="200" width="200" height="66" fill="#8a6878"/>
+          <!-- carpet pattern -->
+          <line x1="0" y1="215" x2="200" y2="215" stroke="#7a5868" stroke-width="1" opacity="0.4"/>
+          <line x1="0" y1="230" x2="200" y2="230" stroke="#7a5868" stroke-width="1" opacity="0.4"/>
+          <line x1="0" y1="245" x2="200" y2="245" stroke="#7a5868" stroke-width="1" opacity="0.4"/>
+          <line x1="0" y1="260" x2="200" y2="260" stroke="#7a5868" stroke-width="1" opacity="0.4"/>
+          <!-- walls -->
+          <rect x="0" y="0" width="28" height="266" fill="#c0b0bc"/>
+          <rect x="172" y="0" width="28" height="266" fill="#c0b0bc"/>
+          <!-- wallpaper pattern left -->
+          <rect x="4" y="20" width="20" height="30" fill="#b8a8b4" opacity="0.4"/>
+          <rect x="4" y="60" width="20" height="30" fill="#b8a8b4" opacity="0.4"/>
+          <rect x="4" y="100" width="20" height="30" fill="#b8a8b4" opacity="0.4"/>
+          <rect x="4" y="140" width="20" height="30" fill="#b8a8b4" opacity="0.4"/>
+          <!-- right wall pattern -->
+          <rect x="176" y="20" width="20" height="30" fill="#b8a8b4" opacity="0.4"/>
+          <rect x="176" y="60" width="20" height="30" fill="#b8a8b4" opacity="0.4"/>
+          <rect x="176" y="100" width="20" height="30" fill="#b8a8b4" opacity="0.4"/>
+          <rect x="176" y="140" width="20" height="30" fill="#b8a8b4" opacity="0.4"/>
+          <!-- corridor -->
+          <rect x="28" y="0" width="144" height="200" fill="#c4b4c0" opacity="0.8"/>
+          <!-- ceiling light strip -->
+          <rect x="80" y="0" width="40" height="10" fill="#e8d8e4" opacity="0.9"/>
+          <!-- room doors left -->
+          <rect x="28" y="40" width="22" height="45" fill="#b0a0ac" opacity="0.7"/>
+          <rect x="28" y="110" width="22" height="45" fill="#b0a0ac" opacity="0.7"/>
+          <circle cx="48" cy="62" r="2" fill="#988898" opacity="0.6"/>
+          <circle cx="48" cy="132" r="2" fill="#988898" opacity="0.6"/>
+          <!-- room doors right -->
+          <rect x="150" y="40" width="22" height="45" fill="#b0a0ac" opacity="0.7"/>
+          <rect x="150" y="110" width="22" height="45" fill="#b0a0ac" opacity="0.7"/>
+          <circle cx="152" cy="62" r="2" fill="#988898" opacity="0.6"/>
+          <circle cx="152" cy="132" r="2" fill="#988898" opacity="0.6"/>
+          <!-- vanishing corridor -->
+          <rect x="70" y="40" width="60" height="160" fill="#baaab6" opacity="0.5"/>
+          <rect x="85" y="80" width="30" height="100" fill="#b4a4b0" opacity="0.4"/>
+          <!-- distant door -->
+          <rect x="90" y="110" width="20" height="50" fill="#a898a4" opacity="0.5"/>
+        </svg>
+      </div>
+      <div class="card-overlay"></div>
+      <div class="card-num">004</div>
+      <div class="card-label">floor 7 — all rooms occupied</div>
+    </div>
+
+    <!-- Card 5: Stairwell -->
+    <div class="card">
+      <div class="card-img">
+        <svg viewBox="0 0 200 266" xmlns="http://www.w3.org/2000/svg">
+          <rect width="200" height="266" fill="#b4bcc8"/>
+          <!-- stairs going up -->
+          <rect x="20" y="200" width="160" height="20" fill="#a4acb8"/>
+          <rect x="30" y="180" width="150" height="20" fill="#acb4c0"/>
+          <rect x="40" y="160" width="140" height="20" fill="#b4bcc8"/>
+          <rect x="50" y="140" width="130" height="20" fill="#bcb4c8"/>
+          <rect x="60" y="120" width="120" height="20" fill="#c4bccc"/>
+          <rect x="70" y="100" width="110" height="20" fill="#ccc4d0"/>
+          <rect x="80" y="80" width="100" height="20" fill="#d4ccd4"/>
+          <!-- risers -->
+          <rect x="20" y="200" width="5" height="66" fill="#9098a4"/>
+          <rect x="30" y="180" width="5" height="20" fill="#9098a4"/>
+          <rect x="40" y="160" width="5" height="20" fill="#9098a4"/>
+          <rect x="50" y="140" width="5" height="20" fill="#9098a4"/>
+          <rect x="60" y="120" width="5" height="20" fill="#9898a8"/>
+          <rect x="70" y="100" width="5" height="20" fill="#a0a0b0"/>
+          <rect x="80" y="80" width="5" height="20" fill="#a8a8b8"/>
+          <!-- railing -->
+          <line x1="175" y1="200" x2="178" y2="80" stroke="#888898" stroke-width="2" opacity="0.6"/>
+          <line x1="170" y1="195" x2="173" y2="75" stroke="#888898" stroke-width="1" opacity="0.4"/>
+          <!-- spindles -->
+          <line x1="160" y1="190" x2="162" y2="190" stroke="#888898" stroke-width="0.8" opacity="0.4"/>
+          <line x1="150" y1="178" x2="152" y2="178" stroke="#888898" stroke-width="0.8" opacity="0.4"/>
+          <line x1="140" y1="165" x2="142" y2="165" stroke="#888898" stroke-width="0.8" opacity="0.4"/>
+          <!-- wall -->
+          <rect x="0" y="0" width="20" height="266" fill="#a8b0bc"/>
+          <!-- emergency sign -->
+          <rect x="2" y="70" width="14" height="8" fill="#c06060" opacity="0.5"/>
+          <!-- light at top -->
+          <rect x="85" y="0" width="30" height="14" fill="#e0dce8" opacity="0.8"/>
+          <!-- door at top -->
+          <rect x="88" y="14" width="26" height="62" fill="#c0b8cc" opacity="0.6"/>
+          <circle cx="112" cy="44" r="2" fill="#a098ac" opacity="0.5"/>
+        </svg>
+      </div>
+      <div class="card-overlay"></div>
+      <div class="card-num">005</div>
+      <div class="card-label">stairwell c — no re-entry</div>
+    </div>
+
+    <!-- Card 6: Cafeteria -->
+    <div class="card">
+      <div class="card-img">
+        <svg viewBox="0 0 200 266" xmlns="http://www.w3.org/2000/svg">
+          <rect width="200" height="266" fill="#c0c8b8"/>
+          <!-- floor -->
+          <rect x="0" y="180" width="200" height="86" fill="#b0b8a8"/>
+          <!-- floor tiles -->
+          <line x1="0" y1="200" x2="200" y2="200" stroke="#a8b0a0" stroke-width="0.5"/>
+          <line x1="0" y1="220" x2="200" y2="220" stroke="#a8b0a0" stroke-width="0.5"/>
+          <line x1="0" y1="240" x2="200" y2="240" stroke="#a8b0a0" stroke-width="0.5"/>
+          <line x1="0" y1="260" x2="200" y2="260" stroke="#a8b0a0" stroke-width="0.5"/>
+          <line x1="40" y1="180" x2="40" y2="266" stroke="#a8b0a0" stroke-width="0.5"/>
+          <line x1="80" y1="180" x2="80" y2="266" stroke="#a8b0a0" stroke-width="0.5"/>
+          <line x1="120" y1="180" x2="120" y2="266" stroke="#a8b0a0" stroke-width="0.5"/>
+          <line x1="160" y1="180" x2="160" y2="266" stroke="#a8b0a0" stroke-width="0.5"/>
+          <!-- ceiling grid -->
+          <rect x="0" y="0" width="200" height="40" fill="#c8d0c0"/>
+          <line x1="0" y1="20" x2="200" y2="20" stroke="#b8c0b0" stroke-width="0.5"/>
+          <line x1="40" y1="0" x2="40" y2="40" stroke="#b8c0b0" stroke-width="0.5"/>
+          <line x1="80" y1="0" x2="80" y2="40" stroke="#b8c0b0" stroke-width="0.5"/>
+          <line x1="120" y1="0" x2="120" y2="40" stroke="#b8c0b0" stroke-width="0.5"/>
+          <line x1="160" y1="0" x2="160" y2="40" stroke="#b8c0b0" stroke-width="0.5"/>
+          <!-- tables -->
+          <rect x="15" y="130" width="50" height="30" fill="#d0c8b8" opacity="0.7" rx="2"/>
+          <rect x="75" y="120" width="50" height="30" fill="#d0c8b8" opacity="0.7" rx="2"/>
+          <rect x="135" y="135" width="50" height="30" fill="#d0c8b8" opacity="0.7" rx="2"/>
+          <!-- chairs (rectangles) -->
+          <rect x="18" y="115" width="18" height="14" fill="#c0b8a8" opacity="0.5" rx="1"/>
+          <rect x="42" y="115" width="18" height="14" fill="#c0b8a8" opacity="0.5" rx="1"/>
+          <rect x="78" y="104" width="18" height="14" fill="#c0b8a8" opacity="0.5" rx="1"/>
+          <rect x="102" y="104" width="18" height="14" fill="#c0b8a8" opacity="0.5" rx="1"/>
+          <rect x="138" y="120" width="18" height="14" fill="#c0b8a8" opacity="0.5" rx="1"/>
+          <rect x="160" y="120" width="18" height="14" fill="#c0b8a8" opacity="0.5" rx="1"/>
+          <!-- service counter back wall -->
+          <rect x="0" y="50" width="200" height="60" fill="#c8d0b8" opacity="0.6"/>
+          <rect x="10" y="55" width="180" height="48" fill="#bcc4a8" opacity="0.5"/>
+          <!-- sneeze guard -->
+          <rect x="10" y="55" width="180" height="14" fill="#d4dcc8" opacity="0.35"/>
+          <!-- food trays (empty) -->
+          <rect x="20" y="65" width="30" height="20" fill="#c4ccb0" opacity="0.4" rx="1"/>
+          <rect x="60" y="65" width="30" height="20" fill="#c4ccb0" opacity="0.4" rx="1"/>
+          <rect x="100" y="65" width="30" height="20" fill="#c4ccb0" opacity="0.4" rx="1"/>
+          <rect x="140" y="65" width="30" height="20" fill="#c4ccb0" opacity="0.4" rx="1"/>
+          <!-- fluorescent bar lights -->
+          <rect x="20" y="22" width="50" height="5" fill="#e8eee0" opacity="0.9"/>
+          <rect x="130" y="22" width="50" height="5" fill="#e8eee0" opacity="0.9"/>
+        </svg>
+      </div>
+      <div class="card-overlay"></div>
+      <div class="card-num">006</div>
+      <div class="card-label">cafeteria — lunch ended hours ago</div>
+    </div>
+
+  </div>
+
+  <div class="wc-footer">
+    <div>collected memories — origin unknown</div>
+    <div class="timestamp">REC ● 00:00:00 — tape 7 of ∞</div>
+  </div>
+</div>

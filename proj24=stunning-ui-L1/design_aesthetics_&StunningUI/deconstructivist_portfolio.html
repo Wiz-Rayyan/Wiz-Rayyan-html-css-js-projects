@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0a0a0a;
+    min-height: 100vh;
+    overflow-x: hidden;
+    font-family: 'Space Mono', monospace;
+  }
+
+  .canvas {
+    position: relative;
+    width: 100%;
+    min-height: 100vh;
+    padding: 60px 40px;
+  }
+
+  /* Background fragmented shards */
+  .bg-shard {
+    position: fixed;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .shard-1 {
+    top: -20px; left: -60px;
+    width: 400px; height: 300px;
+    background: linear-gradient(135deg, #1a1a1a 0%, #222 100%);
+    clip-path: polygon(0 0, 80% 0, 100% 100%, 20% 100%);
+    transform: rotate(-8deg) skewX(-3deg);
+    opacity: 0.8;
+  }
+  .shard-2 {
+    bottom: 10%; right: -80px;
+    width: 350px; height: 400px;
+    background: #161616;
+    clip-path: polygon(30% 0, 100% 20%, 70% 100%, 0 80%);
+    transform: rotate(5deg);
+    opacity: 0.6;
+  }
+  .shard-3 {
+    top: 30%; left: 10%;
+    width: 200px; height: 200px;
+    background: #c0c0c020;
+    clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+    transform: rotate(15deg) skewY(5deg);
+  }
+
+  /* HEADER */
+  .header {
+    position: relative;
+    z-index: 10;
+    margin-bottom: 80px;
+    transform: skewX(-2deg);
+  }
+  .header-tag {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: #c0c0c0;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    display: block;
+    transform: skewX(5deg);
+  }
+  .header-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(60px, 12vw, 120px);
+    color: #e8e8e8;
+    line-height: 0.85;
+    letter-spacing: -2px;
+  }
+  .header-title span {
+    display: block;
+    transform: translateX(30px) skewX(-4deg);
+    color: #a0a0a0;
+  }
+  .header-accent {
+    display: inline-block;
+    width: 80px;
+    height: 3px;
+    background: #c0c0c0;
+    margin-top: 20px;
+    transform: rotate(-3deg) skewX(-10deg);
+  }
+
+  /* CHAOTIC GRID */
+  .grid {
+    position: relative;
+    z-index: 5;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0;
+    width: 100%;
+  }
+
+  /* CARD BASE */
+  .card {
+    position: relative;
+    overflow: visible;
+    cursor: pointer;
+    transition: filter 0.3s ease;
+  }
+  .card:hover { filter: brightness(1.15); }
+
+  .card-inner {
+    position: relative;
+    width: 100%;
+    border: 1px solid #2a2a2a;
+    padding: 28px 24px;
+    overflow: hidden;
+    transition: transform 0.3s ease, border-color 0.3s ease;
+    background: #111;
+  }
+  .card:hover .card-inner {
+    border-color: #555;
+  }
+
+  .card-number {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: #444;
+    margin-bottom: 16px;
+  }
+  .card-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    color: #ddd;
+    line-height: 1;
+    margin-bottom: 10px;
+    letter-spacing: 0.5px;
+  }
+  .card-sub {
+    font-size: 9px;
+    color: #666;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  .card-desc {
+    font-size: 10px;
+    color: #555;
+    line-height: 1.8;
+  }
+  .card-tag {
+    display: inline-block;
+    margin-top: 20px;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: #999;
+    border: 0.5px solid #333;
+    padding: 4px 10px;
+    text-transform: uppercase;
+  }
+
+  /* Fragmented decorative shapes inside cards */
+  .card-frag {
+    position: absolute;
+    pointer-events: none;
+  }
+
+  /* === CARD 1: large, tilted, skewed === */
+  .card-1 {
+    grid-column: 1 / 3;
+    grid-row: 1;
+    transform: rotate(-1.5deg) skewX(-1deg) translateY(-10px);
+    z-index: 8;
+    margin: 0 -15px;
+  }
+  .card-1 .card-inner {
+    background: #131313;
+    clip-path: polygon(0 0, 97% 0, 100% 95%, 3% 100%);
+    padding: 40px 36px 60px;
+    min-height: 220px;
+  }
+  .card-1 .card-title { font-size: 44px; }
+  .card-1 .card-frag-1 {
+    top: 20px; right: 30px;
+    width: 60px; height: 60px;
+    background: #c0c0c0;
+    clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+    opacity: 0.12;
+    transform: rotate(20deg);
+  }
+  .card-1 .card-frag-2 {
+    bottom: 30px; right: 60px;
+    width: 80px; height: 2px;
+    background: #888;
+    transform: rotate(-15deg);
+    opacity: 0.4;
+  }
+
+  /* === CARD 2: tall, shifted up === */
+  .card-2 {
+    grid-column: 3;
+    grid-row: 1 / 3;
+    transform: rotate(2deg) skewY(1.5deg) translateX(-10px) translateY(20px);
+    z-index: 6;
+  }
+  .card-2 .card-inner {
+    background: #0e0e0e;
+    clip-path: polygon(5% 0, 100% 3%, 95% 100%, 0 97%);
+    min-height: 380px;
+    padding: 40px 24px;
+  }
+  .card-2 .card-frag-1 {
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, #c0c0c0, transparent);
+    opacity: 0.3;
+  }
+  .card-2 .card-frag-2 {
+    bottom: 40px; right: -10px;
+    width: 40px; height: 80px;
+    background: #c0c0c040;
+    clip-path: polygon(100% 0, 100% 100%, 0 50%);
+  }
+
+  /* === CARD 3: small, aggressively skewed === */
+  .card-3 {
+    grid-column: 1;
+    grid-row: 2;
+    transform: skewX(3deg) rotate(1deg) translateY(-20px) translateX(15px);
+    z-index: 9;
+  }
+  .card-3 .card-inner {
+    background: #181818;
+    clip-path: polygon(2% 0, 100% 0, 98% 100%, 0 100%);
+    min-height: 160px;
+  }
+  .card-3 .card-frag-1 {
+    bottom: 0; left: 0;
+    width: 100%; height: 3px;
+    background: #c0c0c0;
+    opacity: 0.2;
+    clip-path: polygon(0 0, 70% 0, 100% 100%, 0 100%);
+  }
+
+  /* === CARD 4: medium, opposite tilt === */
+  .card-4 {
+    grid-column: 2;
+    grid-row: 2;
+    transform: rotate(-2.5deg) skewX(-2deg) translateY(-5px);
+    z-index: 7;
+  }
+  .card-4 .card-inner {
+    background: #141414;
+    clip-path: polygon(0 4%, 96% 0, 100% 96%, 4% 100%);
+    min-height: 160px;
+  }
+  .card-4 .card-frag-1 {
+    top: 10px; right: 10px;
+    width: 30px; height: 30px;
+    border: 1px solid #c0c0c040;
+    transform: rotate(30deg) skewX(10deg);
+  }
+
+  /* === CARD 5: full-width footer, flat but massive skew === */
+  .card-5 {
+    grid-column: 1 / 4;
+    grid-row: 3;
+    transform: skewX(-1.5deg) rotate(0.5deg) translateY(-30px);
+    z-index: 5;
+    margin: 0 -20px;
+  }
+  .card-5 .card-inner {
+    background: #0d0d0d;
+    clip-path: polygon(0 10%, 50% 0, 100% 10%, 100% 90%, 50% 100%, 0 90%);
+    min-height: 140px;
+    display: flex;
+    align-items: center;
+    padding: 50px 60px;
+    gap: 40px;
+  }
+  .card-5 .card-title { font-size: 36px; }
+  .card-5-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 30px;
+  }
+  .card-5-stats {
+    display: flex;
+    gap: 40px;
+  }
+  .stat {
+    text-align: center;
+  }
+  .stat-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 36px;
+    color: #c0c0c0;
+    display: block;
+  }
+  .stat-label {
+    font-size: 8px;
+    color: #444;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  /* Overlapping metallic accent lines */
+  .accent-line {
+    position: fixed;
+    pointer-events: none;
+    z-index: 1;
+    background: #c0c0c0;
+    opacity: 0.06;
+  }
+  .accent-line-1 {
+    top: 0; left: 45%;
+    width: 1px; height: 100vh;
+    transform: rotate(3deg);
+  }
+  .accent-line-2 {
+    top: 20%; left: 0;
+    height: 1px; width: 100vw;
+    transform: rotate(-1deg);
+  }
+  .accent-line-3 {
+    top: 65%; left: 0;
+    height: 2px; width: 100vw;
+    transform: rotate(2deg);
+    opacity: 0.04;
+  }
+
+  /* Hover reveal on card — fragmented overlay */
+  .card-inner::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, transparent 60%, #c0c0c008 100%);
+    clip-path: polygon(60% 0, 100% 0, 100% 40%, 40% 100%, 0 100%, 0 60%);
+    transition: opacity 0.3s;
+    opacity: 0;
+  }
+  .card:hover .card-inner::after { opacity: 1; }
+
+  /* Nav */
+  .nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    padding: 20px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 0.5px solid #1f1f1f;
+    background: #0a0a0a;
+    transform: skewX(-0.5deg);
+  }
+  .nav-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    color: #e0e0e0;
+    letter-spacing: 3px;
+  }
+  .nav-links {
+    display: flex;
+    gap: 30px;
+    list-style: none;
+  }
+  .nav-links a {
+    font-size: 9px;
+    color: #555;
+    text-decoration: none;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    transition: color 0.2s;
+  }
+  .nav-links a:hover { color: #c0c0c0; }
+
+  body { padding-top: 60px; }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <span class="nav-logo">FRGMT</span>
+  <ul class="nav-links">
+    <li><a href="#">Work</a></li>
+    <li><a href="#">Process</a></li>
+    <li><a href="#">Studio</a></li>
+    <li><a href="#">Contact</a></li>
+  </ul>
+</nav>
+
+<div class="accent-line accent-line-1"></div>
+<div class="accent-line accent-line-2"></div>
+<div class="accent-line accent-line-3"></div>
+
+<div class="bg-shard shard-1"></div>
+<div class="bg-shard shard-2"></div>
+<div class="bg-shard shard-3"></div>
+
+<div class="canvas">
+
+  <div class="header">
+    <span class="header-tag">Architecture / Portfolio / 2024</span>
+    <h1 class="header-title">
+      ARCHI<span>TECT</span>
+    </h1>
+    <div class="header-accent"></div>
+  </div>
+
+  <div class="grid">
+
+    <!-- Card 1: Featured project, large, tilted -->
+    <div class="card card-1">
+      <div class="card-inner">
+        <div class="card-frag card-frag-1"></div>
+        <div class="card-frag card-frag-2"></div>
+        <div class="card-number">01 / FEATURED</div>
+        <div class="card-title">Bilbao Effect</div>
+        <div class="card-sub">Cultural Complex · Bilbao, Spain · 2023</div>
+        <div class="card-desc">
+          Titanium-clad surfaces fragment light into shifting metallic fields.<br>
+          Form refuses orthogonality. The building is the argument.
+        </div>
+        <span class="card-tag">Museum · 28,000m²</span>
+      </div>
+    </div>
+
+    <!-- Card 2: Tall card, opposite corner -->
+    <div class="card card-2">
+      <div class="card-inner">
+        <div class="card-frag card-frag-1"></div>
+        <div class="card-frag card-frag-2"></div>
+        <div class="card-number">02</div>
+        <div class="card-title">Folded Steel</div>
+        <div class="card-sub">Civic Tower · Prague · 2022</div>
+        <div class="card-desc">
+          Structural logic made visible.<br>
+          No façade — only structure.<br>
+          No ornament — only force.
+        </div>
+        <span class="card-tag">Office · Mixed Use</span>
+      </div>
+    </div>
+
+    <!-- Card 3: Small, aggressive skew -->
+    <div class="card card-3">
+      <div class="card-inner">
+        <div class="card-frag card-frag-1"></div>
+        <div class="card-number">03</div>
+        <div class="card-title">Shard House</div>
+        <div class="card-sub">Residential · Oslo · 2021</div>
+        <div class="card-desc">
+          Domestic space unfolded, re-cut, displaced.
+        </div>
+        <span class="card-tag">Private · 340m²</span>
+      </div>
+    </div>
+
+    <!-- Card 4: Medium, opposite tilt -->
+    <div class="card card-4">
+      <div class="card-inner">
+        <div class="card-frag card-frag-1"></div>
+        <div class="card-number">04</div>
+        <div class="card-title">Raw Concrete</div>
+        <div class="card-sub">Institution · Seoul · 2020</div>
+        <div class="card-desc">
+          Exposed aggregate as surface politics. Weight is the statement.
+        </div>
+        <span class="card-tag">Cultural · Brutalist</span>
+      </div>
+    </div>
+
+    <!-- Card 5: Full width footer bar -->
+    <div class="card card-5">
+      <div class="card-inner">
+        <div class="card-5-content">
+          <div>
+            <div class="card-number">Studio FRGMT — Est. 2008</div>
+            <div class="card-title">Chaos. Resolved.</div>
+          </div>
+          <div class="card-5-stats">
+            <div class="stat">
+              <span class="stat-num">47</span>
+              <span class="stat-label">Projects</span>
+            </div>
+            <div class="stat">
+              <span class="stat-num">18</span>
+              <span class="stat-label">Countries</span>
+            </div>
+            <div class="stat">
+              <span class="stat-num">12</span>
+              <span class="stat-label">Awards</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>

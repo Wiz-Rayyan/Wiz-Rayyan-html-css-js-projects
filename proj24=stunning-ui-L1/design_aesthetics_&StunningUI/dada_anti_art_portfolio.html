@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Bebas+Neue&family=Special+Elite&family=Permanent+Marker&family=Abril+Fatface&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #f0ead8;
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+    cursor: crosshair;
+  }
+
+  .noise {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    opacity: 0.4;
+  }
+
+  .canvas {
+    position: relative;
+    width: 100%;
+    min-height: 100vh;
+    padding: 20px;
+    z-index: 1;
+  }
+
+  /* Ripped paper texture blocks */
+  .block {
+    position: absolute;
+    mix-blend-mode: multiply;
+  }
+
+  .block-red { background: #c0392b; opacity: 0.82; }
+  .block-black { background: #1a1a1a; opacity: 0.88; }
+  .block-yellow { background: #f1c40f; opacity: 0.9; }
+  .block-blue { background: #2471a3; opacity: 0.8; }
+  .block-cream { background: #f5deb3; opacity: 0.75; }
+  .block-grey { background: #888; opacity: 0.6; }
+
+  /* TEXTS — wildly different fonts, sizes, rotations */
+  .txt {
+    position: absolute;
+    line-height: 1;
+    mix-blend-mode: multiply;
+    user-select: none;
+  }
+
+  .font-frak { font-family: 'UnifrakturMaguntia', serif; }
+  .font-mono { font-family: 'Courier Prime', monospace; }
+  .font-bebas { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.05em; }
+  .font-special { font-family: 'Special Elite', cursive; }
+  .font-marker { font-family: 'Permanent Marker', cursive; }
+  .font-abril { font-family: 'Abril Fatface', serif; }
+  .font-sans { font-family: Arial Black, sans-serif; }
+
+  .dada-main {
+    top: 18px; left: 40px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 120px;
+    color: #1a1a1a;
+    letter-spacing: -4px;
+    transform: rotate(-2deg);
+    z-index: 20;
+    mix-blend-mode: normal;
+  }
+
+  .photo-block {
+    position: absolute;
+    mix-blend-mode: multiply;
+    filter: contrast(1.3) saturate(0.6);
+  }
+
+  /* Halftone circle element */
+  .halftone-circle {
+    position: absolute;
+    border-radius: 50%;
+    background: radial-gradient(circle, #1a1a1a 30%, transparent 70%);
+    mix-blend-mode: multiply;
+    opacity: 0.15;
+  }
+
+  /* Diagonal rule line */
+  .rule {
+    position: absolute;
+    background: #1a1a1a;
+    transform-origin: left center;
+  }
+
+  /* Stamp-like border elements */
+  .stamp {
+    position: absolute;
+    border: 4px solid #1a1a1a;
+    mix-blend-mode: multiply;
+    padding: 4px 8px;
+  }
+
+  /* Arrow / typographic ornament */
+  .ornament {
+    position: absolute;
+    font-family: 'Courier Prime', monospace;
+    mix-blend-mode: multiply;
+  }
+
+  /* Hole-punch simulation */
+  .hole {
+    position: absolute;
+    border-radius: 50%;
+    background: #f0ead8;
+    border: 2px solid #888;
+    mix-blend-mode: normal;
+    z-index: 50;
+  }
+
+  /* Collage "photo" simulation using CSS shapes */
+  .photo-sim {
+    position: absolute;
+    mix-blend-mode: multiply;
+    opacity: 0.7;
+  }
+
+  /* Ticker-tape text */
+  @keyframes ticker {
+    0% { transform: translateX(0) rotate(-1deg); }
+    100% { transform: translateX(-50%) rotate(-1deg); }
+  }
+
+  .ticker-wrap {
+    position: absolute;
+    bottom: 60px;
+    left: -10px;
+    width: 200%;
+    overflow: hidden;
+    background: #c0392b;
+    padding: 6px 0;
+    transform: rotate(-1deg);
+    z-index: 30;
+    mix-blend-mode: multiply;
+  }
+
+  .ticker-inner {
+    display: inline-block;
+    white-space: nowrap;
+    animation: ticker 18s linear infinite;
+    font-family: 'Courier Prime', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    color: #f0ead8;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  /* Tear / irregular shape via clip-path */
+  .torn {
+    position: absolute;
+    clip-path: polygon(0% 8%, 12% 0%, 100% 5%, 98% 92%, 88% 100%, 5% 97%, 0% 50%);
+  }
+
+  .torn2 {
+    clip-path: polygon(3% 0%, 97% 4%, 100% 88%, 90% 100%, 0% 96%, 5% 40%);
+  }
+
+  .torn3 {
+    clip-path: polygon(0% 15%, 8% 0%, 85% 2%, 100% 0%, 98% 80%, 100% 100%, 10% 95%, 0% 100%);
+  }
+
+  /* GRID/RULED paper overlay element */
+  .grid-overlay {
+    position: absolute;
+    background-image:
+      linear-gradient(#2471a3 1px, transparent 1px),
+      linear-gradient(90deg, #2471a3 1px, transparent 1px);
+    background-size: 18px 18px;
+    opacity: 0.12;
+    mix-blend-mode: multiply;
+  }
+
+</style>
+</head>
+<body>
+
+<div class="noise"></div>
+
+<div class="canvas" style="min-height:820px; position:relative; overflow:hidden;">
+
+  <!-- BIG RED TORN BLOCK BACKGROUND -->
+  <div class="block block-red torn" style="width:380px;height:280px;top:60px;left:180px;transform:rotate(3deg);z-index:2;"></div>
+
+  <!-- YELLOW BLOCK -->
+  <div class="block block-yellow torn2" style="width:240px;height:200px;top:300px;left:20px;transform:rotate(-5deg);z-index:3;"></div>
+
+  <!-- DARK BLOCK -->
+  <div class="block block-black" style="width:160px;height:320px;top:0;right:60px;transform:rotate(7deg);z-index:2;"></div>
+
+  <!-- BLUE TORN SHAPE -->
+  <div class="block block-blue torn3" style="width:200px;height:140px;top:480px;left:300px;transform:rotate(-4deg);z-index:4;"></div>
+
+  <!-- GREY STRIP -->
+  <div class="block block-grey" style="width:100%;height:40px;top:220px;left:0;transform:rotate(-2deg);z-index:5;mix-blend-mode:multiply;opacity:0.5;"></div>
+
+  <!-- GRID OVERLAY -->
+  <div class="grid-overlay" style="width:300px;height:250px;top:50px;left:50px;transform:rotate(-3deg);z-index:1;"></div>
+
+  <!-- HALFTONE CIRCLES -->
+  <div class="halftone-circle" style="width:280px;height:280px;top:100px;left:280px;z-index:6;"></div>
+  <div class="halftone-circle" style="width:180px;height:180px;top:400px;left:80px;z-index:6;opacity:0.1;"></div>
+
+  <!-- DIAGONAL RULE LINE -->
+  <div class="rule" style="width:500px;height:3px;top:410px;left:-30px;transform:rotate(-12deg);z-index:7;"></div>
+  <div class="rule" style="width:300px;height:1.5px;top:200px;left:200px;transform:rotate(20deg);z-index:7;opacity:0.4;"></div>
+
+  <!-- MAIN TITLE: DADA -->
+  <div class="txt dada-main" style="z-index:25;">DADA</div>
+
+  <!-- SUBTITLE fragmented -->
+  <div class="txt font-frak" style="top:145px;left:42px;font-size:28px;color:#f0ead8;transform:rotate(1deg);z-index:26;">Kunst ist tot</div>
+
+  <!-- LOREM NONSENSE — overlapping, chaotic -->
+  <div class="txt font-mono" style="top:180px;left:210px;font-size:11px;color:#f0ead8;transform:rotate(-8deg);z-index:26;line-height:1.4;max-width:180px;">
+    LOREM IPSUM<br>
+    dadaismus<br>
+    TZARA 1916<br>
+    ◆◆◆◆◆◆◆<br>
+    manifestum
+  </div>
+
+  <div class="txt font-bebas" style="top:230px;left:30px;font-size:64px;color:#1a1a1a;transform:rotate(-90deg);transform-origin:left center;z-index:28;mix-blend-mode:multiply;">ANTI</div>
+
+  <div class="txt font-abril" style="top:260px;left:180px;font-size:42px;color:#f0ead8;transform:rotate(5deg);z-index:27;">WERK</div>
+
+  <div class="txt font-marker" style="top:310px;left:250px;font-size:22px;color:#1a1a1a;transform:rotate(-14deg);z-index:30;">nonsense!</div>
+
+  <div class="txt font-special" style="top:340px;left:10px;font-size:16px;color:#2471a3;transform:rotate(3deg);z-index:20;line-height:1.6;max-width:160px;">
+    Ursonate fragments:<br>
+    fümms bö wö tää zää<br>
+    Uu pögiff<br>
+    kwii Ee
+  </div>
+
+  <!-- Number typography fragments -->
+  <div class="txt font-sans" style="top:80px;left:490px;font-size:80px;color:#f0ead8;transform:rotate(180deg);z-index:20;opacity:0.9;">1</div>
+  <div class="txt font-bebas" style="top:140px;left:430px;font-size:50px;color:#f1c40f;transform:rotate(-3deg);z-index:29;">9 1 6</div>
+
+  <!-- STAMP BORDER ELEMENT -->
+  <div class="stamp" style="top:380px;left:180px;transform:rotate(-7deg);z-index:35;background:#f0ead8;padding:6px 14px;">
+    <span class="font-mono" style="font-size:11px;letter-spacing:0.2em;text-transform:uppercase;font-weight:700;">ANTI · ART · CO.</span>
+  </div>
+
+  <!-- ROTATED TEXT fragments -->
+  <div class="txt font-bebas" style="top:450px;left:480px;font-size:30px;color:#f0ead8;transform:rotate(90deg);transform-origin:left center;z-index:28;">PHOTOMONTAGE</div>
+
+  <div class="txt font-mono" style="top:500px;left:60px;font-size:10px;color:#1a1a1a;transform:rotate(2deg);z-index:25;line-height:1.7;opacity:0.85;">
+    ████░░██░░████░░██<br>
+    ░░████░░██░░████░░<br>
+    no meaning found<br>
+    no meaning wanted<br>
+    ████░░██░░████░░██
+  </div>
+
+  <div class="txt font-abril" style="top:550px;left:220px;font-size:56px;color:#c0392b;transform:rotate(-3deg);z-index:32;mix-blend-mode:multiply;opacity:0.9;">chaos</div>
+
+  <!-- Overlapping repeated word -->
+  <div class="txt font-bebas" style="top:610px;left:40px;font-size:18px;color:#1a1a1a;transform:rotate(-1deg);z-index:25;letter-spacing:0.3em;opacity:0.5;">ZUFALL · ZUFALL · ZUFALL · ZUFALL · ZUFALL</div>
+
+  <!-- Huge background typography ghost -->
+  <div class="txt font-bebas" style="top:350px;left:0px;font-size:220px;color:#1a1a1a;transform:rotate(-8deg);z-index:1;opacity:0.04;pointer-events:none;letter-spacing:-10px;">KUNST</div>
+
+  <!-- Hole-punch circles -->
+  <div class="hole" style="width:22px;height:22px;top:100px;left:600px;z-index:40;"></div>
+  <div class="hole" style="width:16px;height:16px;top:340px;left:580px;z-index:40;"></div>
+  <div class="hole" style="width:18px;height:18px;top:580px;left:620px;z-index:40;"></div>
+
+  <!-- CROSS / X ornament -->
+  <div class="ornament" style="top:430px;left:490px;font-size:60px;color:#f1c40f;transform:rotate(15deg);z-index:28;line-height:1;">✕</div>
+
+  <!-- OVERPRINTED NONSENSE LATIN -->
+  <div class="txt font-mono" style="top:170px;left:330px;font-size:8px;color:#1a1a1a;transform:rotate(2deg);z-index:27;line-height:1.5;opacity:0.7;max-width:120px;">
+    nullus ordo<br>
+    res sine causa<br>
+    machina absurda<br>
+    non serviam<br>
+    tabula rasa<br>
+    ex nihilo nihil
+  </div>
+
+  <!-- TICKER TAPE -->
+  <div class="ticker-wrap" style="z-index:33;">
+    <span class="ticker-inner">
+      DADA · ANTI-KUNST · TZARA · BALL · ARP · HAUSMANN · ZÜRICH 1916 · ZUFALLSGEDICHT · PHOTOMONTAGE · CABARET VOLTAIRE · DADA · ANTI-KUNST · TZARA · BALL · ARP · HAUSMANN · ZÜRICH 1916 · ZUFALLSGEDICHT · PHOTOMONTAGE · CABARET VOLTAIRE ·&nbsp;
+    </span>
+  </div>
+
+  <!-- Bottom chaos text cluster -->
+  <div class="txt font-special" style="bottom:100px;right:80px;font-size:13px;color:#2471a3;transform:rotate(9deg);z-index:32;line-height:1.8;">
+    ¿QUÉ ES ESTO?<br>
+    Was ist das?<br>
+    WHAT IS ART?<br>
+    <span style="font-size:20px;font-family:'Bebas Neue';letter-spacing:0.1em;">NOTHING.</span>
+  </div>
+
+  <!-- Invitation-style framing (deliberately wrong) -->
+  <div class="txt font-mono" style="bottom:140px;left:30px;font-size:9px;color:#888;transform:rotate(-2deg);z-index:31;line-height:1.7;opacity:0.8;">
+    Cordially invited to:<br>
+    [ ] meaning<br>
+    [ ] coherence<br>
+    [✕] destruction
+  </div>
+
+</div>
+
+</body>
+</html>

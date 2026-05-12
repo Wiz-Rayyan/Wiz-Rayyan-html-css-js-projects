@@ -1,0 +1,372 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #000; }
+
+  #ps1-root {
+    background: #0a0010;
+    min-height: 100vh;
+    font-family: 'Press Start 2P', monospace;
+    color: #c8ffc8;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* CRT scanlines */
+  #ps1-root::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.18) 2px,
+      rgba(0,0,0,0.18) 4px
+    );
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  /* CRT vignette */
+  #ps1-root::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.75) 100%);
+    pointer-events: none;
+    z-index: 99;
+  }
+
+  .ps1-header {
+    text-align: center;
+    padding: 18px 0 4px;
+    position: relative;
+    z-index: 10;
+  }
+  .ps1-header h1 {
+    font-size: 9px;
+    color: #ffe87c;
+    text-shadow: 2px 2px #b06000, 0 0 12px #ff9900aa;
+    letter-spacing: 2px;
+  }
+  .ps1-header p {
+    font-size: 6px;
+    color: #888;
+    margin-top: 6px;
+    letter-spacing: 1px;
+  }
+
+  .ps1-canvas-wrap {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 260px;
+    position: relative;
+    z-index: 10;
+  }
+
+  canvas#ps1canvas {
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    border: 2px solid #333;
+    box-shadow: none;
+    display: block;
+  }
+
+  .ps1-hud {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 24px;
+    font-size: 6px;
+    color: #c8ffc8;
+    position: relative;
+    z-index: 10;
+    border-top: 1px solid #1a1a2e;
+  }
+
+  .ps1-menu {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    padding: 8px;
+    position: relative;
+    z-index: 10;
+    flex-wrap: wrap;
+  }
+
+  .ps1-btn {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 6px;
+    background: transparent;
+    border: 1px solid #444;
+    color: #aaa;
+    padding: 6px 10px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: none;
+    image-rendering: pixelated;
+  }
+  .ps1-btn:hover, .ps1-btn.active {
+    background: #1a0030;
+    border-color: #c8ffc8;
+    color: #c8ffc8;
+    box-shadow: none;
+  }
+  .ps1-btn.active { border-color: #ffe87c; color: #ffe87c; }
+
+  .ps1-info {
+    text-align: center;
+    padding: 6px 20px 12px;
+    font-size: 6px;
+    color: #666;
+    letter-spacing: 1px;
+    position: relative;
+    z-index: 10;
+    line-height: 2;
+  }
+  .ps1-info span { color: #ffe87c; }
+
+  .ps1-footer {
+    text-align: center;
+    font-size: 5px;
+    color: #333;
+    padding-bottom: 10px;
+    position: relative;
+    z-index: 10;
+    letter-spacing: 2px;
+  }
+
+  .blink { animation: blink 1s step-end infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+</style>
+
+<div id="ps1-root">
+  <div class="ps1-header">
+    <h1>◆ POLY.EXE ◆</h1>
+    <p>MEMORY CARD LOADED  ●  FREE BLOCKS: 12</p>
+  </div>
+
+  <div class="ps1-canvas-wrap">
+    <canvas id="ps1canvas" width="240" height="200"></canvas>
+  </div>
+
+  <div class="ps1-hud">
+    <span>HP ▓▓▓▓▓▓░░  62%</span>
+    <span class="blink">● REC</span>
+    <span>POLYS: <span id="polycount">0</span></span>
+    <span>FPS: <span id="fps">30</span></span>
+  </div>
+
+  <div class="ps1-menu">
+    <button class="ps1-btn active" id="btn-cube" onclick="setShape('cube')">▣ CUBE</button>
+    <button class="ps1-btn" id="btn-pyramid" onclick="setShape('pyramid')">▲ PYRAMID</button>
+    <button class="ps1-btn" id="btn-gem" onclick="setShape('gem')">◆ GEM</button>
+    <button class="ps1-btn" id="btn-skull" onclick="setShape('skull')">☠ SKULL</button>
+  </div>
+
+  <div class="ps1-info">
+    JITTER: <span id="jitter-val">ON</span> &nbsp;|&nbsp;
+    WARP: <span id="warp-val">ON</span> &nbsp;|&nbsp;
+    SCENE: <span id="scene-name">CUBE</span>
+  </div>
+
+  <div class="ps1-footer">© 1997 POLYSYSTEMS INC. ALL RIGHTS RESERVED &nbsp;|&nbsp; <span class="blink">INSERT COIN</span></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function() {
+  const canvas = document.getElementById('ps1canvas');
+  const W = 240, H = 200;
+  canvas.width = W; canvas.height = H;
+
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: false });
+  renderer.setSize(W, H);
+  renderer.setPixelRatio(1);
+  renderer.shadowMap.enabled = false;
+  renderer.outputEncoding = THREE.LinearEncoding;
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0a0010);
+  scene.fog = new THREE.Fog(0x0a0010, 8, 20);
+
+  const camera = new THREE.PerspectiveCamera(60, W / H, 0.1, 100);
+  camera.position.set(0, 1.2, 4.5);
+  camera.lookAt(0, 0, 0);
+
+  // PS1-style flat/gouraud lighting
+  const ambientLight = new THREE.AmbientLight(0x1a0040, 1.5);
+  scene.add(ambientLight);
+  const dirLight = new THREE.DirectionalLight(0xff8844, 2.5);
+  dirLight.position.set(2, 3, 2);
+  scene.add(dirLight);
+  const fill = new THREE.DirectionalLight(0x4488ff, 1.0);
+  fill.position.set(-2, -1, -2);
+  scene.add(fill);
+
+  // Grid floor
+  const gridHelper = new THREE.GridHelper(12, 12, 0x220033, 0x110022);
+  gridHelper.position.y = -1.5;
+  scene.add(gridHelper);
+
+  // PS1 palette — flat vertex colors
+  const ps1Colors = [
+    0xff3300, 0xff9900, 0xffdd00,
+    0x00ff88, 0x00ccff, 0x8844ff,
+    0xff44cc, 0xffffff, 0x44ffaa
+  ];
+
+  function ps1Mat() {
+    return new THREE.MeshLambertMaterial({
+      vertexColors: true,
+      flatShading: true,
+      wireframe: false
+    });
+  }
+
+  function colorGeo(geo) {
+    const count = geo.attributes.position.count;
+    const colors = new Float32Array(count * 3);
+    const faceCount = count / 3;
+    for (let f = 0; f < faceCount; f++) {
+      const c = new THREE.Color(ps1Colors[f % ps1Colors.length]);
+      const dark = 0.5 + Math.random() * 0.5;
+      for (let v = 0; v < 3; v++) {
+        colors[(f * 3 + v) * 3 + 0] = c.r * dark;
+        colors[(f * 3 + v) * 3 + 1] = c.g * dark;
+        colors[(f * 3 + v) * 3 + 2] = c.b * dark;
+      }
+    }
+    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    return geo;
+  }
+
+  function makeCube() {
+    const g = new THREE.BoxGeometry(1.8, 1.8, 1.8, 1, 1, 1);
+    return new THREE.Mesh(colorGeo(g), ps1Mat());
+  }
+
+  function makePyramid() {
+    const g = new THREE.ConeGeometry(1.4, 2.2, 4, 1);
+    return new THREE.Mesh(colorGeo(g), ps1Mat());
+  }
+
+  function makeGem() {
+    const g = new THREE.OctahedronGeometry(1.4, 0);
+    return new THREE.Mesh(colorGeo(g), ps1Mat());
+  }
+
+  function makeSkull() {
+    // Low-poly skull approximation from boxes
+    const group = new THREE.Group();
+    const headG = new THREE.BoxGeometry(1.6, 1.6, 1.4, 1,1,1);
+    colorGeo(headG);
+    const head = new THREE.Mesh(headG, ps1Mat());
+    head.position.y = 0.1;
+    group.add(head);
+    const jawG = new THREE.BoxGeometry(1.3, 0.5, 1.1, 1,1,1);
+    colorGeo(jawG);
+    const jaw = new THREE.Mesh(jawG, ps1Mat());
+    jaw.position.y = -0.75;
+    group.add(jaw);
+    return group;
+  }
+
+  const shapes = { cube: makeCube, pyramid: makePyramid, gem: makeGem, skull: makeSkull };
+  let currentMesh = null;
+  let currentShape = 'cube';
+  let jitterOn = true;
+  let warpOn = true;
+  let origPositions = null;
+
+  function setShape(name) {
+    currentShape = name;
+    document.querySelectorAll('.ps1-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('btn-' + name).classList.add('active');
+    document.getElementById('scene-name').textContent = name.toUpperCase();
+
+    if (currentMesh) scene.remove(currentMesh);
+    currentMesh = shapes[name]();
+    scene.add(currentMesh);
+
+    // Store original positions for jitter
+    if (currentMesh.geometry) {
+      origPositions = currentMesh.geometry.attributes.position.array.slice();
+      document.getElementById('polycount').textContent = Math.floor(currentMesh.geometry.attributes.position.count / 3);
+    } else {
+      origPositions = null;
+      document.getElementById('polycount').textContent = '~18';
+    }
+  }
+
+  window.setShape = setShape;
+  setShape('cube');
+
+  // Stars
+  const starGeo = new THREE.BufferGeometry();
+  const starCount = 80;
+  const starPos = new Float32Array(starCount * 3);
+  for (let i = 0; i < starCount; i++) {
+    starPos[i*3] = (Math.random()-0.5)*30;
+    starPos[i*3+1] = (Math.random()-0.5)*16;
+    starPos[i*3+2] = (Math.random()-0.5)*20 - 5;
+  }
+  starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+  const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.06, sizeAttenuation: true });
+  scene.add(new THREE.Points(starGeo, starMat));
+
+  let frame = 0;
+  let lastTime = 0;
+
+  function animate(now) {
+    requestAnimationFrame(animate);
+    const delta = now - lastTime;
+    if (delta < 33) return; // cap at ~30fps (PS1 feel)
+    lastTime = now;
+    frame++;
+
+    if (currentMesh) {
+      currentMesh.rotation.y += 0.03;
+      currentMesh.rotation.x += 0.01;
+
+      // Vertex jitter (PS1 affine texture warping effect)
+      if (jitterOn && currentMesh.geometry && origPositions) {
+        const pos = currentMesh.geometry.attributes.position;
+        for (let i = 0; i < pos.count; i++) {
+          const snap = 0.06;
+          pos.setX(i, Math.round((origPositions[i*3]+0) / snap) * snap + (Math.random()-0.5)*0.04);
+          pos.setY(i, Math.round((origPositions[i*3+1]) / snap) * snap + (Math.random()-0.5)*0.04);
+          pos.setZ(i, Math.round((origPositions[i*3+2]) / snap) * snap + (Math.random()-0.5)*0.04);
+        }
+        pos.needsUpdate = true;
+      }
+    }
+
+    // Camera warp (PS1 swimming camera)
+    if (warpOn) {
+      camera.position.x = Math.sin(frame * 0.015) * 0.12;
+      camera.position.y = 1.2 + Math.sin(frame * 0.022) * 0.08;
+      camera.lookAt(0, 0, 0);
+    }
+
+    renderer.render(scene, camera);
+  }
+
+  requestAnimationFrame(animate);
+
+  // FPS display
+  let fpsFrames = 0, fpsTime = performance.now();
+  setInterval(() => {
+    const now = performance.now();
+    const fps = Math.round(fpsFrames / ((now - fpsTime) / 1000));
+    document.getElementById('fps').textContent = Math.min(fps, 30);
+    fpsFrames = 0;
+    fpsTime = now;
+  }, 1000);
+  renderer.setAnimationLoop(() => { fpsFrames++; });
+})();
+</script>

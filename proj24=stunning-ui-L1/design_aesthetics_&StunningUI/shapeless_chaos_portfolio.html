@@ -1,0 +1,154 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #fff; }
+#stage {
+  position: relative;
+  width: 100%;
+  height: 620px;
+  background: #fff;
+  overflow: hidden;
+  cursor: crosshair;
+}
+.card {
+  position: absolute;
+  background: #fff;
+  border: 1.5px solid #000;
+  padding: 14px 18px;
+  font-family: var(--font-sans, monospace);
+  color: #000;
+  font-size: 13px;
+  line-height: 1.5;
+  max-width: 220px;
+  will-change: transform, top, left;
+  transition: top 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+              left 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+              transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+              width 0.8s ease,
+              font-size 0.8s ease;
+}
+.card .label {
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #888;
+  margin-bottom: 4px;
+}
+.card .title {
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.2;
+  margin-bottom: 6px;
+}
+.card .body {
+  font-size: 12px;
+  color: #444;
+  line-height: 1.5;
+}
+.card.inverted {
+  background: #000;
+  border-color: #000;
+  color: #fff;
+}
+.card.inverted .label { color: #888; }
+.card.inverted .body { color: #ccc; }
+#chaos-label {
+  position: absolute;
+  bottom: 14px;
+  right: 16px;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #bbb;
+  pointer-events: none;
+  z-index: 10;
+}
+#timer-bar {
+  position: absolute;
+  bottom: 0; left: 0;
+  height: 2px;
+  background: #000;
+  width: 100%;
+  transform-origin: left;
+  z-index: 10;
+}
+</style>
+<h2 class="sr-only">Shapeless / Unformed Web — an experimental anti-design portfolio where cards reposition randomly every 3 seconds.</h2>
+<div id="stage">
+  <div id="chaos-label">chaos / active</div>
+  <div id="timer-bar"></div>
+</div>
+<script>
+const cards = [
+  { label: "work", title: "Brutalist Archive", body: "A collection of things that refuse to be contained.", inverted: false },
+  { label: "process", title: "Anti-Grid", body: "No columns. No rows. No apologies.", inverted: true },
+  { label: "identity", title: "????", body: "Name not decided yet. Form unknown.", inverted: false },
+  { label: "about", title: "Somewhere in between", body: "Designer / developer / neither / both.", inverted: false },
+  { label: "contact", title: "hello@—", body: "Find me if you can.", inverted: true },
+  { label: "year", title: "2024–∞", body: "Ongoing. Unfinished. Probably always.", inverted: false },
+  { label: "medium", title: "Web as material", body: "Screen, pixel, cursor, void.", inverted: true },
+  { label: "philosophy", title: "Order is a lie", body: "Every layout is temporary.", inverted: false },
+  { label: "status", title: "Loading…", body: "Or maybe it's done. Hard to say.", inverted: false },
+];
+
+const stage = document.getElementById('stage');
+const stageW = () => stage.offsetWidth;
+const stageH = () => stage.offsetHeight;
+const els = [];
+
+function rand(min, max) { return Math.random() * (max - min) + min; }
+
+function makeCard(data) {
+  const el = document.createElement('div');
+  el.className = 'card' + (data.inverted ? ' inverted' : '');
+  el.innerHTML = `<div class="label">${data.label}</div><div class="title">${data.title}</div><div class="body">${data.body}</div>`;
+  stage.appendChild(el);
+  return el;
+}
+
+function scatter(el) {
+  const w = stageW();
+  const h = stageH();
+  const cardW = Math.round(rand(130, 210));
+  const cardH = 90;
+  const top = Math.round(rand(10, h - cardH - 10));
+  const left = Math.round(rand(5, w - cardW - 5));
+  const rotate = rand(-6, 6).toFixed(1);
+  const size = rand(11, 15).toFixed(1);
+  el.style.top = top + 'px';
+  el.style.left = left + 'px';
+  el.style.width = cardW + 'px';
+  el.style.transform = `rotate(${rotate}deg)`;
+  el.style.fontSize = size + 'px';
+}
+
+cards.forEach(data => {
+  const el = makeCard(data);
+  scatter(el);
+  els.push(el);
+});
+
+const bar = document.getElementById('timer-bar');
+let startTime = Date.now();
+const interval = 3000;
+
+function animateBar() {
+  const elapsed = Date.now() - startTime;
+  const progress = Math.min(elapsed / interval, 1);
+  bar.style.transform = `scaleX(${1 - progress})`;
+  if (progress < 1) requestAnimationFrame(animateBar);
+}
+
+animateBar();
+setInterval(() => {
+  els.forEach(el => scatter(el));
+  startTime = Date.now();
+  animateBar();
+}, interval);
+
+stage.addEventListener('click', () => {
+  els.forEach(el => scatter(el));
+  startTime = Date.now();
+  animateBar();
+});
+</script>

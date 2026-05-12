@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: #0a0400;
+    color: #fff;
+    overflow-x: hidden;
+  }
+
+  .hero {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    padding: 60px 40px 80px;
+    text-align: center;
+  }
+
+  .hero-bg {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 30% 40%, #FFD700 0%, #FF8C00 40%, #E84400 70%, #2a0800 100%);
+    filter: brightness(1.05);
+    z-index: 0;
+  }
+
+  .sun-flare {
+    position: absolute;
+    top: 18%;
+    left: 28%;
+    width: 320px;
+    height: 320px;
+    background: radial-gradient(circle, rgba(255,255,255,0.55) 0%, rgba(255,220,0,0.3) 30%, transparent 70%);
+    border-radius: 50%;
+    z-index: 1;
+    animation: pulse-flare 3s ease-in-out infinite alternate;
+  }
+
+  .sun-flare-rays {
+    position: absolute;
+    top: 10%;
+    left: 22%;
+    width: 440px;
+    height: 440px;
+    z-index: 1;
+    opacity: 0.4;
+    animation: spin-slow 18s linear infinite;
+  }
+
+  .overlay-dark {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(10,4,0,0.15) 60%, rgba(10,4,0,0.55) 100%);
+    z-index: 2;
+  }
+
+  canvas#sparkle-canvas {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    pointer-events: none;
+  }
+
+  .hero-content {
+    position: relative;
+    z-index: 4;
+    max-width: 700px;
+  }
+
+  .eyebrow {
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    font-size: 13px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.75);
+    margin-bottom: 20px;
+  }
+
+  .hero-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(80px, 14vw, 130px);
+    line-height: 0.92;
+    letter-spacing: 0.02em;
+    color: #fff;
+    text-shadow: 0 0 80px rgba(255,200,0,0.6), 0 2px 40px rgba(255,100,0,0.4);
+    margin-bottom: 28px;
+  }
+
+  .hero-title span {
+    display: block;
+    color: #FFE44D;
+    text-shadow: 0 0 60px rgba(255,220,0,0.9), 0 0 120px rgba(255,150,0,0.5);
+  }
+
+  .hero-sub {
+    font-size: 18px;
+    font-weight: 300;
+    color: rgba(255,255,255,0.85);
+    line-height: 1.6;
+    max-width: 480px;
+    margin: 0 auto 44px;
+    font-style: italic;
+  }
+
+  .cta-row {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .btn-primary {
+    background: #fff;
+    color: #C24800;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 500;
+    font-size: 15px;
+    padding: 16px 40px;
+    border: none;
+    border-radius: 100px;
+    cursor: pointer;
+    letter-spacing: 0.04em;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    box-shadow: 0 4px 30px rgba(255,180,0,0.5);
+  }
+
+  .btn-primary:hover {
+    transform: scale(1.04);
+    box-shadow: 0 8px 50px rgba(255,200,0,0.6);
+  }
+
+  .btn-secondary {
+    background: transparent;
+    color: #fff;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 400;
+    font-size: 15px;
+    padding: 15px 38px;
+    border: 1.5px solid rgba(255,255,255,0.5);
+    border-radius: 100px;
+    cursor: pointer;
+    letter-spacing: 0.04em;
+    transition: transform 0.25s ease, border-color 0.25s ease, background 0.25s ease;
+  }
+
+  .btn-secondary:hover {
+    transform: scale(1.04);
+    border-color: #FFD700;
+    background: rgba(255,215,0,0.1);
+  }
+
+  .stats-bar {
+    position: relative;
+    z-index: 5;
+    background: rgba(255,255,255,0.08);
+    backdrop-filter: blur(12px);
+    border-top: 1px solid rgba(255,255,255,0.12);
+    padding: 28px 40px;
+    display: flex;
+    justify-content: center;
+    gap: 0;
+  }
+
+  .stat {
+    flex: 1;
+    max-width: 200px;
+    text-align: center;
+    padding: 0 24px;
+    border-right: 1px solid rgba(255,255,255,0.12);
+  }
+
+  .stat:last-child { border-right: none; }
+
+  .stat-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 42px;
+    color: #FFD700;
+    line-height: 1;
+    letter-spacing: 0.02em;
+  }
+
+  .stat-label {
+    font-size: 12px;
+    font-weight: 300;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.55);
+    margin-top: 4px;
+  }
+
+  .features {
+    background: #0a0400;
+    padding: 80px 40px;
+  }
+
+  .section-label {
+    font-size: 12px;
+    font-weight: 300;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: #FF8C00;
+    text-align: center;
+    margin-bottom: 16px;
+  }
+
+  .section-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(42px, 6vw, 64px);
+    text-align: center;
+    color: #fff;
+    line-height: 1;
+    margin-bottom: 56px;
+    letter-spacing: 0.02em;
+  }
+
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    max-width: 860px;
+    margin: 0 auto;
+  }
+
+  .card {
+    background: linear-gradient(135deg, rgba(255,150,0,0.1), rgba(255,50,0,0.05));
+    border: 1px solid rgba(255,180,0,0.18);
+    border-radius: 20px;
+    padding: 32px 24px;
+    transition: transform 0.28s ease, border-color 0.28s ease;
+    cursor: default;
+  }
+
+  .card:hover {
+    transform: scale(1.02) translateY(-4px);
+    border-color: rgba(255,215,0,0.4);
+  }
+
+  .card-icon {
+    font-size: 32px;
+    margin-bottom: 16px;
+    display: block;
+  }
+
+  .card-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 24px;
+    color: #FFD700;
+    letter-spacing: 0.04em;
+    margin-bottom: 10px;
+  }
+
+  .card-text {
+    font-size: 14px;
+    font-weight: 300;
+    line-height: 1.65;
+    color: rgba(255,255,255,0.6);
+  }
+
+  .cta-band {
+    background: radial-gradient(circle at 50% 50%, #FF8C00 0%, #FF4500 60%, #1a0400 100%);
+    padding: 80px 40px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cta-band-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(50px, 9vw, 88px);
+    color: #fff;
+    line-height: 0.95;
+    letter-spacing: 0.02em;
+    margin-bottom: 28px;
+    text-shadow: 0 0 60px rgba(255,200,0,0.5);
+  }
+
+  .cta-band-sub {
+    font-size: 16px;
+    font-weight: 300;
+    color: rgba(255,255,255,0.8);
+    margin-bottom: 40px;
+  }
+
+  @keyframes pulse-flare {
+    from { opacity: 0.7; transform: scale(1); }
+    to { opacity: 1; transform: scale(1.08); }
+  }
+
+  @keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  @keyframes fade-in {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .hero-content { animation: fade-in 0.9s ease both; }
+  .stats-bar { animation: fade-in 1.1s ease 0.3s both; }
+  .cards .card:nth-child(1) { animation: fade-in 0.7s ease 0.1s both; }
+  .cards .card:nth-child(2) { animation: fade-in 0.7s ease 0.22s both; }
+  .cards .card:nth-child(3) { animation: fade-in 0.7s ease 0.34s both; }
+</style>
+</head>
+<body>
+
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="sun-flare"></div>
+
+  <svg class="sun-flare-rays" viewBox="0 0 440 440" xmlns="http://www.w3.org/2000/svg">
+    <g transform="translate(220,220)">
+      <line x1="0" y1="-210" x2="0" y2="-120" stroke="rgba(255,255,220,0.5)" stroke-width="2" stroke-linecap="round"/>
+      <line x1="0" y1="-210" x2="0" y2="-120" stroke="rgba(255,255,220,0.5)" stroke-width="2" stroke-linecap="round" transform="rotate(22.5)"/>
+      <line x1="0" y1="-210" x2="0" y2="-120" stroke="rgba(255,255,220,0.5)" stroke-width="2" stroke-linecap="round" transform="rotate(45)"/>
+      <line x1="0" y1="-210" x2="0" y2="-120" stroke="rgba(255,255,220,0.5)" stroke-width="2" stroke-linecap="round" transform="rotate(67.5)"/>
+      <line x1="0" y1="-210" x2="0" y2="-120" stroke="rgba(255,255,220,0.5)" stroke-width="2" stroke-linecap="round" transform="rotate(90)"/>
+      <line x1="0" y1="-210" x2="0" y2="-120" stroke="rgba(255,255,220,0.5)" stroke-width="2" stroke-linecap="round" transform="rotate(112.5)"/>
+      <line x1="0" y1="-210" x2="0" y2="-120" stroke="rgba(255,255,220,0.5)" stroke-width="2" stroke-linecap="round" transform="rotate(135)"/>
+      <line x1="0" y1="-210" x2="0" y2="-120" stroke="rgba(255,255,220,0.5)" stroke-width="2" stroke-linecap="round" transform="rotate(157.5)"/>
+      <line x1="0" y1="-210" x2="0" y2="-120" stroke="rgba(255,255,220,0.5)" stroke-width="2" stroke-linecap="round" transform="rotate(180)"/>
+      <line x1="0" y1="-210" x2="0" y2="-120" stroke="rgba(255,255,220,0.5)" stroke-width="2" stroke-linecap="round" transform="rotate(202.5)"/>
+      <line x1="0" y1="-210" x2="0" y2="-120" stroke="rgba(255,255,220,0.5)" stroke-width="2" stroke-linecap="round" transform="rotate(225)"/>
+      <line x1="0" y1="-210" x2="0" y2="-120" stroke="rgba(255,255,220,0.5)" stroke-width="2" stroke-linecap="round" transform="rotate(247.5)"/>
+      <line x1="0" y1="-210" x2="0" y2="-120" stroke="rgba(255,255,220,0.5)" stroke-width="2" stroke-linecap="round" transform="rotate(270)"/>
+      <line x1="0" y1="-210" x2="0" y2="-120" stroke="rgba(255,255,220,0.5)" stroke-width="2" stroke-linecap="round" transform="rotate(292.5)"/>
+      <line x1="0" y1="-210" x2="0" y2="-120" stroke="rgba(255,255,220,0.5)" stroke-width="2" stroke-linecap="round" transform="rotate(315)"/>
+      <line x1="0" y1="-210" x2="0" y2="-120" stroke="rgba(255,255,220,0.5)" stroke-width="2" stroke-linecap="round" transform="rotate(337.5)"/>
+    </g>
+  </svg>
+
+  <div class="overlay-dark"></div>
+  <canvas id="sparkle-canvas"></canvas>
+
+  <div class="hero-content">
+    <p class="eyebrow">Feel everything, hold nothing back</p>
+    <h1 class="hero-title">
+      Pure<br><span>Euphoria</span>
+    </h1>
+    <p class="hero-sub">Radiant energy for the ones who burn brightest. Ignite every moment.</p>
+    <div class="cta-row">
+      <button class="btn-primary">Feel the Rush →</button>
+      <button class="btn-secondary">Our Story</button>
+    </div>
+  </div>
+</section>
+
+<div class="stats-bar">
+  <div class="stat">
+    <div class="stat-num">2M+</div>
+    <div class="stat-label">Believers</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">48h</div>
+    <div class="stat-label">Festival Fuel</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">100%</div>
+    <div class="stat-label">Pure Energy</div>
+  </div>
+</div>
+
+<section class="features">
+  <p class="section-label">Why Euphoria</p>
+  <h2 class="section-title">Built for the<br>radiant ones</h2>
+  <div class="cards">
+    <div class="card">
+      <span class="card-icon">⚡</span>
+      <div class="card-title">Instant Ignition</div>
+      <p class="card-text">Zero lag, maximum output. Feel the surge in under three minutes, sustained for hours.</p>
+    </div>
+    <div class="card">
+      <span class="card-icon">🌞</span>
+      <div class="card-title">Sun-Sourced</div>
+      <p class="card-text">Natural caffeine, real citrus, golden ginger. Nothing artificial — just pure radiant fuel.</p>
+    </div>
+    <div class="card">
+      <span class="card-icon">✦</span>
+      <div class="card-title">No Crash Zone</div>
+      <p class="card-text">Adaptogen-balanced formula keeps you bright, clear, and steady from dawn to dusk.</p>
+    </div>
+  </div>
+</section>
+
+<section class="cta-band">
+  <h2 class="cta-band-title">Ready to<br>Radiate?</h2>
+  <p class="cta-band-sub">Join the brightest community on the planet.</p>
+  <button class="btn-primary" style="font-size:16px; padding:18px 52px;">Claim Your Can →</button>
+</section>
+
+<script>
+const canvas = document.getElementById('sparkle-canvas');
+const hero = canvas.parentElement;
+
+function resize() {
+  canvas.width = hero.offsetWidth;
+  canvas.height = hero.offsetHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+const ctx = canvas.getContext('2d');
+const sparks = [];
+
+function rand(a, b) { return a + Math.random() * (b - a); }
+
+for (let i = 0; i < 60; i++) {
+  sparks.push({
+    x: rand(0, 1),
+    y: rand(0, 1),
+    size: rand(1, 3.5),
+    alpha: 0,
+    phase: rand(0, Math.PI * 2),
+    speed: rand(0.4, 1.1),
+    type: Math.random() < 0.4 ? 'star' : 'dot'
+  });
+}
+
+function drawStar(ctx, cx, cy, r, alpha) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = '#fff';
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 0.8;
+  ctx.beginPath();
+  for (let i = 0; i < 4; i++) {
+    const angle = (i / 4) * Math.PI * 2;
+    const x1 = cx + Math.cos(angle) * r * 3;
+    const y1 = cy + Math.sin(angle) * r * 3;
+    const x2 = cx + Math.cos(angle + Math.PI / 4) * r * 0.6;
+    const y2 = cy + Math.sin(angle + Math.PI / 4) * r * 0.6;
+    if (i === 0) { ctx.moveTo(x1, y1); } else { ctx.lineTo(x1, y1); }
+    ctx.lineTo(x2, y2);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+let t = 0;
+function animate() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  t += 0.016;
+  sparks.forEach(s => {
+    s.alpha = (Math.sin(t * s.speed + s.phase) * 0.5 + 0.5);
+    const px = s.x * canvas.width;
+    const py = s.y * canvas.height;
+    if (s.type === 'star') {
+      drawStar(ctx, px, py, s.size, s.alpha * 0.85);
+    } else {
+      ctx.save();
+      ctx.globalAlpha = s.alpha * 0.7;
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(px, py, s.size, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  });
+  requestAnimationFrame(animate);
+}
+animate();
+</script>
+</body>
+</html>

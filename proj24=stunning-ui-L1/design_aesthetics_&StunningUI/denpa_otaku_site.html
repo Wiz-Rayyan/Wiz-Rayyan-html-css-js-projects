@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Noto+Sans+JP:wght@400;700;900&family=Bebas+Neue&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #1A1A2E;
+    --bg2: #16213E;
+    --neon-pink: #FF2D78;
+    --neon-cyan: #00F5FF;
+    --neon-yellow: #FFE600;
+    --neon-purple: #BF00FF;
+    --mono: 'Share Tech Mono', monospace;
+    --jp: 'Noto Sans JP', sans-serif;
+    --display: 'Bebas Neue', cursive;
+  }
+
+  body {
+    background: var(--bg);
+    color: #fff;
+    font-family: var(--mono);
+    overflow-x: hidden;
+    min-height: 100vh;
+    position: relative;
+  }
+
+  /* scanlines */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.12) 2px,
+      rgba(0,0,0,0.12) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  .noise {
+    position: fixed;
+    inset: 0;
+    opacity: 0.03;
+    z-index: 9998;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 256px;
+  }
+
+  /* HEADER */
+  .site-header {
+    position: relative;
+    padding: 12px 20px 8px;
+    border-bottom: 1px solid var(--neon-pink);
+    background: #0d0d1a;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .logo-txt {
+    font-family: var(--display);
+    font-size: 42px;
+    letter-spacing: 4px;
+    color: var(--neon-cyan);
+    text-shadow: 0 0 8px var(--neon-cyan), 0 0 20px var(--neon-cyan);
+    line-height: 1;
+  }
+  .logo-jp {
+    font-family: var(--jp);
+    font-size: 11px;
+    color: var(--neon-pink);
+    letter-spacing: 6px;
+    text-transform: uppercase;
+  }
+  .nav-links {
+    display: flex;
+    gap: 20px;
+    list-style: none;
+    font-size: 11px;
+    letter-spacing: 2px;
+  }
+  .nav-links li a {
+    color: #aaa;
+    text-decoration: none;
+    transition: color .2s;
+  }
+  .nav-links li a:hover { color: var(--neon-cyan); }
+  .header-badge {
+    background: var(--neon-pink);
+    color: #fff;
+    font-size: 9px;
+    padding: 3px 8px;
+    font-family: var(--mono);
+    letter-spacing: 2px;
+    animation: blink 1.4s step-end infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* MARQUEE */
+  .marquee-wrap {
+    background: var(--neon-pink);
+    overflow: hidden;
+    height: 22px;
+    display: flex;
+    align-items: center;
+  }
+  .marquee-inner {
+    display: flex;
+    white-space: nowrap;
+    animation: marquee 18s linear infinite;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: #fff;
+    font-family: var(--mono);
+  }
+  .marquee-inner span { margin-right: 60px; }
+  @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+  /* MAIN GRID */
+  .main {
+    display: grid;
+    grid-template-columns: 260px 1fr 200px;
+    grid-template-rows: auto auto;
+    gap: 0;
+    min-height: calc(100vh - 100px);
+  }
+
+  /* SIDEBAR LEFT */
+  .sidebar-left {
+    background: var(--bg2);
+    border-right: 1px solid rgba(0,245,255,0.2);
+    padding: 16px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* FIGURINE AREA */
+  .figurine-box {
+    position: relative;
+    border: 1px solid rgba(255,45,120,0.4);
+    padding: 12px;
+    background: rgba(255,45,120,0.04);
+  }
+  .fig-label {
+    font-size: 9px;
+    color: var(--neon-pink);
+    letter-spacing: 3px;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+  }
+  .figurine-svg {
+    display: block;
+    margin: 0 auto;
+  }
+
+  /* STAT BLOCKS */
+  .stat-block {
+    border: 1px solid rgba(0,245,255,0.2);
+    padding: 10px 12px;
+  }
+  .stat-label {
+    font-size: 9px;
+    color: #666;
+    letter-spacing: 2px;
+    margin-bottom: 4px;
+  }
+  .stat-val {
+    font-size: 22px;
+    font-family: var(--display);
+    color: var(--neon-cyan);
+    text-shadow: 0 0 6px var(--neon-cyan);
+  }
+  .stat-sub { font-size: 9px; color: #555; margin-top: 2px; }
+
+  .now-playing {
+    border: 1px solid rgba(191,0,255,0.4);
+    padding: 10px;
+    background: rgba(191,0,255,0.05);
+  }
+  .np-label { font-size: 8px; color: var(--neon-purple); letter-spacing: 3px; margin-bottom: 6px; }
+  .np-track { font-size: 11px; color: #ddd; }
+  .np-artist { font-size: 9px; color: #666; margin-top: 2px; }
+  .np-bar { height: 2px; background: rgba(255,255,255,0.1); margin-top: 8px; border-radius: 1px; overflow: hidden; }
+  .np-progress { height: 100%; width: 60%; background: var(--neon-purple); animation: pulse-bar 2s ease-in-out infinite; }
+  @keyframes pulse-bar { 0%,100% { opacity:1; } 50% { opacity:.5; } }
+
+  .tag-cloud {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+  .tag {
+    font-size: 9px;
+    padding: 3px 7px;
+    border: 1px solid;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all .2s;
+  }
+  .tag.pink { border-color: var(--neon-pink); color: var(--neon-pink); }
+  .tag.cyan { border-color: var(--neon-cyan); color: var(--neon-cyan); }
+  .tag.yellow { border-color: var(--neon-yellow); color: var(--neon-yellow); }
+  .tag:hover { background: rgba(255,255,255,0.05); }
+  .sidebar-section-label { font-size: 9px; color: #444; letter-spacing: 3px; margin-bottom: 6px; text-transform: uppercase; }
+
+  /* CENTER CONTENT */
+  .center-content {
+    background: var(--bg);
+    padding: 0;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* POSTER WALL */
+  .poster-wall {
+    position: relative;
+    height: 360px;
+    background: #0f0f1e;
+    border-bottom: 1px solid rgba(255,45,120,0.3);
+    overflow: hidden;
+  }
+
+  /* MANGA PANEL GRID */
+  .manga-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    grid-template-rows: 180px 120px;
+    gap: 2px;
+    padding: 16px;
+    border-bottom: 1px solid rgba(0,245,255,0.15);
+  }
+  .panel {
+    background: #0a0a18;
+    border: 1px solid rgba(255,255,255,0.08);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: flex-end;
+    padding: 10px;
+  }
+  .panel.span-row { grid-row: span 2; }
+  .panel-label {
+    font-size: 9px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    z-index: 2;
+    position: relative;
+  }
+  .panel-sfx {
+    position: absolute;
+    font-family: var(--display);
+    opacity: 0.12;
+    pointer-events: none;
+  }
+
+  /* BLOG POSTS */
+  .post-list { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .post-item {
+    border: 1px solid rgba(255,255,255,0.07);
+    padding: 12px 14px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    transition: border-color .2s;
+    cursor: pointer;
+    background: rgba(255,255,255,0.01);
+  }
+  .post-item:hover { border-color: var(--neon-pink); }
+  .post-num { font-size: 28px; font-family: var(--display); color: rgba(255,255,255,0.1); line-height: 1; min-width: 32px; }
+  .post-meta { flex: 1; }
+  .post-date { font-size: 9px; color: #555; letter-spacing: 2px; margin-bottom: 4px; }
+  .post-title { font-size: 13px; color: #ddd; line-height: 1.4; margin-bottom: 5px; font-family: var(--jp); }
+  .post-tags { display: flex; gap: 5px; flex-wrap: wrap; }
+  .post-tag { font-size: 8px; padding: 2px 6px; background: rgba(255,45,120,0.15); color: var(--neon-pink); letter-spacing: 1px; }
+
+  /* SIDEBAR RIGHT */
+  .sidebar-right {
+    background: var(--bg2);
+    border-left: 1px solid rgba(255,45,120,0.2);
+    padding: 14px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .energy-cans {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .side-section-label { font-size: 8px; color: #444; letter-spacing: 3px; margin-bottom: 8px; text-transform: uppercase; }
+  .watch-list { display: flex; flex-direction: column; gap: 6px; }
+  .watch-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 10px;
+    color: #888;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    cursor: pointer;
+    font-family: var(--jp);
+  }
+  .watch-item:hover { color: var(--neon-cyan); }
+  .watch-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .dot-pink { background: var(--neon-pink); box-shadow: 0 0 4px var(--neon-pink); }
+  .dot-cyan { background: var(--neon-cyan); box-shadow: 0 0 4px var(--neon-cyan); }
+  .dot-gray { background: #444; }
+
+  .progress-bars { display: flex; flex-direction: column; gap: 7px; }
+  .pbar-label { font-size: 8px; color: #666; letter-spacing: 1px; margin-bottom: 3px; display: flex; justify-content: space-between; }
+  .pbar-track { height: 3px; background: rgba(255,255,255,0.08); }
+  .pbar-fill { height: 100%; }
+
+  .quote-box {
+    border-left: 2px solid var(--neon-yellow);
+    padding: 8px 10px;
+    background: rgba(255,230,0,0.04);
+  }
+  .quote-txt { font-size: 10px; color: #aaa; line-height: 1.6; font-family: var(--jp); }
+  .quote-src { font-size: 8px; color: var(--neon-yellow); margin-top: 5px; letter-spacing: 1px; }
+
+  /* FOOTER */
+  .site-footer {
+    background: #0d0d1a;
+    border-top: 1px solid rgba(0,245,255,0.2);
+    padding: 12px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 9px;
+    color: #444;
+    letter-spacing: 2px;
+  }
+  .footer-glyph { font-family: var(--display); font-size: 14px; color: rgba(0,245,255,0.3); }
+
+  /* VISITOR counter */
+  .visitor-box {
+    display: flex;
+    gap: 2px;
+    font-family: var(--display);
+    font-size: 18px;
+    color: var(--neon-cyan);
+    text-shadow: 0 0 5px var(--neon-cyan);
+  }
+
+  /* Floating sticker */
+  .sticker {
+    position: absolute;
+    font-family: var(--mono);
+    font-size: 9px;
+    padding: 3px 7px;
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  /* Poster clip path shapes */
+  .poster-clip { clip-path: polygon(0 0, 92% 0, 100% 8%, 100% 100%, 8% 100%, 0 92%); }
+  .poster-clip2 { clip-path: polygon(8% 0, 100% 0, 100% 92%, 92% 100%, 0 100%, 0 8%); }
+</style>
+
+<div class="noise"></div>
+
+<!-- HEADER -->
+<header class="site-header">
+  <div>
+    <div class="logo-txt">DENPAWEB</div>
+    <div class="logo-jp">電波　おたく　ブログ</div>
+  </div>
+  <nav>
+    <ul class="nav-links">
+      <li><a href="#">ANIME</a></li>
+      <li><a href="#">MANGA</a></li>
+      <li><a href="#">FIGURES</a></li>
+      <li><a href="#">GALLERY</a></li>
+      <li><a href="#">ABOUT</a></li>
+    </ul>
+  </nav>
+  <div class="header-badge">● LIVE</div>
+</header>
+
+<!-- MARQUEE -->
+<div class="marquee-wrap">
+  <div class="marquee-inner">
+    <span>★ NOW WATCHING: Dungeon Meshi S3</span>
+    <span>★ FIGURE UNBOXING: Nendoroid Mio #483</span>
+    <span>★ NEW POST: Best openings of 2025 ranked</span>
+    <span>★ MANGA HAUL: 47 volumes in one order (mom is furious)</span>
+    <span>★ CURRENTLY: 3AM watching backlog again</span>
+    <span>★ STATUS: キモい and proud</span>
+    <span>★ NOW WATCHING: Dungeon Meshi S3</span>
+    <span>★ FIGURE UNBOXING: Nendoroid Mio #483</span>
+    <span>★ NEW POST: Best openings of 2025 ranked</span>
+    <span>★ MANGA HAUL: 47 volumes in one order (mom is furious)</span>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- LEFT SIDEBAR -->
+  <aside class="sidebar-left">
+
+    <!-- Figurine -->
+    <div class="figurine-box">
+      <div class="fig-label">// SHELF CAM 01</div>
+      <svg class="figurine-svg" width="180" height="200" viewBox="0 0 180 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- shelf -->
+        <rect x="10" y="185" width="160" height="6" fill="#111" rx="1"/>
+        <rect x="10" y="189" width="160" height="2" fill="#FF2D78" opacity="0.5"/>
+        <!-- figure body -->
+        <ellipse cx="90" cy="178" rx="30" ry="5" fill="#0a0a1a"/>
+        <!-- dress/base -->
+        <path d="M65 120 Q60 155 55 178 Q90 185 90 185 Q90 185 125 178 Q120 155 115 120 Z" fill="#1a0a2e"/>
+        <path d="M65 120 Q60 155 55 178 Q90 185 90 185 Q90 185 125 178 Q120 155 115 120 Z" fill="url(#dressGrad)" opacity="0.8"/>
+        <!-- body -->
+        <rect x="76" y="90" width="28" height="35" rx="4" fill="#2a1a4e"/>
+        <!-- ribbon on dress -->
+        <path d="M82 122 L90 130 L98 122" stroke="#FF2D78" stroke-width="2" fill="none"/>
+        <circle cx="90" cy="122" r="3" fill="#FF2D78"/>
+        <!-- neck -->
+        <rect x="85" y="82" width="10" height="12" rx="3" fill="#f0c0a0"/>
+        <!-- head -->
+        <ellipse cx="90" cy="70" rx="20" ry="22" fill="#f0c0a0"/>
+        <!-- hair back -->
+        <ellipse cx="90" cy="64" rx="22" ry="24" fill="#1a0a2e"/>
+        <!-- hair front -->
+        <path d="M68 62 Q70 40 90 38 Q110 40 112 62" fill="#1a0a2e"/>
+        <!-- bangs -->
+        <path d="M72 58 Q76 48 90 46 Q104 48 108 58" fill="#2a1a5e"/>
+        <!-- face -->
+        <ellipse cx="90" cy="72" rx="18" ry="20" fill="#f0c0a0"/>
+        <!-- eyes -->
+        <ellipse cx="83" cy="70" rx="4" ry="5" fill="#00F5FF"/>
+        <ellipse cx="97" cy="70" rx="4" ry="5" fill="#00F5FF"/>
+        <ellipse cx="83" cy="70" rx="2.5" ry="3.5" fill="#0a1a3e"/>
+        <ellipse cx="97" cy="70" rx="2.5" ry="3.5" fill="#0a1a3e"/>
+        <circle cx="84.5" cy="68.5" r="1" fill="white"/>
+        <circle cx="98.5" cy="68.5" r="1" fill="white"/>
+        <!-- blush -->
+        <ellipse cx="78" cy="76" rx="5" ry="2.5" fill="#FF2D78" opacity="0.3"/>
+        <ellipse cx="102" cy="76" rx="5" ry="2.5" fill="#FF2D78" opacity="0.3"/>
+        <!-- mouth -->
+        <path d="M86 80 Q90 83 94 80" stroke="#e09080" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+        <!-- hair ribbons -->
+        <circle cx="70" cy="55" r="5" fill="#FF2D78"/>
+        <circle cx="110" cy="55" r="5" fill="#FF2D78"/>
+        <!-- arms -->
+        <path d="M76 95 Q60 110 62 125" stroke="#f0c0a0" stroke-width="8" stroke-linecap="round" fill="none"/>
+        <path d="M104 95 Q120 110 118 125" stroke="#f0c0a0" stroke-width="8" stroke-linecap="round" fill="none"/>
+        <!-- hands holding item -->
+        <circle cx="62" cy="127" r="6" fill="#f0c0a0"/>
+        <circle cx="118" cy="127" r="6" fill="#f0c0a0"/>
+        <!-- tiny held book -->
+        <rect x="64" y="122" width="53" height="10" rx="2" fill="#FF2D78"/>
+        <line x1="90" y1="122" x2="90" y2="132" stroke="#c0a0b0" stroke-width="1"/>
+        <!-- base label -->
+        <rect x="65" y="182" width="50" height="8" rx="1" fill="#0a0a1a"/>
+        <text x="90" y="188.5" font-size="5" font-family="'Share Tech Mono', monospace" fill="#00F5FF" text-anchor="middle">MIO-001-EX</text>
+        <defs>
+          <linearGradient id="dressGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#FF2D78" stop-opacity="0.3"/>
+            <stop offset="100%" stop-color="#BF00FF" stop-opacity="0.2"/>
+          </linearGradient>
+        </defs>
+      </svg>
+    </div>
+
+    <!-- Stats -->
+    <div class="stat-block">
+      <div class="stat-label">// COMPLETED THIS YEAR</div>
+      <div class="stat-val">247</div>
+      <div class="stat-sub">episodes consumed</div>
+    </div>
+    <div class="stat-block">
+      <div class="stat-label">// FIGURE COLLECTION</div>
+      <div class="stat-val" style="color:var(--neon-pink); text-shadow: 0 0 6px var(--neon-pink);">83</div>
+      <div class="stat-sub">items (shelf is full)</div>
+    </div>
+
+    <!-- Now Playing -->
+    <div class="now-playing">
+      <div class="np-label">♪ NOW PLAYING</div>
+      <div class="np-track">Sugar Song to Bitter Step</div>
+      <div class="np-artist">UNISON SQUARE GARDEN</div>
+      <div class="np-bar"><div class="np-progress"></div></div>
+    </div>
+
+    <!-- Tags -->
+    <div>
+      <div class="sidebar-section-label">// TAGS</div>
+      <div class="tag-cloud">
+        <span class="tag pink">電波系</span>
+        <span class="tag cyan">moe</span>
+        <span class="tag yellow">isekai</span>
+        <span class="tag pink">yuri</span>
+        <span class="tag cyan">ガチ勢</span>
+        <span class="tag yellow">slice of life</span>
+        <span class="tag pink">figures</span>
+        <span class="tag cyan">manga</span>
+        <span class="tag pink">seiyuu</span>
+        <span class="tag yellow">haul</span>
+        <span class="tag cyan">otaku room</span>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- CENTER -->
+  <main class="center-content">
+
+    <!-- POSTER WALL -->
+    <div class="poster-wall">
+
+      <!-- bg grid lines -->
+      <svg style="position:absolute;inset:0;width:100%;height:100%;opacity:0.08" preserveAspectRatio="none">
+        <defs><pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="#00F5FF" stroke-width="0.5"/></pattern></defs>
+        <rect width="100%" height="100%" fill="url(#grid)"/>
+      </svg>
+
+      <!-- Poster 1 - big centered -->
+      <svg style="position:absolute;left:50%;top:50%;transform:translate(-50%,-52%) rotate(-2deg);width:220px;height:300px;" viewBox="0 0 220 300">
+        <rect width="220" height="300" fill="#0f0a1e" rx="2"/>
+        <rect x="8" y="8" width="204" height="284" fill="none" stroke="#FF2D78" stroke-width="1.5" rx="1"/>
+        <rect x="0" y="40" width="220" height="220" fill="#1a0a3e"/>
+        <!-- abstract anime face silhouette -->
+        <ellipse cx="110" cy="155" rx="55" ry="60" fill="#2a1a5e"/>
+        <ellipse cx="110" cy="148" rx="50" ry="54" fill="#3a2a7e"/>
+        <!-- hair -->
+        <path d="M60 130 Q55 90 110 80 Q165 90 160 130" fill="#0a0520"/>
+        <path d="M60 130 Q50 100 110 88 Q170 100 160 130" fill="#150a3a"/>
+        <!-- eyes glow -->
+        <ellipse cx="92" cy="148" rx="10" ry="12" fill="#FF2D78"/>
+        <ellipse cx="128" cy="148" rx="10" ry="12" fill="#FF2D78"/>
+        <ellipse cx="92" cy="148" rx="6" ry="8" fill="#fff" opacity="0.9"/>
+        <ellipse cx="128" cy="148" rx="6" ry="8" fill="#fff" opacity="0.9"/>
+        <!-- glow rays -->
+        <ellipse cx="92" cy="148" rx="18" ry="20" fill="#FF2D78" opacity="0.2"/>
+        <ellipse cx="128" cy="148" rx="18" ry="20" fill="#FF2D78" opacity="0.2"/>
+        <!-- title text -->
+        <rect x="0" y="40" width="220" height="30" fill="#FF2D78"/>
+        <text x="110" y="61" font-size="14" font-family="'Bebas Neue',cursive" fill="white" text-anchor="middle" letter-spacing="4">KONTON UNIVERSE</text>
+        <text x="110" y="275" font-size="9" font-family="'Share Tech Mono',monospace" fill="#FF2D78" text-anchor="middle">混沌ユニバース Vol.03</text>
+        <text x="110" y="287" font-size="7" font-family="'Share Tech Mono',monospace" fill="#555" text-anchor="middle">LIMITED EDITION PRINT</text>
+      </svg>
+
+      <!-- Poster 2 - left tilted -->
+      <svg style="position:absolute;left:8%;top:10%;transform:rotate(-8deg);width:150px;height:200px;z-index:2;" viewBox="0 0 150 200">
+        <rect width="150" height="200" fill="#0a1a0a" rx="2"/>
+        <rect x="5" y="5" width="140" height="190" fill="#091509" rx="1"/>
+        <rect x="0" y="0" width="150" height="32" fill="#00F5FF"/>
+        <text x="75" y="21" font-size="12" font-family="'Bebas Neue',cursive" fill="#0a0a0a" text-anchor="middle" letter-spacing="3">GHOST SIGNAL</text>
+        <!-- silhouette figure -->
+        <ellipse cx="75" cy="75" rx="20" ry="22" fill="#00F5FF" opacity="0.3"/>
+        <ellipse cx="75" cy="72" rx="16" ry="18" fill="#00F5FF" opacity="0.5"/>
+        <rect x="60" y="92" width="30" height="60" rx="4" fill="#00F5FF" opacity="0.2"/>
+        <path d="M60 95 L40 130" stroke="#00F5FF" opacity="0.4" stroke-width="8" stroke-linecap="round"/>
+        <path d="M90 95 L110 130" stroke="#00F5FF" opacity="0.4" stroke-width="8" stroke-linecap="round"/>
+        <text x="75" y="175" font-size="7" font-family="'Share Tech Mono',monospace" fill="#00F5FF" text-anchor="middle">GHO-ST / シグナル</text>
+        <text x="75" y="188" font-size="6" font-family="'Share Tech Mono',monospace" fill="#333" text-anchor="middle">SEASON 2 • 2025</text>
+      </svg>
+
+      <!-- Poster 3 - right side -->
+      <svg style="position:absolute;right:6%;top:15%;transform:rotate(5deg);width:160px;height:210px;z-index:2;" viewBox="0 0 160 210">
+        <rect width="160" height="210" fill="#1a0a0a" rx="2"/>
+        <rect x="5" y="5" width="150" height="200" fill="#110808" rx="1"/>
+        <rect x="0" y="175" width="160" height="35" fill="#BF00FF"/>
+        <text x="80" y="197" font-size="11" font-family="'Bebas Neue',cursive" fill="white" text-anchor="middle" letter-spacing="2">MABOROSHI IDOL</text>
+        <!-- idol shapes -->
+        <circle cx="80" cy="70" r="35" fill="#2a0a3e"/>
+        <path d="M55 70 Q80 30 105 70 Q105 105 80 110 Q55 105 55 70Z" fill="#BF00FF" opacity="0.4"/>
+        <circle cx="80" cy="65" r="20" fill="#BF00FF" opacity="0.6"/>
+        <!-- stars -->
+        <text x="30" y="45" font-size="16" fill="#FFE600" opacity="0.8">★</text>
+        <text x="115" y="55" font-size="12" fill="#FFE600" opacity="0.6">★</text>
+        <text x="60" y="35" font-size="10" fill="#FFE600" opacity="0.5">★</text>
+        <text x="80" y="155" font-size="7" font-family="'Share Tech Mono',monospace" fill="#BF00FF" text-anchor="middle">幻アイドル PROJECT</text>
+      </svg>
+
+      <!-- Poster 4 - small bottom left -->
+      <svg style="position:absolute;left:12%;bottom:8%;transform:rotate(3deg);width:110px;height:140px;z-index:3;" viewBox="0 0 110 140">
+        <rect width="110" height="140" fill="#0a0a0a" rx="2"/>
+        <rect x="0" y="0" width="110" height="18" fill="#FFE600"/>
+        <text x="55" y="13" font-size="9" font-family="'Bebas Neue',cursive" fill="#0a0a0a" text-anchor="middle" letter-spacing="2">YURU CHAOS</text>
+        <rect x="8" y="22" width="94" height="94" fill="#111"/>
+        <!-- chibi faces -->
+        <circle cx="35" cy="55" r="18" fill="#1a0a2e"/>
+        <ellipse cx="30" cy="52" rx="3" ry="4" fill="#FF2D78"/>
+        <ellipse cx="40" cy="52" rx="3" ry="4" fill="#FF2D78"/>
+        <path d="M30 62 Q35 66 40 62" stroke="#f0b0a0" stroke-width="1.5" fill="none"/>
+        <circle cx="75" cy="55" r="18" fill="#0a1a2e"/>
+        <ellipse cx="70" cy="52" rx="3" ry="4" fill="#00F5FF"/>
+        <ellipse cx="80" cy="52" rx="3" ry="4" fill="#00F5FF"/>
+        <path d="M70 62 Q75 66 80 62" stroke="#f0b0a0" stroke-width="1.5" fill="none"/>
+        <text x="55" y="132" font-size="6" font-family="'Share Tech Mono',monospace" fill="#FFE600" text-anchor="middle">ゆるカオス！</text>
+      </svg>
+
+      <!-- scattered stickers/tape -->
+      <div class="sticker" style="left:32%;top:5%;background:#FF2D78;color:white;transform:rotate(-3deg);">NEW!</div>
+      <div class="sticker" style="right:28%;bottom:12%;background:#FFE600;color:#0a0a0a;transform:rotate(4deg);">限定版</div>
+      <div class="sticker" style="left:48%;bottom:5%;color:var(--neon-cyan);border:1px solid;font-size:8px;transform:rotate(-1deg);">★★★★★</div>
+    </div>
+
+    <!-- MANGA PANEL GRID -->
+    <div class="manga-grid">
+      <div class="panel span-row" style="grid-row: span 2;">
+        <div class="panel-sfx" style="font-size:80px;color:#FF2D78;top:-10px;left:-5px;transform:rotate(-5deg);">ドーン</div>
+        <svg width="100%" height="100%" style="position:absolute;inset:0;" preserveAspectRatio="xMidYMid meet">
+          <defs>
+            <radialGradient id="panelGrad1" cx="50%" cy="40%" r="60%">
+              <stop offset="0%" stop-color="#FF2D78" stop-opacity="0.3"/>
+              <stop offset="100%" stop-color="#1A1A2E" stop-opacity="0"/>
+            </radialGradient>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#panelGrad1)"/>
+          <!-- action lines -->
+          <g opacity="0.15" stroke="#FF2D78" stroke-width="0.5">
+            <line x1="50%" y1="40%" x2="0" y2="0"/><line x1="50%" y1="40%" x2="20%" y2="0"/>
+            <line x1="50%" y1="40%" x2="40%" y2="0"/><line x1="50%" y1="40%" x2="60%" y2="0"/>
+            <line x1="50%" y1="40%" x2="80%" y2="0"/><line x1="50%" y1="40%" x2="100%" y2="0"/>
+            <line x1="50%" y1="40%" x2="0" y2="50%"/><line x1="50%" y1="40%" x2="100%" y2="50%"/>
+            <line x1="50%" y1="40%" x2="0" y2="100%"/><line x1="50%" y1="40%" x2="30%" y2="100%"/>
+            <line x1="50%" y1="40%" x2="70%" y2="100%"/><line x1="50%" y1="40%" x2="100%" y2="100%"/>
+          </g>
+          <!-- character silhouette -->
+          <ellipse cx="50%" cy="35%" rx="18%" ry="20%" fill="rgba(255,255,255,0.06)"/>
+          <rect x="35%" y="52%" width="30%" height="30%" rx="4%" fill="rgba(255,255,255,0.04)"/>
+        </svg>
+        <div class="panel-label" style="color:var(--neon-pink);">FEATURED // 最新話</div>
+      </div>
+      <div class="panel">
+        <svg width="100%" height="100%" style="position:absolute;inset:0;" preserveAspectRatio="xMidYMid meet">
+          <rect width="100%" height="100%" fill="none"/>
+          <!-- halftone dots -->
+          <defs><pattern id="dots" width="8" height="8" patternUnits="userSpaceOnUse"><circle cx="4" cy="4" r="1.5" fill="#00F5FF" opacity="0.15"/></pattern></defs>
+          <rect width="100%" height="100%" fill="url(#dots)"/>
+          <ellipse cx="50%" cy="40%" rx="25%" ry="30%" fill="#00F5FF" opacity="0.08"/>
+        </svg>
+        <div class="panel-label" style="color:var(--neon-cyan);">REVIEW // レビュー</div>
+      </div>
+      <div class="panel">
+        <svg width="100%" height="100%" style="position:absolute;inset:0;">
+          <rect width="100%" height="100%" fill="none"/>
+          <rect x="10%" y="10%" width="80%" height="80%" fill="#BF00FF" opacity="0.07" rx="4"/>
+          <text x="50%" y="45%" font-size="28" font-family="'Bebas Neue',cursive" fill="#BF00FF" opacity="0.4" text-anchor="middle">特集</text>
+        </svg>
+        <div class="panel-label" style="color:#BF00FF;">SPECIAL // 特集</div>
+      </div>
+      <div class="panel">
+        <svg width="100%" height="100%" style="position:absolute;inset:0;">
+          <defs><pattern id="stripe" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="10" stroke="#FFE600" stroke-width="1" opacity="0.1"/></pattern></defs>
+          <rect width="100%" height="100%" fill="url(#stripe)"/>
+        </svg>
+        <div class="panel-label" style="color:var(--neon-yellow);">HAUL // 戦利品</div>
+      </div>
+      <div class="panel" style="grid-column: span 2;">
+        <svg width="100%" height="100%" style="position:absolute;inset:0;" preserveAspectRatio="none">
+          <rect width="100%" height="100%" fill="none"/>
+          <text x="50%" y="55%" font-size="60" font-family="'Bebas Neue',cursive" fill="rgba(255,45,120,0.06)" text-anchor="middle" letter-spacing="8">DENPAWEB</text>
+        </svg>
+        <div class="panel-label" style="color:#555;">RANKING // ランキング 2025</div>
+      </div>
+    </div>
+
+    <!-- BLOG POSTS -->
+    <div class="post-list">
+      <div style="font-size:9px;color:#444;letter-spacing:3px;margin-bottom:4px;">// RECENT POSTS</div>
+      <div class="post-item">
+        <div class="post-num">01</div>
+        <div class="post-meta">
+          <div class="post-date">2025.11.22 // 03:47 JST</div>
+          <div class="post-title">Re: Why Dungeon Meshi has the best character writing in a decade and I will die on this hill</div>
+          <div class="post-tags"><span class="post-tag">anime</span><span class="post-tag">opinion</span><span class="post-tag">3am thoughts</span></div>
+        </div>
+      </div>
+      <div class="post-item">
+        <div class="post-num">02</div>
+        <div class="post-meta">
+          <div class="post-date">2025.11.18 // 01:12 JST</div>
+          <div class="post-title">Figure Haul Report #47: GSC Winter WonFes loot arrived (shelf situation: critical)</div>
+          <div class="post-tags"><span class="post-tag">figures</span><span class="post-tag">haul</span><span class="post-tag">GSC</span></div>
+        </div>
+      </div>
+      <div class="post-item">
+        <div class="post-num">03</div>
+        <div class="post-meta">
+          <div class="post-date">2025.11.10 // 22:58 JST</div>
+          <div class="post-title">Seasonal Rankings: Fall 2025 first impressions — I watched 31 pilots so you don't have to</div>
+          <div class="post-tags"><span class="post-tag">seasonal</span><span class="post-tag">ranking</span><span class="post-tag">fall2025</span></div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- RIGHT SIDEBAR -->
+  <aside class="sidebar-right">
+
+    <!-- Energy cans -->
+    <div>
+      <div class="side-section-label">// FUEL CONSUMED</div>
+      <div class="energy-cans">
+        <svg width="140" height="90" viewBox="0 0 140 90">
+          <!-- can 1 -->
+          <rect x="10" y="15" width="28" height="60" rx="4" fill="#0a0a1a"/>
+          <rect x="10" y="15" width="28" height="60" rx="4" fill="#FF2D78" opacity="0.15"/>
+          <rect x="10" y="15" width="28" height="8" rx="4" fill="#FF2D78" opacity="0.5"/>
+          <rect x="15" y="30" width="18" height="30" rx="2" fill="#FF2D78" opacity="0.1"/>
+          <text x="24" y="49" font-size="7" font-family="'Bebas Neue',cursive" fill="#FF2D78" text-anchor="middle" transform="rotate(-90,24,49)">DENPA BOOST</text>
+          <!-- can 2 -->
+          <rect x="56" y="10" width="28" height="65" rx="4" fill="#0a0a1a"/>
+          <rect x="56" y="10" width="28" height="65" rx="4" fill="#00F5FF" opacity="0.15"/>
+          <rect x="56" y="10" width="28" height="8" rx="4" fill="#00F5FF" opacity="0.5"/>
+          <text x="70" y="49" font-size="7" font-family="'Bebas Neue',cursive" fill="#00F5FF" text-anchor="middle" transform="rotate(-90,70,49)">CYBER ZERO</text>
+          <!-- can 3 -->
+          <rect x="102" y="18" width="26" height="57" rx="4" fill="#0a0a1a"/>
+          <rect x="102" y="18" width="26" height="57" rx="4" fill="#BF00FF" opacity="0.15"/>
+          <rect x="102" y="18" width="26" height="8" rx="4" fill="#BF00FF" opacity="0.5"/>
+          <text x="115" y="49" font-size="7" font-family="'Bebas Neue',cursive" fill="#BF00FF" text-anchor="middle" transform="rotate(-90,115,49)">PURPLE HAZE</text>
+          <!-- count -->
+          <text x="70" y="84" font-size="9" font-family="'Share Tech Mono',monospace" fill="#555" text-anchor="middle">×3 TODAY (no regrets)</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Watchlist -->
+    <div>
+      <div class="side-section-label">// WATCHLIST</div>
+      <div class="watch-list">
+        <div class="watch-item"><div class="watch-dot dot-pink"></div>Frieren</div>
+        <div class="watch-item"><div class="watch-dot dot-pink"></div>Dungeon Meshi S3</div>
+        <div class="watch-item"><div class="watch-dot dot-cyan"></div>Re:Zero S4</div>
+        <div class="watch-item"><div class="watch-dot dot-cyan"></div>Bocchi OVA</div>
+        <div class="watch-item"><div class="watch-dot dot-gray"></div>Boku no Hero S7</div>
+        <div class="watch-item"><div class="watch-dot dot-gray"></div>Vinland Saga S3</div>
+      </div>
+    </div>
+
+    <!-- Progress bars -->
+    <div>
+      <div class="side-section-label">// READING PROGRESS</div>
+      <div class="progress-bars">
+        <div>
+          <div class="pbar-label"><span>One Piece</span><span style="color:var(--neon-cyan)">1112/1130</span></div>
+          <div class="pbar-track"><div class="pbar-fill" style="width:98%;background:var(--neon-cyan);"></div></div>
+        </div>
+        <div>
+          <div class="pbar-label"><span>Berserk</span><span style="color:var(--neon-pink)">374/374</span></div>
+          <div class="pbar-track"><div class="pbar-fill" style="width:100%;background:var(--neon-pink);"></div></div>
+        </div>
+        <div>
+          <div class="pbar-label"><span>Oyasumi PunPun</span><span style="color:#BF00FF">147/147</span></div>
+          <div class="pbar-track"><div class="pbar-fill" style="width:100%;background:#BF00FF;"></div></div>
+        </div>
+        <div>
+          <div class="pbar-label"><span>Goodnight PunPun (reread)</span><span style="color:#FFE600">33/147</span></div>
+          <div class="pbar-track"><div class="pbar-fill" style="width:22%;background:#FFE600;"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quote -->
+    <div class="quote-box">
+      <div class="quote-txt">「人生は短い、もっとアニメを見ろ」</div>
+      <div class="quote-src">— room wall poster, 2019</div>
+    </div>
+
+    <!-- Visitor -->
+    <div>
+      <div class="side-section-label">// VISITOR COUNT</div>
+      <div class="visitor-box">
+        <span>0</span><span>4</span><span>8</span><span>2</span><span>9</span><span>1</span>
+      </div>
+      <div style="font-size:8px;color:#333;margin-top:4px;letter-spacing:1px;">since 2019.04.01</div>
+    </div>
+
+  </aside>
+</div>
+
+<!-- FOOTER -->
+<footer class="site-footer">
+  <div>DENPAWEB.MOE // EST. 2019 // MADE WITH ♥ AND SLEEP DEPRIVATION</div>
+  <div class="footer-glyph">電波</div>
+  <div>BEST VIEWED AT 3AM // RESOLUTION: 1920×1080</div>
+</footer>

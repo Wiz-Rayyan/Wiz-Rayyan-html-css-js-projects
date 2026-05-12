@@ -1,0 +1,270 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap');
+  .cap-wrap { background: #F0EDE6; border: 1.5px solid #C8C3B8; border-radius: 6px; max-width: 360px; margin: 2rem auto; font-family: 'Courier Prime', 'Courier New', monospace; padding: 0; overflow: hidden; box-shadow: 2px 3px 0px #C0BAB0; }
+  .cap-header { background: #E8E4DC; border-bottom: 1px solid #C8C3B8; padding: 10px 14px 8px; display: flex; align-items: center; justify-content: space-between; }
+  .cap-logo { font-size: 11px; color: #888; letter-spacing: 0.04em; font-weight: 700; text-transform: uppercase; }
+  .cap-dots { display: flex; gap: 5px; }
+  .cap-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .cap-body { padding: 18px 16px 14px; }
+  .cap-instruction { font-size: 13px; color: #444; margin-bottom: 12px; line-height: 1.4; background: #E2DED6; padding: 8px 10px; border: 1px solid #C8C3B8; border-radius: 3px; }
+  .cap-instruction span { display: block; font-size: 11px; color: #888; margin-top: 2px; }
+  .cap-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; margin-bottom: 14px; }
+  .cap-cell { position: relative; aspect-ratio: 1; background: #DDD9D2; border: 2px solid transparent; cursor: pointer; overflow: hidden; transition: border-color 0.1s; border-radius: 2px; }
+  .cap-cell.selected { border-color: #3A6BB5; }
+  .cap-cell.selected::after { content: ''; position: absolute; inset: 0; background: rgba(58,107,181,0.22); pointer-events: none; }
+  .cap-cell svg { width: 100%; height: 100%; display: block; }
+  .check-icon { position: absolute; top: 4px; right: 4px; width: 18px; height: 18px; background: #3A6BB5; border-radius: 50%; display: none; align-items: center; justify-content: center; z-index: 2; }
+  .cap-cell.selected .check-icon { display: flex; }
+  .cap-text-row { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+  .cap-distort { font-family: 'Courier Prime', monospace; font-size: 28px; font-weight: 700; letter-spacing: 0.18em; text-align: center; padding: 10px 0 6px; background: repeating-linear-gradient(90deg, #E8E4DC 0px, #E8E4DC 2px, #F0EDE6 2px, #F0EDE6 18px); border: 1px solid #C8C3B8; border-radius: 3px; user-select: none; }
+  .cap-distort span { display: inline-block; }
+  .cap-input { width: 100%; box-sizing: border-box; font-family: 'Courier Prime', monospace; font-size: 14px; padding: 7px 10px; background: #FAF8F4; border: 1px solid #C8C3B8; border-radius: 3px; color: #333; outline: none; }
+  .cap-input:focus { border-color: #3A6BB5; }
+  .cap-footer { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: #E8E4DC; border-top: 1px solid #C8C3B8; }
+  .cap-checkbox-row { display: flex; align-items: center; gap: 10px; }
+  .cap-box { width: 22px; height: 22px; border: 2px solid #888; border-radius: 3px; background: #FAF8F4; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: border-color 0.15s, background 0.15s; flex-shrink: 0; }
+  .cap-box.checked { border-color: #3A6BB5; background: #3A6BB5; }
+  .cap-robot-label { font-size: 13px; color: #444; font-family: 'Courier Prime', monospace; cursor: pointer; }
+  .cap-brand { font-size: 10px; color: #AAA; text-align: right; line-height: 1.3; }
+  .cap-brand strong { display: block; color: #888; font-size: 11px; letter-spacing: 0.05em; }
+  .cap-verify-btn { width: 100%; margin-top: 2px; font-family: 'Courier Prime', monospace; font-size: 13px; padding: 8px; background: #3A6BB5; color: #fff; border: none; border-radius: 3px; cursor: pointer; letter-spacing: 0.05em; transition: background 0.15s; }
+  .cap-verify-btn:hover { background: #2E5899; }
+  .cap-verify-btn:disabled { background: #AAA; cursor: default; }
+  .cap-result { font-size: 12px; text-align: center; margin-top: 8px; min-height: 16px; color: #666; font-family: 'Courier Prime', monospace; }
+  .cap-reload { cursor: pointer; font-size: 17px; color: #888; background: none; border: none; padding: 0 0 0 6px; line-height: 1; font-family: monospace; }
+  .cap-reload:hover { color: #3A6BB5; }
+</style>
+
+<h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">Captcha human verification widget — select bus images and enter distorted text</h2>
+
+<div class="cap-wrap">
+  <div class="cap-header">
+    <div class="cap-logo">Human Verification</div>
+    <div class="cap-dots">
+      <div class="cap-dot" style="background:#E8837A"></div>
+      <div class="cap-dot" style="background:#D4B865"></div>
+      <div class="cap-dot" style="background:#7ABB7A"></div>
+    </div>
+  </div>
+  <div class="cap-body">
+    <div class="cap-instruction">
+      Select all squares with <strong>buses</strong>
+      <span>Click each matching image. If there are none, click Verify.</span>
+    </div>
+    <div class="cap-grid" id="grid"></div>
+    <div class="cap-text-row">
+      <div style="display:flex;align-items:center;gap:6px">
+        <div class="cap-distort" id="distort-text" style="flex:1"></div>
+        <button class="cap-reload" id="reload-btn" title="New challenge" aria-label="Refresh captcha">↻</button>
+      </div>
+      <input class="cap-input" id="cap-input" type="text" placeholder="Type the characters above" autocomplete="off" spellcheck="false" maxlength="8"/>
+    </div>
+    <button class="cap-verify-btn" id="verify-btn">Verify</button>
+    <div class="cap-result" id="result-msg"></div>
+  </div>
+  <div class="cap-footer">
+    <div class="cap-checkbox-row">
+      <div class="cap-box" id="robot-box" role="checkbox" aria-checked="false" tabindex="0" aria-label="I'm not a robot"></div>
+      <label class="cap-robot-label" id="robot-label">I'm not a robot</label>
+    </div>
+    <div class="cap-brand">
+      <strong>reCAPTCHA</strong>
+      Privacy · Terms
+    </div>
+  </div>
+</div>
+
+<script>
+const LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const TRANSFORMS = [
+  'skewX(8deg) rotate(-3deg) scaleY(0.9)',
+  'skewX(-6deg) rotate(2deg) scaleY(1.1)',
+  'skewX(4deg) rotate(-1deg) scaleY(0.95)',
+  'skewX(-9deg) rotate(3deg) scaleY(0.88)',
+  'skewX(6deg) rotate(-2deg) scaleY(1.05)',
+  'skewX(-4deg) rotate(1deg) scaleY(0.93)',
+  'skewX(10deg) rotate(-4deg) scaleY(1.0)',
+];
+const COLORS = ['#2A4A8A','#B04020','#1A7A3A','#7A2080','#8A5010','#1A5A7A','#6A1A1A'];
+
+function makeCode() {
+  let s = '';
+  for (let i = 0; i < 6; i++) s += LETTERS[Math.floor(Math.random() * LETTERS.length)];
+  return s;
+}
+
+let currentCode = makeCode();
+
+function renderDistort(code) {
+  const el = document.getElementById('distort-text');
+  el.innerHTML = '';
+  code.split('').forEach((ch, i) => {
+    const sp = document.createElement('span');
+    sp.textContent = ch;
+    const tf = TRANSFORMS[i % TRANSFORMS.length];
+    const col = COLORS[i % COLORS.length];
+    sp.style.cssText = `display:inline-block;transform:${tf};color:${col};position:relative;top:${(Math.random()*6-3).toFixed(1)}px;margin-right:1px;`;
+    el.appendChild(sp);
+  });
+}
+
+const BUS_CELLS = [0, 3, 7];
+const GRID_SCENES = [
+  { type: 'bus', color1: '#D4A850', color2: '#8B6820', body: '#E8B840', window: '#A8D4E8' },
+  { type: 'tree', color1: '#4A8A30', color2: '#3A6A20', trunk: '#8B5A2A' },
+  { type: 'bus', color1: '#A83030', color2: '#6A1818', body: '#C84040', window: '#C8E8F0' },
+  { type: 'house', color1: '#C86030', color2: '#8B3A18', wall: '#E8C8A0', door: '#6A3A18' },
+  { type: 'car', color1: '#4060B8', color2: '#2A3A80', body: '#5070C8', window: '#B8D0E8' },
+  { type: 'traffic', color1: '#303030', color2: '#181818', light1: '#E84040', light2: '#888' },
+  { type: 'tree', color1: '#2A6A20', color2: '#1A4A12', trunk: '#6A4A1A' },
+  { type: 'bus', color1: '#208060', color2: '#104A38', body: '#30A070', window: '#B8E8D8' },
+  { type: 'car', color1: '#883080', color2: '#541850', body: '#A03898', window: '#D0B0D0' },
+];
+
+function makeBusSVG(sc) {
+  return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+    <rect width="80" height="80" fill="#D8D4C8"/>
+    <rect x="8" y="25" width="58" height="32" rx="4" fill="${sc.body}" opacity="0.92"/>
+    <rect x="8" y="23" width="58" height="6" rx="2" fill="${sc.color1}"/>
+    <rect x="12" y="30" width="12" height="9" rx="1" fill="${sc.window}" opacity="0.85"/>
+    <rect x="28" y="30" width="12" height="9" rx="1" fill="${sc.window}" opacity="0.85"/>
+    <rect x="44" y="30" width="12" height="9" rx="1" fill="${sc.window}" opacity="0.85"/>
+    <rect x="8" y="53" width="58" height="5" rx="2" fill="${sc.color2}" opacity="0.8"/>
+    <circle cx="20" cy="61" r="6" fill="#333"/>
+    <circle cx="20" cy="61" r="3" fill="#888"/>
+    <circle cx="56" cy="61" r="6" fill="#333"/>
+    <circle cx="56" cy="61" r="3" fill="#888"/>
+    <rect x="62" y="35" width="8" height="5" rx="1" fill="#E8D080" opacity="0.9"/>
+    <text x="23" y="22" font-family="monospace" font-size="6" fill="${sc.window}" text-anchor="middle" opacity="0.9">BUS</text>
+    <rect width="80" height="80" fill="url(#nz)" opacity="0.22"/>
+    <filter id="nb"><feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter>
+    <rect width="80" height="80" filter="url(#nb)" opacity="0.07"/>
+  </svg>`;
+}
+function makeTreeSVG(sc) {
+  return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+    <rect width="80" height="80" fill="#C8D8B8"/>
+    <rect x="35" y="52" width="10" height="18" fill="${sc.trunk}"/>
+    <ellipse cx="40" cy="38" rx="20" ry="22" fill="${sc.color1}" opacity="0.9"/>
+    <ellipse cx="28" cy="44" rx="13" ry="14" fill="${sc.color2}" opacity="0.85"/>
+    <ellipse cx="52" cy="42" rx="12" ry="15" fill="${sc.color2}" opacity="0.8"/>
+    <ellipse cx="40" cy="22" rx="10" ry="12" fill="${sc.color1}" opacity="0.75"/>
+    <rect width="80" height="80" fill="none"/>
+  </svg>`;
+}
+function makeHouseSVG(sc) {
+  return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+    <rect width="80" height="80" fill="#D0C8B8"/>
+    <rect x="16" y="42" width="48" height="28" fill="${sc.wall}"/>
+    <polygon points="10,44 40,14 70,44" fill="${sc.color1}"/>
+    <rect x="32" y="56" width="16" height="14" fill="${sc.door}"/>
+    <rect x="20" y="48" width="10" height="8" fill="#A8C8D8" opacity="0.9"/>
+    <rect x="50" y="48" width="10" height="8" fill="#A8C8D8" opacity="0.9"/>
+  </svg>`;
+}
+function makeCarSVG(sc) {
+  return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+    <rect width="80" height="80" fill="#C8C8D0"/>
+    <rect x="6" y="42" width="68" height="18" rx="3" fill="${sc.body}" opacity="0.92"/>
+    <path d="M18 42 Q22 28 36 27 L44 27 Q58 28 62 42Z" fill="${sc.body}" opacity="0.88"/>
+    <path d="M23 42 Q26 30 37 29 L43 29 Q54 30 57 42Z" fill="${sc.window}" opacity="0.8"/>
+    <circle cx="20" cy="63" r="7" fill="#222"/>
+    <circle cx="20" cy="63" r="3.5" fill="#666"/>
+    <circle cx="60" cy="63" r="7" fill="#222"/>
+    <circle cx="60" cy="63" r="3.5" fill="#666"/>
+    <rect x="6" y="48" width="6" height="5" rx="1" fill="#F8E870" opacity="0.9"/>
+    <rect x="68" y="48" width="6" height="5" rx="1" fill="#F04040" opacity="0.9"/>
+  </svg>`;
+}
+function makeTrafficSVG(sc) {
+  return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+    <rect width="80" height="80" fill="#C8C8C0"/>
+    <rect x="32" y="12" width="16" height="46" rx="4" fill="${sc.color1}"/>
+    <circle cx="40" cy="22" r="6" fill="${sc.light1}"/>
+    <circle cx="40" cy="35" r="6" fill="#D4A030"/>
+    <circle cx="40" cy="48" r="6" fill="${sc.light2}"/>
+    <rect x="37" y="58" width="6" height="12" fill="${sc.color2}"/>
+  </svg>`;
+}
+
+function makeCellSVG(scene) {
+  switch(scene.type) {
+    case 'bus': return makeBusSVG(scene);
+    case 'tree': return makeTreeSVG(scene);
+    case 'house': return makeHouseSVG(scene);
+    case 'car': return makeCarSVG(scene);
+    case 'traffic': return makeTrafficSVG(scene);
+  }
+}
+
+let selected = new Set();
+
+function buildGrid() {
+  selected.clear();
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  GRID_SCENES.forEach((sc, i) => {
+    const cell = document.createElement('div');
+    cell.className = 'cap-cell';
+    cell.innerHTML = makeCellSVG(sc) +
+      `<div class="check-icon"><svg width="10" height="10" viewBox="0 0 10 10"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="#fff" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>`;
+    cell.addEventListener('click', () => {
+      if (selected.has(i)) { selected.delete(i); cell.classList.remove('selected'); }
+      else { selected.add(i); cell.classList.add('selected'); }
+      document.getElementById('result-msg').textContent = '';
+    });
+    grid.appendChild(cell);
+  });
+}
+
+function verify() {
+  const inputVal = document.getElementById('cap-input').value.toUpperCase().replace(/\s/g,'');
+  const codeMatch = inputVal === currentCode;
+  const busCorrect = JSON.stringify([...selected].sort()) === JSON.stringify([...BUS_CELLS].sort());
+  const msg = document.getElementById('result-msg');
+  if (codeMatch && busCorrect) {
+    msg.style.color = '#2A7A3A';
+    msg.textContent = '✓ Verification successful. Humanity confirmed.';
+    document.getElementById('robot-box').classList.add('checked');
+    document.getElementById('robot-box').setAttribute('aria-checked','true');
+  } else if (!codeMatch && !busCorrect) {
+    msg.style.color = '#A83020';
+    msg.textContent = 'Incorrect text and bus selection. Try again.';
+    refresh();
+  } else if (!codeMatch) {
+    msg.style.color = '#A83020';
+    msg.textContent = 'Text characters do not match. Please retry.';
+    document.getElementById('cap-input').value = '';
+    currentCode = makeCode(); renderDistort(currentCode);
+  } else {
+    msg.style.color = '#A83020';
+    msg.textContent = 'Please select all squares containing buses.';
+    buildGrid();
+  }
+}
+
+function refresh() {
+  currentCode = makeCode();
+  renderDistort(currentCode);
+  buildGrid();
+  document.getElementById('cap-input').value = '';
+  document.getElementById('result-msg').textContent = '';
+  document.getElementById('robot-box').classList.remove('checked');
+  document.getElementById('robot-box').setAttribute('aria-checked','false');
+}
+
+document.getElementById('verify-btn').addEventListener('click', verify);
+document.getElementById('reload-btn').addEventListener('click', refresh);
+document.getElementById('cap-input').addEventListener('keydown', e => { if (e.key === 'Enter') verify(); });
+const robotBox = document.getElementById('robot-box');
+robotBox.addEventListener('click', () => {
+  const checked = robotBox.classList.toggle('checked');
+  robotBox.setAttribute('aria-checked', String(checked));
+});
+robotBox.addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); robotBox.click(); } });
+document.getElementById('robot-label').addEventListener('click', () => robotBox.click());
+
+renderDistort(currentCode);
+buildGrid();
+</script>

@@ -1,0 +1,411 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=Montserrat:wght@200;400;600&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  #cinema-root {
+    width: 100%;
+    height: 560px;
+    position: relative;
+    overflow: hidden;
+    background: #000;
+    font-family: 'Montserrat', sans-serif;
+    cursor: default;
+    border-radius: 12px;
+  }
+
+  .scene {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 1s ease;
+    pointer-events: none;
+  }
+  .scene.active { opacity: 1; pointer-events: all; }
+  .scene.prev { opacity: 0; }
+
+  .scene-bg {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    transition: transform 8s ease-out;
+    will-change: transform;
+  }
+  .scene.active .scene-bg { transform: scale(1.06); }
+  .scene:not(.active) .scene-bg { transform: scale(1); }
+
+  .scene-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.55) 100%);
+  }
+
+  .scene-content {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    color: #fff;
+    padding: 0 2rem;
+    max-width: 600px;
+    transform: translateY(20px);
+    opacity: 0;
+    transition: transform 1.2s 0.3s ease, opacity 1.2s 0.3s ease;
+  }
+  .scene.active .scene-content { transform: translateY(0); opacity: 1; }
+
+  .scene-eyebrow {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 200;
+    font-size: 11px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.6);
+    margin-bottom: 1rem;
+  }
+
+  .scene-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-size: 52px;
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+    margin-bottom: 1rem;
+    text-shadow: 0 2px 30px rgba(0,0,0,0.5);
+  }
+
+  .scene-subtitle {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 20px;
+    color: rgba(255,255,255,0.75);
+    line-height: 1.5;
+  }
+
+  .scene-divider {
+    width: 40px;
+    height: 1px;
+    background: rgba(255,255,255,0.4);
+    margin: 1.2rem auto;
+  }
+
+  .nav-dots {
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .nav-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.5);
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    padding: 0;
+  }
+  .nav-dot.active {
+    background: #fff;
+    border-color: #fff;
+    transform: scale(1.4);
+  }
+  .nav-dot:hover { background: rgba(255,255,255,0.5); }
+
+  .scroll-hint {
+    position: absolute;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    color: rgba(255,255,255,0.4);
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 200;
+    transition: opacity 0.5s;
+  }
+
+  .scroll-arrow {
+    width: 1px;
+    height: 28px;
+    background: rgba(255,255,255,0.3);
+    position: relative;
+    overflow: hidden;
+  }
+  .scroll-arrow::after {
+    content: '';
+    position: absolute;
+    top: -100%;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255,255,255,0.8);
+    animation: scrollLine 1.8s infinite ease-in-out;
+  }
+  @keyframes scrollLine {
+    0% { top: -100%; }
+    100% { top: 200%; }
+  }
+
+  .audio-btn {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    z-index: 10;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.3s;
+    color: rgba(255,255,255,0.7);
+    font-size: 14px;
+  }
+  .audio-btn:hover { background: rgba(255,255,255,0.18); }
+
+  .scene-counter {
+    position: absolute;
+    top: 18px;
+    left: 20px;
+    z-index: 10;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 200;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    color: rgba(255,255,255,0.4);
+  }
+  .scene-counter span { color: rgba(255,255,255,0.8); }
+
+  .nav-arrows {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    z-index: 10;
+    display: flex;
+    gap: 8px;
+  }
+  .nav-arrow-btn {
+    width: 32px;
+    height: 32px;
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 50%;
+    background: rgba(0,0,0,0.3);
+    color: rgba(255,255,255,0.7);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    transition: all 0.2s;
+  }
+  .nav-arrow-btn:hover { background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.5); }
+  .nav-arrow-btn:disabled { opacity: 0.3; cursor: default; }
+
+  .progress-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 2px;
+    background: rgba(255,255,255,0.6);
+    transition: width 1s ease;
+    z-index: 10;
+  }
+</style>
+
+<div id="cinema-root" tabindex="0">
+  <h2 class="sr-only">Cinematic scroll-jacking portfolio with 5 full-screen scenes</h2>
+
+  <div class="scene active" id="scene-0">
+    <div class="scene-bg" style="background-image: url('https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=1400&q=80');"></div>
+    <div class="scene-overlay"></div>
+    <div class="scene-content">
+      <div class="scene-eyebrow">Chapter I — Origin</div>
+      <div class="scene-title">Born from<br>Stardust</div>
+      <div class="scene-divider"></div>
+      <div class="scene-subtitle">Everything you are began fourteen billion years ago, forged in stellar cores.</div>
+    </div>
+  </div>
+
+  <div class="scene" id="scene-1">
+    <div class="scene-bg" style="background-image: url('https://images.unsplash.com/photo-1448375240586-882707db888b?w=1400&q=80');"></div>
+    <div class="scene-overlay"></div>
+    <div class="scene-content">
+      <div class="scene-eyebrow">Chapter II — Growth</div>
+      <div class="scene-title">Roots Run<br>Deeper</div>
+      <div class="scene-divider"></div>
+      <div class="scene-subtitle">Life finds its way through darkness — persistent, patient, ancient.</div>
+    </div>
+  </div>
+
+  <div class="scene" id="scene-2">
+    <div class="scene-bg" style="background-image: url('https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=1400&q=80');"></div>
+    <div class="scene-overlay"></div>
+    <div class="scene-content">
+      <div class="scene-eyebrow">Chapter III — Ambition</div>
+      <div class="scene-title">Cities That<br>Never Sleep</div>
+      <div class="scene-divider"></div>
+      <div class="scene-subtitle">Human ambition crystallized in glass and light, reaching endlessly skyward.</div>
+    </div>
+  </div>
+
+  <div class="scene" id="scene-3">
+    <div class="scene-bg" style="background-image: url('https://images.unsplash.com/photo-1505118380757-91f5f5632de0?w=1400&q=80');"></div>
+    <div class="scene-overlay"></div>
+    <div class="scene-content">
+      <div class="scene-eyebrow">Chapter IV — Solitude</div>
+      <div class="scene-title">Where the<br>World Ends</div>
+      <div class="scene-divider"></div>
+      <div class="scene-subtitle">At the edge of the road lies the beginning of everything unwritten.</div>
+    </div>
+  </div>
+
+  <div class="scene" id="scene-4">
+    <div class="scene-bg" style="background-image: url('https://images.unsplash.com/photo-1489914169085-9e7b3e2b9168?w=1400&q=80');"></div>
+    <div class="scene-overlay"></div>
+    <div class="scene-content">
+      <div class="scene-eyebrow">Chapter V — Stillness</div>
+      <div class="scene-title">The Lake<br>Remembers</div>
+      <div class="scene-divider"></div>
+      <div class="scene-subtitle">Stillness is not emptiness — it is the fullness of everything at once.</div>
+    </div>
+  </div>
+
+  <div class="nav-dots" id="nav-dots" aria-label="Scene navigation"></div>
+
+  <div class="scene-counter">
+    <span id="current-scene-num">01</span> / 05
+  </div>
+
+  <button class="audio-btn" id="audio-btn" aria-label="Toggle ambient sound">
+    <i class="ti ti-volume" aria-hidden="true"></i>
+  </button>
+
+  <div class="scroll-hint" id="scroll-hint">
+    <div>Scroll</div>
+    <div class="scroll-arrow"></div>
+  </div>
+
+  <div class="nav-arrows">
+    <button class="nav-arrow-btn" id="prev-btn" aria-label="Previous scene" disabled>
+      <i class="ti ti-arrow-up" aria-hidden="true"></i>
+    </button>
+    <button class="nav-arrow-btn" id="next-btn" aria-label="Next scene">
+      <i class="ti ti-arrow-down" aria-hidden="true"></i>
+    </button>
+  </div>
+
+  <div class="progress-bar" id="progress-bar" style="width: 20%;"></div>
+</div>
+
+<script>
+(function() {
+  const root = document.getElementById('cinema-root');
+  const scenes = Array.from(document.querySelectorAll('.scene'));
+  const dotsContainer = document.getElementById('nav-dots');
+  const currentNum = document.getElementById('current-scene-num');
+  const scrollHint = document.getElementById('scroll-hint');
+  const prevBtn = document.getElementById('prev-btn');
+  const nextBtn = document.getElementById('next-btn');
+  const progressBar = document.getElementById('progress-bar');
+  const audioBtn = document.getElementById('audio-btn');
+
+  let current = 0;
+  let transitioning = false;
+  let audioOn = false;
+
+  const dots = scenes.map((_, i) => {
+    const d = document.createElement('button');
+    d.className = 'nav-dot' + (i === 0 ? ' active' : '');
+    d.setAttribute('aria-label', 'Go to scene ' + (i + 1));
+    d.addEventListener('click', () => goTo(i));
+    dotsContainer.appendChild(d);
+    return d;
+  });
+
+  function goTo(idx) {
+    if (transitioning || idx === current || idx < 0 || idx >= scenes.length) return;
+    transitioning = true;
+
+    scenes[current].classList.remove('active');
+    scenes[current].classList.add('prev');
+    dots[current].classList.remove('active');
+
+    setTimeout(() => {
+      scenes[current].classList.remove('prev');
+      transitioning = false;
+    }, 1000);
+
+    current = idx;
+    scenes[current].classList.add('active');
+    dots[current].classList.add('active');
+
+    const pad = (n) => String(n + 1).padStart(2, '0');
+    currentNum.textContent = pad(current);
+    progressBar.style.width = ((current + 1) / scenes.length * 100) + '%';
+
+    prevBtn.disabled = current === 0;
+    nextBtn.disabled = current === scenes.length - 1;
+
+    if (current > 0) {
+      scrollHint.style.opacity = '0';
+    } else {
+      scrollHint.style.opacity = '1';
+    }
+  }
+
+  prevBtn.addEventListener('click', () => goTo(current - 1));
+  nextBtn.addEventListener('click', () => goTo(current + 1));
+
+  let wheelAcc = 0;
+  let wheelTimer = null;
+  root.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    wheelAcc += e.deltaY;
+    clearTimeout(wheelTimer);
+    wheelTimer = setTimeout(() => {
+      if (Math.abs(wheelAcc) > 30) {
+        goTo(current + (wheelAcc > 0 ? 1 : -1));
+      }
+      wheelAcc = 0;
+    }, 50);
+  }, { passive: false });
+
+  let touchStartY = 0;
+  root.addEventListener('touchstart', (e) => { touchStartY = e.touches[0].clientY; }, { passive: true });
+  root.addEventListener('touchend', (e) => {
+    const dy = touchStartY - e.changedTouches[0].clientY;
+    if (Math.abs(dy) > 40) goTo(current + (dy > 0 ? 1 : -1));
+  }, { passive: true });
+
+  root.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowRight') goTo(current + 1);
+    if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') goTo(current - 1);
+  });
+
+  audioBtn.addEventListener('click', () => {
+    audioOn = !audioOn;
+    audioBtn.querySelector('i').className = audioOn ? 'ti ti-volume-3' : 'ti ti-volume';
+    audioBtn.setAttribute('aria-label', audioOn ? 'Mute ambient sound' : 'Enable ambient sound');
+  });
+})();
+</script>

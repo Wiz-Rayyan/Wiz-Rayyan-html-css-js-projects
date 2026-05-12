@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #1a1208;
+    font-family: 'Crimson Text', Georgia, serif;
+    color: #c8a96e;
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  .grain-overlay {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 100;
+    opacity: 0.08;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='512' height='512' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 200px;
+    mix-blend-mode: overlay;
+  }
+
+  .vignette {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 99;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.72) 100%);
+  }
+
+  .page {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 3rem 2rem 5rem;
+    position: relative;
+    filter: sepia(35%) contrast(92%) brightness(88%);
+  }
+
+  .masthead {
+    text-align: center;
+    border-bottom: 1px solid #6b4f2a;
+    padding-bottom: 2rem;
+    margin-bottom: 3rem;
+    position: relative;
+  }
+
+  .masthead::before,
+  .masthead::after {
+    content: '';
+    display: block;
+    height: 1px;
+    background: linear-gradient(to right, transparent, #8a6535, transparent);
+    margin: 6px 0;
+  }
+
+  .masthead-ornament {
+    font-family: 'Playfair Display', serif;
+    font-size: 10px;
+    letter-spacing: 6px;
+    color: #7a5c30;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+  }
+
+  .masthead-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 3.2rem;
+    font-weight: 400;
+    color: #d4aa72;
+    line-height: 1.1;
+    letter-spacing: 1px;
+    margin-bottom: 0.5rem;
+  }
+
+  .masthead-subtitle {
+    font-style: italic;
+    font-size: 1.1rem;
+    color: #8a6a3a;
+    letter-spacing: 2px;
+  }
+
+  .date-line {
+    font-size: 0.78rem;
+    color: #6b4f2a;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    margin-top: 1rem;
+  }
+
+  .photo-border-card {
+    background: #f5ead6;
+    padding: 14px 14px 32px;
+    position: relative;
+    margin-bottom: 2.5rem;
+    box-shadow: 4px 4px 18px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(180,140,80,0.3);
+    filter: sepia(30%) contrast(95%);
+  }
+
+  .photo-border-card::after {
+    content: '';
+    position: absolute;
+    inset: 6px;
+    border: 1px dashed rgba(120,90,40,0.25);
+    pointer-events: none;
+  }
+
+  .photo-border-card img {
+    display: none;
+  }
+
+  .photo-placeholder {
+    width: 100%;
+    height: 220px;
+    background: linear-gradient(135deg, #c9a96a 0%, #8a6535 30%, #c4945a 60%, #7a5530 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .photo-placeholder::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 60% 40%, rgba(240,210,160,0.3) 0%, transparent 60%);
+  }
+
+  .photo-caption {
+    text-align: center;
+    margin-top: 10px;
+    font-style: italic;
+    font-size: 0.85rem;
+    color: #8a6535;
+    letter-spacing: 1px;
+  }
+
+  .column-grid {
+    display: grid;
+    grid-template-columns: 1fr 1px 1fr;
+    gap: 0 2rem;
+    margin-bottom: 3rem;
+  }
+
+  .column-divider {
+    background: #6b4f2a;
+    opacity: 0.4;
+  }
+
+  .article-hed {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #c8a050;
+    line-height: 1.25;
+    margin-bottom: 0.3rem;
+  }
+
+  .article-dek {
+    font-style: italic;
+    font-size: 1rem;
+    color: #8a6535;
+    margin-bottom: 1rem;
+    line-height: 1.5;
+  }
+
+  .article-byline {
+    font-size: 0.75rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #7a5530;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid rgba(107, 79, 42, 0.4);
+  }
+
+  .article-body {
+    font-size: 1.05rem;
+    line-height: 1.85;
+    color: #b8904a;
+    hyphens: auto;
+  }
+
+  .drop-cap::first-letter {
+    font-family: 'Playfair Display', serif;
+    font-size: 4.2rem;
+    font-weight: 700;
+    float: left;
+    line-height: 0.75;
+    margin-right: 6px;
+    margin-top: 8px;
+    color: #c8a050;
+  }
+
+  .pull-quote {
+    border-left: 3px solid #8a6535;
+    border-right: 3px solid #8a6535;
+    padding: 1.2rem 1.5rem;
+    margin: 2rem 0;
+    text-align: center;
+  }
+
+  .pull-quote p {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.35rem;
+    font-style: italic;
+    color: #c8a050;
+    line-height: 1.5;
+  }
+
+  .rule-section {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin: 2.5rem 0;
+    color: #6b4f2a;
+  }
+
+  .rule-section::before,
+  .rule-section::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #6b4f2a;
+    opacity: 0.5;
+  }
+
+  .rule-ornament {
+    font-size: 1.2rem;
+    color: #8a6535;
+  }
+
+  .poem-block {
+    text-align: center;
+    padding: 2.5rem 3rem;
+    position: relative;
+    margin-bottom: 2rem;
+  }
+
+  .poem-block::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 1px solid rgba(138, 101, 53, 0.3);
+  }
+
+  .poem-block::after {
+    content: '';
+    position: absolute;
+    inset: 6px;
+    border: 1px solid rgba(138, 101, 53, 0.15);
+  }
+
+  .poem-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #9a7240;
+    margin-bottom: 1.5rem;
+  }
+
+  .poem-lines {
+    font-style: italic;
+    font-size: 1.15rem;
+    line-height: 2.2;
+    color: #b8904a;
+  }
+
+  .poem-author {
+    margin-top: 1.2rem;
+    font-size: 0.8rem;
+    letter-spacing: 3px;
+    color: #7a5530;
+  }
+
+  .footer-rule {
+    border: none;
+    border-top: 2px solid #6b4f2a;
+    border-bottom: 1px solid #6b4f2a;
+    margin: 3rem 0 1.5rem;
+    height: 6px;
+    background: transparent;
+  }
+
+  .footer-text {
+    text-align: center;
+    font-size: 0.75rem;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: #6b4f2a;
+  }
+
+  .scalloped-photo {
+    background: #f0e6cc;
+    padding: 10px 10px 28px;
+    position: relative;
+    overflow: hidden;
+    filter: sepia(20%);
+  }
+
+  .scalloped-photo::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 20px;
+    background:
+      radial-gradient(circle at 10px -5px, transparent 12px, #f0e6cc 12px),
+      radial-gradient(circle at 30px -5px, transparent 12px, #f0e6cc 12px),
+      radial-gradient(circle at 50px -5px, transparent 12px, #f0e6cc 12px),
+      radial-gradient(circle at 70px -5px, transparent 12px, #f0e6cc 12px),
+      radial-gradient(circle at 90px -5px, transparent 12px, #f0e6cc 12px),
+      radial-gradient(circle at 110px -5px, transparent 12px, #f0e6cc 12px),
+      radial-gradient(circle at 130px -5px, transparent 12px, #f0e6cc 12px),
+      radial-gradient(circle at 150px -5px, transparent 12px, #f0e6cc 12px),
+      radial-gradient(circle at 170px -5px, transparent 12px, #f0e6cc 12px),
+      radial-gradient(circle at 190px -5px, transparent 12px, #f0e6cc 12px),
+      radial-gradient(circle at 210px -5px, transparent 12px, #f0e6cc 12px),
+      radial-gradient(circle at 230px -5px, transparent 12px, #f0e6cc 12px),
+      radial-gradient(circle at 250px -5px, transparent 12px, #f0e6cc 12px),
+      radial-gradient(circle at 270px -5px, transparent 12px, #f0e6cc 12px),
+      radial-gradient(circle at 290px -5px, transparent 12px, #f0e6cc 12px),
+      radial-gradient(circle at 310px -5px, transparent 12px, #f0e6cc 12px),
+      radial-gradient(circle at 330px -5px, transparent 12px, #f0e6cc 12px),
+      radial-gradient(circle at 350px -5px, transparent 12px, #f0e6cc 12px),
+      radial-gradient(circle at 370px -5px, transparent 12px, #f0e6cc 12px),
+      radial-gradient(circle at 390px -5px, transparent 12px, #f0e6cc 12px),
+      radial-gradient(circle at 410px -5px, transparent 12px, #f0e6cc 12px),
+      radial-gradient(circle at 430px -5px, transparent 12px, #f0e6cc 12px),
+      radial-gradient(circle at 450px -5px, transparent 12px, #f0e6cc 12px),
+      radial-gradient(circle at 470px -5px, transparent 12px, #f0e6cc 12px),
+      radial-gradient(circle at 490px -5px, transparent 12px, #f0e6cc 12px),
+      radial-gradient(circle at 510px -5px, transparent 12px, #f0e6cc 12px),
+      radial-gradient(circle at 530px -5px, transparent 12px, #f0e6cc 12px),
+      radial-gradient(circle at 550px -5px, transparent 12px, #f0e6cc 12px),
+      radial-gradient(circle at 570px -5px, transparent 12px, #f0e6cc 12px),
+      radial-gradient(circle at 590px -5px, transparent 12px, #f0e6cc 12px),
+      radial-gradient(circle at 610px -5px, transparent 12px, #f0e6cc 12px),
+      radial-gradient(circle at 630px -5px, transparent 12px, #f0e6cc 12px),
+      radial-gradient(circle at 650px -5px, transparent 12px, #f0e6cc 12px),
+      radial-gradient(circle at 670px -5px, transparent 12px, #f0e6cc 12px),
+      radial-gradient(circle at 690px -5px, transparent 12px, #f0e6cc 12px),
+      radial-gradient(circle at 710px -5px, transparent 12px, #f0e6cc 12px),
+      radial-gradient(circle at 730px -5px, transparent 12px, #f0e6cc 12px),
+      radial-gradient(circle at 750px -5px, transparent 12px, #f0e6cc 12px);
+    background-repeat: no-repeat;
+  }
+
+  .photo-inner {
+    width: 100%;
+    height: 180px;
+    background: linear-gradient(160deg, #d4a96a 0%, #9a6535 40%, #7a4820 70%, #b88040 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  .photo-inner svg {
+    opacity: 0.35;
+    width: 60px;
+    height: 60px;
+  }
+
+  .nav-strip {
+    display: flex;
+    justify-content: center;
+    gap: 0;
+    margin-bottom: 2.5rem;
+    flex-wrap: wrap;
+  }
+
+  .nav-item {
+    padding: 6px 18px;
+    font-size: 0.72rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #8a6535;
+    border: 1px solid rgba(138, 101, 53, 0.35);
+    margin-left: -1px;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+  }
+
+  .nav-item:hover {
+    background: rgba(138, 101, 53, 0.15);
+    color: #c8a050;
+  }
+
+  .sticker {
+    display: inline-block;
+    padding: 3px 10px;
+    background: #8a6535;
+    color: #f0e6cc;
+    font-size: 0.68rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+
+  @keyframes flicker {
+    0%, 100% { opacity: 1; }
+    48% { opacity: 1; }
+    50% { opacity: 0.92; }
+    52% { opacity: 1; }
+    70% { opacity: 1; }
+    72% { opacity: 0.95; }
+  }
+
+  .page { animation: flicker 8s infinite; }
+</style>
+<div class="grain-overlay" aria-hidden="true"></div>
+<div class="vignette" aria-hidden="true"></div>
+<div class="page" role="main">
+  <h2 class="sr-only" style="position:absolute;left:-9999px">Anemoia — a vintage poetry blog evoking nostalgia for times never lived</h2>
+
+  <div class="masthead">
+    <div class="masthead-ornament">est. mcmxxiii &nbsp;·&nbsp; vol. iv &nbsp;·&nbsp; no. 12</div>
+    <h1 class="masthead-title">Anemoia</h1>
+    <p class="masthead-subtitle">a journal of borrowed memories</p>
+    <p class="date-line">winter quarter &nbsp;·&nbsp; the long ago</p>
+  </div>
+
+  <nav class="nav-strip" aria-label="Section navigation">
+    <span class="nav-item">verse</span>
+    <span class="nav-item">correspondence</span>
+    <span class="nav-item">dispatches</span>
+    <span class="nav-item">reverie</span>
+    <span class="nav-item">the archive</span>
+  </nav>
+
+  <div class="scalloped-photo" style="margin-bottom: 2.5rem;">
+    <div class="photo-inner">
+      <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <circle cx="40" cy="40" r="28" stroke="#f0e6cc" stroke-width="1.5" stroke-dasharray="4 3"/>
+        <circle cx="40" cy="32" r="10" stroke="#f0e6cc" stroke-width="1.5"/>
+        <path d="M18 60 Q40 44 62 60" stroke="#f0e6cc" stroke-width="1.5" fill="none"/>
+      </svg>
+    </div>
+    <p class="photo-caption">a stranger's summer, 1937 — unknown</p>
+  </div>
+
+  <div class="column-grid">
+    <article>
+      <div class="sticker">featured verse</div>
+      <h2 class="article-hed">The Light I Never Knew</h2>
+      <p class="article-dek">On the peculiar ache of loving a world you were never part of</p>
+      <p class="article-byline">by the editors</p>
+      <div class="article-body drop-cap">
+        <p>There is a window in a house that no longer stands, and through it pours a light I have never seen but know precisely. It is the gold of four o'clock in a summer that belonged to someone else — to my grandmother's grandmother, to a woman who pressed flowers into a diary I will never read.</p>
+        <br>
+        <p>This is the peculiar cruelty of anemoia: to miss something that was never yours to lose. To grieve a life you only glimpsed in photographs, in the curve of a handwritten address, in the sound a door makes in an old film.</p>
+      </div>
+    </article>
+
+    <div class="column-divider" aria-hidden="true"></div>
+
+    <article>
+      <div class="sticker">from the archive</div>
+      <h2 class="article-hed">On Trains & Departures</h2>
+      <p class="article-dek">What the platform photographs could not show us</p>
+      <p class="article-byline">correspondence, undated</p>
+      <div class="article-body drop-cap">
+        <p>Every photograph of a train station contains a goodbye. I have collected seventeen such images — strangers' farewells, caught in silver and stopped forever — and in each one I feel the steam, the wool coat, the particular way time moved when it moved slowly.</p>
+        <br>
+        <p>To study the past is to become fluent in a language no one speaks. You learn it perfectly, useless and beautiful, and then you mourn that there is no one left to answer.</p>
+      </div>
+    </article>
+  </div>
+
+  <div class="pull-quote" role="blockquote">
+    <p>You can be homesick for a place you have never been — the body does not require logic, only longing.</p>
+  </div>
+
+  <div class="rule-section" aria-hidden="true">
+    <span class="rule-ornament">✦</span>
+  </div>
+
+  <div class="poem-block">
+    <div class="poem-title">Palimpsest</div>
+    <div class="poem-lines" role="article">
+      I have worn a dress from 1943<br>
+      and stood in the kitchen of a stranger<br>
+      and heard the radio say something small and true<br>
+      and known, with a certainty that has no right to exist,<br>
+      that I have been here before —<br>
+      not in body, not in dream,<br>
+      but in some country that lives<br>
+      between remembering and wish.
+    </div>
+    <div class="poem-author">— from the contributors</div>
+  </div>
+
+  <div class="rule-section" aria-hidden="true">
+    <span class="rule-ornament">◆</span>
+  </div>
+
+  <div class="photo-border-card">
+    <div class="photo-placeholder" aria-label="A faded landscape photograph, circa 1930s">
+      <svg viewBox="0 0 200 80" fill="none" xmlns="http://www.w3.org/2000/svg" style="opacity:0.25;width:140px" aria-hidden="true">
+        <rect x="10" y="40" width="40" height="35" rx="1" stroke="#3a2a10" stroke-width="1.5"/>
+        <rect x="25" y="30" width="10" height="10" rx="1" stroke="#3a2a10" stroke-width="1.2"/>
+        <path d="M60 55 Q80 30 100 50 Q120 65 140 40 L180 55" stroke="#3a2a10" stroke-width="1.5" fill="none"/>
+        <circle cx="165" cy="18" r="14" stroke="#3a2a10" stroke-width="1.5"/>
+        <path d="M10 70 H190" stroke="#3a2a10" stroke-width="1"/>
+      </svg>
+    </div>
+    <p class="photo-caption">the village at evening, author unknown · circa 1931</p>
+  </div>
+
+  <hr class="footer-rule">
+  <p class="footer-text">anemoia journal &nbsp;·&nbsp; for those who remember what they never knew</p>
+</div>

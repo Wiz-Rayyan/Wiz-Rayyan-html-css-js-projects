@@ -1,0 +1,476 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.bbs{background:#000;color:#0f0;font-family:'Courier New',monospace;font-size:12px;line-height:1.4;padding:12px;min-height:600px}
+.hdr{border:1px solid #0f0;padding:6px 10px;margin-bottom:10px;text-align:center}
+.hdr-t{color:#0ff;font-size:14px;letter-spacing:3px}
+.hdr-s{color:#060;font-size:10px;margin-top:3px}
+.tabs{display:flex;gap:2px;margin-bottom:10px;flex-wrap:wrap}
+.tab{padding:3px 10px;cursor:pointer;color:#060;font-family:inherit;font-size:11px;background:#000;border:1px solid #030;transition:all .1s}
+.tab:hover{color:#0f0;border-color:#0a0}
+.tab.on{color:#000;background:#0f0;border-color:#0f0}
+.panel{display:none}
+.panel.on{display:block}
+.card{border:1px solid #030;padding:10px;margin-bottom:10px}
+.card-t{color:#0ff;font-size:10px;margin-bottom:6px;letter-spacing:2px}
+pre{white-space:pre;font-family:inherit;font-size:12px;color:#0f0}
+.dim{color:#040}
+.cyan{color:#0ff}
+.amb{color:#fa0}
+.pink{color:#f0f}
+.red{color:#f00}
+.blink{animation:bl 1s step-end infinite}
+@keyframes bl{50%{opacity:0}}
+.row{display:flex;gap:10px}
+.row .card{flex:1;min-width:0}
+.sbar{border-top:1px solid #030;margin-top:10px;padding-top:6px;display:flex;justify-content:space-between;color:#040;font-size:10px;flex-wrap:wrap;gap:4px}
+.editor-area{background:#000;border:1px solid #0a0;color:#0f0;font-family:'Courier New',monospace;font-size:12px;padding:8px;width:100%;resize:vertical;outline:none;min-height:120px}
+.editor-area:focus{border-color:#0ff}
+.btn-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.bbtn{background:#000;color:#0a0;border:1px solid #0a0;font-family:inherit;font-size:11px;padding:4px 10px;cursor:pointer}
+.bbtn:hover{background:#0a0;color:#000}
+.bbtn.cyan{color:#0ff;border-color:#0ff}
+.bbtn.cyan:hover{background:#0ff;color:#000}
+.bbtn.red{color:#f00;border-color:#f00}
+.bbtn.red:hover{background:#f00;color:#000}
+.preview{border:1px solid #030;padding:8px;margin-top:8px;min-height:60px;background:#000}
+.gallery-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.art-li{padding:4px 0;border-bottom:1px solid #010;cursor:pointer;color:#0a0}
+.art-li:hover{color:#0ff}
+.art-li.sel{color:#0ff}
+.art-view{border:1px solid #030;padding:10px;min-height:120px;background:#000;margin-top:8px}
+.msg{padding:6px 0;border-bottom:1px solid #010}
+.msg .who{color:#0ff}
+.msg .when{color:#040;margin-left:8px;font-size:10px}
+.msg .body{color:#0a0;margin-top:2px;padding-left:8px}
+.input-row{display:flex;gap:6px;margin-top:8px}
+.bbs-in{background:#000;border:1px solid #0a0;color:#0f0;font-family:inherit;font-size:11px;padding:4px 6px;flex:1;outline:none}
+.bbs-in:focus{border-color:#0ff}
+.tools{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px}
+.tool-btn{background:#000;color:#060;border:1px solid #020;font-family:inherit;font-size:11px;padding:3px 8px;cursor:pointer}
+.tool-btn:hover{color:#0f0;border-color:#0a0}
+.tool-btn.on{background:#030;color:#0f0;border-color:#0a0}
+.insert-char{cursor:pointer;color:#0a0;display:inline-block;padding:1px 4px;border:1px solid #020;margin:1px}
+.insert-char:hover{color:#0ff;border-color:#0ff}
+.color-pick{display:flex;gap:4px;margin-bottom:6px;flex-wrap:wrap}
+.cp{width:16px;height:16px;cursor:pointer;border:1px solid #030;font-size:9px;display:flex;align-items:center;justify-content:center}
+.cp.sel{border:1px solid #fff}
+</style>
+
+<div class="bbs">
+  <div class="hdr">
+    <div class="hdr-t">★ ASCII ART BBS ★ NODE 42 ★</div>
+    <div class="hdr-s">CONNECTED 9600 BAUD · SYSOP: PHOSPHOR_PETE · <span class="blink">■</span> LIVE</div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab on" onclick="tab('gallery')">[ GALLERY ]</button>
+    <button class="tab" onclick="tab('editor')">[ EDITOR ]</button>
+    <button class="tab" onclick="tab('board')">[ MSG BOARD ]</button>
+    <button class="tab" onclick="tab('dance')">[ LIVE STAGE ]</button>
+  </div>
+
+  <div id="gallery" class="panel on">
+    <div class="row">
+      <div class="card" style="flex:0 0 180px">
+        <div class="card-t">// ARCHIVE //</div>
+        <div id="art-list"></div>
+        <div class="btn-row" style="margin-top:8px">
+          <button class="bbtn cyan" onclick="tab('editor')">+ NEW ART</button>
+        </div>
+      </div>
+      <div class="card" style="flex:1">
+        <div class="card-t" id="view-title">// SELECT A PIECE //</div>
+        <div class="art-view">
+          <pre id="art-view-pre" style="color:#0f0"></pre>
+        </div>
+        <div style="margin-top:6px;display:flex;gap:6px">
+          <button class="bbtn" onclick="editSelected()">EDIT</button>
+          <button class="bbtn red" onclick="deleteSelected()">DELETE</button>
+          <span id="art-meta" style="color:#040;font-size:10px;margin-top:5px"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="editor" class="panel">
+    <div class="card">
+      <div class="card-t">// ASCII EDITOR //</div>
+      <div style="display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap">
+        <input class="bbs-in" id="art-title-in" placeholder="TITLE (e.g. TANGO.ANS)" style="flex:1;min-width:120px">
+        <input class="bbs-in" id="art-author-in" placeholder="AUTHOR HANDLE" style="flex:0 0 130px">
+      </div>
+      <div class="tools">
+        <span style="color:#040;font-size:10px;margin-top:3px">INSERT:</span>
+        <span id="charpal"></span>
+      </div>
+      <div class="color-pick" id="colorpick"></div>
+      <textarea class="editor-area" id="art-body" placeholder="Draw your ASCII art here..." rows="10"></textarea>
+      <div class="preview">
+        <div style="color:#040;font-size:10px;margin-bottom:4px">PREVIEW:</div>
+        <pre id="art-preview" style="color:#0f0"></pre>
+      </div>
+      <div class="btn-row">
+        <button class="bbtn cyan" onclick="saveArt()">SAVE TO GALLERY</button>
+        <button class="bbtn" onclick="clearEditor()">CLEAR</button>
+        <button class="bbtn" onclick="insertTemplate('dance')">TEMPLATE: DANCE</button>
+        <button class="bbtn" onclick="insertTemplate('heart')">TEMPLATE: HEART</button>
+        <button class="bbtn" onclick="insertTemplate('couple')">TEMPLATE: COUPLE</button>
+      </div>
+      <div id="save-msg" style="color:#0ff;font-size:10px;margin-top:4px;min-height:14px"></div>
+    </div>
+  </div>
+
+  <div id="board" class="panel">
+    <div class="card">
+      <div class="card-t">// MSG BOARD — ROOM: ART_CRITIQUE //</div>
+      <div id="msg-list"></div>
+      <div class="input-row">
+        <input class="bbs-in" id="msg-handle" placeholder="HANDLE" style="flex:0 0 100px">
+        <input class="bbs-in" id="msg-body-in" placeholder="YOUR MESSAGE..." onkeydown="if(event.key==='Enter')postMsg()">
+        <button class="bbtn cyan" onclick="postMsg()">POST</button>
+      </div>
+      <div id="msg-err" style="color:#f00;font-size:10px;min-height:14px;margin-top:3px"></div>
+    </div>
+  </div>
+
+  <div id="dance" class="panel">
+    <div class="card">
+      <div class="card-t">// LIVE STAGE //</div>
+      <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap">
+        <button class="bbtn cyan" id="play-btn" onclick="togglePlay()">PLAY</button>
+        <button class="bbtn" onclick="prevFrame()">PREV</button>
+        <button class="bbtn" onclick="nextFrame()">NEXT</button>
+        <span style="color:#040;font-size:10px;margin-top:5px" id="frame-ctr">FRAME 1/4</span>
+        <span style="color:#060;font-size:10px;margin-top:5px;margin-left:8px">SPEED:</span>
+        <input type="range" min="1" max="10" value="5" step="1" id="speed-sl" style="width:80px;margin-top:3px" oninput="updateSpeed(this.value)">
+        <span style="color:#0a0;font-size:10px;margin-top:5px" id="speed-val">5</span>
+      </div>
+      <pre id="stage" style="text-align:center;min-height:180px;font-size:13px;color:#0ff;border:1px solid #030;padding:12px"></pre>
+    </div>
+    <div class="card">
+      <div class="card-t">// STAGE EDITOR — ADD A FRAME //</div>
+      <textarea class="editor-area" id="frame-in" placeholder="Draw a dance frame..." rows="6"></textarea>
+      <div class="btn-row">
+        <button class="bbtn cyan" onclick="addFrame()">ADD FRAME</button>
+        <button class="bbtn red" onclick="delFrame()">DELETE CURRENT FRAME</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="sbar">
+    <span>FILES: <span id="file-ct">0</span></span>
+    <span>MSGS: <span id="msg-ct">0</span></span>
+    <span>CALLERS: 312</span>
+    <span class="cyan">NODE 42 ONLINE</span>
+  </div>
+</div>
+
+<script>
+var arts = [
+  {id:1,title:"TANGO.ANS",author:"CURSORJOCKEY",color:"#fa0",body:`    \\o/   o
+     |   /|
+    / \\ / \\
+
+  ~~~~~ ~~~~
+  TWO BODIES
+   ONE BEAT`},
+  {id:2,title:"EMBRACE.ANS",author:"NEON_SYLPH",color:"#f0f",body:`   o   o
+  /|\\ /|\\
+  ( X )
+  / X \\
+ /  |  \\
+
+<INTERTWINED>`},
+  {id:3,title:"HEARTBEAT.ANS",author:"VECTORVAMP",color:"#f0f",body:`  .:::.   .:::.
+ :::::::::::::::
+  '::::::::::::
+    '::::::::
+      '::::
+        ':
+
+  <3 <3 <3 <3
+  PULSE RHYTHM HEAT`},
+  {id:4,title:"SILHOUETTE.ANS",author:"GLITCH_MAMA",color:"#0f0",body:` _  _
+(_)(_)
+ |\\/|
+ |  |
+_|__|_
+
+SHADOW DANCE`},
+  {id:5,title:"MOONLIGHT.ANS",author:"BINARYMUSE",color:"#fa0",body:`   *  .  *
+ .  (( ))  .
+    ) o (
+   (_/ \\_)
+  *  ~~~  *
+ . BENEATH .
+  THE MOON`}
+];
+var msgs = [
+  {who:"CURSORJOCKEY",when:"97-03-14 22:41",body:"dropped new tango piece. the /|\\ form finally feels right for motion"},
+  {who:"PHOSPHOR_PETE",when:"97-03-14 23:02",body:"solid work. simple forms hit harder than complex ones"},
+  {who:"NEON_SYLPH",when:"97-03-15 00:17",body:"the constraint is the art. 7 bits and you still gotta make someone feel something"},
+  {who:"GLITCH_MAMA",when:"97-03-15 03:55",body:"the body in ascii is always implied never explicit. that's what makes it art"}
+];
+var nextId=6,selId=null;
+
+var frames=[
+`
+    \\o/     o
+     |      |\\
+    / \\    / \\
+
+  ~~~ STEP ONE ~~~`,
+`
+     o     \\o/
+    /|       |
+    / \\    / \\
+
+  ~~~ STEP TWO ~~~`,
+`
+    \\o    o/
+     |\\  /|
+    / \\/ \\
+
+  ~~~ TOGETHER ~~~`,
+`
+     o/    \\o
+    /|      |\\
+    |        |
+
+  ~~~ APART ~~~`
+];
+var fi=0,playing=false,timer=null,spd=5;
+
+var chars=[
+  '\\o/','o','|','/|\\','/ \\','\\o','o/','_','(',')',
+  '~','*','.','<','>',"'",':','=','-','#',
+  '8','D','(.)','&','@','|\\','|/','_|_'
+];
+var colors=["#0f0","#0ff","#fa0","#f0f","#f00","#ff0","#fff","#060","#055","#500"];
+var curColor="#0f0";
+var editingId=null;
+
+function tab(id){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
+  document.getElementById(id).classList.add('on');
+  var tabs=document.querySelectorAll('.tab');
+  var map={gallery:0,editor:1,board:2,dance:3};
+  tabs[map[id]].classList.add('on');
+  if(id==='gallery')renderGallery();
+  if(id==='board')renderMsgs();
+  if(id==='dance'){renderStage();if(playing)startTimer();}
+}
+
+function renderGallery(){
+  var el=document.getElementById('art-list');
+  el.innerHTML='';
+  arts.forEach(a=>{
+    var d=document.createElement('div');
+    d.className='art-li'+(selId===a.id?' sel':'');
+    d.innerHTML='<span style="color:'+a.color+'">▸</span> '+a.title;
+    d.onclick=()=>viewArt(a.id);
+    el.appendChild(d);
+  });
+  document.getElementById('file-ct').textContent=arts.length;
+}
+
+function viewArt(id){
+  selId=id;
+  var a=arts.find(x=>x.id===id);
+  if(!a)return;
+  document.getElementById('view-title').textContent='// '+a.title+' //';
+  var pre=document.getElementById('art-view-pre');
+  pre.textContent=a.body;
+  pre.style.color=a.color;
+  document.getElementById('art-meta').textContent='BY: '+a.author;
+  renderGallery();
+}
+
+function editSelected(){
+  if(!selId)return;
+  var a=arts.find(x=>x.id===selId);
+  if(!a)return;
+  editingId=a.id;
+  document.getElementById('art-title-in').value=a.title;
+  document.getElementById('art-author-in').value=a.author;
+  document.getElementById('art-body').value=a.body;
+  updatePreview();
+  tab('editor');
+}
+
+function deleteSelected(){
+  if(!selId)return;
+  arts=arts.filter(x=>x.id!==selId);
+  selId=null;
+  document.getElementById('view-title').textContent='// SELECT A PIECE //';
+  document.getElementById('art-view-pre').textContent='';
+  document.getElementById('art-meta').textContent='';
+  renderGallery();
+}
+
+function saveArt(){
+  var t=document.getElementById('art-title-in').value.trim()||'UNTITLED.ANS';
+  var au=document.getElementById('art-author-in').value.trim()||'ANONYMOUS';
+  var b=document.getElementById('art-body').value;
+  if(!b.trim()){document.getElementById('save-msg').textContent='ERROR: BODY IS EMPTY';return;}
+  if(editingId){
+    var a=arts.find(x=>x.id===editingId);
+    if(a){a.title=t.toUpperCase();a.author=au.toUpperCase();a.body=b;a.color=curColor;}
+    editingId=null;
+  } else {
+    arts.push({id:nextId++,title:t.toUpperCase(),author:au.toUpperCase(),color:curColor,body:b});
+  }
+  document.getElementById('save-msg').textContent='SAVED OK. '+new Date().toLocaleTimeString();
+  setTimeout(()=>document.getElementById('save-msg').textContent='',2000);
+  renderGallery();
+}
+
+function clearEditor(){
+  document.getElementById('art-title-in').value='';
+  document.getElementById('art-author-in').value='';
+  document.getElementById('art-body').value='';
+  document.getElementById('art-preview').textContent='';
+  editingId=null;
+}
+
+function updatePreview(){
+  document.getElementById('art-preview').textContent=document.getElementById('art-body').value;
+  document.getElementById('art-preview').style.color=curColor;
+}
+document.addEventListener('DOMContentLoaded',function(){
+  document.getElementById('art-body').addEventListener('input',updatePreview);
+});
+setTimeout(function(){
+  var el=document.getElementById('art-body');
+  if(el)el.addEventListener('input',updatePreview);
+},100);
+
+var templates={
+  dance:`    \\o/   o
+     |   /|
+    / \\ / \\
+
+  ~~~~~ ~~~~~`,
+  heart:`  .:::.   .:::.
+ :::::::::::::::
+  '::::::::::::
+    '::::::::
+      '::::
+        ':`,
+  couple:`   o     o
+  /|\\   /|\\
+  | |   | |
+ _|_|_ _|_|_`
+};
+
+function insertTemplate(k){
+  document.getElementById('art-body').value=templates[k];
+  updatePreview();
+}
+
+function buildCharPal(){
+  var el=document.getElementById('charpal');
+  chars.forEach(c=>{
+    var s=document.createElement('span');
+    s.className='insert-char';
+    s.textContent=c;
+    s.onclick=()=>insertAtCursor(c);
+    el.appendChild(s);
+  });
+}
+
+function buildColorPick(){
+  var el=document.getElementById('colorpick');
+  colors.forEach(c=>{
+    var d=document.createElement('div');
+    d.className='cp'+(c===curColor?' sel':'');
+    d.style.background=c;
+    d.title=c;
+    d.onclick=()=>{
+      curColor=c;
+      document.querySelectorAll('.cp').forEach(x=>x.classList.remove('sel'));
+      d.classList.add('sel');
+      updatePreview();
+    };
+    el.appendChild(d);
+  });
+}
+
+function insertAtCursor(txt){
+  var ta=document.getElementById('art-body');
+  var s=ta.selectionStart,e=ta.selectionEnd;
+  ta.value=ta.value.substring(0,s)+txt+ta.value.substring(e);
+  ta.selectionStart=ta.selectionEnd=s+txt.length;
+  ta.focus();
+  updatePreview();
+}
+
+function renderMsgs(){
+  var el=document.getElementById('msg-list');
+  el.innerHTML='';
+  msgs.forEach(m=>{
+    var d=document.createElement('div');
+    d.className='msg';
+    d.innerHTML='<span class="who">'+m.who+'</span><span class="when">'+m.when+'</span><div class="body">'+m.body+'</div>';
+    el.appendChild(d);
+  });
+  document.getElementById('msg-ct').textContent=msgs.length;
+  el.scrollTop=el.scrollHeight;
+}
+
+function postMsg(){
+  var h=document.getElementById('msg-handle').value.trim();
+  var b=document.getElementById('msg-body-in').value.trim();
+  var err=document.getElementById('msg-err');
+  if(!h){err.textContent='ERROR: ENTER A HANDLE';return;}
+  if(!b){err.textContent='ERROR: MESSAGE IS EMPTY';return;}
+  err.textContent='';
+  var now=new Date();
+  var ts=now.getFullYear().toString().slice(2)+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0')+' '+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  msgs.push({who:h.toUpperCase(),when:ts,body:b});
+  document.getElementById('msg-body-in').value='';
+  renderMsgs();
+}
+
+function renderStage(){
+  document.getElementById('stage').textContent=frames[fi];
+  document.getElementById('frame-ctr').textContent='FRAME '+(fi+1)+'/'+frames.length;
+}
+
+function togglePlay(){
+  playing=!playing;
+  document.getElementById('play-btn').textContent=playing?'PAUSE':'PLAY';
+  if(playing)startTimer(); else clearInterval(timer);
+}
+function startTimer(){
+  clearInterval(timer);
+  timer=setInterval(function(){
+    fi=(fi+1)%frames.length;
+    renderStage();
+  },Math.round(1200/spd));
+}
+function prevFrame(){fi=(fi-1+frames.length)%frames.length;renderStage();}
+function nextFrame(){fi=(fi+1)%frames.length;renderStage();}
+function updateSpeed(v){spd=parseInt(v);document.getElementById('speed-val').textContent=v;if(playing)startTimer();}
+function addFrame(){
+  var v=document.getElementById('frame-in').value;
+  if(!v.trim())return;
+  frames.push(v);
+  document.getElementById('frame-in').value='';
+  renderStage();
+}
+function delFrame(){
+  if(frames.length<=1)return;
+  frames.splice(fi,1);
+  fi=Math.min(fi,frames.length-1);
+  renderStage();
+}
+
+buildCharPal();
+buildColorPick();
+renderGallery();
+renderMsgs();
+renderStage();
+</script>

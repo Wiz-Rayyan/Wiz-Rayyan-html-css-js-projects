@@ -1,451 +1,713 @@
-
+<!DOCTYPE html>
+<html>
+<head>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=IM+Fell+English:ital@0;1&family=Cinzel+Decorative:wght@400;700&display=swap');
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  .stage {
-    background: #1a0404;
+  :root {
+    --crimson: #2E0A0A;
+    --crimson-mid: #5A1010;
+    --crimson-light: #8B1A1A;
+    --gold: #F5D742;
+    --gold-dim: #C8A830;
+    --gold-pale: #FFF3A3;
+    --cream: #FDF3DC;
+    --black: #0A0000;
+    --fringe: #B8860B;
+  }
+
+  body {
+    background: var(--crimson);
+    color: var(--gold);
+    font-family: 'IM Fell English', serif;
+    overflow-x: hidden;
     min-height: 100vh;
-    font-family: 'Cormorant Garamond', serif;
-    color: #F5D742;
-    position: relative;
-    overflow: hidden;
   }
 
-  .curtain-left, .curtain-right {
-    position: absolute;
-    top: 0;
-    width: 90px;
-    height: 100%;
-    z-index: 10;
+  /* Noise texture overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
     pointer-events: none;
+    z-index: 0;
+    opacity: 0.5;
   }
-  .curtain-left { left: 0; background: linear-gradient(to right, #3a0808, #2a0505 60%, transparent); }
-  .curtain-right { right: 0; background: linear-gradient(to left, #3a0808, #2a0505 60%, transparent); }
 
+  .page { position: relative; z-index: 1; }
+
+  /* ── TOP FRINGE BORDER ── */
   .fringe-top {
     width: 100%;
     height: 36px;
+    background: var(--gold);
     position: relative;
-    background: #8B1A1A;
-    display: flex;
-    align-items: flex-end;
-    overflow: hidden;
+    overflow: visible;
   }
-  .fringe-strands {
-    display: flex;
-    width: 100%;
-    height: 100%;
-    align-items: flex-end;
-    justify-content: center;
-    gap: 0;
-  }
-  .strand {
-    width: 8px;
-    background: linear-gradient(to bottom, #C8941C, #F5D742 70%, #E8C234);
-    border-radius: 0 0 3px 3px;
-    flex-shrink: 0;
-  }
+  .fringe-top svg { display: block; width: 100%; }
 
-  .spotlight-hero {
-    position: relative;
+  /* ── HERO ── */
+  .hero {
     text-align: center;
-    padding: 60px 24px 48px;
-    background: radial-gradient(ellipse 60% 55% at 50% 40%, rgba(245,215,66,0.13) 0%, rgba(180,100,20,0.06) 45%, transparent 75%);
-  }
-
-  .feather-left, .feather-right {
-    position: absolute;
-    top: 20px;
-    font-size: 52px;
-    opacity: 0.55;
-    user-select: none;
-    line-height: 1;
-  }
-  .feather-left { left: 32px; transform: rotate(-20deg); }
-  .feather-right { right: 32px; transform: rotate(20deg) scaleX(-1); }
-
-  .star-row {
-    font-size: 13px;
-    letter-spacing: 8px;
-    color: #C8941C;
-    margin-bottom: 14px;
-    opacity: 0.9;
-  }
-
-  .show-title {
-    font-family: 'Playfair Display', serif;
-    font-size: clamp(34px, 7vw, 68px);
-    font-weight: 900;
-    line-height: 1.05;
-    color: #F5D742;
-    text-shadow: 0 0 40px rgba(245,215,66,0.35), 0 2px 0 #7A3800;
-    letter-spacing: 2px;
-    margin-bottom: 6px;
-  }
-
-  .show-subtitle {
-    font-family: 'Playfair Display', serif;
-    font-style: italic;
-    font-size: clamp(15px, 3vw, 22px);
-    color: #E8C234;
-    opacity: 0.85;
-    letter-spacing: 3px;
-    margin-bottom: 28px;
-  }
-
-  .divider {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    margin: 0 auto 28px;
-    max-width: 340px;
-  }
-  .divider-line { flex: 1; height: 1px; background: linear-gradient(to right, transparent, #C8941C, transparent); }
-  .divider-gem { width: 8px; height: 8px; background: #F5D742; transform: rotate(45deg); }
-
-  .hero-text {
-    font-size: clamp(14px, 2vw, 17px);
-    color: #D4A84B;
-    letter-spacing: 1.5px;
-    line-height: 1.7;
-    max-width: 480px;
-    margin: 0 auto 36px;
-    font-style: italic;
-  }
-
-  .ticket-btn {
-    display: inline-block;
-    background: transparent;
-    border: 2px solid #F5D742;
-    color: #F5D742;
-    font-family: 'Playfair Display', serif;
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 4px;
-    text-transform: uppercase;
-    padding: 14px 36px;
-    cursor: pointer;
+    padding: 60px 24px 40px;
     position: relative;
-    transition: background 0.25s, color 0.25s;
-  }
-  .ticket-btn::before, .ticket-btn::after {
-    content: '✦';
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 10px;
-    opacity: 0.7;
-  }
-  .ticket-btn::before { left: 14px; }
-  .ticket-btn::after { right: 14px; }
-  .ticket-btn:hover { background: #F5D742; color: #1a0404; }
-
-  .bill-section {
-    padding: 0 24px 40px;
-    max-width: 700px;
-    margin: 0 auto;
+    background: radial-gradient(ellipse 70% 60% at 50% 20%, #6B1414 0%, transparent 70%);
   }
 
-  .bill-header {
-    font-family: 'Playfair Display', serif;
+  .hero .eyebrow {
+    font-family: 'Cinzel Decorative', serif;
     font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 7px;
+    letter-spacing: 0.4em;
+    color: var(--gold-dim);
     text-transform: uppercase;
-    color: #8B1A1A;
-    background: #F5D742;
-    text-align: center;
-    padding: 7px 16px;
-    margin-bottom: 0;
+    margin-bottom: 20px;
   }
 
-  .bill-border {
-    border: 1.5px solid #C8941C;
-    border-top: none;
-    padding: 24px 28px 28px;
-    position: relative;
-  }
-
-  .act-row {
-    display: flex;
-    align-items: baseline;
-    gap: 0;
-    padding: 11px 0;
-    border-bottom: 1px dashed rgba(200,148,28,0.25);
-  }
-  .act-row:last-child { border-bottom: none; }
-
-  .act-name {
-    font-family: 'Playfair Display', serif;
-    font-size: clamp(15px, 3vw, 20px);
+  .hero h1 {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: clamp(38px, 8vw, 88px);
     font-weight: 700;
-    color: #F5D742;
-    flex: 1;
-  }
-  .act-dots {
-    flex: 1;
-    border-bottom: 1px dotted rgba(200,148,28,0.35);
-    margin: 0 10px;
+    line-height: 1;
+    color: var(--gold);
+    text-shadow: 0 0 60px rgba(245, 215, 66, 0.35), 0 2px 4px rgba(0,0,0,0.8);
+    margin-bottom: 10px;
     position: relative;
-    top: -4px;
-    min-width: 20px;
   }
-  .act-time {
-    font-size: 13px;
-    letter-spacing: 2px;
-    color: #C8941C;
-    white-space: nowrap;
+
+  .hero h1 .amp {
+    font-family: 'Playfair Display', serif;
     font-style: italic;
+    font-size: 0.7em;
+    color: var(--gold-dim);
+    vertical-align: middle;
+    display: inline-block;
+    transform: translateY(-6px);
   }
 
-  .act-desc {
-    font-size: 12px;
-    color: #9a6a1a;
-    letter-spacing: 0.5px;
+  .hero .subtitle {
+    font-family: 'Playfair Display', serif;
     font-style: italic;
-    margin-top: 2px;
-    padding-left: 0;
+    font-size: clamp(16px, 3vw, 22px);
+    color: var(--cream);
+    letter-spacing: 0.08em;
+    margin-bottom: 32px;
   }
 
-  .corner-ornament {
-    position: absolute;
-    width: 18px;
-    height: 18px;
-    border-color: #C8941C;
-    border-style: solid;
-  }
-  .co-tl { top: -1px; left: -1px; border-width: 2px 0 0 2px; }
-  .co-tr { top: -1px; right: -1px; border-width: 2px 2px 0 0; }
-  .co-bl { bottom: -1px; left: -1px; border-width: 0 0 2px 2px; }
-  .co-br { bottom: -1px; right: -1px; border-width: 0 2px 2px 0; }
-
-  .bottom-tickets {
-    text-align: center;
-    padding: 28px 24px 16px;
+  /* Feather SVG decorations */
+  .feathers {
     display: flex;
-    flex-direction: column;
+    justify-content: center;
     align-items: center;
-    gap: 14px;
-  }
-
-  .ticket-strip {
-    border: 1px dashed #8B1A1A;
-    padding: 14px 28px;
-    max-width: 480px;
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
     gap: 16px;
+    margin: 20px 0 36px;
+  }
+  .feathers svg { opacity: 0.85; }
+
+  /* Spotlight circle behind date */
+  .spotlight-badge {
+    display: inline-block;
     position: relative;
+    background: radial-gradient(ellipse 80% 80% at 50% 30%, rgba(245,215,66,0.18) 0%, rgba(245,215,66,0.06) 50%, transparent 70%);
+    border: 1px solid rgba(245,215,66,0.3);
+    border-radius: 2px;
+    padding: 14px 40px;
+    margin-bottom: 40px;
   }
-  .ticket-notch {
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: #1a0404;
-    border: 1px dashed #8B1A1A;
-    flex-shrink: 0;
-  }
-  .ticket-info {
-    text-align: center;
-    flex: 1;
-  }
-  .ticket-label {
-    font-size: 10px;
-    letter-spacing: 4px;
-    color: #8B4513;
+  .spotlight-badge .date-label {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: 11px;
+    letter-spacing: 0.35em;
+    color: var(--gold-dim);
     display: block;
-    margin-bottom: 3px;
+    margin-bottom: 4px;
   }
-  .ticket-price {
+  .spotlight-badge .date {
     font-family: 'Playfair Display', serif;
     font-size: 22px;
     font-weight: 700;
-    color: #F5D742;
+    color: var(--gold);
   }
-  .ticket-seat {
-    font-size: 10px;
-    letter-spacing: 2px;
-    color: #9a6a1a;
-    font-style: italic;
-    margin-top: 2px;
-    display: block;
-  }
-  .tier-btn {
-    font-family: 'Playfair Display', serif;
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 3px;
-    color: #1a0404;
-    background: #C8941C;
-    border: none;
-    padding: 8px 18px;
-    cursor: pointer;
-    flex-shrink: 0;
-    transition: background 0.2s;
-  }
-  .tier-btn:hover { background: #F5D742; }
 
-  .footer-fringe {
-    width: 100%;
-    height: 28px;
-    background: #8B1A1A;
+  /* CTA Buttons */
+  .cta-row {
     display: flex;
-    align-items: flex-start;
-    overflow: hidden;
-    margin-top: 20px;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-bottom: 50px;
   }
-  .footer-fringe .fringe-strands { align-items: flex-start; }
-  .footer-fringe .strand { border-radius: 3px 3px 0 0; }
 
-  .footer-tag {
+  .btn-ticket {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: 12px;
+    letter-spacing: 0.2em;
+    padding: 14px 36px;
+    background: var(--gold);
+    color: var(--crimson);
+    border: none;
+    cursor: pointer;
+    text-transform: uppercase;
+    font-weight: 700;
+    position: relative;
+    clip-path: polygon(8px 0%, calc(100% - 8px) 0%, 100% 50%, calc(100% - 8px) 100%, 8px 100%, 0% 50%);
+    transition: background 0.2s, transform 0.15s;
+  }
+  .btn-ticket:hover { background: var(--gold-pale); transform: scale(1.04); }
+
+  .btn-ghost {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: 12px;
+    letter-spacing: 0.2em;
+    padding: 13px 36px;
+    background: transparent;
+    color: var(--gold);
+    border: 1px solid var(--gold-dim);
+    cursor: pointer;
+    text-transform: uppercase;
+    font-weight: 400;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .btn-ghost:hover { border-color: var(--gold); color: var(--gold-pale); }
+
+  /* ── DIVIDER ── */
+  .ornament-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 32px;
+    margin: 8px 0 40px;
+  }
+  .ornament-divider .line {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--gold-dim), transparent);
+  }
+  .ornament-divider .diamond {
+    width: 8px; height: 8px;
+    background: var(--gold);
+    transform: rotate(45deg);
+    flex-shrink: 0;
+  }
+
+  /* ── SHOW LISTINGS ── */
+  .shows-section {
+    padding: 0 24px 50px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  .section-heading {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: clamp(13px, 2.5vw, 18px);
+    letter-spacing: 0.3em;
+    color: var(--gold-dim);
     text-align: center;
-    font-size: 11px;
-    letter-spacing: 4px;
-    color: #5a2a0a;
-    padding: 12px;
+    text-transform: uppercase;
+    margin-bottom: 32px;
+  }
+
+  .show-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 20px;
+  }
+
+  .show-card {
+    border: 1px solid rgba(245,215,66,0.25);
+    background: radial-gradient(ellipse 100% 60% at 50% 0%, rgba(90,16,16,0.6) 0%, rgba(46,10,10,0.9) 80%);
+    padding: 28px 24px 24px;
+    position: relative;
+    transition: border-color 0.2s, transform 0.2s;
+    cursor: pointer;
+  }
+  .show-card:hover {
+    border-color: rgba(245,215,66,0.6);
+    transform: translateY(-3px);
+  }
+
+  .show-card .corner {
+    position: absolute;
+    width: 14px; height: 14px;
+    border-color: var(--gold-dim);
+    border-style: solid;
+  }
+  .show-card .corner.tl { top: 6px; left: 6px; border-width: 1px 0 0 1px; }
+  .show-card .corner.tr { top: 6px; right: 6px; border-width: 1px 1px 0 0; }
+  .show-card .corner.bl { bottom: 6px; left: 6px; border-width: 0 0 1px 1px; }
+  .show-card .corner.br { bottom: 6px; right: 6px; border-width: 0 1px 1px 0; }
+
+  .show-card .show-night {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: 9px;
+    letter-spacing: 0.35em;
+    color: var(--gold-dim);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .show-card .show-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    font-weight: 700;
     font-style: italic;
+    color: var(--gold);
+    line-height: 1.2;
+    margin-bottom: 8px;
+  }
+  .show-card .show-desc {
+    font-size: 13px;
+    color: rgba(245,215,66,0.55);
+    line-height: 1.6;
+    margin-bottom: 18px;
+  }
+  .show-card .show-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid rgba(245,215,66,0.15);
+    padding-top: 14px;
+  }
+  .show-card .show-price {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: 18px;
+    color: var(--gold);
+  }
+  .show-card .show-seats {
+    font-size: 11px;
+    color: rgba(245,215,66,0.4);
+    letter-spacing: 0.1em;
+  }
+
+  /* ── PERFORMERS ── */
+  .performers-section {
+    background: linear-gradient(180deg, transparent 0%, rgba(90,16,16,0.3) 50%, transparent 100%);
+    padding: 40px 24px 50px;
+  }
+
+  .performer-row {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    flex-wrap: wrap;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .performer-item {
+    text-align: center;
+    width: 120px;
+  }
+  .performer-avatar {
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    border: 2px solid var(--gold-dim);
+    margin: 0 auto 12px;
+    background: var(--crimson-mid);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+  }
+  .performer-avatar svg { opacity: 0.9; }
+  .performer-name {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-size: 14px;
+    color: var(--gold);
+    line-height: 1.3;
+  }
+  .performer-role {
+    font-size: 11px;
+    color: var(--gold-dim);
+    letter-spacing: 0.12em;
+    margin-top: 3px;
+  }
+
+  /* ── VENUE ── */
+  .venue-section {
+    border-top: 1px solid rgba(245,215,66,0.15);
+    padding: 40px 24px 30px;
+    text-align: center;
+  }
+  .venue-name {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: clamp(16px, 4vw, 26px);
+    color: var(--gold);
+    margin-bottom: 8px;
+  }
+  .venue-address {
+    font-size: 13px;
+    color: rgba(245,215,66,0.45);
+    letter-spacing: 0.12em;
+    margin-bottom: 28px;
+  }
+
+  /* ── FOOTER FRINGE ── */
+  .fringe-bottom {
+    width: 100%;
+    overflow: hidden;
+    line-height: 0;
+  }
+
+  /* ── ANIMATIONS ── */
+  @keyframes flicker {
+    0%, 100% { opacity: 1; }
+    48% { opacity: 1; }
+    50% { opacity: 0.85; }
+    52% { opacity: 1; }
+    92% { opacity: 1; }
+    93% { opacity: 0.7; }
+    94% { opacity: 1; }
+  }
+  .hero h1 { animation: flicker 8s infinite; }
+
+  @keyframes sway {
+    0%, 100% { transform: rotate(-3deg) translateY(0); }
+    50% { transform: rotate(3deg) translateY(4px); }
   }
 </style>
+</head>
+<body>
+<div class="page">
 
-<div class="stage">
-  <div class="curtain-left"></div>
-  <div class="curtain-right"></div>
-
+  <!-- TOP FRINGE -->
   <div class="fringe-top">
-    <div class="fringe-strands" id="fringe-top"></div>
+    <svg viewBox="0 0 1200 36" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" height="36" width="100%">
+      <rect width="1200" height="10" fill="#F5D742"/>
+      <!-- fringe strands -->
+      <g fill="#B8860B">
+        <script>
+        </script>
+      </g>
+    </svg>
+    <!-- Fringe strands via SVG inline -->
+    <svg style="position:absolute;top:0;left:0;width:100%;height:36px;overflow:visible" viewBox="0 0 1200 36" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="1200" height="8" fill="#F5D742"/>
+      <!-- repeating fringe strands every 12px -->
+      <g id="fs">
+        <rect x="0" y="8" width="5" height="22" rx="2.5" fill="#C8A830" opacity="0.9"/>
+        <ellipse cx="2.5" cy="30" rx="3" ry="3" fill="#B8860B"/>
+      </g>
+      <!-- We'll replicate via use transforms -->
+      <use href="#fs" transform="translate(0,0)"/>
+      <use href="#fs" transform="translate(12,0)"/>
+      <use href="#fs" transform="translate(24,0)"/>
+      <use href="#fs" transform="translate(36,0)"/>
+      <use href="#fs" transform="translate(48,0)"/>
+      <use href="#fs" transform="translate(60,0)"/>
+      <use href="#fs" transform="translate(72,0)"/>
+      <use href="#fs" transform="translate(84,0)"/>
+      <use href="#fs" transform="translate(96,0)"/>
+      <use href="#fs" transform="translate(108,0)"/>
+      <use href="#fs" transform="translate(120,0)"/>
+      <use href="#fs" transform="translate(132,0)"/>
+      <use href="#fs" transform="translate(144,0)"/>
+      <use href="#fs" transform="translate(156,0)"/>
+      <use href="#fs" transform="translate(168,0)"/>
+      <use href="#fs" transform="translate(180,0)"/>
+      <use href="#fs" transform="translate(192,0)"/>
+      <use href="#fs" transform="translate(204,0)"/>
+      <use href="#fs" transform="translate(216,0)"/>
+      <use href="#fs" transform="translate(228,0)"/>
+      <use href="#fs" transform="translate(240,0)"/>
+      <use href="#fs" transform="translate(252,0)"/>
+      <use href="#fs" transform="translate(264,0)"/>
+      <use href="#fs" transform="translate(276,0)"/>
+      <use href="#fs" transform="translate(288,0)"/>
+      <use href="#fs" transform="translate(300,0)"/>
+      <use href="#fs" transform="translate(312,0)"/>
+      <use href="#fs" transform="translate(324,0)"/>
+      <use href="#fs" transform="translate(336,0)"/>
+      <use href="#fs" transform="translate(348,0)"/>
+      <use href="#fs" transform="translate(360,0)"/>
+      <use href="#fs" transform="translate(372,0)"/>
+      <use href="#fs" transform="translate(384,0)"/>
+      <use href="#fs" transform="translate(396,0)"/>
+      <use href="#fs" transform="translate(408,0)"/>
+      <use href="#fs" transform="translate(420,0)"/>
+      <use href="#fs" transform="translate(432,0)"/>
+      <use href="#fs" transform="translate(444,0)"/>
+      <use href="#fs" transform="translate(456,0)"/>
+      <use href="#fs" transform="translate(468,0)"/>
+      <use href="#fs" transform="translate(480,0)"/>
+      <use href="#fs" transform="translate(492,0)"/>
+      <use href="#fs" transform="translate(504,0)"/>
+      <use href="#fs" transform="translate(516,0)"/>
+      <use href="#fs" transform="translate(528,0)"/>
+      <use href="#fs" transform="translate(540,0)"/>
+      <use href="#fs" transform="translate(552,0)"/>
+      <use href="#fs" transform="translate(564,0)"/>
+      <use href="#fs" transform="translate(576,0)"/>
+      <use href="#fs" transform="translate(588,0)"/>
+      <use href="#fs" transform="translate(600,0)"/>
+      <use href="#fs" transform="translate(612,0)"/>
+      <use href="#fs" transform="translate(624,0)"/>
+      <use href="#fs" transform="translate(636,0)"/>
+      <use href="#fs" transform="translate(648,0)"/>
+      <use href="#fs" transform="translate(660,0)"/>
+      <use href="#fs" transform="translate(672,0)"/>
+      <use href="#fs" transform="translate(684,0)"/>
+      <use href="#fs" transform="translate(696,0)"/>
+      <use href="#fs" transform="translate(708,0)"/>
+      <use href="#fs" transform="translate(720,0)"/>
+      <use href="#fs" transform="translate(732,0)"/>
+      <use href="#fs" transform="translate(744,0)"/>
+      <use href="#fs" transform="translate(756,0)"/>
+      <use href="#fs" transform="translate(768,0)"/>
+      <use href="#fs" transform="translate(780,0)"/>
+      <use href="#fs" transform="translate(792,0)"/>
+      <use href="#fs" transform="translate(804,0)"/>
+      <use href="#fs" transform="translate(816,0)"/>
+      <use href="#fs" transform="translate(828,0)"/>
+      <use href="#fs" transform="translate(840,0)"/>
+      <use href="#fs" transform="translate(852,0)"/>
+      <use href="#fs" transform="translate(864,0)"/>
+      <use href="#fs" transform="translate(876,0)"/>
+      <use href="#fs" transform="translate(888,0)"/>
+      <use href="#fs" transform="translate(900,0)"/>
+      <use href="#fs" transform="translate(912,0)"/>
+      <use href="#fs" transform="translate(924,0)"/>
+      <use href="#fs" transform="translate(936,0)"/>
+      <use href="#fs" transform="translate(948,0)"/>
+      <use href="#fs" transform="translate(960,0)"/>
+      <use href="#fs" transform="translate(972,0)"/>
+      <use href="#fs" transform="translate(984,0)"/>
+      <use href="#fs" transform="translate(996,0)"/>
+      <use href="#fs" transform="translate(1008,0)"/>
+      <use href="#fs" transform="translate(1020,0)"/>
+      <use href="#fs" transform="translate(1032,0)"/>
+      <use href="#fs" transform="translate(1044,0)"/>
+      <use href="#fs" transform="translate(1056,0)"/>
+      <use href="#fs" transform="translate(1068,0)"/>
+      <use href="#fs" transform="translate(1080,0)"/>
+      <use href="#fs" transform="translate(1092,0)"/>
+      <use href="#fs" transform="translate(1104,0)"/>
+      <use href="#fs" transform="translate(1116,0)"/>
+      <use href="#fs" transform="translate(1128,0)"/>
+      <use href="#fs" transform="translate(1140,0)"/>
+      <use href="#fs" transform="translate(1152,0)"/>
+      <use href="#fs" transform="translate(1164,0)"/>
+      <use href="#fs" transform="translate(1176,0)"/>
+      <use href="#fs" transform="translate(1188,0)"/>
+    </svg>
   </div>
 
-  <div class="spotlight-hero">
-    <div class="feather-left">🪶</div>
-    <div class="feather-right">🪶</div>
-    <div class="star-row">✦ &nbsp; ✦ &nbsp; ✦ &nbsp; ✦ &nbsp; ✦</div>
-    <div class="show-title">Le Rouge<br>Cabaret</div>
-    <div class="show-subtitle">A Grand Vaudeville Extravaganza</div>
-    <div class="divider">
-      <div class="divider-line"></div>
-      <div class="divider-gem"></div>
-      <div class="divider-line"></div>
+  <!-- HERO -->
+  <section class="hero">
+    <p class="eyebrow">— Est. 1921 · The Grand Palais Theatre —</p>
+
+    <!-- Feather SVGs flanking title -->
+    <div class="feathers">
+      <!-- Left feather cluster -->
+      <svg width="60" height="80" viewBox="0 0 60 80" fill="none" xmlns="http://www.w3.org/2000/svg" style="transform: scaleX(-1);">
+        <path d="M30 75 C28 60 20 50 10 40 C5 35 2 28 8 22 C14 16 22 20 26 30 C28 35 29 45 30 55" stroke="#C8A830" stroke-width="1.5" fill="none" opacity="0.8"/>
+        <path d="M30 75 C32 58 42 48 50 36 C54 30 54 22 48 18 C42 14 35 20 32 32 C31 38 30 55 30 65" stroke="#F5D742" stroke-width="1.5" fill="none" opacity="0.7"/>
+        <path d="M30 75 C29 62 24 55 18 48 C14 43 13 37 18 33 C23 29 29 34 30 45" stroke="#B8860B" stroke-width="1" fill="none" opacity="0.6"/>
+        <!-- Barbs -->
+        <path d="M13 38 Q20 36 26 38" stroke="#C8A830" stroke-width="0.8" fill="none" opacity="0.5"/>
+        <path d="M10 30 Q17 27 22 30" stroke="#C8A830" stroke-width="0.8" fill="none" opacity="0.5"/>
+        <path d="M45 32 Q38 29 33 32" stroke="#F5D742" stroke-width="0.8" fill="none" opacity="0.5"/>
+        <path d="M50 24 Q43 21 38 25" stroke="#F5D742" stroke-width="0.8" fill="none" opacity="0.5"/>
+      </svg>
+
+      <h1>Velvet<span class="amp"> &amp; </span>Vice</h1>
+
+      <!-- Right feather cluster -->
+      <svg width="60" height="80" viewBox="0 0 60 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M30 75 C28 60 20 50 10 40 C5 35 2 28 8 22 C14 16 22 20 26 30 C28 35 29 45 30 55" stroke="#C8A830" stroke-width="1.5" fill="none" opacity="0.8"/>
+        <path d="M30 75 C32 58 42 48 50 36 C54 30 54 22 48 18 C42 14 35 20 32 32 C31 38 30 55 30 65" stroke="#F5D742" stroke-width="1.5" fill="none" opacity="0.7"/>
+        <path d="M30 75 C29 62 24 55 18 48 C14 43 13 37 18 33 C23 29 29 34 30 45" stroke="#B8860B" stroke-width="1" fill="none" opacity="0.6"/>
+        <path d="M13 38 Q20 36 26 38" stroke="#C8A830" stroke-width="0.8" fill="none" opacity="0.5"/>
+        <path d="M10 30 Q17 27 22 30" stroke="#C8A830" stroke-width="0.8" fill="none" opacity="0.5"/>
+        <path d="M45 32 Q38 29 33 32" stroke="#F5D742" stroke-width="0.8" fill="none" opacity="0.5"/>
+        <path d="M50 24 Q43 21 38 25" stroke="#F5D742" stroke-width="0.8" fill="none" opacity="0.5"/>
+      </svg>
     </div>
-    <div class="hero-text">
-      One night only. Velvet curtains rise at eight.<br>
-      Feathers, finery & forbidden delights await.
+
+    <p class="subtitle">An Evening of Burlesque, Vaudeville & Spectacle</p>
+
+    <div class="spotlight-badge">
+      <span class="date-label">Next Performance</span>
+      <span class="date">Saturday, 14th June — 9 PM</span>
     </div>
-    <button class="ticket-btn">Reserve Your Seat</button>
+
+    <div class="cta-row">
+      <button class="btn-ticket" onclick="sendPrompt('I want to buy tickets for the Velvet & Vice show')">Reserve Your Seat</button>
+      <button class="btn-ghost" onclick="sendPrompt('Tell me more about the show lineup')">View Programme</button>
+    </div>
+  </section>
+
+  <!-- DIVIDER -->
+  <div class="ornament-divider">
+    <div class="line"></div>
+    <div class="diamond"></div>
+    <svg width="24" height="16" viewBox="0 0 24 16" fill="none" style="opacity:0.6">
+      <path d="M12 1 L23 8 L12 15 L1 8 Z" stroke="#C8A830" stroke-width="1" fill="none"/>
+      <path d="M12 4 L20 8 L12 12 L4 8 Z" fill="#C8A830" opacity="0.4"/>
+    </svg>
+    <div class="diamond"></div>
+    <div class="line"></div>
   </div>
 
-  <div class="bill-section">
-    <div class="bill-header">✦ &nbsp; Tonight's Bill &nbsp; ✦</div>
-    <div class="bill-border">
-      <div class="corner-ornament co-tl"></div>
-      <div class="corner-ornament co-tr"></div>
-      <div class="corner-ornament co-bl"></div>
-      <div class="corner-ornament co-br"></div>
+  <!-- SHOWS -->
+  <section class="shows-section">
+    <p class="section-heading">— This Season's Programme —</p>
+    <div class="show-grid">
 
-      <div class="act-row">
-        <div>
-          <div class="act-name">Madame Scarlett</div>
-          <div class="act-desc">The Feathered Temptress of the Orient Express</div>
+      <div class="show-card">
+        <div class="corner tl"></div><div class="corner tr"></div>
+        <div class="corner bl"></div><div class="corner br"></div>
+        <p class="show-night">Friday Night</p>
+        <p class="show-title">The Crimson Cabaret</p>
+        <p class="show-desc">Eleven acts of unbridled theatricality. Sequins, sass, and secrets whispered in smoke-filled air.</p>
+        <div class="show-meta">
+          <span class="show-price">₹2,200</span>
+          <span class="show-seats">12 seats remaining</span>
         </div>
-        <div class="act-dots"></div>
-        <div class="act-time">8:00 pm</div>
       </div>
 
-      <div class="act-row">
-        <div>
-          <div class="act-name">The Fabulous DuPont Twins</div>
-          <div class="act-desc">Acrobatic comedy & aerial silk</div>
+      <div class="show-card">
+        <div class="corner tl"></div><div class="corner tr"></div>
+        <div class="corner bl"></div><div class="corner br"></div>
+        <p class="show-night">Saturday Night · Gala</p>
+        <p class="show-title">La Nuit Dorée</p>
+        <p class="show-desc">The golden evening — our most lavish production. Full orchestra, champagne reception, reserved seating.</p>
+        <div class="show-meta">
+          <span class="show-price">₹4,800</span>
+          <span class="show-seats">4 seats remaining</span>
         </div>
-        <div class="act-dots"></div>
-        <div class="act-time">8:45 pm</div>
       </div>
 
-      <div class="act-row">
-        <div>
-          <div class="act-name">Intermission & Champagne</div>
-          <div class="act-desc">Complimentary for Box & Orchestra seats</div>
+      <div class="show-card">
+        <div class="corner tl"></div><div class="corner tr"></div>
+        <div class="corner bl"></div><div class="corner br"></div>
+        <p class="show-night">Sunday Matinée</p>
+        <p class="show-title">Vaudeville Revival</p>
+        <p class="show-desc">Comedy, magic, and melodrama — a love letter to the grand old tradition of variety entertainment.</p>
+        <div class="show-meta">
+          <span class="show-price">₹1,500</span>
+          <span class="show-seats">Open seating</span>
         </div>
-        <div class="act-dots"></div>
-        <div class="act-time">9:30 pm</div>
       </div>
 
-      <div class="act-row">
-        <div>
-          <div class="act-name">Professor Volkov's Follies</div>
-          <div class="act-desc">Magic, mentalism & magnificent mischief</div>
-        </div>
-        <div class="act-dots"></div>
-        <div class="act-time">9:55 pm</div>
-      </div>
-
-      <div class="act-row">
-        <div>
-          <div class="act-name">Grand Finale — All Company</div>
-          <div class="act-desc">The curtain call you will never forget</div>
-        </div>
-        <div class="act-dots"></div>
-        <div class="act-time">10:45 pm</div>
-      </div>
     </div>
+  </section>
+
+  <!-- DIVIDER -->
+  <div class="ornament-divider">
+    <div class="line"></div>
+    <div class="diamond"></div>
+    <div class="diamond" style="transform:rotate(45deg) scale(0.6); margin: 0 4px;"></div>
+    <div class="diamond"></div>
+    <div class="line"></div>
   </div>
 
-  <div class="bottom-tickets">
-    <div class="ticket-strip">
-      <div class="ticket-notch"></div>
-      <div class="ticket-info">
-        <span class="ticket-label">GALLERY</span>
-        <div class="ticket-price">₹ 1,800</div>
-        <span class="ticket-seat">Upper balcony · Limited view</span>
-      </div>
-      <button class="tier-btn">BOOK</button>
-      <div class="ticket-notch"></div>
-    </div>
+  <!-- PERFORMERS -->
+  <section class="performers-section">
+    <p class="section-heading">— The Company —</p>
+    <div class="performer-row">
 
-    <div class="ticket-strip">
-      <div class="ticket-notch"></div>
-      <div class="ticket-info">
-        <span class="ticket-label">ORCHESTRA</span>
-        <div class="ticket-price">₹ 3,500</div>
-        <span class="ticket-seat">Main floor · Full view</span>
+      <div class="performer-item">
+        <div class="performer-avatar">
+          <!-- Silhouette figure 1 -->
+          <svg width="48" height="60" viewBox="0 0 48 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="24" cy="12" r="8" fill="#C8A830" opacity="0.7"/>
+            <path d="M14 28 C12 22 16 18 24 18 C32 18 36 22 34 28 L30 50 L18 50 Z" fill="#C8A830" opacity="0.55"/>
+            <path d="M18 30 L8 44" stroke="#C8A830" stroke-width="3" stroke-linecap="round" opacity="0.5"/>
+            <path d="M30 30 L40 44" stroke="#C8A830" stroke-width="3" stroke-linecap="round" opacity="0.5"/>
+            <!-- Headdress feathers -->
+            <path d="M16 8 C10 2 6 -2 12 4" stroke="#F5D742" stroke-width="1.5" fill="none" opacity="0.8"/>
+            <path d="M20 5 C16 -2 14 -6 18 2" stroke="#F5D742" stroke-width="1.5" fill="none" opacity="0.8"/>
+            <path d="M24 4 C24 -4 24 -8 24 1" stroke="#C8A830" stroke-width="1.5" fill="none" opacity="0.8"/>
+          </svg>
+        </div>
+        <p class="performer-name">Scarlett La Rouge</p>
+        <p class="performer-role">Headliner</p>
       </div>
-      <button class="tier-btn">BOOK</button>
-      <div class="ticket-notch"></div>
-    </div>
 
-    <div class="ticket-strip" style="border-color: #C8941C;">
-      <div class="ticket-notch" style="border-color: #C8941C;"></div>
-      <div class="ticket-info">
-        <span class="ticket-label" style="color: #C8941C; letter-spacing: 3px;">✦ BOX SEATS ✦</span>
-        <div class="ticket-price">₹ 7,200</div>
-        <span class="ticket-seat">Private box · Champagne service</span>
+      <div class="performer-item">
+        <div class="performer-avatar">
+          <svg width="48" height="60" viewBox="0 0 48 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="24" cy="13" r="8" fill="#C8A830" opacity="0.7"/>
+            <path d="M16 28 C14 22 18 18 24 18 C30 18 34 22 32 28 L28 50 L20 50 Z" fill="#C8A830" opacity="0.55"/>
+            <path d="M20 30 L12 46" stroke="#C8A830" stroke-width="3" stroke-linecap="round" opacity="0.5"/>
+            <path d="M28 30 L36 46" stroke="#C8A830" stroke-width="3" stroke-linecap="round" opacity="0.5"/>
+            <!-- Top hat -->
+            <rect x="14" y="1" width="20" height="12" rx="1" fill="#F5D742" opacity="0.5"/>
+            <rect x="10" y="12" width="28" height="3" rx="1" fill="#F5D742" opacity="0.6"/>
+            <rect x="20" y="-1" width="8" height="3" rx="1" fill="#C8A830" opacity="0.5"/>
+          </svg>
+        </div>
+        <p class="performer-name">Victor Galante</p>
+        <p class="performer-role">Master of Ceremony</p>
       </div>
-      <button class="tier-btn" style="background: #F5D742;">BOOK</button>
-      <div class="ticket-notch" style="border-color: #C8941C;"></div>
+
+      <div class="performer-item">
+        <div class="performer-avatar">
+          <svg width="48" height="60" viewBox="0 0 48 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="24" cy="12" r="8" fill="#C8A830" opacity="0.7"/>
+            <path d="M13 30 C10 24 15 18 24 18 C33 18 38 24 35 30 L34 50 L14 50 Z" fill="#C8A830" opacity="0.55"/>
+            <path d="M14 32 L4 48" stroke="#C8A830" stroke-width="3" stroke-linecap="round" opacity="0.5"/>
+            <path d="M34 32 L44 48" stroke="#C8A830" stroke-width="3" stroke-linecap="round" opacity="0.5"/>
+            <!-- Fan -->
+            <path d="M36 34 C44 28 48 20 42 16 C38 14 34 20 34 30" fill="#F5D742" opacity="0.35"/>
+            <path d="M36 34 L42 16" stroke="#F5D742" stroke-width="0.8" opacity="0.6"/>
+            <path d="M36 34 L46 24" stroke="#F5D742" stroke-width="0.8" opacity="0.6"/>
+            <path d="M36 34 L44 30" stroke="#F5D742" stroke-width="0.8" opacity="0.6"/>
+          </svg>
+        </div>
+        <p class="performer-name">Delphine Noir</p>
+        <p class="performer-role">Fan Dancer</p>
+      </div>
+
+      <div class="performer-item">
+        <div class="performer-avatar">
+          <svg width="48" height="60" viewBox="0 0 48 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="24" cy="12" r="8" fill="#C8A830" opacity="0.7"/>
+            <path d="M15 28 C13 22 17 18 24 18 C31 18 35 22 33 28 L29 50 L19 50 Z" fill="#C8A830" opacity="0.55"/>
+            <!-- Juggling balls -->
+            <circle cx="8" cy="22" r="4" fill="#F5D742" opacity="0.6"/>
+            <circle cx="40" cy="18" r="4" fill="#F5D742" opacity="0.6"/>
+            <circle cx="36" cy="32" r="3" fill="#C8A830" opacity="0.6"/>
+            <path d="M19 28 L10 24" stroke="#C8A830" stroke-width="2" opacity="0.4"/>
+            <path d="M29 28 L38 22" stroke="#C8A830" stroke-width="2" opacity="0.4"/>
+          </svg>
+        </div>
+        <p class="performer-name">The Marcellos</p>
+        <p class="performer-role">Acrobats & Comedy</p>
+      </div>
+
     </div>
+  </section>
+
+  <!-- VENUE -->
+  <section class="venue-section">
+    <div class="ornament-divider" style="margin-bottom:30px">
+      <div class="line"></div><div class="diamond"></div><div class="line"></div>
+    </div>
+    <p class="venue-name">The Grand Palais Theatre</p>
+    <p class="venue-address">22 Gaslight Row · Old Quarter · Doors open at 8 PM</p>
+    <div class="cta-row">
+      <button class="btn-ticket" onclick="sendPrompt('How do I get to the Grand Palais Theatre?')">Find The Theatre</button>
+      <button class="btn-ghost" onclick="sendPrompt('What is the dress code for Velvet & Vice?')">Dress Code & Rules</button>
+    </div>
+  </section>
+
+  <!-- BOTTOM FRINGE -->
+  <div class="fringe-bottom">
+    <svg viewBox="0 0 1200 36" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" height="36" width="100%" style="transform:rotate(180deg); display:block">
+      <rect y="26" width="1200" height="10" fill="#F5D742"/>
+      <g id="fb">
+        <rect x="0" y="3" width="5" height="22" rx="2.5" fill="#C8A830" opacity="0.9"/>
+        <ellipse cx="2.5" cy="3" rx="3" ry="3" fill="#B8860B"/>
+      </g>
+      <use href="#fb" transform="translate(0,0)"/><use href="#fb" transform="translate(12,0)"/><use href="#fb" transform="translate(24,0)"/><use href="#fb" transform="translate(36,0)"/><use href="#fb" transform="translate(48,0)"/><use href="#fb" transform="translate(60,0)"/><use href="#fb" transform="translate(72,0)"/><use href="#fb" transform="translate(84,0)"/><use href="#fb" transform="translate(96,0)"/><use href="#fb" transform="translate(108,0)"/><use href="#fb" transform="translate(120,0)"/><use href="#fb" transform="translate(132,0)"/><use href="#fb" transform="translate(144,0)"/><use href="#fb" transform="translate(156,0)"/><use href="#fb" transform="translate(168,0)"/><use href="#fb" transform="translate(180,0)"/><use href="#fb" transform="translate(192,0)"/><use href="#fb" transform="translate(204,0)"/><use href="#fb" transform="translate(216,0)"/><use href="#fb" transform="translate(228,0)"/><use href="#fb" transform="translate(240,0)"/><use href="#fb" transform="translate(252,0)"/><use href="#fb" transform="translate(264,0)"/><use href="#fb" transform="translate(276,0)"/><use href="#fb" transform="translate(288,0)"/><use href="#fb" transform="translate(300,0)"/><use href="#fb" transform="translate(312,0)"/><use href="#fb" transform="translate(324,0)"/><use href="#fb" transform="translate(336,0)"/><use href="#fb" transform="translate(348,0)"/><use href="#fb" transform="translate(360,0)"/><use href="#fb" transform="translate(372,0)"/><use href="#fb" transform="translate(384,0)"/><use href="#fb" transform="translate(396,0)"/><use href="#fb" transform="translate(408,0)"/><use href="#fb" transform="translate(420,0)"/><use href="#fb" transform="translate(432,0)"/><use href="#fb" transform="translate(444,0)"/><use href="#fb" transform="translate(456,0)"/><use href="#fb" transform="translate(468,0)"/><use href="#fb" transform="translate(480,0)"/><use href="#fb" transform="translate(492,0)"/><use href="#fb" transform="translate(504,0)"/><use href="#fb" transform="translate(516,0)"/><use href="#fb" transform="translate(528,0)"/><use href="#fb" transform="translate(540,0)"/><use href="#fb" transform="translate(552,0)"/><use href="#fb" transform="translate(564,0)"/><use href="#fb" transform="translate(576,0)"/><use href="#fb" transform="translate(588,0)"/><use href="#fb" transform="translate(600,0)"/><use href="#fb" transform="translate(612,0)"/><use href="#fb" transform="translate(624,0)"/><use href="#fb" transform="translate(636,0)"/><use href="#fb" transform="translate(648,0)"/><use href="#fb" transform="translate(660,0)"/><use href="#fb" transform="translate(672,0)"/><use href="#fb" transform="translate(684,0)"/><use href="#fb" transform="translate(696,0)"/><use href="#fb" transform="translate(708,0)"/><use href="#fb" transform="translate(720,0)"/><use href="#fb" transform="translate(732,0)"/><use href="#fb" transform="translate(744,0)"/><use href="#fb" transform="translate(756,0)"/><use href="#fb" transform="translate(768,0)"/><use href="#fb" transform="translate(780,0)"/><use href="#fb" transform="translate(792,0)"/><use href="#fb" transform="translate(804,0)"/><use href="#fb" transform="translate(816,0)"/><use href="#fb" transform="translate(828,0)"/><use href="#fb" transform="translate(840,0)"/><use href="#fb" transform="translate(852,0)"/><use href="#fb" transform="translate(864,0)"/><use href="#fb" transform="translate(876,0)"/><use href="#fb" transform="translate(888,0)"/><use href="#fb" transform="translate(900,0)"/><use href="#fb" transform="translate(912,0)"/><use href="#fb" transform="translate(924,0)"/><use href="#fb" transform="translate(936,0)"/><use href="#fb" transform="translate(948,0)"/><use href="#fb" transform="translate(960,0)"/><use href="#fb" transform="translate(972,0)"/><use href="#fb" transform="translate(984,0)"/><use href="#fb" transform="translate(996,0)"/><use href="#fb" transform="translate(1008,0)"/><use href="#fb" transform="translate(1020,0)"/><use href="#fb" transform="translate(1032,0)"/><use href="#fb" transform="translate(1044,0)"/><use href="#fb" transform="translate(1056,0)"/><use href="#fb" transform="translate(1068,0)"/><use href="#fb" transform="translate(1080,0)"/><use href="#fb" transform="translate(1092,0)"/><use href="#fb" transform="translate(1104,0)"/><use href="#fb" transform="translate(1116,0)"/><use href="#fb" transform="translate(1128,0)"/><use href="#fb" transform="translate(1140,0)"/><use href="#fb" transform="translate(1152,0)"/><use href="#fb" transform="translate(1164,0)"/><use href="#fb" transform="translate(1176,0)"/><use href="#fb" transform="translate(1188,0)"/>
+    </svg>
   </div>
 
-  <div class="footer-fringe">
-    <div class="fringe-strands" id="fringe-bottom"></div>
-  </div>
-  <div class="footer-tag">Est. 1923 &nbsp;·&nbsp; The Rouge Theatre &nbsp;·&nbsp; All performances are 18+</div>
 </div>
-
-<script>
-  function makeFringe(id, count) {
-    const el = document.getElementById(id);
-    if (!el) return;
-    const heights = [22,28,18,32,20,26,16,30,24,20,28,18,26,22,32,16,24,28,20,26];
-    for (let i = 0; i < count; i++) {
-      const s = document.createElement('div');
-      s.className = 'strand';
-      s.style.height = (heights[i % heights.length]) + 'px';
-      el.appendChild(s);
-    }
-  }
-  makeFringe('fringe-top', 80);
-  makeFringe('fringe-bottom', 80);
-</script>
+</body>
+</html>

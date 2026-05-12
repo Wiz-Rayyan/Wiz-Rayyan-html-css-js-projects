@@ -1,0 +1,460 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  .cymatic-root {
+    background: #07080f;
+    color: #e8eaf0;
+    font-family: 'Space Grotesk', sans-serif;
+    min-height: 100vh;
+    overflow: hidden;
+    position: relative;
+  }
+
+  canvas#chladni {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0.55;
+  }
+
+  .wave-svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+
+  .content {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 3rem 2rem 4rem;
+    gap: 2rem;
+  }
+
+  .nav {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(160,200,255,0.6);
+  }
+  .nav-logo { color: #a3f5e2; font-weight: 700; font-size: 13px; letter-spacing: 0.22em; }
+  .nav-links { display: flex; gap: 2rem; }
+
+  .hero { text-align: center; padding: 1rem 0 0.5rem; }
+
+  .freq-badge {
+    display: inline-block;
+    font-size: 10px;
+    letter-spacing: 0.25em;
+    color: #a3f5e2;
+    border: 1px solid rgba(163,245,226,0.3);
+    border-radius: 100px;
+    padding: 4px 14px;
+    margin-bottom: 1.5rem;
+  }
+
+  h1.title {
+    font-size: clamp(2.8rem, 7vw, 5.2rem);
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    background: linear-gradient(135deg, #ffffff 0%, #a3f5e2 40%, #7ba8ff 80%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 1.2rem;
+  }
+
+  .subtitle {
+    font-size: 15px;
+    color: rgba(200,220,255,0.55);
+    max-width: 400px;
+    line-height: 1.65;
+    font-weight: 300;
+    margin: 0 auto;
+  }
+
+  .freq-controls {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 0.5rem;
+  }
+
+  .freq-btn {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(163,245,226,0.2);
+    border-radius: 100px;
+    color: rgba(163,245,226,0.75);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    padding: 8px 20px;
+    cursor: pointer;
+    transition: all 0.25s;
+  }
+  .freq-btn:hover, .freq-btn.active {
+    background: rgba(163,245,226,0.12);
+    border-color: rgba(163,245,226,0.7);
+    color: #a3f5e2;
+    box-shadow: 0 0 18px rgba(163,245,226,0.18);
+  }
+
+  .viz-panel {
+    width: 100%;
+    max-width: 520px;
+    background: rgba(10,14,28,0.72);
+    border: 1px solid rgba(100,160,255,0.18);
+    border-radius: 20px;
+    padding: 1.5rem;
+    backdrop-filter: blur(12px);
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+  }
+
+  .panel-label {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: rgba(163,245,226,0.5);
+    text-transform: uppercase;
+  }
+
+  canvas#waveform {
+    width: 100%;
+    height: 72px;
+    border-radius: 8px;
+  }
+
+  .mode-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+
+  .mode-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 10px 6px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  .mode-card:hover, .mode-card.active-mode {
+    border-color: rgba(123,168,255,0.5);
+    background: rgba(123,168,255,0.08);
+  }
+
+  .mode-card canvas {
+    width: 48px;
+    height: 48px;
+    border-radius: 4px;
+  }
+
+  .mode-card span {
+    font-size: 10px;
+    color: rgba(180,200,255,0.6);
+    letter-spacing: 0.08em;
+  }
+
+  .tracks {
+    width: 100%;
+    max-width: 520px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .track {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: rgba(10,14,28,0.6);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 12px;
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .track:hover { border-color: rgba(163,245,226,0.25); background: rgba(10,14,28,0.85); }
+
+  .track-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .track-info { flex: 1; }
+  .track-name { font-size: 14px; font-weight: 500; color: rgba(220,235,255,0.9); }
+  .track-meta { font-size: 11px; color: rgba(150,180,220,0.5); margin-top: 2px; }
+
+  .track-hz {
+    font-size: 11px;
+    color: rgba(163,245,226,0.6);
+    letter-spacing: 0.08em;
+    font-weight: 500;
+  }
+
+  .play-ring {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.15);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px;
+    color: rgba(255,255,255,0.5);
+    transition: all 0.2s;
+  }
+  .track:hover .play-ring {
+    border-color: rgba(163,245,226,0.5);
+    color: #a3f5e2;
+  }
+
+  .bottom-bar {
+    width: 100%;
+    max-width: 520px;
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    color: rgba(160,190,230,0.3);
+    text-transform: uppercase;
+    border-top: 1px solid rgba(255,255,255,0.05);
+    padding-top: 1.5rem;
+    margin-top: 0.5rem;
+  }
+</style>
+
+<div class="cymatic-root" id="root">
+  <canvas id="chladni"></canvas>
+
+  <svg class="wave-svg" viewBox="0 0 680 900" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="glow1" cx="30%" cy="40%" r="40%">
+        <stop offset="0%" stop-color="#a3f5e2" stop-opacity="0.07"/>
+        <stop offset="100%" stop-color="#a3f5e2" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="glow2" cx="75%" cy="65%" r="35%">
+        <stop offset="0%" stop-color="#7ba8ff" stop-opacity="0.06"/>
+        <stop offset="100%" stop-color="#7ba8ff" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <rect width="680" height="900" fill="url(#glow1)"/>
+    <rect width="680" height="900" fill="url(#glow2)"/>
+    <g id="wave-lines" opacity="0.35"></g>
+  </svg>
+
+  <div class="content">
+    <nav class="nav">
+      <span class="nav-logo">CYMATICS</span>
+      <div class="nav-links">
+        <span>Frequencies</span>
+        <span>Patterns</span>
+        <span>Archive</span>
+      </div>
+    </nav>
+
+    <div class="hero">
+      <div class="freq-badge">SOUND · MATTER · FORM</div>
+      <h1 class="title">RESONANT<br>MATTER</h1>
+      <p class="subtitle">Sound made visible. Explore Chladni figures, standing waves, and the geometry hidden inside every frequency.</p>
+    </div>
+
+    <div class="freq-controls">
+      <button class="freq-btn active" onclick="setMode(0)">110 Hz</button>
+      <button class="freq-btn" onclick="setMode(1)">220 Hz</button>
+      <button class="freq-btn" onclick="setMode(2)">432 Hz</button>
+      <button class="freq-btn" onclick="setMode(3)">528 Hz</button>
+      <button class="freq-btn" onclick="setMode(4)">963 Hz</button>
+    </div>
+
+    <div class="viz-panel">
+      <div class="panel-label">Live resonance pattern</div>
+      <canvas id="waveform" width="480" height="72"></canvas>
+      <div class="panel-label" style="margin-top:4px;">Chladni mode shapes</div>
+      <div class="mode-grid" id="mode-grid"></div>
+    </div>
+
+    <div class="tracks">
+      <div class="track"><div class="track-dot" style="background:#a3f5e2;"></div><div class="track-info"><div class="track-name">Nodal Geometry I</div><div class="track-meta">Chladni figure · sand plate</div></div><span class="track-hz">110 Hz</span><div class="play-ring">▶</div></div>
+      <div class="track"><div class="track-dot" style="background:#7ba8ff;"></div><div class="track-info"><div class="track-name">Standing Harmonic</div><div class="track-meta">Wave interference · tone bowl</div></div><span class="track-hz">432 Hz</span><div class="play-ring">▶</div></div>
+      <div class="track"><div class="track-dot" style="background:#f5a3d8;"></div><div class="track-info"><div class="track-name">Solfeggio Lattice</div><div class="track-meta">Binaural resonance · quartz</div></div><span class="track-hz">528 Hz</span><div class="play-ring">▶</div></div>
+      <div class="track"><div class="track-dot" style="background:#ffd580;"></div><div class="track-info"><div class="track-name">Overtone Series</div><div class="track-meta">Cymatics live study</div></div><span class="track-hz">963 Hz</span><div class="play-ring">▶</div></div>
+    </div>
+
+    <div class="bottom-bar">
+      <span>© 2026 Cymatics Lab</span>
+      <span>Resonance Studies</span>
+      <span>Open Archive</span>
+    </div>
+  </div>
+</div>
+
+<script>
+const MODES = [
+  { freq: 110, m: 2, n: 1, color: '#a3f5e2' },
+  { freq: 220, m: 3, n: 1, color: '#7ba8ff' },
+  { freq: 432, m: 3, n: 2, color: '#c3a3f5' },
+  { freq: 528, m: 4, n: 2, color: '#f5a3d8' },
+  { freq: 963, m: 5, n: 3, color: '#ffd580' },
+];
+
+let currentMode = 0;
+let animFrame = 0;
+let phase = 0;
+
+function drawChladni(canvas, m, n, t, color, size) {
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0,0,W,H);
+  const imageData = ctx.createImageData(W, H);
+  const data = imageData.data;
+
+  const r = parseInt(color.slice(1,3),16);
+  const g = parseInt(color.slice(3,5),16);
+  const b = parseInt(color.slice(5,7),16);
+
+  for (let px = 0; px < W; px++) {
+    for (let py = 0; py < H; py++) {
+      const x = (px / W) * Math.PI;
+      const y = (py / H) * Math.PI;
+      const val = Math.cos(m * x + t * 0.15) * Math.cos(n * y) - Math.cos(n * x) * Math.cos(m * y + t * 0.1);
+      const v = Math.abs(val);
+      const thresh = 0.12;
+      if (v < thresh) {
+        const alpha = Math.max(0, 1 - v / thresh);
+        const bright = Math.pow(alpha, 1.5);
+        const idx = (py * W + px) * 4;
+        data[idx]   = Math.round(r * bright);
+        data[idx+1] = Math.round(g * bright);
+        data[idx+2] = Math.round(b * bright);
+        data[idx+3] = Math.round(220 * bright);
+      }
+    }
+  }
+  ctx.putImageData(imageData, 0, 0);
+}
+
+const chladniCanvas = document.getElementById('chladni');
+function resizeChladni() {
+  chladniCanvas.width = chladniCanvas.offsetWidth;
+  chladniCanvas.height = chladniCanvas.offsetHeight;
+}
+resizeChladni();
+window.addEventListener('resize', resizeChladni);
+
+const waveCanvas = document.getElementById('waveform');
+const wctx = waveCanvas.getContext('2d');
+
+function drawWaveform(t) {
+  const mode = MODES[currentMode];
+  const W = waveCanvas.width, H = waveCanvas.height;
+  wctx.clearRect(0,0,W,H);
+
+  const col = mode.color;
+  const r = parseInt(col.slice(1,3),16);
+  const g = parseInt(col.slice(3,5),16);
+  const b = parseInt(col.slice(5,7),16);
+
+  wctx.beginPath();
+  for (let i = 0; i <= W; i++) {
+    const x = i / W;
+    const y = 0.5 + 0.35 * (
+      Math.sin(mode.m * x * Math.PI * 2 + t * 0.04) * 0.5 +
+      Math.sin(mode.n * x * Math.PI * 2 + t * 0.065 + 1) * 0.3 +
+      Math.sin((mode.m + mode.n) * x * Math.PI + t * 0.03) * 0.2
+    );
+    i === 0 ? wctx.moveTo(i, y * H) : wctx.lineTo(i, y * H);
+  }
+  wctx.strokeStyle = `rgba(${r},${g},${b},0.85)`;
+  wctx.lineWidth = 2;
+  wctx.shadowColor = col;
+  wctx.shadowBlur = 8;
+  wctx.stroke();
+  wctx.shadowBlur = 0;
+
+  wctx.lineTo(W, H); wctx.lineTo(0, H); wctx.closePath();
+  const grad = wctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, `rgba(${r},${g},${b},0.18)`);
+  grad.addColorStop(1, `rgba(${r},${g},${b},0)`);
+  wctx.fillStyle = grad;
+  wctx.fill();
+}
+
+function buildModeGrid() {
+  const grid = document.getElementById('mode-grid');
+  grid.innerHTML = '';
+  MODES.forEach((m, i) => {
+    const card = document.createElement('div');
+    card.className = 'mode-card' + (i === currentMode ? ' active-mode' : '');
+    const c = document.createElement('canvas');
+    c.width = 64; c.height = 64;
+    drawChladni(c, m.m, m.n, 0, m.color, 64);
+    const label = document.createElement('span');
+    label.textContent = m.freq + ' Hz';
+    card.appendChild(c);
+    card.appendChild(label);
+    card.onclick = () => { currentMode = i; setMode(i); };
+    grid.appendChild(card);
+  });
+}
+
+function setMode(i) {
+  currentMode = i;
+  document.querySelectorAll('.freq-btn').forEach((btn, j) => {
+    btn.classList.toggle('active', j === i);
+  });
+  buildModeGrid();
+}
+
+function animate() {
+  phase++;
+  const mode = MODES[currentMode];
+  if (chladniCanvas.width > 0 && chladniCanvas.height > 0) {
+    drawChladni(chladniCanvas, mode.m, mode.n, phase, mode.color, chladniCanvas.width);
+  }
+  drawWaveform(phase);
+  drawWaveLines(phase);
+  requestAnimationFrame(animate);
+}
+
+function drawWaveLines(t) {
+  const g = document.getElementById('wave-lines');
+  const mode = MODES[currentMode];
+  const col = mode.color;
+  let paths = '';
+  for (let row = 0; row < 5; row++) {
+    const y0 = 80 + row * 180;
+    const amp = 18 + row * 4;
+    let d = `M 0 ${y0}`;
+    for (let x = 0; x <= 680; x += 4) {
+      const y = y0 + amp * Math.sin((x / 680) * Math.PI * (mode.m + row) * 2 + t * 0.02 + row);
+      d += ` L ${x} ${y}`;
+    }
+    const opacity = 0.08 - row * 0.01;
+    paths += `<path d="${d}" fill="none" stroke="${col}" stroke-width="1" opacity="${opacity}"/>`;
+  }
+  g.innerHTML = paths;
+}
+
+buildModeGrid();
+animate();
+</script>

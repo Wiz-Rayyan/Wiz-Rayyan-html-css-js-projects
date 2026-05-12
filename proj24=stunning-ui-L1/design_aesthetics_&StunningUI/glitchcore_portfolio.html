@@ -1,0 +1,396 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+  .gc-root {
+    background: #000;
+    font-family: 'Share Tech Mono', 'Courier New', monospace;
+    color: #e0e0e0;
+    padding: 2rem 1.5rem 3rem;
+    min-height: 580px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .scanlines {
+    position: absolute; inset: 0; pointer-events: none; z-index: 1;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.18) 2px, rgba(0,0,0,0.18) 4px);
+  }
+
+  .gc-header {
+    position: relative; z-index: 2; margin-bottom: 2rem;
+  }
+
+  .glitch-title {
+    font-size: clamp(2rem, 6vw, 3.5rem);
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #fff;
+    position: relative;
+    display: inline-block;
+    line-height: 1;
+  }
+
+  .glitch-title::before {
+    content: attr(data-text);
+    position: absolute; left: 2px; top: 0;
+    color: #f00;
+    clip-path: polygon(0 20%, 100% 20%, 100% 40%, 0 40%);
+    animation: glitch-r 3s infinite;
+    opacity: 0.85;
+  }
+
+  .glitch-title::after {
+    content: attr(data-text);
+    position: absolute; left: -2px; top: 0;
+    color: #0ff;
+    clip-path: polygon(0 60%, 100% 60%, 100% 80%, 0 80%);
+    animation: glitch-b 3s infinite 0.15s;
+    opacity: 0.85;
+  }
+
+  @keyframes glitch-r {
+    0%,90%,100% { transform: translateX(0); clip-path: polygon(0 20%, 100% 20%, 100% 40%, 0 40%); }
+    92% { transform: translateX(-4px); clip-path: polygon(0 10%, 100% 10%, 100% 35%, 0 35%); }
+    94% { transform: translateX(4px); clip-path: polygon(0 50%, 100% 50%, 100% 65%, 0 65%); }
+    96% { transform: translateX(-2px); clip-path: polygon(0 5%, 100% 5%, 100% 20%, 0 20%); }
+  }
+
+  @keyframes glitch-b {
+    0%,90%,100% { transform: translateX(0); clip-path: polygon(0 60%, 100% 60%, 100% 80%, 0 80%); }
+    92% { transform: translateX(4px); clip-path: polygon(0 55%, 100% 55%, 100% 75%, 0 75%); }
+    94% { transform: translateX(-3px); clip-path: polygon(0 70%, 100% 70%, 100% 85%, 0 85%); }
+    96% { transform: translateX(2px); clip-path: polygon(0 80%, 100% 80%, 100% 95%, 0 95%); }
+  }
+
+  .status-bar {
+    font-size: 11px;
+    color: #0f0;
+    margin-top: 0.5rem;
+    letter-spacing: 0.1em;
+  }
+
+  .blink { animation: blink 1s step-end infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  .gc-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    position: relative; z-index: 2;
+    margin-bottom: 1.5rem;
+  }
+
+  .gc-card {
+    border: 1px solid #333;
+    background: #0a0a0a;
+    padding: 0;
+    cursor: pointer;
+    transition: border-color 0.1s;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .gc-card:hover { border-color: #0ff; }
+  .gc-card:hover .card-img { filter: saturate(3) contrast(1.5) hue-rotate(90deg); }
+  .gc-card:hover .card-label { color: #0ff; }
+  .gc-card:hover .card-noise { opacity: 1; }
+
+  .card-img {
+    width: 100%; height: 90px;
+    display: block;
+    filter: saturate(0) contrast(1.2);
+    transition: filter 0.15s;
+  }
+
+  .card-noise {
+    position: absolute; top: 0; left: 0; right: 0; height: 90px;
+    opacity: 0;
+    background-image: repeating-linear-gradient(
+      0deg,
+      transparent, transparent 1px,
+      rgba(255,0,255,0.05) 1px, rgba(255,0,255,0.05) 2px
+    );
+    pointer-events: none;
+    transition: opacity 0.1s;
+    mix-blend-mode: screen;
+  }
+
+  .card-label {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    color: #555;
+    padding: 6px 8px;
+    text-transform: uppercase;
+    transition: color 0.1s;
+  }
+
+  .rgb-canvas {
+    width: 100%; height: 90px; display: block;
+  }
+
+  .gc-data-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    position: relative; z-index: 2;
+    margin-bottom: 1.5rem;
+  }
+
+  .corrupt-block {
+    border: 1px solid #1a1a1a;
+    background: #050505;
+    padding: 12px;
+    font-size: 10px;
+    line-height: 1.8;
+    letter-spacing: 0.06em;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .corrupt-block::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 2px;
+    background: #f0f;
+  }
+
+  .corrupt-label {
+    color: #f0f;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+  }
+
+  .data-line { color: #4a4a4a; }
+  .data-line.hi { color: #0f0; }
+  .data-line.warn { color: #ff0; }
+  .data-line.err { color: #f00; text-decoration: line-through; }
+
+  .glitch-bar {
+    position: relative; z-index: 2;
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 1rem;
+  }
+
+  .bar-label { font-size: 10px; color: #555; letter-spacing: 0.1em; min-width: 80px; }
+
+  .bar-track {
+    flex: 1; height: 6px; background: #111;
+    position: relative; overflow: visible;
+  }
+
+  .bar-fill {
+    height: 100%;
+    background: #0f0;
+    position: relative;
+  }
+
+  .bar-fill::after {
+    content: '';
+    position: absolute; right: -4px; top: -3px;
+    width: 12px; height: 12px;
+    background: #0f0;
+    box-shadow: 2px 0 0 #f00, -2px 0 0 #0ff;
+  }
+
+  .bar-val { font-size: 10px; color: #0f0; min-width: 30px; text-align: right; }
+
+  .gc-footer {
+    position: relative; z-index: 2;
+    border-top: 1px solid #111;
+    padding-top: 1rem;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+
+  .footer-left { font-size: 9px; color: #222; letter-spacing: 0.08em; line-height: 2; }
+  .footer-right { font-size: 9px; color: #333; text-align: right; letter-spacing: 0.08em; }
+
+  .neon-pill {
+    display: inline-block;
+    border: 1px solid #f0f;
+    color: #f0f;
+    font-size: 9px;
+    padding: 2px 8px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    box-shadow: 0 0 0 rgba(255,0,255,0);
+    animation: pulse-pill 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-pill {
+    0%,100% { border-color: #f0f; color: #f0f; }
+    50% { border-color: #0ff; color: #0ff; }
+  }
+
+  .artifact-stripe {
+    position: absolute;
+    background: rgba(255,0,0,0.06);
+    left: 0; right: 0;
+    pointer-events: none;
+    animation: artifact-drift 8s linear infinite;
+  }
+
+  @keyframes artifact-drift {
+    0% { top: -20px; height: 3px; opacity: 0; }
+    5% { opacity: 1; }
+    50% { top: 50%; height: 8px; }
+    95% { opacity: 1; }
+    100% { top: 110%; opacity: 0; }
+  }
+
+  .artifact-stripe:nth-child(2) { animation-delay: -3s; background: rgba(0,255,255,0.04); }
+  .artifact-stripe:nth-child(3) { animation-delay: -6s; background: rgba(255,0,255,0.03); height: 2px; }
+</style>
+
+<div class="gc-root">
+  <div class="scanlines"></div>
+  <div class="artifact-stripe"></div>
+  <div class="artifact-stripe"></div>
+  <div class="artifact-stripe"></div>
+
+  <div class="gc-header">
+    <div class="glitch-title" data-text="GLITCHCORE">GLITCHCORE</div>
+    <div class="status-bar">SYS://PORTFOLIO_V3 &nbsp;|&nbsp; DATA_CORRUPTION: <span class="warn">ACTIVE</span> &nbsp;|&nbsp; STATUS: <span class="blink">▮</span> TRANSMITTING</div>
+  </div>
+
+  <div class="gc-grid" id="card-grid">
+    <div class="gc-card" onclick="glitchCard(this)">
+      <canvas class="rgb-canvas" id="c1"></canvas>
+      <div class="card-noise"></div>
+      <div class="card-label">TRACK_001.EXE</div>
+    </div>
+    <div class="gc-card" onclick="glitchCard(this)">
+      <canvas class="rgb-canvas" id="c2"></canvas>
+      <div class="card-noise"></div>
+      <div class="card-label">VISUAL_DECAY</div>
+    </div>
+    <div class="gc-card" onclick="glitchCard(this)">
+      <canvas class="rgb-canvas" id="c3"></canvas>
+      <div class="card-noise"></div>
+      <div class="card-label">NOISE_FLOOR</div>
+    </div>
+  </div>
+
+  <div class="gc-data-row">
+    <div class="corrupt-block">
+      <div class="corrupt-label">// READOUT_A</div>
+      <div class="data-line">FREQ: 44100hz</div>
+      <div class="data-line hi">BIT_DEPTH: 24bit ✓</div>
+      <div class="data-line warn">BUFFER: 012█ CORRUPT</div>
+      <div class="data-line err">FRAME_009: NULL</div>
+      <div class="data-line">SAMPLE_CT: 88200</div>
+      <div class="data-line hi" id="live-val">PKT_LOSS: 0.0%</div>
+    </div>
+    <div class="corrupt-block">
+      <div class="corrupt-label">// READOUT_B</div>
+      <div class="data-line hi">SECTOR: 0x4F3A</div>
+      <div class="data-line">ENTROPY: 7.94 bits</div>
+      <div class="data-line err">CHECKSUM: MISMATCH</div>
+      <div class="data-line warn">SEQ: ░░▓▒░▓▒░░▒▓</div>
+      <div class="data-line">MODE: DITHERED</div>
+      <div class="data-line hi" id="live-val2">SYNC: LOCKED</div>
+    </div>
+  </div>
+
+  <div class="glitch-bar">
+    <span class="bar-label">RGB_SPLIT</span>
+    <div class="bar-track"><div class="bar-fill" style="width:78%; background:#f00;"></div></div>
+    <span class="bar-val" style="color:#f00">78%</span>
+  </div>
+  <div class="glitch-bar">
+    <span class="bar-label">PIXEL_SORT</span>
+    <div class="bar-track"><div class="bar-fill" style="width:61%;"></div></div>
+    <span class="bar-val">61%</span>
+  </div>
+  <div class="glitch-bar">
+    <span class="bar-label">DATA_MOSH</span>
+    <div class="bar-track"><div class="bar-fill" style="width:92%; background:#f0f;"></div></div>
+    <span class="bar-val" style="color:#f0f">92%</span>
+  </div>
+  <div class="glitch-bar">
+    <span class="bar-label">CORRUPTION</span>
+    <div class="bar-track"><div class="bar-fill" style="width:44%; background:#ff0;"></div></div>
+    <span class="bar-val" style="color:#ff0">44%</span>
+  </div>
+
+  <div class="gc-footer">
+    <div class="footer-left">
+      ERR://0x00FF2D3A<br>
+      BUILD: 2024.██.██<br>
+      CODEC: H█64_BROKEN
+    </div>
+    <div>
+      <span class="neon-pill">LIVE</span>
+    </div>
+    <div class="footer-right">
+      FRAME_LOSS: ▒▒░▒░<br>
+      ARTIFACTS: YES<br>
+      SIGNAL: DEGRADED
+    </div>
+  </div>
+</div>
+
+<script>
+function drawCanvas(id, hue, seed) {
+  const c = document.getElementById(id);
+  if (!c) return;
+  const ctx = c.getContext('2d');
+  const W = c.offsetWidth || 200, H = 90;
+  c.width = W; c.height = H;
+
+  for (let x = 0; x < W; x += 4) {
+    for (let y = 0; y < H; y += 4) {
+      const n = (Math.sin(x * 0.1 + seed) + Math.cos(y * 0.13 + seed * 0.7)) * 0.5 + 0.5;
+      const n2 = (Math.sin(x * 0.07 + y * 0.05 + seed * 1.3)) * 0.5 + 0.5;
+      const brightness = (n * n2 * 255) | 0;
+      const r = (brightness + (hue === 'r' ? 60 : 0)) & 0xFF;
+      const g = (brightness + (hue === 'g' ? 50 : 0)) & 0xFF;
+      const b = (brightness + (hue === 'b' ? 70 : 0)) & 0xFF;
+      ctx.fillStyle = `rgb(${r},${g},${b})`;
+      ctx.fillRect(x, y, 4, 4);
+    }
+  }
+
+  for (let i = 0; i < 12; i++) {
+    const sy = (Math.sin(i * 2.1 + seed) * 0.5 + 0.5) * H;
+    const h = 1 + Math.random() * 4;
+    const sw = 20 + Math.random() * 80;
+    const sx = Math.random() * (W - sw);
+    ctx.fillStyle = i % 3 === 0 ? 'rgba(255,0,0,0.4)' : i % 3 === 1 ? 'rgba(0,255,255,0.3)' : 'rgba(255,0,255,0.25)';
+    ctx.fillRect(sx, sy, sw, h);
+    ctx.fillStyle = 'rgba(255,255,255,0.15)';
+    ctx.fillRect(sx + 2, sy, sw - 4, h);
+  }
+
+  for (let i = 0; i < 5; i++) {
+    const bx = Math.random() * W, by = Math.random() * H;
+    const bw = 2 + Math.random() * 8, bh = 2 + Math.random() * 6;
+    ctx.fillStyle = 'rgba(0,255,0,0.8)';
+    ctx.fillRect(bx, by, bw, bh);
+  }
+}
+
+function glitchCard(el) {
+  el.style.transform = `translateX(${(Math.random()-0.5)*8}px) translateY(${(Math.random()-0.5)*4}px)`;
+  setTimeout(() => el.style.transform = '', 80);
+}
+
+drawCanvas('c1', 'r', 1.2);
+drawCanvas('c2', 'g', 3.7);
+drawCanvas('c3', 'b', 7.1);
+
+const liveVals = ['PKT_LOSS: 0.0%','PKT_LOSS: 2.3%','PKT_LOSS: ░.█%','PKT_LOSS: 0.7%','PKT_LOSS: ERR'];
+const syncVals = ['SYNC: LOCKED','SYNC: DRIFTING','SYNC: ▒▒▒▒▒▒','SYNC: LOCKED','SYNC: LOST'];
+let li = 0;
+setInterval(() => {
+  li = (li + 1) % liveVals.length;
+  const lv = document.getElementById('live-val');
+  const lv2 = document.getElementById('live-val2');
+  if (lv) lv.textContent = liveVals[li];
+  if (lv2) { lv2.textContent = syncVals[li]; lv2.className = 'data-line ' + (li === 4 ? 'err' : li === 1 || li === 2 ? 'warn' : 'hi'); }
+}, 1800);
+</script>

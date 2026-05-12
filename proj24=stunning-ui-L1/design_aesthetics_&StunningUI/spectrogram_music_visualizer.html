@@ -1,270 +1,186 @@
 
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  #vis-root {
-    background: #000;
-    min-height: 520px;
-    border-radius: 12px;
-    padding: 24px;
-    font-family: 'Courier New', monospace;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    overflow: hidden;
-    position: relative;
-  }
-  .top-bar { display: flex; justify-content: space-between; align-items: center; }
-  .station-label { color: #0ff; font-size: 11px; letter-spacing: 4px; text-transform: uppercase; }
-  .time-display { color: #0ff; font-size: 13px; letter-spacing: 2px; }
-  #waveform-svg { width: 100%; height: 60px; display: block; }
-  .freq-section { display: flex; flex-direction: column; gap: 8px; }
-  .freq-label { color: #555; font-size: 10px; letter-spacing: 3px; }
-  #bar-container {
-    display: flex;
-    align-items: flex-end;
-    height: 140px;
-    gap: 2px;
-    overflow: hidden;
-  }
-  .bar {
-    flex: 1;
-    min-width: 2px;
-    transform-origin: bottom;
-    border-radius: 1px 1px 0 0;
-    transition: background 0.1s;
-  }
-  .controls { display: flex; align-items: center; gap: 20px; }
-  #play-btn {
-    width: 52px; height: 52px; border-radius: 50%;
-    border: 2px solid #0ff;
-    background: transparent;
-    cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    position: relative;
-    flex-shrink: 0;
-  }
-  #play-btn::before {
-    content: '';
-    width: 0; height: 0;
-    border-style: solid;
-    border-width: 9px 0 9px 16px;
-    border-color: transparent transparent transparent #0ff;
-    margin-left: 3px;
-    transition: all 0.2s;
-  }
-  #play-btn.playing::before {
-    border: none;
-    width: 14px; height: 16px;
-    border-left: 4px solid #0ff;
-    border-right: 4px solid #0ff;
-    margin-left: 0;
-  }
-  #play-btn:hover { box-shadow: 0 0 12px #0ff4; }
-  .track-info { flex: 1; }
-  .track-name { color: #fff; font-size: 14px; letter-spacing: 1px; }
-  .track-sub { color: #555; font-size: 11px; letter-spacing: 2px; margin-top: 3px; }
-  .meter-rings { display: flex; gap: 12px; align-items: center; }
-  .ring-wrap { position: relative; width: 44px; height: 44px; }
-  .ring-wrap svg { width: 44px; height: 44px; }
-  .ring-label { position: absolute; bottom: -14px; left: 50%; transform: translateX(-50%); color: #444; font-size: 9px; letter-spacing: 1px; white-space: nowrap; }
-  .bottom-strip { display: flex; gap: 4px; align-items: center; }
-  .mini-bar { width: 3px; border-radius: 2px; }
-  .freq-nums { display: flex; justify-content: space-between; padding: 0 1px; }
-  .freq-num { color: #333; font-size: 9px; letter-spacing: 1px; }
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+  #spec-root { background: #000; border-radius: 12px; padding: 0; overflow: hidden; font-family: 'Share Tech Mono', monospace; user-select: none; }
+  #spec-root * { box-sizing: border-box; }
+  .spec-top { padding: 28px 32px 0; }
+  .track-title { color: #0ff; font-size: 18px; letter-spacing: 0.2em; text-transform: uppercase; margin: 0 0 2px; }
+  .track-sub { color: #666; font-size: 11px; letter-spacing: 0.15em; margin: 0 0 20px; }
+  .bars-wrap { display: flex; align-items: flex-end; justify-content: center; gap: 2px; height: 120px; padding: 0 32px; }
+  .bar { width: 5px; border-radius: 2px 2px 0 0; transform-origin: bottom; animation: none; }
+  .waveform-wrap { padding: 0 32px; margin: 4px 0; }
+  #wavesvg { width: 100%; height: 56px; display: block; }
+  .controls-row { display: flex; align-items: center; gap: 20px; padding: 10px 32px 20px; }
+  #play-btn { width: 52px; height: 52px; border-radius: 50%; border: 2px solid #0ff; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background 0.2s, box-shadow 0.2s; }
+  #play-btn:hover { background: rgba(0,255,255,0.08); box-shadow: 0 0 18px rgba(0,255,255,0.3); }
+  #play-btn svg { display: block; }
+  .progress-col { flex: 1; }
+  .progress-bar-bg { height: 3px; background: #1a1a1a; border-radius: 2px; overflow: hidden; margin-bottom: 8px; cursor: pointer; }
+  .progress-bar-fill { height: 100%; background: linear-gradient(90deg, #0ff, #f0f); border-radius: 2px; width: 0%; transition: width 0.1s linear; }
+  .time-row { display: flex; justify-content: space-between; font-size: 11px; color: #555; }
+  .rings-wrap { display: flex; align-items: center; gap: 10px; }
+  .ring-label { font-size: 9px; color: #444; letter-spacing: 0.1em; writing-mode: vertical-lr; text-transform: uppercase; }
+  .ring-svg { width: 52px; height: 52px; flex-shrink: 0; }
+  .meta-row { display: flex; justify-content: space-between; align-items: center; padding: 0 32px 22px; }
+  .tag { font-size: 9px; letter-spacing: 0.18em; padding: 4px 10px; border-radius: 10px; text-transform: uppercase; }
+  .tag-live { border: 1px solid #f0f; color: #f0f; }
+  .tag-hq { border: 1px solid #0ff; color: #0ff; }
+  .tag-bpm { border: 1px solid #555; color: #555; }
 </style>
 
-<div id="vis-root">
-  <div class="top-bar">
-    <div class="station-label">SPECTRUM · FM</div>
-    <div class="time-display" id="clock">00:00:00</div>
+<div id="spec-root">
+  <div class="spec-top">
+    <p class="track-title">Neon Drift</p>
+    <p class="track-sub">SYNTHWAVE · 128 BPM · 4:27</p>
   </div>
 
-  <svg id="waveform-svg" viewBox="0 0 600 60" preserveAspectRatio="none">
-    <polyline id="wave-line" points="" fill="none" stroke="#0ff" stroke-width="1.5" opacity="0.7"/>
-    <polyline id="wave-line2" points="" fill="none" stroke="#f0f" stroke-width="0.8" opacity="0.4"/>
-  </svg>
+  <div class="bars-wrap" id="bars-wrap"></div>
 
-  <div class="freq-section">
-    <div class="freq-label">FREQUENCY SPECTRUM</div>
-    <div id="bar-container"></div>
-    <div class="freq-nums">
-      <span class="freq-num">20Hz</span>
-      <span class="freq-num">200Hz</span>
-      <span class="freq-num">1kHz</span>
-      <span class="freq-num">5kHz</span>
-      <span class="freq-num">20kHz</span>
+  <div class="waveform-wrap">
+    <svg id="wavesvg" viewBox="0 0 616 56" preserveAspectRatio="none">
+      <polyline id="waveline" points="" fill="none" stroke="#0ff" stroke-width="1.5" opacity="0.7"/>
+    </svg>
+  </div>
+
+  <div class="controls-row">
+    <button id="play-btn" aria-label="Play">
+      <svg id="play-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <polygon points="5,3 17,10 5,17" fill="#0ff"/>
+      </svg>
+    </button>
+    <div class="progress-col">
+      <div class="progress-bar-bg" id="progress-bg">
+        <div class="progress-bar-fill" id="progress-fill"></div>
+      </div>
+      <div class="time-row">
+        <span id="time-cur">0:00</span>
+        <span>4:27</span>
+      </div>
+    </div>
+    <div class="rings-wrap">
+      <span class="ring-label">LEVEL</span>
+      <svg class="ring-svg" viewBox="0 0 52 52">
+        <circle cx="26" cy="26" r="22" fill="none" stroke="#111" stroke-width="4"/>
+        <circle id="ring1" cx="26" cy="26" r="22" fill="none" stroke="#0ff" stroke-width="4" stroke-dasharray="138.2" stroke-dashoffset="138.2" stroke-linecap="round" transform="rotate(-90 26 26)" opacity="0.85"/>
+        <circle cx="26" cy="26" r="14" fill="none" stroke="#111" stroke-width="3"/>
+        <circle id="ring2" cx="26" cy="26" r="14" fill="none" stroke="#f0f" stroke-width="3" stroke-dasharray="87.96" stroke-dashoffset="87.96" stroke-linecap="round" transform="rotate(-90 26 26)" opacity="0.7"/>
+      </svg>
     </div>
   </div>
 
-  <div class="controls">
-    <button id="play-btn" onclick="togglePlay()"></button>
-    <div class="track-info">
-      <div class="track-name">NEURAL DRIFT</div>
-      <div class="track-sub">SYNTHWAVE · 128 BPM</div>
-    </div>
-    <div class="meter-rings" id="rings"></div>
+  <div class="meta-row">
+    <span class="tag tag-live">● Live</span>
+    <span class="tag tag-hq">HQ 320kbps</span>
+    <span class="tag tag-bpm">128 BPM</span>
   </div>
-
-  <div class="bottom-strip" id="mini-strip"></div>
 </div>
 
 <script>
-const NUM_BARS = 64;
-const NUM_MINI = 90;
-let isPlaying = false;
-let frame = 0;
-let bands = new Array(NUM_BARS).fill(0);
-let targets = new Array(NUM_BARS).fill(0);
-let wavePhase = 0;
-let meterVals = [0, 0, 0];
-let meterTargets = [0, 0, 0];
-let raf;
-
-const container = document.getElementById('bar-container');
-const miniStrip = document.getElementById('mini-strip');
-const ringsEl = document.getElementById('rings');
-
-function hue(i, n) {
-  const t = i / n;
-  const r = Math.round(255 * (t < 0.5 ? 0 : (t - 0.5) * 2));
-  const g = Math.round(255 * (t < 0.33 ? t * 3 : t < 0.66 ? 1 : 1 - (t - 0.66) * 3));
-  const b = Math.round(255 * (t < 0.5 ? 1 - t * 2 : 0));
-  return `rgb(${r},${g},${b})`;
-}
-
-function gradStyle(i, n, h) {
-  const t = i / n;
-  const topH = t < 0.5 ? 180 - t * 160 : 20;
-  const btH = t < 0.5 ? 120 : 30 + t * 60;
-  const sat = 90 + Math.sin(t * Math.PI) * 10;
-  return `linear-gradient(to top, hsl(${btH},${sat}%,50%), hsl(${topH},100%,60%))`;
-}
-
-for (let i = 0; i < NUM_BARS; i++) {
-  const bar = document.createElement('div');
-  bar.className = 'bar';
-  bar.style.height = '4px';
-  bar.style.background = gradStyle(i, NUM_BARS, 0);
-  container.appendChild(bar);
-}
-
-for (let i = 0; i < NUM_MINI; i++) {
-  const mb = document.createElement('div');
-  mb.className = 'mini-bar';
-  mb.style.height = '8px';
-  mb.style.background = '#1a1a1a';
-  miniStrip.appendChild(mb);
-}
-
-const METER_LABELS = ['L', 'R', 'MID'];
-const METER_COLORS = ['#0ff', '#f0f', '#7f7'];
-for (let m = 0; m < 3; m++) {
-  const wrap = document.createElement('div');
-  wrap.className = 'ring-wrap';
-  const r = 18, cx = 22, cy = 22, stroke = 3;
-  const circ = 2 * Math.PI * r;
-  wrap.innerHTML = `<svg viewBox="0 0 44 44">
-    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#1a1a1a" stroke-width="${stroke}"/>
-    <circle id="ring${m}" cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${METER_COLORS[m]}" stroke-width="${stroke}"
-      stroke-dasharray="${circ}" stroke-dashoffset="${circ}" stroke-linecap="round"
-      transform="rotate(-90 ${cx} ${cy})" opacity="0.9"/>
-    <text x="${cx}" y="${cy+4}" text-anchor="middle" fill="${METER_COLORS[m]}" font-size="9" font-family="Courier New">0</text>
-  </svg>
-  <div class="ring-label">${METER_LABELS[m]}</div>`;
-  ringsEl.appendChild(wrap);
-}
-
-function makeTarget(isPlaying) {
-  if (!isPlaying) return new Array(NUM_BARS).fill(0);
-  const t = [];
-  for (let i = 0; i < NUM_BARS; i++) {
-    const norm = i / NUM_BARS;
-    let base = norm < 0.15 ? 0.6 + Math.random() * 0.4 :
-               norm < 0.3  ? 0.4 + Math.random() * 0.5 :
-               norm < 0.6  ? 0.2 + Math.random() * 0.5 :
-                              0.05 + Math.random() * 0.25;
-    base *= 0.7 + 0.3 * Math.sin(frame * 0.04 + i * 0.4);
-    t.push(Math.min(1, base));
-  }
-  return t;
-}
-
-function updateClock() {
-  const now = new Date();
-  const h = String(now.getHours()).padStart(2,'0');
-  const m = String(now.getMinutes()).padStart(2,'0');
-  const s = String(now.getSeconds()).padStart(2,'0');
-  document.getElementById('clock').textContent = `${h}:${m}:${s}`;
-}
-
-function updateWave() {
-  const svg = document.getElementById('waveform-svg');
-  const W = 600, H = 60, mid = 30;
-  let pts = '', pts2 = '';
-  for (let x = 0; x <= W; x += 4) {
-    const t = x / W;
-    const amp = isPlaying ? 18 + 10 * Math.sin(t * Math.PI) : 3;
-    const y = mid + amp * Math.sin(t * 14 + wavePhase) * Math.sin(t * 3.1 - wavePhase * 0.7);
-    const y2 = mid + amp * 0.6 * Math.sin(t * 22 - wavePhase * 1.3 + 1.2) * Math.cos(t * 5 + wavePhase * 0.4);
-    pts += `${x},${y} `;
-    pts2 += `${x},${y2} `;
-  }
-  document.getElementById('wave-line').setAttribute('points', pts);
-  document.getElementById('wave-line2').setAttribute('points', pts2);
-}
-
-function tick() {
-  frame++;
-  if (frame % 6 === 0) targets = makeTarget(isPlaying);
-  wavePhase += isPlaying ? 0.12 : 0.01;
-
-  const bars = container.children;
-  for (let i = 0; i < NUM_BARS; i++) {
-    bands[i] += (targets[i] - bands[i]) * (isPlaying ? 0.22 : 0.08);
-    const h = Math.max(2, bands[i] * 130);
-    bars[i].style.height = h + 'px';
-    bars[i].style.background = gradStyle(i, NUM_BARS, bands[i]);
+(function(){
+  const NUM_BARS = 88;
+  const wrap = document.getElementById('bars-wrap');
+  const bars = [];
+  for(let i = 0; i < NUM_BARS; i++){
+    const b = document.createElement('div');
+    b.className = 'bar';
+    const t = i / (NUM_BARS - 1);
+    const hue1 = 180, hue2 = 300;
+    const h = Math.round(hue1 + t * (hue2 - hue1));
+    b.style.background = `hsl(${h}, 100%, 60%)`;
+    b.style.height = '4px';
+    wrap.appendChild(b);
+    bars.push(b);
   }
 
-  for (let m = 0; m < 3; m++) {
-    const v = m === 0 ? bands.slice(0, NUM_BARS/3).reduce((a,b)=>a+b,0)/(NUM_BARS/3) :
-              m === 1 ? bands.slice(NUM_BARS/3, 2*NUM_BARS/3).reduce((a,b)=>a+b,0)/(NUM_BARS/3) :
-                         bands.slice(2*NUM_BARS/3).reduce((a,b)=>a+b,0)/(NUM_BARS/3);
-    meterTargets[m] = v;
-    meterVals[m] += (meterTargets[m] - meterVals[m]) * 0.15;
-    const r = 18, circ = 2 * Math.PI * r;
-    const offset = circ * (1 - meterVals[m]);
-    const ringEl = document.getElementById('ring' + m);
-    ringEl.setAttribute('stroke-dashoffset', offset);
-    const txt = ringEl.nextElementSibling || ringEl.parentElement.querySelector('text');
-    const pct = Math.round(meterVals[m] * 100);
-    ringEl.parentElement.querySelector('text').textContent = pct;
+  const waveline = document.getElementById('waveline');
+  const W = 616, H = 56, MID = H/2;
+  const waveSeeds = Array.from({length: W}, () => Math.random() * 2 - 1);
+
+  let playing = false;
+  let animId = null;
+  let phase = 0;
+  let elapsed = 0;
+  let lastTs = null;
+  const TOTAL = 267;
+
+  const barTargets = new Float32Array(NUM_BARS);
+  const barCur = new Float32Array(NUM_BARS);
+  let retargetTimer = 0;
+
+  function bassProfile(i){ 
+    const t = i / NUM_BARS;
+    if(t < 0.12) return 0.85 + Math.random()*0.15;
+    if(t < 0.3) return 0.55 + Math.random()*0.35;
+    if(t < 0.6) return 0.25 + Math.random()*0.45;
+    return 0.05 + Math.random()*0.25;
   }
 
-  const mini = miniStrip.children;
-  for (let i = 0; i < NUM_MINI; i++) {
-    const norm = i / NUM_MINI;
-    const bandIdx = Math.floor(norm * NUM_BARS);
-    const v = bands[bandIdx];
-    const h = Math.max(4, v * 28 + 4);
-    mini[i].style.height = h + 'px';
-    const t = norm;
-    const r = Math.round(t * 180);
-    const b = Math.round((1-t) * 255);
-    mini[i].style.background = isPlaying ? `rgb(${r},${Math.round(v*200)},${b})` : '#1a1a1a';
+  function retarget(){
+    for(let i=0;i<NUM_BARS;i++) barTargets[i] = bassProfile(i);
+  }
+  retarget();
+
+  const playBtn = document.getElementById('play-btn');
+  const playIcon = document.getElementById('play-icon');
+  const progressFill = document.getElementById('progress-fill');
+  const timeCur = document.getElementById('time-cur');
+  const ring1 = document.getElementById('ring1');
+  const ring2 = document.getElementById('ring2');
+  const r1circ = 138.2, r2circ = 87.96;
+
+  playBtn.addEventListener('click', toggle);
+
+  function toggle(){
+    playing = !playing;
+    if(playing){
+      playIcon.innerHTML = '<rect x="4" y="3" width="4" height="14" rx="1" fill="#0ff"/><rect x="12" y="3" width="4" height="14" rx="1" fill="#0ff"/>';
+      lastTs = null;
+      animId = requestAnimationFrame(tick);
+    } else {
+      playIcon.innerHTML = '<polygon points="5,3 17,10 5,17" fill="#0ff"/>';
+      cancelAnimationFrame(animId);
+    }
   }
 
-  updateWave();
-  if (frame % 30 === 0) updateClock();
-  raf = requestAnimationFrame(tick);
-}
+  function fmt(s){ return Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0'); }
 
-function togglePlay() {
-  isPlaying = !isPlaying;
-  document.getElementById('play-btn').classList.toggle('playing', isPlaying);
-}
+  function tick(ts){
+    if(!lastTs) lastTs = ts;
+    const dt = (ts - lastTs) / 1000;
+    lastTs = ts;
+    elapsed = Math.min(elapsed + dt, TOTAL);
+    phase += dt * 2.8;
+    retargetTimer += dt;
+    if(retargetTimer > 0.18){ retargetTimer=0; retarget(); }
 
-updateClock();
-setInterval(updateClock, 1000);
-raf = requestAnimationFrame(tick);
+    const lerp = 1 - Math.exp(-dt * 12);
+    let avgH = 0;
+    for(let i=0;i<NUM_BARS;i++){
+      barCur[i] += (barTargets[i] - barCur[i]) * lerp;
+      const beatPulse = 1 + 0.18 * Math.abs(Math.sin(phase * 1.0 + i * 0.07));
+      const h = Math.max(4, Math.round(barCur[i] * 110 * beatPulse));
+      bars[i].style.height = h + 'px';
+      avgH += barCur[i];
+    }
+    avgH /= NUM_BARS;
+
+    const pts = [];
+    for(let x=0;x<W;x+=3){
+      const seed = waveSeeds[x] || 0;
+      const y = MID + seed * 14 * avgH + Math.sin(x/35 + phase) * 10 * avgH + Math.sin(x/18 - phase*1.3) * 5 * avgH;
+      pts.push(x+','+y.toFixed(1));
+    }
+    waveline.setAttribute('points', pts.join(' '));
+
+    const prog = elapsed / TOTAL;
+    progressFill.style.width = (prog * 100).toFixed(1) + '%';
+    timeCur.textContent = fmt(elapsed);
+
+    ring1.setAttribute('stroke-dashoffset', (r1circ * (1 - Math.min(avgH * 1.5, 0.95))).toFixed(1));
+    ring2.setAttribute('stroke-dashoffset', (r2circ * (1 - Math.min(avgH * 1.2, 0.85))).toFixed(1));
+
+    if(elapsed < TOTAL) animId = requestAnimationFrame(tick);
+    else { playing = false; playIcon.innerHTML = '<polygon points="5,3 17,10 5,17" fill="#0ff"/>'; }
+  }
+})();
 </script>

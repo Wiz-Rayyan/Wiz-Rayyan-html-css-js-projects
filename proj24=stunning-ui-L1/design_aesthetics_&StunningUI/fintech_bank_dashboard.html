@@ -1,0 +1,250 @@
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0B1120;--surface:#111827;--surface2:#1a2235;--border:#1e2d47;
+  --cyan:#00E5FF;--cyan-dim:rgba(0,229,255,.12);--cyan-glow:rgba(0,229,255,.35);
+  --green:#00FF9D;--green-dim:rgba(0,255,157,.1);
+  --red:#FF4D6A;--red-dim:rgba(255,77,106,.1);
+  --text:#E8EEF7;--muted:#6b7fa3;--hint:#3a4a66;
+  --font:'Syne',sans-serif;--mono:'DM Mono',monospace;
+}
+.dash{background:var(--bg);font-family:var(--font);color:var(--text);padding:24px;min-height:600px}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px}
+.logo{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:800;letter-spacing:-0.5px}
+.logo-mark{width:32px;height:32px;background:var(--cyan);border-radius:8px;display:flex;align-items:center;justify-content:center}
+.logo-mark svg{width:18px;height:18px}
+.badge{display:flex;align-items:center;gap:6px;padding:6px 12px;background:rgba(0,255,157,.08);border:0.5px solid rgba(0,255,157,.3);border-radius:20px;font-size:11px;font-family:var(--mono);color:var(--green);letter-spacing:.5px}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(0,255,157,.4)}50%{opacity:.7;box-shadow:0 0 0 4px rgba(0,255,157,0)}}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+.card{background:var(--surface);border:0.5px solid var(--border);border-radius:14px;padding:18px 20px}
+.card-glow{box-shadow:0 0 0 1px var(--cyan-glow),0 4px 24px var(--cyan-dim);border-color:rgba(0,229,255,.4)}
+.stat-label{font-size:11px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px}
+.stat-val{font-size:26px;font-weight:800;letter-spacing:-1px;line-height:1}
+.stat-val.cyan{color:var(--cyan)}
+.stat-delta{margin-top:6px;font-size:12px;font-family:var(--mono);display:flex;align-items:center;gap:4px}
+.up{color:var(--green)}.dn{color:var(--red)}
+.main-grid{display:grid;grid-template-columns:1fr 340px;gap:16px}
+.chart-card{background:var(--surface);border:0.5px solid var(--border);border-radius:14px;padding:20px}
+.chart-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.chart-title{font-size:15px;font-weight:700}
+.chips{display:flex;gap:6px}
+.chip{padding:4px 10px;border-radius:20px;font-size:11px;font-family:var(--mono);border:0.5px solid var(--border);color:var(--muted);cursor:pointer;background:transparent;font-family:var(--mono)}
+.chip.active{background:var(--cyan-dim);border-color:var(--cyan);color:var(--cyan)}
+.right-col{display:flex;flex-direction:column;gap:16px}
+.tx-card{background:var(--surface);border:0.5px solid var(--border);border-radius:14px;padding:18px 20px;flex:1}
+.tx-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:0.5px solid var(--hint)}
+.tx-row:last-child{border-bottom:none}
+.tx-icon{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.tx-info{margin-left:10px;flex:1}
+.tx-name{font-size:13px;font-weight:600}
+.tx-date{font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:2px}
+.tx-amt{font-family:var(--mono);font-size:13px;font-weight:500}
+.port-card{background:linear-gradient(135deg,#0d1a2e 0%,#0f2040 100%);border:0.5px solid rgba(0,229,255,.25);border-radius:14px;padding:20px;position:relative;overflow:hidden}
+.port-card::before{content:'';position:absolute;top:-40px;right:-40px;width:120px;height:120px;border-radius:50%;background:var(--cyan-glow);filter:blur(40px);pointer-events:none}
+.port-label{font-size:11px;font-family:var(--mono);color:var(--muted);letter-spacing:.8px;text-transform:uppercase}
+.port-val{font-size:30px;font-weight:800;color:var(--cyan);letter-spacing:-1px;margin:6px 0 4px}
+.port-sub{font-size:12px;color:var(--muted);font-family:var(--mono)}
+.port-bar{margin-top:14px;display:flex;gap:3px;height:6px;border-radius:3px;overflow:hidden}
+.bar-seg{height:100%;border-radius:3px}
+.bar-labels{display:flex;gap:12px;margin-top:8px}
+.bar-label{font-size:11px;font-family:var(--mono);color:var(--muted);display:flex;align-items:center;gap:4px}
+.bar-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+</style>
+<div class="dash">
+  <h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">NovaPay fintech dashboard showing balance, transactions, portfolio, and spending chart</h2>
+
+  <div class="topbar">
+    <div class="logo">
+      <div class="logo-mark">
+        <svg viewBox="0 0 18 18" fill="none"><path d="M3 9h4l2-5 3 10 2-5h1" stroke="#0B1120" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      NovaPay
+    </div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <div class="badge"><div class="dot"></div>All systems live</div>
+      <div style="width:34px;height:34px;border-radius:50%;background:var(--surface2);border:0.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--cyan)">AK</div>
+    </div>
+  </div>
+
+  <div class="grid4">
+    <div class="card card-glow">
+      <div class="stat-label">Total Balance</div>
+      <div class="stat-val cyan">$84,291</div>
+      <div class="stat-delta up">▲ +3.2% this month</div>
+    </div>
+    <div class="card">
+      <div class="stat-label">Money In</div>
+      <div class="stat-val">$12,450</div>
+      <div class="stat-delta up">▲ $2,100 vs last</div>
+    </div>
+    <div class="card">
+      <div class="stat-label">Money Out</div>
+      <div class="stat-val">$6,830</div>
+      <div class="stat-delta dn">▼ $890 vs last</div>
+    </div>
+    <div class="card">
+      <div class="stat-label">Savings Rate</div>
+      <div class="stat-val">45<span style="font-size:16px;color:var(--muted)">%</span></div>
+      <div class="stat-delta up">▲ +5% vs target</div>
+    </div>
+  </div>
+
+  <div class="main-grid">
+    <div class="chart-card">
+      <div class="chart-header">
+        <span class="chart-title">Cashflow Overview</span>
+        <div class="chips">
+          <button class="chip">7D</button>
+          <button class="chip active">1M</button>
+          <button class="chip">3M</button>
+          <button class="chip">1Y</button>
+        </div>
+      </div>
+      <div style="position:relative;height:220px">
+        <canvas id="cashChart" role="img" aria-label="Line chart of monthly cashflow showing income and spending over 8 months">Income peaked in June at 14k, spending consistently lower around 7k.</canvas>
+      </div>
+    </div>
+
+    <div class="right-col">
+      <div class="port-card">
+        <div class="port-label">Portfolio Value</div>
+        <div class="port-val">$41,872</div>
+        <div class="port-sub">+$3,210 (8.3%) all time</div>
+        <div class="port-bar">
+          <div class="bar-seg" style="width:42%;background:var(--cyan)"></div>
+          <div class="bar-seg" style="width:28%;background:#7C5CFC"></div>
+          <div class="bar-seg" style="width:18%;background:var(--green)"></div>
+          <div class="bar-seg" style="width:12%;background:#FF8C42"></div>
+        </div>
+        <div class="bar-labels">
+          <span class="bar-label"><span class="bar-dot" style="background:var(--cyan)"></span>Stocks 42%</span>
+          <span class="bar-label"><span class="bar-dot" style="background:#7C5CFC"></span>ETFs 28%</span>
+          <span class="bar-label"><span class="bar-dot" style="background:var(--green)"></span>Crypto 18%</span>
+          <span class="bar-label"><span class="bar-dot" style="background:#FF8C42"></span>Cash 12%</span>
+        </div>
+      </div>
+
+      <div class="tx-card">
+        <div style="font-size:14px;font-weight:700;margin-bottom:4px">Recent Transactions</div>
+        <div class="tx-row">
+          <div class="tx-icon" style="background:rgba(0,229,255,.1)">☁️</div>
+          <div class="tx-info"><div class="tx-name">AWS Cloud Services</div><div class="tx-date">Today, 09:14</div></div>
+          <div class="tx-amt dn">−$149.00</div>
+        </div>
+        <div class="tx-row">
+          <div class="tx-icon" style="background:rgba(0,255,157,.1)">💳</div>
+          <div class="tx-info"><div class="tx-name">Client Payment</div><div class="tx-date">Yesterday, 16:30</div></div>
+          <div class="tx-amt up">+$5,200.00</div>
+        </div>
+        <div class="tx-row">
+          <div class="tx-icon" style="background:rgba(124,92,252,.12)">🎵</div>
+          <div class="tx-info"><div class="tx-name">Spotify Premium</div><div class="tx-date">May 9, 11:00</div></div>
+          <div class="tx-amt dn">−$9.99</div>
+        </div>
+        <div class="tx-row">
+          <div class="tx-icon" style="background:rgba(255,140,66,.1)">⚡</div>
+          <div class="tx-info"><div class="tx-name">Electricity Bill</div><div class="tx-date">May 8, 08:45</div></div>
+          <div class="tx-amt dn">−$84.50</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const ctx = document.getElementById('cashChart');
+const labels = ['Oct','Nov','Dec','Jan','Feb','Mar','Apr','May'];
+const income = [9200,10400,13800,11200,10800,12100,14000,12450];
+const spend =  [5100, 6200, 8900, 6400, 5800, 6100, 7200, 6830];
+
+new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels,
+    datasets: [
+      {
+        label: 'Income',
+        data: income,
+        borderColor: '#00E5FF',
+        borderWidth: 2,
+        pointRadius: 0,
+        pointHoverRadius: 5,
+        pointHoverBackgroundColor: '#00E5FF',
+        fill: true,
+        backgroundColor: (ctx) => {
+          const g = ctx.chart.ctx.createLinearGradient(0,0,0,220);
+          g.addColorStop(0,'rgba(0,229,255,.18)');
+          g.addColorStop(1,'rgba(0,229,255,0)');
+          return g;
+        },
+        tension: 0.45
+      },
+      {
+        label: 'Spending',
+        data: spend,
+        borderColor: '#FF4D6A',
+        borderWidth: 2,
+        borderDash: [4,4],
+        pointRadius: 0,
+        pointHoverRadius: 5,
+        pointHoverBackgroundColor: '#FF4D6A',
+        fill: true,
+        backgroundColor: (ctx) => {
+          const g = ctx.chart.ctx.createLinearGradient(0,0,0,220);
+          g.addColorStop(0,'rgba(255,77,106,.1)');
+          g.addColorStop(1,'rgba(255,77,106,0)');
+          return g;
+        },
+        tension: 0.45
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { mode:'index', intersect:false },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#1a2235',
+        borderColor: '#1e2d47',
+        borderWidth: 1,
+        titleColor: '#6b7fa3',
+        bodyColor: '#E8EEF7',
+        padding: 10,
+        callbacks: {
+          label: (c) => ` ${c.dataset.label}: $${c.parsed.y.toLocaleString()}`
+        }
+      }
+    },
+    scales: {
+      x: {
+        grid: { color: 'rgba(255,255,255,.04)' },
+        ticks: { color: '#6b7fa3', font: { family: "'DM Mono'", size: 11 }, maxRotation: 0 },
+        border: { display: false }
+      },
+      y: {
+        grid: { color: 'rgba(255,255,255,.04)' },
+        ticks: {
+          color: '#6b7fa3',
+          font: { family: "'DM Mono'", size: 11 },
+          callback: (v) => '$' + (v/1000).toFixed(0) + 'k'
+        },
+        border: { display: false },
+        min: 0
+      }
+    }
+  }
+});
+
+document.querySelectorAll('.chip').forEach(c => {
+  c.addEventListener('click', () => {
+    document.querySelectorAll('.chip').forEach(x => x.classList.remove('active'));
+    c.classList.add('active');
+  });
+});
+</script>

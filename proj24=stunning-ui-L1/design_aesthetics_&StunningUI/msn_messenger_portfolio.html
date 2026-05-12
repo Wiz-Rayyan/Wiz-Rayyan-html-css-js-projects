@@ -1,0 +1,311 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Tahoma:wght@400;700&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  .msn-wrap { font-family: Tahoma, 'Segoe UI', sans-serif; font-size: 12px; display: flex; height: 560px; border-radius: 8px; overflow: hidden; border: 1px solid #6fa8c7; }
+  .msn-sidebar { width: 200px; background: linear-gradient(180deg, #d6eef9 0%, #b8dff5 40%, #a0d0ef 100%); border-right: 1px solid #7bbfe0; display: flex; flex-direction: column; flex-shrink: 0; }
+  .msn-header { background: linear-gradient(180deg, #3a7bbf 0%, #2060a8 100%); padding: 8px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .msn-dp { width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, #ACE0F9, #E1F5FE); border: 2px solid #fff; overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: 22px; cursor: pointer; transition: transform 0.15s; position: relative; }
+  .msn-dp:hover { transform: scale(1.08); }
+  .status-dot { position: absolute; bottom: 1px; right: 1px; width: 10px; height: 10px; border-radius: 50%; background: #22c55e; border: 1.5px solid #fff; }
+  .msn-name { color: #fff; font-weight: 700; font-size: 11px; text-shadow: 0 1px 2px rgba(0,0,0,0.4); }
+  .msn-status-line { color: #c8e6fa; font-size: 10px; font-style: italic; }
+  .msn-search { margin: 6px; background: #fff; border: 1px solid #7bbfe0; border-radius: 3px; padding: 3px 6px; display: flex; align-items: center; gap: 4px; }
+  .msn-search input { border: none; outline: none; font-size: 10px; width: 100%; background: transparent; font-family: Tahoma, sans-serif; color: #333; }
+  .contact-section { padding: 2px 0; }
+  .contact-group { background: linear-gradient(90deg, #2060a8, #3a7bbf); color: #fff; font-size: 10px; font-weight: 700; padding: 2px 6px; cursor: pointer; display: flex; align-items: center; gap: 4px; user-select: none; }
+  .contact-group::before { content: '▾'; font-size: 9px; }
+  .contact-item { display: flex; align-items: center; gap: 6px; padding: 3px 8px; cursor: pointer; transition: background 0.1s; }
+  .contact-item:hover { background: rgba(255,255,255,0.45); }
+  .contact-item.active { background: rgba(255,255,255,0.6); }
+  .c-avatar { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; position: relative; border: 1.5px solid rgba(255,255,255,0.7); }
+  .c-status { position: absolute; bottom: -1px; right: -1px; width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid #b8dff5; }
+  .online { background: #22c55e; }
+  .away { background: #f59e0b; }
+  .busy { background: #ef4444; }
+  .c-info { min-width: 0; }
+  .c-name { font-size: 10px; font-weight: 700; color: #1a3f6f; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .c-msg { font-size: 9px; color: #2060a8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-style: italic; }
+  .msn-chat { flex: 1; display: flex; flex-direction: column; background: linear-gradient(135deg, #f0f9ff 0%, #e8f5fd 100%); }
+  .chat-titlebar { background: linear-gradient(180deg, #4a90d8 0%, #2060a8 100%); padding: 5px 10px; display: flex; align-items: center; gap: 8px; }
+  .chat-title { color: #fff; font-weight: 700; font-size: 11px; flex: 1; }
+  .chat-dp-small { width: 24px; height: 24px; border-radius: 50%; background: linear-gradient(135deg, #ffd6e0, #ffeaa7); border: 1.5px solid #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+  .chat-toolbar { background: linear-gradient(180deg, #d9edf7, #c5e4f3); border-bottom: 1px solid #9dcde8; padding: 3px 6px; display: flex; gap: 4px; align-items: center; }
+  .tb-btn { background: none; border: 1px solid transparent; border-radius: 3px; padding: 2px 5px; font-size: 11px; cursor: pointer; color: #1a3f6f; transition: all 0.1s; font-family: Tahoma, sans-serif; }
+  .tb-btn:hover { background: rgba(255,255,255,0.7); border-color: #7bbfe0; }
+  .tb-sep { width: 1px; height: 18px; background: #9dcde8; margin: 0 2px; }
+  .emoticon { font-size: 14px; cursor: pointer; padding: 2px; border-radius: 3px; transition: background 0.1s; }
+  .emoticon:hover { background: rgba(255,255,255,0.7); }
+  .chat-messages { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+  .chat-messages::-webkit-scrollbar { width: 8px; }
+  .chat-messages::-webkit-scrollbar-track { background: rgba(180,220,245,0.3); }
+  .chat-messages::-webkit-scrollbar-thumb { background: #7bbfe0; border-radius: 4px; }
+  .msg-row { display: flex; flex-direction: column; gap: 1px; }
+  .msg-row.me { align-items: flex-end; }
+  .msg-sender { font-size: 10px; font-weight: 700; color: #1a3f6f; margin-bottom: 2px; }
+  .msg-row.me .msg-sender { color: #c0392b; }
+  .msg-bubble { max-width: 75%; padding: 5px 9px; border-radius: 10px; font-size: 12px; line-height: 1.4; color: #1a1a1a; }
+  .msg-row.them .msg-bubble { background: #fff; border: 1px solid #b8dff5; border-bottom-left-radius: 2px; }
+  .msg-row.me .msg-bubble { background: linear-gradient(135deg, #ddeeff, #cce6ff); border: 1px solid #7bbfe0; border-bottom-right-radius: 2px; }
+  .msg-time { font-size: 9px; color: #7fa8c8; margin-top: 1px; }
+  .system-msg { text-align: center; font-size: 10px; color: #7fa8c8; font-style: italic; background: rgba(255,255,255,0.5); border-radius: 10px; padding: 3px 10px; align-self: center; }
+  .nudge-msg { text-align: center; font-size: 11px; color: #e05; background: #ffe0ec; border: 1px solid #ffb3cc; border-radius: 8px; padding: 4px 12px; align-self: center; animation: shake 0.4s ease; }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 15%{transform:translateX(-6px)} 30%{transform:translateX(6px)} 45%{transform:translateX(-4px)} 60%{transform:translateX(4px)} 75%{transform:translateX(-2px)} 90%{transform:translateX(2px)} }
+  .typing-row { display: flex; align-items: center; gap: 6px; padding: 2px 0; min-height: 20px; }
+  .typing-label { font-size: 10px; color: #7fa8c8; font-style: italic; }
+  .typing-dots { display: flex; gap: 3px; }
+  .typing-dots span { width: 5px; height: 5px; border-radius: 50%; background: #7bbfe0; animation: bounce 1.2s infinite; }
+  .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce { 0%,80%,100%{transform:translateY(0);opacity:0.4} 40%{transform:translateY(-4px);opacity:1} }
+  .chat-input-area { border-top: 1px solid #9dcde8; background: #fff; }
+  .chat-input-toolbar { background: linear-gradient(180deg, #d9edf7, #c5e4f3); padding: 2px 6px; display: flex; gap: 3px; align-items: center; border-bottom: 1px solid #b0d8ee; }
+  .font-select { font-size: 10px; padding: 1px 3px; border: 1px solid #9dcde8; border-radius: 2px; background: #fff; font-family: Tahoma, sans-serif; color: #1a3f6f; }
+  .fmt-btn { width: 18px; height: 18px; border: 1px solid #9dcde8; border-radius: 2px; background: #fff; font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #1a3f6f; font-family: Tahoma, serif; }
+  .fmt-btn:hover { background: #ddeeff; }
+  .chat-textarea { width: 100%; height: 64px; border: none; outline: none; padding: 6px 8px; font-size: 12px; font-family: Tahoma, sans-serif; resize: none; color: #1a1a1a; background: #fff; }
+  .chat-send-bar { display: flex; justify-content: flex-end; align-items: center; gap: 8px; padding: 4px 8px; background: linear-gradient(180deg, #e8f5fd, #d6eef9); border-top: 1px solid #b0d8ee; }
+  .send-btn { background: linear-gradient(180deg, #4a90d8, #2060a8); color: #fff; border: 1px solid #1a5090; border-radius: 3px; padding: 3px 14px; font-size: 11px; font-weight: 700; cursor: pointer; font-family: Tahoma, sans-serif; transition: all 0.1s; }
+  .send-btn:hover { background: linear-gradient(180deg, #5aa0e8, #3070b8); }
+  .send-btn:active { transform: scale(0.97); }
+  .nudge-btn { background: linear-gradient(180deg, #ff9cc8, #e0508a); color: #fff; border: 1px solid #c0306a; border-radius: 3px; padding: 3px 10px; font-size: 10px; font-weight: 700; cursor: pointer; font-family: Tahoma, sans-serif; transition: all 0.1s; }
+  .nudge-btn:hover { background: linear-gradient(180deg, #ffaad4, #f06090); }
+  .shake { animation: shakeWindow 0.4s ease; }
+  @keyframes shakeWindow { 0%,100%{transform:translateX(0)} 15%{transform:translateX(-8px)} 30%{transform:translateX(8px)} 45%{transform:translateX(-5px)} 60%{transform:translateX(5px)} 75%{transform:translateX(-3px)} 90%{transform:translateX(3px)} }
+  .wlm-footer { background: linear-gradient(180deg, #2060a8, #164080); padding: 4px 8px; display: flex; justify-content: space-between; align-items: center; }
+  .wlm-logo { color: #fff; font-size: 10px; font-weight: 700; display: flex; align-items: center; gap: 4px; }
+  .wlm-dot { width: 8px; height: 8px; border-radius: 50%; background: #f9a825; }
+  .wlm-ads { color: #9dcde8; font-size: 9px; }
+  .sidebar-footer { margin-top: auto; }
+</style>
+
+<div class="msn-wrap" id="msnWrap">
+  <div class="msn-sidebar">
+    <div class="msn-header">
+      <div class="msn-dp" title="My display picture">
+        🦋
+        <div class="status-dot"></div>
+      </div>
+      <div class="msn-name">Alex (Online)</div>
+      <div class="msn-status-line">✨ living the dream ✨</div>
+    </div>
+
+    <div class="msn-search">
+      🔍 <input placeholder="Find a contact..." />
+    </div>
+
+    <div class="contact-section">
+      <div class="contact-group">Online (3)</div>
+
+      <div class="contact-item active" onclick="switchChat('Sophie 🌸','🌸','Online','listening to MCR rn 🖤','online')">
+        <div class="c-avatar" style="background:linear-gradient(135deg,#ffd6e0,#ffeaa7)">🌸<div class="c-status online"></div></div>
+        <div class="c-info"><div class="c-name">Sophie 🌸</div><div class="c-msg">listening to MCR rn 🖤</div></div>
+      </div>
+      <div class="contact-item" onclick="switchChat('Jake (skater)','🛹','Online','brb sk8ing','online')">
+        <div class="c-avatar" style="background:linear-gradient(135deg,#d1fae5,#a7f3d0)">🛹<div class="c-status online"></div></div>
+        <div class="c-info"><div class="c-name">Jake (skater)</div><div class="c-msg">brb sk8ing</div></div>
+      </div>
+      <div class="contact-item" onclick="switchChat('Mum 💜','💜','Online','call me when you get home','online')">
+        <div class="c-avatar" style="background:linear-gradient(135deg,#e9d5ff,#c4b5fd)">💜<div class="c-status online"></div></div>
+        <div class="c-info"><div class="c-name">Mum 💜</div><div class="c-msg">call me when u get home</div></div>
+      </div>
+
+      <div class="contact-group" style="margin-top:4px">Away / Busy (2)</div>
+      <div class="contact-item" onclick="switchChat('Zara ✈️','✈️','Away','gone to ibiza c ya l8r','away')">
+        <div class="c-avatar" style="background:linear-gradient(135deg,#fed7aa,#fde68a)">✈️<div class="c-status away"></div></div>
+        <div class="c-info"><div class="c-name">Zara ✈️</div><div class="c-msg">gone to ibiza c ya l8r</div></div>
+      </div>
+      <div class="contact-item" onclick="switchChat('Tyler','🎮','Busy','in a raid DO NOT DISTURB','busy')">
+        <div class="c-avatar" style="background:linear-gradient(135deg,#fecaca,#fca5a5)">🎮<div class="c-status busy"></div></div>
+        <div class="c-info"><div class="c-name">Tyler</div><div class="c-msg">in a raid DO NOT DISTURB</div></div>
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="wlm-footer">
+        <div class="wlm-logo"><div class="wlm-dot"></div>Windows Live™</div>
+        <div class="wlm-ads">14.0.8117</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="msn-chat">
+    <div class="chat-titlebar">
+      <div class="chat-dp-small" id="chatDpSmall">🌸</div>
+      <div class="chat-title" id="chatTitle">Sophie 🌸 — Conversation</div>
+    </div>
+    <div class="chat-toolbar">
+      <button class="tb-btn">😊 Emoticons</button>
+      <div class="tb-sep"></div>
+      <button class="tb-btn">🖼 Wink</button>
+      <div class="tb-sep"></div>
+      <span class="emoticon" title=":)">😊</span>
+      <span class="emoticon" title=":P">😛</span>
+      <span class="emoticon" title=":D">😄</span>
+      <span class="emoticon" title=";)">😉</span>
+      <span class="emoticon" title=":O">😮</span>
+      <span class="emoticon" title=":'(">😢</span>
+      <span class="emoticon" title="(L)">❤️</span>
+      <span class="emoticon" title="(*)">⭐</span>
+    </div>
+
+    <div class="chat-messages" id="chatMessages">
+      <div class="system-msg" id="systemMsg">Conversation with Sophie 🌸 started</div>
+
+      <div class="msg-row them">
+        <div class="msg-sender">Sophie 🌸 says:</div>
+        <div class="msg-bubble">omg did u see what happened at lunch today 😮</div>
+        <div class="msg-time">3:42 PM</div>
+      </div>
+
+      <div class="msg-row me">
+        <div class="msg-sender">Alex says:</div>
+        <div class="msg-bubble">noooo i was in the library!! what happened??</div>
+        <div class="msg-time">3:43 PM</div>
+      </div>
+
+      <div class="msg-row them">
+        <div class="msg-sender">Sophie 🌸 says:</div>
+        <div class="msg-bubble">lmaooo ok so basically jake tripped and his tray went EVERYWHERE 😂😂 it was the funniest thing ever i swear</div>
+        <div class="msg-time">3:43 PM</div>
+      </div>
+
+      <div class="msg-row me">
+        <div class="msg-sender">Alex says:</div>
+        <div class="msg-bubble">LMAOOO no way 😄 poor jake hahaha</div>
+        <div class="msg-time">3:44 PM</div>
+      </div>
+
+      <div class="msg-row them">
+        <div class="msg-sender">Sophie 🌸 says:</div>
+        <div class="msg-bubble">he took it well tbf 😂 hey are u coming to the mall saturday??</div>
+        <div class="msg-time">3:44 PM</div>
+      </div>
+
+      <div class="msg-row me">
+        <div class="msg-sender">Alex says:</div>
+        <div class="msg-bubble">YES definitely!! what time?? ❤️</div>
+        <div class="msg-time">3:45 PM</div>
+      </div>
+
+      <div class="typing-row" id="typingRow">
+        <div class="typing-label" id="typingLabel">Sophie 🌸 is typing</div>
+        <div class="typing-dots"><span></span><span></span><span></span></div>
+      </div>
+    </div>
+
+    <div class="chat-input-area">
+      <div class="chat-input-toolbar">
+        <select class="font-select"><option>Tahoma</option><option>Comic Sans MS</option><option>Arial</option><option>Times New Roman</option></select>
+        <select class="font-select" style="width:38px"><option>10</option><option>12</option><option>14</option><option>18</option></select>
+        <div class="fmt-btn" style="font-weight:700">B</div>
+        <div class="fmt-btn" style="font-style:italic">I</div>
+        <div class="fmt-btn" style="text-decoration:underline">U</div>
+        <div class="tb-sep"></div>
+        <span style="font-size:11px;color:#1a3f6f;margin-left:2px">A</span>
+        <div style="width:16px;height:16px;border-radius:50%;background:linear-gradient(135deg,#f87171,#60a5fa,#4ade80);border:1px solid #9dcde8;cursor:pointer"></div>
+      </div>
+      <textarea class="chat-textarea" id="chatInput" placeholder="Type a message..." onkeydown="handleKey(event)"></textarea>
+      <div class="chat-send-bar">
+        <button class="nudge-btn" onclick="sendNudge()">📳 Nudge!</button>
+        <button class="send-btn" onclick="sendMessage()">Send ↵</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const contacts = {
+  'Sophie 🌸': { dp:'🌸', bg:'linear-gradient(135deg,#ffd6e0,#ffeaa7)', typing:true, replies:["omg yes!! let's meet at like 1pm?? 😊","yessss this is gonna be so fun!!","also have u heard the new MCR song 🖤🖤","ok i gtg for dinner brb!!!"] },
+  'Jake (skater)': { dp:'🛹', bg:'linear-gradient(135deg,#d1fae5,#a7f3d0)', typing:false, replies:["yo what's up","yeah lmao that was so embarrassing 😂","ngl it was kinda funny tho","anyway u coming to the skatepark later?"] },
+  'Mum 💜': { dp:'💜', bg:'linear-gradient(135deg,#e9d5ff,#c4b5fd)', typing:false, replies:["Hi love! Dinner's at 6 ok?","Did you do your homework?","Love you! 💜","Come home before it gets dark!"] },
+  'Zara ✈️': { dp:'✈️', bg:'linear-gradient(135deg,#fed7aa,#fde68a)', typing:false, replies:["heyy!! im in ibiza!! 🌴🌴","its sooo hot here omg","wish u were here!!","ill tell u everything when im back xx"] },
+  'Tyler': { dp:'🎮', bg:'linear-gradient(135deg,#fecaca,#fca5a5)', typing:false, replies:["bro not now im in a raid","......","ok raid done what's up","do u wanna play halo later?"] }
+};
+
+let currentContact = 'Sophie 🌸';
+let replyIndex = 0;
+let typingTimeout = null;
+let lastTime = new Date();
+
+function getTime() {
+  const now = new Date();
+  return now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+}
+
+function switchChat(name, dp, status, msg, statusClass) {
+  currentContact = name;
+  replyIndex = 0;
+  document.querySelectorAll('.contact-item').forEach(el => el.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  document.getElementById('chatTitle').textContent = name + ' — Conversation';
+  document.getElementById('chatDpSmall').textContent = dp;
+  const msgs = document.getElementById('chatMessages');
+  msgs.innerHTML = '<div class="system-msg">Conversation with ' + name + ' started</div>';
+  const typingRow = document.createElement('div');
+  typingRow.className = 'typing-row';
+  typingRow.id = 'typingRow';
+  const contact = contacts[name];
+  if (contact && contact.typing) {
+    typingRow.innerHTML = '<div class="typing-label" id="typingLabel">' + name + ' is typing</div><div class="typing-dots"><span></span><span></span><span></span></div>';
+  }
+  msgs.appendChild(typingRow);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function sendMessage() {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if (!text) return;
+  const msgs = document.getElementById('chatMessages');
+  const typingRow = document.getElementById('typingRow');
+
+  const row = document.createElement('div');
+  row.className = 'msg-row me';
+  row.innerHTML = '<div class="msg-sender">Alex says:</div><div class="msg-bubble">' + escHtml(text) + '</div><div class="msg-time">' + getTime() + '</div>';
+  msgs.insertBefore(row, typingRow);
+  input.value = '';
+  msgs.scrollTop = msgs.scrollHeight;
+
+  if (typingRow) {
+    typingRow.innerHTML = '<div class="typing-label" id="typingLabel">' + currentContact + ' is typing</div><div class="typing-dots"><span></span><span></span><span></span></div>';
+  }
+
+  clearTimeout(typingTimeout);
+  typingTimeout = setTimeout(() => {
+    const contact = contacts[currentContact];
+    if (!contact) return;
+    const reply = contact.replies[replyIndex % contact.replies.length];
+    replyIndex++;
+    if (typingRow) typingRow.innerHTML = '';
+    const replyRow = document.createElement('div');
+    replyRow.className = 'msg-row them';
+    replyRow.innerHTML = '<div class="msg-sender">' + currentContact + ' says:</div><div class="msg-bubble">' + escHtml(reply) + '</div><div class="msg-time">' + getTime() + '</div>';
+    msgs.insertBefore(replyRow, typingRow);
+    msgs.scrollTop = msgs.scrollHeight;
+  }, 1800 + Math.random() * 1200);
+}
+
+function sendNudge() {
+  const msgs = document.getElementById('chatMessages');
+  const typingRow = document.getElementById('typingRow');
+  const nudge = document.createElement('div');
+  nudge.className = 'nudge-msg';
+  nudge.textContent = '📳 Alex sent ' + currentContact + ' a nudge!';
+  msgs.insertBefore(nudge, typingRow);
+  msgs.scrollTop = msgs.scrollHeight;
+  const wrap = document.getElementById('msnWrap');
+  wrap.classList.remove('shake');
+  void wrap.offsetWidth;
+  wrap.classList.add('shake');
+  setTimeout(() => wrap.classList.remove('shake'), 500);
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>

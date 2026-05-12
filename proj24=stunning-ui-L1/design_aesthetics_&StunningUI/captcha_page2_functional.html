@@ -1,0 +1,386 @@
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Courier Prime','Courier New',monospace}
+.cw{background:#F0EDE6;border:1.5px solid #C8C3B8;border-radius:6px;max-width:360px;margin:2rem auto;overflow:hidden;box-shadow:2px 3px 0 #C0BAB0}
+.ch{background:#E8E4DC;border-bottom:1px solid #C8C3B8;padding:10px 14px 8px;display:flex;align-items:center;justify-content:space-between}
+.cl{font-size:11px;color:#888;letter-spacing:.04em;font-weight:700;text-transform:uppercase}
+.cdots{display:flex;gap:5px}
+.cd{width:10px;height:10px;border-radius:50%}
+.cb{padding:18px 16px 14px}
+.pbadge{font-size:10px;color:#AAA;text-align:center;letter-spacing:.06em;margin-bottom:12px}
+.instr{font-size:13px;color:#444;margin-bottom:10px;line-height:1.4;background:#E2DED6;padding:8px 10px;border:1px solid #C8C3B8;border-radius:3px}
+.instr span{display:block;font-size:11px;color:#888;margin-top:3px}
+.audio-box{background:#E8E4DC;border:1px solid #C8C3B8;border-radius:3px;padding:12px;margin-bottom:10px}
+.waverow{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.play-btn{width:34px;height:34px;border:1.5px solid #888;border-radius:50%;background:#F0EDE6;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
+.play-btn:hover{background:#E0DDD6;border-color:#555}
+.play-btn.playing{border-color:#3A6BB5;background:#D8E4F4}
+.wavecanvas{flex:1;height:40px;cursor:pointer;display:block}
+.audio-meta{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:2px}
+.atag{font-size:10px;color:#6A6258;background:#DDD9D2;border:1px solid #C8C3B8;border-radius:2px;padding:2px 6px}
+.cap-input{width:100%;font-family:'Courier Prime',monospace;font-size:14px;padding:7px 10px;background:#FAF8F4;border:1px solid #C8C3B8;border-radius:3px;color:#333;outline:none;margin-bottom:10px}
+.cap-input:focus{border-color:#3A6BB5;box-shadow:0 0 0 2px rgba(58,107,181,.15)}
+.math-row{display:flex;gap:8px;align-items:stretch;margin-bottom:10px}
+.math-box{flex:1;background:#E8E4DC;border:1px solid #C8C3B8;border-radius:3px;padding:8px;text-align:center}
+.math-q{font-size:24px;font-weight:700;color:#333;font-family:'Courier Prime',monospace;line-height:1}
+.math-hint{font-size:10px;color:#AAA;margin-top:3px}
+.math-op{display:flex;align-items:center;font-size:22px;color:#888;font-weight:700}
+.drop-zones{display:flex;gap:5px;margin-bottom:8px}
+.dz{flex:1;min-height:36px;border:1.5px dashed #B0A898;border-radius:3px;background:#E8E4DC;display:flex;align-items:center;justify-content:center;font-size:12px;color:#AAA;font-family:'Courier Prime',monospace;cursor:pointer;transition:all .15s;position:relative}
+.dz.over{border-color:#3A6BB5;background:#E8F0FC}
+.dz.filled{border-color:#3A6BB5;background:#D8E4F4;color:#3A6BB5;font-size:13px;font-weight:700;cursor:pointer}
+.dz.filled:hover{background:#C8D8F0}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.chip{padding:5px 10px;background:#DDD9D2;border:1px solid #C8C3B8;border-radius:2px;font-size:13px;font-family:'Courier Prime',monospace;cursor:grab;user-select:none;transition:all .1s}
+.chip:hover{background:#C8C3B8}
+.chip:active{cursor:grabbing;background:#B8B3A8}
+.chip.used{opacity:.3;pointer-events:none}
+.chip.dragging{opacity:.5}
+.verify-btn{width:100%;font-family:'Courier Prime',monospace;font-size:13px;padding:9px;background:#3A6BB5;color:#fff;border:none;border-radius:3px;cursor:pointer;letter-spacing:.05em;transition:background .15s;margin-top:2px}
+.verify-btn:hover{background:#2E5899}
+.result{font-size:12px;text-align:center;margin-top:8px;min-height:16px;font-family:'Courier Prime',monospace}
+.cfooter{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#E8E4DC;border-top:1px solid #C8C3B8}
+.cbox{width:22px;height:22px;border:2px solid #888;border-radius:3px;background:#FAF8F4;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
+.cbox.checked{border-color:#3A6BB5;background:#3A6BB5}
+.robot-lbl{font-size:13px;color:#444;cursor:pointer;margin-left:10px}
+.cbrand{font-size:10px;color:#AAA;text-align:right;line-height:1.3}
+.cbrand strong{display:block;color:#888;font-size:11px;letter-spacing:.05em}
+.success-screen{display:none;padding:24px 16px;text-align:center;font-family:'Courier Prime',monospace}
+.tick{width:52px;height:52px;border:2px solid #2A7A3A;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;background:#E8F4E8}
+</style>
+
+<h2 style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">CAPTCHA page 2 — audio, math, and word-order challenges with real Web Audio</h2>
+
+<div class="cw">
+  <div class="ch">
+    <div class="cl">Human Verification</div>
+    <div class="cdots">
+      <div class="cd" style="background:#E8837A"></div>
+      <div class="cd" style="background:#D4B865"></div>
+      <div class="cd" style="background:#7ABB7A"></div>
+    </div>
+  </div>
+
+  <div id="mainBody" class="cb">
+    <div class="pbadge">— page 2 of 3 —</div>
+
+    <div class="instr">Listen and type the spoken number<span>Distorted synth voice. Play as many times as needed.</span></div>
+    <div class="audio-box">
+      <div class="waverow">
+        <button class="play-btn" id="playBtn" aria-label="Play audio">
+          <svg width="11" height="13" viewBox="0 0 11 13"><polygon points="1,1 10,6.5 1,12" fill="#555"/></svg>
+        </button>
+        <canvas class="wavecanvas" id="waveCanvas" width="260" height="40"></canvas>
+      </div>
+      <div class="audio-meta">
+        <span class="atag">DIST:HIGH</span><span class="atag">SNR:0.3dB</span><span class="atag">VOICE:SYNTH</span><span class="atag" id="audioCodeTag">WORD:???</span>
+      </div>
+    </div>
+    <input class="cap-input" id="audioIn" type="text" placeholder="Type the word you heard..." autocomplete="off" spellcheck="false"/>
+
+    <div class="instr" style="margin-top:4px">Solve the arithmetic<span>Enter the exact integer answer.</span></div>
+    <div class="math-row" id="mathRow"></div>
+    <input class="cap-input" id="mathIn" type="text" placeholder="Your answer..." inputmode="numeric" maxlength="6" autocomplete="off"/>
+
+    <div class="instr" style="margin-top:4px">Arrange words into a sentence<span>Drag chips into slots. Click a filled slot to clear it.</span></div>
+    <div class="drop-zones" id="dropZones"></div>
+    <div class="chips" id="chips"></div>
+
+    <button class="verify-btn" id="verifyBtn">Verify</button>
+    <div class="result" id="resultMsg"></div>
+  </div>
+
+  <div id="successBody" class="cb" style="display:none">
+    <div style="padding:20px 0;text-align:center">
+      <div class="tick">
+        <svg width="24" height="24" viewBox="0 0 24 24"><polyline points="4,12 9,17 20,7" stroke="#2A7A3A" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div style="font-size:15px;font-weight:700;color:#2A7A3A;margin-bottom:6px">Verification complete</div>
+      <div style="font-size:12px;color:#888;line-height:1.5">You are human (probably).<br>Identity token issued.</div>
+      <div style="margin-top:14px;font-size:11px;color:#B0A898;letter-spacing:.05em" id="tokenDisplay"></div>
+    </div>
+  </div>
+
+  <div class="cfooter">
+    <div style="display:flex;align-items:center">
+      <div class="cbox" id="robotBox" role="checkbox" aria-checked="false" tabindex="0" aria-label="I'm not a robot"></div>
+      <label class="robot-lbl" id="robotLbl">I'm not a robot</label>
+    </div>
+    <div class="cbrand"><strong>reCAPTCHA</strong>Privacy · Terms</div>
+  </div>
+</div>
+
+<script>
+const WORDS = ['SEVEN','ELEVEN','FORTY','NINETY','THIRTEEN','TWENTY','SIXTY'];
+const SENTENCES = [
+  {words:['robots','cannot','dream','of','electric','sheep'],answer:'robots cannot dream of electric sheep'},
+  {words:['humans','solve','puzzles','that','machines','fail'],answer:'humans solve puzzles that machines fail'},
+  {words:['the','clock','ticks','but','time','stands','still'],answer:'the clock ticks but time stands still'},
+];
+
+const audioWord = WORDS[Math.floor(Math.random()*WORDS.length)];
+const sentence = SENTENCES[Math.floor(Math.random()*SENTENCES.length)];
+const shuffled = [...sentence.words].sort(()=>Math.random()-.5);
+
+function makeMath(){
+  const ops=['+','-','×'];
+  const op=ops[Math.floor(Math.random()*ops.length)];
+  let a,b,ans;
+  if(op==='+'){a=Math.floor(Math.random()*50)+10;b=Math.floor(Math.random()*50)+5;ans=a+b;}
+  else if(op==='-'){a=Math.floor(Math.random()*50)+20;b=Math.floor(Math.random()*20)+2;ans=a-b;}
+  else{a=Math.floor(Math.random()*9)+2;b=Math.floor(Math.random()*9)+2;ans=a*b;}
+  return{a,op,b,ans};
+}
+const math = makeMath();
+
+document.getElementById('mathRow').innerHTML=`
+  <div class="math-box"><div class="math-q">${math.a}</div><div class="math-hint">operand</div></div>
+  <div class="math-op">${math.op}</div>
+  <div class="math-box"><div class="math-q">${math.b}</div><div class="math-hint">operand</div></div>
+  <div class="math-op">=</div>
+  <div class="math-box"><div class="math-q" style="color:#3A6BB5">?</div><div class="math-hint">result</div></div>
+`;
+
+let audioCtx=null;
+function getAudioCtx(){
+  if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  if(audioCtx.state==='suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+const WORD_FREQS = {
+  'SEVEN':  [[400,0.12],[350,0.18],[300,0.09],[450,0.15],[380,0.1],[280,0.08]],
+  'ELEVEN': [[300,0.1],[250,0.16],[350,0.12],[290,0.14],[270,0.1],[380,0.08]],
+  'FORTY':  [[480,0.1],[420,0.18],[380,0.12],[350,0.1],[500,0.08]],
+  'NINETY': [[320,0.1],[290,0.16],[350,0.14],[310,0.1],[280,0.08],[370,0.12]],
+  'THIRTEEN':[[350,0.1],[300,0.18],[280,0.12],[320,0.1],[400,0.08],[260,0.1]],
+  'TWENTY': [[420,0.1],[380,0.16],[350,0.12],[400,0.08],[360,0.1]],
+  'SIXTY':  [[500,0.1],[450,0.18],[400,0.12],[480,0.08],[420,0.1]],
+};
+
+function playWord(word){
+  const ctx=getAudioCtx();
+  const freqs=WORD_FREQS[word]||[[400,0.12],[300,0.16]];
+  const totalDur=2.2;
+  const master=ctx.createGain();
+  master.gain.value=0.6;
+  master.connect(ctx.destination);
+  const convLen=ctx.sampleRate*0.3;
+  const convBuf=ctx.createBuffer(1,convLen,ctx.sampleRate);
+  const convData=convBuf.getChannelData(0);
+  for(let i=0;i<convLen;i++) convData[i]=(Math.random()*2-1)*Math.pow(1-i/convLen,2)*0.5;
+  const convolver=ctx.createConvolver();
+  convolver.buffer=convBuf;
+  convolver.connect(master);
+  const noiseLen=ctx.sampleRate*totalDur;
+  const noiseBuf=ctx.createBuffer(1,noiseLen,ctx.sampleRate);
+  const noiseData=noiseBuf.getChannelData(0);
+  for(let i=0;i<noiseLen;i++) noiseData[i]=(Math.random()*2-1)*0.08;
+  const noiseSource=ctx.createBufferSource();
+  noiseSource.buffer=noiseBuf;
+  noiseSource.connect(master);
+  noiseSource.start();
+  noiseSource.stop(ctx.currentTime+totalDur);
+  freqs.forEach(([baseFreq,amp],idx)=>{
+    const osc=ctx.createOscillator();
+    const gainNode=ctx.createGain();
+    const lfo=ctx.createOscillator();
+    const lfoGain=ctx.createGain();
+    osc.type='sawtooth';
+    osc.frequency.value=baseFreq*(0.95+Math.random()*0.1);
+    lfo.type='sine';
+    lfo.frequency.value=3.5+Math.random()*2;
+    lfoGain.gain.value=baseFreq*0.04;
+    lfo.connect(lfoGain);
+    lfoGain.connect(osc.frequency);
+    const segDur=totalDur/freqs.length;
+    const startT=ctx.currentTime+idx*segDur*0.85;
+    gainNode.gain.setValueAtTime(0,startT);
+    gainNode.gain.linearRampToValueAtTime(amp,startT+0.06);
+    gainNode.gain.setValueAtTime(amp,startT+segDur*0.65);
+    gainNode.gain.linearRampToValueAtTime(0,startT+segDur*0.9);
+    osc.connect(gainNode);
+    gainNode.connect(convolver);
+    lfo.start(startT);
+    osc.start(startT);
+    lfo.stop(startT+segDur*0.9);
+    osc.stop(startT+segDur*0.9);
+    const osc2=ctx.createOscillator();
+    const g2=ctx.createGain();
+    osc2.type='square';
+    osc2.frequency.value=baseFreq*1.5*(0.98+Math.random()*0.04);
+    g2.gain.setValueAtTime(0,startT);
+    g2.gain.linearRampToValueAtTime(amp*0.3,startT+0.05);
+    g2.gain.linearRampToValueAtTime(0,startT+segDur*0.7);
+    osc2.connect(g2);
+    g2.connect(convolver);
+    osc2.start(startT);
+    osc2.stop(startT+segDur*0.7);
+  });
+  return totalDur;
+}
+
+function drawWave(){
+  const c=document.getElementById('waveCanvas');
+  const ctx=c.getContext('2d');
+  const W=c.width,H=c.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#E8E4DC';
+  ctx.fillRect(0,0,W,H);
+  const bars=52;
+  const bw=W/bars;
+  for(let i=0;i<bars;i++){
+    const h=(Math.random()*0.65+0.08)*H;
+    const x=i*bw+bw*0.12;
+    ctx.fillStyle=Math.random()>.88?'#A09890':'#888780';
+    ctx.fillRect(x,(H-h)/2,bw*0.76,h);
+  }
+  for(let y=0;y<H;y+=4){
+    ctx.fillStyle='rgba(232,228,220,0.3)';
+    ctx.fillRect(0,y,W,1);
+  }
+}
+drawWave();
+
+let playAnimId=null, playStart=null, playDur=0;
+const playBtn=document.getElementById('playBtn');
+
+function animatePlay(dur){
+  const c=document.getElementById('waveCanvas');
+  const ctx=c.getContext('2d');
+  const W=c.width,H=c.height;
+  function frame(){
+    const elapsed=(Date.now()-playStart)/1000;
+    const pct=Math.min(elapsed/dur,1);
+    drawWave();
+    ctx.fillStyle='rgba(58,107,181,0.18)';
+    ctx.fillRect(0,0,W*pct,H);
+    ctx.fillStyle='#3A6BB5';
+    ctx.fillRect(W*pct-1,0,2,H);
+    if(pct<1) playAnimId=requestAnimationFrame(frame);
+    else{
+      drawWave();
+      playBtn.classList.remove('playing');
+      playBtn.innerHTML='<svg width="11" height="13" viewBox="0 0 11 13"><polygon points="1,1 10,6.5 1,12" fill="#555"/></svg>';
+    }
+  }
+  playAnimId=requestAnimationFrame(frame);
+}
+
+playBtn.addEventListener('click',()=>{
+  if(playAnimId){cancelAnimationFrame(playAnimId);playAnimId=null;}
+  playBtn.classList.add('playing');
+  playBtn.innerHTML='<svg width="12" height="12" viewBox="0 0 12 12"><rect x="1" y="1" width="4" height="10" fill="#3A6BB5"/><rect x="7" y="1" width="4" height="10" fill="#3A6BB5"/></svg>';
+  playStart=Date.now();
+  playDur=playWord(audioWord);
+  animatePlay(playDur);
+});
+
+const zonesEl=document.getElementById('dropZones');
+const chipsEl=document.getElementById('chips');
+const zoneData=new Array(sentence.words.length).fill(null);
+
+function buildDropZones(){
+  zonesEl.innerHTML='';
+  sentence.words.forEach((_,i)=>{
+    const z=document.createElement('div');
+    z.className='dz';
+    z.dataset.idx=i;
+    z.textContent=(i+1)+'';
+    z.addEventListener('dragover',e=>{e.preventDefault();z.classList.add('over');});
+    z.addEventListener('dragleave',()=>z.classList.remove('over'));
+    z.addEventListener('drop',e=>{
+      e.preventDefault();z.classList.remove('over');
+      const word=e.dataTransfer.getData('text/plain');
+      const fromZone=e.dataTransfer.getData('from-zone');
+      if(fromZone!==''){
+        const fi=parseInt(fromZone);
+        zoneData[fi]=null;
+        const fz=zonesEl.children[fi];
+        fz.textContent=(fi+1)+'';
+        fz.classList.remove('filled');
+      } else {
+        const chipEl=chipsEl.querySelector(`.chip[data-word="${word}"]`);
+        if(chipEl) chipEl.classList.add('used');
+      }
+      if(zoneData[i]){
+        const returnedWord=zoneData[i];
+        const rc=chipsEl.querySelector(`.chip[data-word="${returnedWord}"]`);
+        if(rc) rc.classList.remove('used');
+      }
+      zoneData[i]=word;
+      z.textContent=word;
+      z.classList.add('filled');
+      document.getElementById('resultMsg').textContent='';
+    });
+    z.addEventListener('click',()=>{
+      if(zoneData[i]){
+        const returnedWord=zoneData[i];
+        const rc=chipsEl.querySelector(`.chip[data-word="${returnedWord}"]`);
+        if(rc) rc.classList.remove('used');
+        zoneData[i]=null;
+        z.textContent=(i+1)+'';
+        z.classList.remove('filled');
+      }
+    });
+    z.addEventListener('dragstart',e=>{
+      if(!zoneData[i]) return;
+      e.dataTransfer.setData('text/plain',zoneData[i]);
+      e.dataTransfer.setData('from-zone',String(i));
+    });
+    z.draggable=true;
+    zonesEl.appendChild(z);
+  });
+}
+
+function buildChips(){
+  chipsEl.innerHTML='';
+  shuffled.forEach(word=>{
+    const c=document.createElement('div');
+    c.className='chip';c.textContent=word;c.dataset.word=word;
+    c.draggable=true;
+    c.addEventListener('dragstart',e=>{
+      e.dataTransfer.setData('text/plain',word);
+      e.dataTransfer.setData('from-zone','');
+      c.classList.add('dragging');
+    });
+    c.addEventListener('dragend',()=>c.classList.remove('dragging'));
+    chipsEl.appendChild(c);
+  });
+}
+
+buildDropZones();
+buildChips();
+
+document.getElementById('verifyBtn').addEventListener('click',()=>{
+  const audioVal=document.getElementById('audioIn').value.trim().toUpperCase().replace(/\s/g,'');
+  const mathVal=parseInt(document.getElementById('mathIn').value.trim(),10);
+  const sentVal=zoneData.join(' ');
+  const audioOk=audioVal===audioWord;
+  const mathOk=mathVal===math.ans;
+  const sentOk=sentVal===sentence.answer;
+  const msg=document.getElementById('resultMsg');
+  if(audioOk&&mathOk&&sentOk){
+    document.getElementById('mainBody').style.display='none';
+    document.getElementById('successBody').style.display='block';
+    document.getElementById('robotBox').classList.add('checked');
+    document.getElementById('robotBox').setAttribute('aria-checked','true');
+    const token='HV-'+Math.random().toString(36).slice(2,8).toUpperCase()+'-'+Date.now().toString(36).toUpperCase();
+    document.getElementById('tokenDisplay').textContent=token;
+  } else {
+    const fails=[];
+    if(!audioOk) fails.push('audio (hint: it says "'+audioWord.toLowerCase()+'"... or does it?)');
+    if(!mathOk) fails.push('math');
+    if(!sentOk) fails.push('word order');
+    msg.style.color='#A83020';
+    msg.textContent='Failed: '+fails.join(' · ');
+  }
+});
+
+const rb=document.getElementById('robotBox');
+rb.addEventListener('click',()=>{const ch=rb.classList.toggle('checked');rb.setAttribute('aria-checked',String(ch));});
+rb.addEventListener('keydown',e=>{if(e.key===' '||e.key==='Enter'){e.preventDefault();rb.click();}});
+document.getElementById('robotLbl').addEventListener('click',()=>rb.click());
+</script>

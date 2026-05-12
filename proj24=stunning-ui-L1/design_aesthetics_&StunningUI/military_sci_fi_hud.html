@@ -1,0 +1,192 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  .hud{background:#000;color:#00FF41;font-family:'Share Tech Mono',monospace;min-height:580px;position:relative;overflow:hidden;padding:16px;border:1px solid #00FF41}
+  .scanline{position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,255,65,0.03) 2px,rgba(0,255,65,0.03) 4px);pointer-events:none;z-index:10}
+  .corner{position:absolute;width:20px;height:20px;border-color:#00FF41;border-style:solid}
+  .corner.tl{top:8px;left:8px;border-width:2px 0 0 2px}
+  .corner.tr{top:8px;right:8px;border-width:2px 2px 0 0}
+  .corner.bl{bottom:8px;left:8px;border-width:0 0 2px 2px}
+  .corner.br{bottom:8px;right:8px;border-width:0 2px 2px 0}
+  .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;font-size:11px;opacity:0.7}
+  .blink{animation:blink 1.2s step-end infinite}
+  @keyframes blink{50%{opacity:0}}
+  .main-grid{display:grid;grid-template-columns:1fr 200px 1fr;gap:12px;align-items:center}
+  .left-panel,.right-panel{display:flex;flex-direction:column;gap:10px}
+  .data-box{border:1px solid rgba(0,255,65,0.4);padding:8px 10px;font-size:11px}
+  .data-box .label{font-size:9px;opacity:0.5;letter-spacing:2px;margin-bottom:4px}
+  .data-box .value{font-size:15px;letter-spacing:1px}
+  .data-box .sub{font-size:9px;opacity:0.4;margin-top:2px}
+  .bar-row{display:flex;align-items:center;gap:6px;font-size:9px;margin-top:3px}
+  .bar-track{flex:1;height:3px;background:rgba(0,255,65,0.15)}
+  .bar-fill{height:3px;background:#00FF41;transition:width 0.5s}
+  .center-reticle{position:relative;width:200px;height:200px;display:flex;align-items:center;justify-content:center}
+  .radar-ring{position:absolute;border-radius:50%;border:1px solid rgba(0,255,65,0.4)}
+  .r1{width:200px;height:200px}
+  .r2{width:140px;height:140px}
+  .r3{width:80px;height:80px}
+  .radar-sweep{position:absolute;width:100px;height:2px;top:50%;left:50%;transform-origin:left center;background:linear-gradient(to right,transparent,#00FF41);animation:sweep 3s linear infinite}
+  @keyframes sweep{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+  .radar-dot{position:absolute;width:4px;height:4px;border-radius:50%;background:#00FF41}
+  .crosshair-h,.crosshair-v{position:absolute;background:rgba(0,255,65,0.6)}
+  .crosshair-h{width:80%;height:1px;top:50%;left:10%;transform:translateY(-50%)}
+  .crosshair-v{height:80%;width:1px;left:50%;top:10%;transform:translateX(-50%)}
+  .crosshair-gap-h{position:absolute;width:14px;height:3px;background:#000;top:50%;left:50%;transform:translate(-50%,-50%)}
+  .crosshair-gap-v{position:absolute;width:3px;height:14px;background:#000;top:50%;left:50%;transform:translate(-50%,-50%)}
+  .center-dot{position:absolute;width:6px;height:6px;border-radius:50%;border:1px solid #00FF41;top:50%;left:50%;transform:translate(-50%,-50%)}
+  .tick-ring{position:absolute;width:200px;height:200px;border-radius:50%;top:0;left:0}
+  .target-lock{position:absolute;width:30px;height:30px;top:50%;left:50%;transform:translate(-50%,-50%);animation:lockpulse 1s ease-in-out infinite}
+  @keyframes lockpulse{0%,100%{transform:translate(-50%,-50%) scale(1);opacity:1}50%{transform:translate(-50%,-50%) scale(1.15);opacity:0.6}}
+  .target-lock::before,.target-lock::after{content:'';position:absolute;border:1px solid #00FF41}
+  .target-lock::before{top:0;left:0;right:0;height:6px;border-bottom:none}
+  .target-lock::after{bottom:0;left:0;right:0;height:6px;border-top:none}
+  .tl-right::before,.tl-right::after{content:'';position:absolute;border:1px solid #00FF41}
+  .range-arc{position:absolute;width:200px;height:200px;top:0;left:0;animation:arcpulse 2s ease-in-out infinite}
+  @keyframes arcpulse{0%,100%{opacity:0.8}50%{opacity:0.3}}
+  .status-row{display:flex;justify-content:space-between;font-size:9px;opacity:0.5;letter-spacing:1px;padding:4px 0;border-bottom:1px solid rgba(0,255,65,0.2)}
+  .threat-item{display:flex;align-items:center;gap:6px;font-size:10px;padding:3px 0;border-bottom:1px solid rgba(0,255,65,0.1)}
+  .threat-dot{width:5px;height:5px;border-radius:50%;background:#00FF41}
+  .threat-dot.warn{background:#FFD700}
+  .threat-dot.crit{background:#FF3030;animation:blink 0.6s step-end infinite}
+  .bottom-bar{margin-top:12px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;font-size:9px}
+  .bottom-cell{border-top:1px solid rgba(0,255,65,0.3);padding-top:6px}
+  .bottom-cell .label{opacity:0.4;letter-spacing:2px;margin-bottom:4px}
+  .compass{display:flex;gap:2px;align-items:center;overflow:hidden}
+  .compass-tick{opacity:0.3;font-size:9px}
+  .compass-tick.active{opacity:1;color:#00FF41}
+  .ammo-blocks{display:flex;gap:2px;flex-wrap:wrap;margin-top:4px}
+  .ammo-block{width:8px;height:8px;background:#00FF41}
+  .ammo-block.empty{background:transparent;border:1px solid rgba(0,255,65,0.3)}
+  .ping{position:absolute;border-radius:50%;border:1px solid rgba(0,255,65,0.5);animation:pingout 2.5s ease-out infinite}
+  @keyframes pingout{from{width:6px;height:6px;opacity:0.8;margin-top:-3px;margin-left:-3px}to{width:80px;height:80px;opacity:0;margin-top:-40px;margin-left:-40px}}
+  .ping{top:50%;left:50%}
+</style>
+<h2 class="sr-only">Military HUD heads-up display showing targeting reticle, radar, speed, coordinates, and threat data</h2>
+<div class="hud">
+  <div class="scanline"></div>
+  <div class="corner tl"></div><div class="corner tr"></div>
+  <div class="corner bl"></div><div class="corner br"></div>
+  <div class="header">
+    <div>SYS: ONLINE &nbsp;|&nbsp; UNIT: ALPHA-7 &nbsp;|&nbsp; MODE: COMBAT</div>
+    <div class="blink">● REC</div>
+    <div id="clock">00:00:00 &nbsp;|&nbsp; 2094.05.11</div>
+  </div>
+  <div class="status-row">
+    <span>FUEL: 87%</span><span>SHIELDS: 94%</span><span>COMMS: ACTIVE</span><span>GPS: LOCKED</span><span>THREAT LVL: <span style="color:#FFD700">MED</span></span>
+  </div>
+  <div class="main-grid" style="margin-top:12px">
+    <div class="left-panel">
+      <div class="data-box">
+        <div class="label">VELOCITY</div>
+        <div class="value" id="speed">847 <span style="font-size:10px;opacity:0.6">km/h</span></div>
+        <div class="bar-row"><div class="bar-track"><div class="bar-fill" id="speed-bar" style="width:70%"></div></div><span style="opacity:0.5">MAX 1200</span></div>
+      </div>
+      <div class="data-box">
+        <div class="label">ALTITUDE</div>
+        <div class="value" id="alt">3,142 <span style="font-size:10px;opacity:0.6">m</span></div>
+        <div class="bar-row"><div class="bar-track"><div class="bar-fill" style="width:45%"></div></div><span style="opacity:0.5">CEILING 7K</span></div>
+      </div>
+      <div class="data-box">
+        <div class="label">COORDINATES</div>
+        <div class="value" style="font-size:11px" id="lat">N 48°51′24″</div>
+        <div class="value" style="font-size:11px" id="lon">E 02°21′08″</div>
+        <div class="sub">GRID: 4QFJ 3847 2910</div>
+      </div>
+      <div class="data-box">
+        <div class="label">HEADING</div>
+        <div class="compass">
+          <span class="compass-tick">210</span>
+          <span class="compass-tick">220</span>
+          <span class="compass-tick">230</span>
+          <span class="compass-tick active">247°</span>
+          <span class="compass-tick">260</span>
+          <span class="compass-tick">270</span>
+          <span class="compass-tick">280</span>
+        </div>
+      </div>
+    </div>
+    <div class="center-reticle">
+      <div class="radar-ring r1"></div>
+      <div class="radar-ring r2"></div>
+      <div class="radar-ring r3"></div>
+      <svg class="range-arc" viewBox="0 0 200 200"><circle cx="100" cy="100" r="95" fill="none" stroke="rgba(0,255,65,0.15)" stroke-width="1" stroke-dasharray="60 240"/><circle cx="100" cy="100" r="95" fill="none" stroke="rgba(0,255,65,0.08)" stroke-width="1" stroke-dasharray="30 270" stroke-dashoffset="120"/></svg>
+      <div class="radar-sweep"></div>
+      <div class="radar-dot" style="top:32%;left:68%"></div>
+      <div class="radar-dot" style="top:55%;left:28%;background:#FFD700;width:5px;height:5px"></div>
+      <div class="radar-dot" style="top:25%;left:40%"></div>
+      <div class="ping"></div>
+      <div class="crosshair-h"></div>
+      <div class="crosshair-v"></div>
+      <div class="crosshair-gap-h"></div>
+      <div class="crosshair-gap-v"></div>
+      <div class="center-dot"></div>
+      <div class="target-lock"></div>
+      <svg style="position:absolute;width:200px;height:200px;top:0;left:0;opacity:0.35" viewBox="0 0 200 200"><circle cx="100" cy="100" r="95" fill="none" stroke="#00FF41" stroke-width="0.5" stroke-dasharray="4 8"/><line x1="100" y1="5" x2="100" y2="15" stroke="#00FF41" stroke-width="1"/><line x1="100" y1="185" x2="100" y2="195" stroke="#00FF41" stroke-width="1"/><line x1="5" y1="100" x2="15" y2="100" stroke="#00FF41" stroke-width="1"/><line x1="185" y1="100" x2="195" y2="100" stroke="#00FF41" stroke-width="1"/><line x1="100" y1="5" x2="100" y2="15" stroke="#00FF41" stroke-width="1" transform="rotate(45,100,100)"/><line x1="100" y1="5" x2="100" y2="15" stroke="#00FF41" stroke-width="1" transform="rotate(90,100,100)"/><line x1="100" y1="5" x2="100" y2="15" stroke="#00FF41" stroke-width="1" transform="rotate(135,100,100)"/><line x1="100" y1="5" x2="100" y2="15" stroke="#00FF41" stroke-width="1" transform="rotate(180,100,100)"/><line x1="100" y1="5" x2="100" y2="15" stroke="#00FF41" stroke-width="1" transform="rotate(225,100,100)"/><line x1="100" y1="5" x2="100" y2="15" stroke="#00FF41" stroke-width="1" transform="rotate(270,100,100)"/><line x1="100" y1="5" x2="100" y2="15" stroke="#00FF41" stroke-width="1" transform="rotate(315,100,100)"/></svg>
+    </div>
+    <div class="right-panel">
+      <div class="data-box">
+        <div class="label">THREAT CONTACTS</div>
+        <div class="threat-item"><div class="threat-dot crit"></div><span>TGT-01 &nbsp;0.8km &nbsp;NNE</span></div>
+        <div class="threat-item"><div class="threat-dot warn"></div><span>TGT-02 &nbsp;2.1km &nbsp;W</span></div>
+        <div class="threat-item"><div class="threat-dot"></div><span>TGT-03 &nbsp;4.7km &nbsp;SE</span></div>
+        <div class="threat-item"><div class="threat-dot"></div><span>TGT-04 &nbsp;6.2km &nbsp;NW</span></div>
+      </div>
+      <div class="data-box">
+        <div class="label">WEAPONS</div>
+        <div style="font-size:10px;opacity:0.6;margin-bottom:3px">20MM CANNON</div>
+        <div class="ammo-blocks" id="ammo"></div>
+        <div style="font-size:9px;opacity:0.4;margin-top:4px">MISSILES: 4/6 &nbsp;|&nbsp; FLARES: 12</div>
+      </div>
+      <div class="data-box">
+        <div class="label">PILOT VITALS</div>
+        <div class="bar-row"><span style="opacity:0.5;width:40px">PULSE</span><div class="bar-track"><div class="bar-fill" style="width:72%"></div></div><span id="pulse">86bpm</span></div>
+        <div class="bar-row" style="margin-top:6px"><span style="opacity:0.5;width:40px">O₂</span><div class="bar-track"><div class="bar-fill" style="width:91%"></div></div><span>91%</span></div>
+        <div class="bar-row" style="margin-top:6px"><span style="opacity:0.5;width:40px">G-LOC</span><div class="bar-track"><div class="bar-fill" style="width:35%;background:#FFD700"></div></div><span style="color:#FFD700">3.5g</span></div>
+      </div>
+      <div class="data-box">
+        <div class="label">LOCK STATUS</div>
+        <div style="font-size:13px;color:#00FF41;animation:blink 0.8s step-end infinite">■ TARGET ACQUIRED</div>
+        <div style="font-size:9px;opacity:0.5;margin-top:3px">RANGE: 0.8km &nbsp;|&nbsp; AZ: 022°</div>
+        <div style="font-size:9px;opacity:0.5">CLOSURE: 240m/s</div>
+      </div>
+    </div>
+  </div>
+  <div class="bottom-bar">
+    <div class="bottom-cell">
+      <div class="label">ENGINE STATUS</div>
+      <div style="font-size:10px">L: <span style="color:#00FF41">●</span> 104% &nbsp; R: <span style="color:#00FF41">●</span> 102%</div>
+      <div style="font-size:9px;opacity:0.4;margin-top:2px">TEMP: 812°C / 794°C</div>
+    </div>
+    <div class="bottom-cell" style="text-align:center">
+      <div class="label" style="text-align:center">SYSTEM TIME</div>
+      <div style="font-size:16px" id="bigclock">14:22:07</div>
+    </div>
+    <div class="bottom-cell" style="text-align:right">
+      <div class="label" style="text-align:right">MISSION ELAPSED</div>
+      <div style="font-size:13px" id="elapsed">00:47:32</div>
+      <div style="font-size:9px;opacity:0.4;margin-top:2px">OP: IRON SHROUD</div>
+    </div>
+  </div>
+</div>
+<script>
+const ammoEl = document.getElementById('ammo');
+for(let i=0;i<40;i++){const b=document.createElement('div');b.className='ammo-block'+(i>=28?' empty':'');ammoEl.appendChild(b);}
+let secs=0,elapsed=2852;
+function pad(n){return String(n).padStart(2,'0')}
+function tick(){
+  const now=new Date();
+  document.getElementById('bigclock').textContent=pad(now.getHours())+':'+pad(now.getMinutes())+':'+pad(now.getSeconds());
+  elapsed++;
+  const h=Math.floor(elapsed/3600),m=Math.floor((elapsed%3600)/60),s=elapsed%60;
+  document.getElementById('elapsed').textContent=pad(h)+':'+pad(m)+':'+pad(s);
+  const spd=840+Math.floor(Math.sin(elapsed/10)*15);
+  document.getElementById('speed').innerHTML=spd+' <span style="font-size:10px;opacity:0.6">km/h</span>';
+  document.getElementById('speed-bar').style.width=Math.round(spd/12)+'%';
+  const alt=3142+Math.floor(Math.sin(elapsed/7)*22);
+  document.getElementById('alt').innerHTML=alt.toLocaleString()+' <span style="font-size:10px;opacity:0.6">m</span>';
+  const pulse=84+Math.floor(Math.sin(elapsed/4)*4);
+  document.getElementById('pulse').textContent=pulse+'bpm';
+}
+setInterval(tick,1000);tick();
+</script>
