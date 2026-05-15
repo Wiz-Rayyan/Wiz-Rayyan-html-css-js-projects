@@ -1,0 +1,523 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; image-rendering: pixelated; image-rendering: crisp-edges; }
+
+  :root {
+    --px: #000;
+    --sky: #5b8dd9;
+    --sky2: #9bb8e8;
+    --grass: #52a139;
+    --dirt: #8b5a2b;
+    --ui-bg: #1a1a2e;
+    --ui-panel: #16213e;
+    --ui-border: #e0e020;
+    --gold: #f8d84a;
+    --red: #e03030;
+    --green: #52c41a;
+    --white: #f0f0f0;
+    --gray: #888;
+  }
+
+  .retro-wrap {
+    font-family: 'Press Start 2P', monospace;
+    background: var(--sky);
+    min-height: 520px;
+    position: relative;
+    overflow: hidden;
+    border: 4px solid #000;
+    cursor: default;
+  }
+
+  /* CLOUDS */
+  .cloud { position: absolute; background: #fff; }
+  .cloud-1 { width: 48px; height: 16px; top: 28px; left: 60px; box-shadow: 16px -8px 0 #fff, 32px 0 0 #fff, -8px 0 0 #fff; animation: cloudmove 18s linear infinite; }
+  .cloud-2 { width: 32px; height: 12px; top: 44px; left: 260px; box-shadow: 12px -6px 0 #fff, 24px 0 0 #fff, -6px 0 0 #fff; animation: cloudmove 24s linear infinite 6s; }
+  @keyframes cloudmove { from { transform: translateX(0); } to { transform: translateX(700px); } }
+
+  /* TILE WORLD */
+  .world {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 340px;
+  }
+
+  /* GRASS ROW */
+  .grass-row {
+    position: absolute;
+    bottom: 200px; left: 0; right: 0;
+    height: 16px;
+    background: repeating-linear-gradient(90deg, #52a139 0px, #52a139 15px, #3d8a2a 15px, #3d8a2a 16px);
+    border-top: 4px solid #000;
+    border-bottom: 4px solid #000;
+  }
+
+  /* DIRT */
+  .dirt-area {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 200px;
+    background: repeating-linear-gradient(
+      0deg,
+      #8b5a2b 0px, #8b5a2b 15px,
+      #7a4f26 15px, #7a4f26 16px
+    );
+    background-size: 16px 16px;
+    border-top: 2px solid #000;
+  }
+
+  /* BRICK PLATFORM TILES */
+  .platform {
+    position: absolute;
+    height: 20px;
+    background: repeating-linear-gradient(90deg, #c4622d 0px, #c4622d 19px, #000 19px, #000 20px);
+    border-top: 4px solid #e08050;
+    border-bottom: 4px solid #8a3010;
+    border-left: 2px solid #000;
+    border-right: 2px solid #000;
+  }
+  .p1 { width: 80px; bottom: 240px; left: 40px; }
+  .p2 { width: 80px; bottom: 280px; left: 180px; }
+  .p3 { width: 80px; bottom: 260px; left: 320px; }
+  .p4 { width: 80px; bottom: 240px; left: 460px; }
+
+  /* QUESTION BLOCKS */
+  .qblock {
+    position: absolute;
+    width: 24px; height: 24px;
+    background: var(--gold);
+    border: 3px solid #000;
+    border-bottom: 4px solid #c8900a;
+    border-right: 3px solid #c8900a;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px; color: #7a5500;
+    animation: qbounce 1.5s ease-in-out infinite alternate;
+    cursor: pointer;
+  }
+  @keyframes qbounce { from { transform: translateY(0); } to { transform: translateY(-4px); } }
+  .qb1 { bottom: 304px; left: 60px; animation-delay: 0s; }
+  .qb2 { bottom: 344px; left: 200px; animation-delay: .3s; }
+  .qb3 { bottom: 324px; left: 340px; animation-delay: .6s; }
+  .qb4 { bottom: 304px; left: 480px; animation-delay: .9s; }
+
+  /* COIN ANIMATION */
+  .coin-pop {
+    position: absolute;
+    width: 16px; height: 16px;
+    background: var(--gold);
+    border: 2px solid #c8900a;
+    border-radius: 50%;
+    display: none;
+    animation: coinup .6s ease-out forwards;
+    pointer-events: none;
+    z-index: 20;
+  }
+  @keyframes coinup {
+    0% { opacity: 1; transform: translateY(0) scale(1); }
+    50% { opacity: 1; transform: translateY(-30px) scale(1.2); }
+    100% { opacity: 0; transform: translateY(-60px) scale(0.5); }
+  }
+
+  /* PIXEL CHARACTER SPRITE */
+  .sprite {
+    position: absolute;
+    bottom: 212px;
+    left: 56px;
+    width: 32px; height: 40px;
+    animation: walk 0.5s steps(2) infinite;
+  }
+  @keyframes walk { 0%,100% { transform: translateX(0); } 50% { transform: translateX(2px); } }
+
+  /* SVG sprite body parts via CSS */
+  .sprite svg { width: 32px; height: 40px; }
+
+  /* TREES */
+  .tree { position: absolute; bottom: 214px; }
+  .tree-trunk { width: 12px; height: 24px; background: #8b5a2b; border: 2px solid #000; margin: 0 auto; }
+  .tree-top { width: 32px; height: 32px; background: #2d8a1e; border: 2px solid #000; margin-left: -10px; position: relative; top: 0; }
+  .tree-top::before { content: ''; position: absolute; width: 24px; height: 24px; background: #3aaa28; border-right: 2px solid #000; border-top: 2px solid #000; top: -8px; left: 2px; }
+  .t1 { left: 550px; }
+  .t2 { left: 600px; }
+
+  /* HUD / GAME UI */
+  .hud {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    background: rgba(0,0,20,0.85);
+    border-bottom: 4px solid #000;
+    padding: 10px 14px 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 10;
+  }
+
+  .hud-block { display: flex; flex-direction: column; gap: 4px; }
+  .hud-label { font-size: 5px; color: var(--white); letter-spacing: 1px; }
+  .hud-val { font-size: 9px; color: var(--gold); letter-spacing: 1px; }
+
+  /* HEARTS */
+  .hearts { display: flex; gap: 4px; }
+  .heart {
+    width: 14px; height: 14px;
+    position: relative;
+    display: inline-block;
+  }
+  .heart svg { width: 14px; height: 14px; }
+
+  /* COINS HUD */
+  .coin-hud {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 9px; color: var(--gold);
+  }
+  .coin-icon {
+    width: 12px; height: 12px;
+    background: var(--gold);
+    border: 2px solid #c8900a;
+    border-radius: 50%;
+  }
+
+  /* SCORE */
+  .score-val { font-size: 10px; color: var(--white); }
+
+  /* INFO PANEL */
+  .panel {
+    position: absolute;
+    background: rgba(10,10,30,0.92);
+    border: 3px solid var(--gold);
+    padding: 10px 12px;
+    font-size: 7px;
+    color: var(--white);
+    line-height: 1.8;
+    z-index: 15;
+    min-width: 140px;
+    display: none;
+  }
+  .panel.active { display: block; }
+  .panel-title { color: var(--gold); font-size: 8px; margin-bottom: 6px; }
+  .panel-row { display: flex; justify-content: space-between; gap: 12px; }
+  .panel-tag { color: #9bf; }
+
+  /* SKILL CARDS */
+  .skill-cards {
+    position: absolute;
+    bottom: 8px;
+    left: 0; right: 0;
+    display: flex;
+    gap: 0;
+    justify-content: center;
+    z-index: 5;
+  }
+  .skill-card {
+    background: rgba(10,10,30,0.9);
+    border: 3px solid #555;
+    border-right: 0;
+    padding: 8px 10px;
+    font-size: 6px;
+    color: #aaa;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .1s, color .1s;
+    min-width: 80px;
+  }
+  .skill-card:last-child { border-right: 3px solid #555; }
+  .skill-card:hover, .skill-card.selected {
+    border-color: var(--gold);
+    color: var(--gold);
+    background: rgba(30,30,60,0.95);
+    z-index: 6;
+  }
+  .skill-icon { font-size: 14px; display: block; margin-bottom: 4px; }
+
+  /* LEVEL BADGE */
+  .level-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #e03030;
+    border: 3px solid #000;
+    padding: 4px 8px;
+    font-size: 7px;
+    color: #fff;
+    border-right: 4px solid #8a0000;
+    border-bottom: 4px solid #8a0000;
+  }
+
+  /* BLINK */
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+  .blink { animation: blink 1s step-end infinite; }
+
+  /* PRESS START */
+  .press-start {
+    position: absolute;
+    bottom: 130px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 7px;
+    color: var(--white);
+    white-space: nowrap;
+    z-index: 8;
+    text-shadow: 2px 2px 0 #000;
+  }
+
+  /* PIPELINES / DECORATIVE */
+  .pipe {
+    position: absolute;
+    bottom: 218px;
+    width: 24px;
+    background: #2ea030;
+    border: 3px solid #000;
+    border-bottom: none;
+  }
+  .pipe-top {
+    position: absolute;
+    width: 32px;
+    height: 14px;
+    background: #3ac040;
+    border: 3px solid #000;
+    left: -4px;
+  }
+  .pipe1 { right: 120px; height: 40px; }
+  .pipe1 .pipe-top { bottom: 40px; }
+
+  /* SCORE POP */
+  .score-pop {
+    position: absolute;
+    font-size: 9px;
+    color: var(--gold);
+    pointer-events: none;
+    z-index: 30;
+    display: none;
+    text-shadow: 2px 2px 0 #000;
+    animation: scoreup .8s ease-out forwards;
+  }
+  @keyframes scoreup {
+    0% { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(-40px); }
+  }
+
+</style>
+
+<h2 class="sr-only">Pixel Perfect retro game portfolio demo — interactive 8-bit style UI with sprite character, platforms, question blocks, HUD, and skill cards</h2>
+
+<div class="retro-wrap" id="gameWorld">
+
+  <!-- HUD -->
+  <div class="hud">
+    <div class="hud-block">
+      <span class="hud-label">HEALTH</span>
+      <div class="hearts" id="hearts">
+        <div class="heart"><svg viewBox="0 0 14 14"><path d="M7 12 L2 7 Q0 5 0 3 Q0 0 3 0 Q5 0 7 2 Q9 0 11 0 Q14 0 14 3 Q14 5 12 7Z" fill="#e03030" stroke="#000" stroke-width="1"/></svg></div>
+        <div class="heart"><svg viewBox="0 0 14 14"><path d="M7 12 L2 7 Q0 5 0 3 Q0 0 3 0 Q5 0 7 2 Q9 0 11 0 Q14 0 14 3 Q14 5 12 7Z" fill="#e03030" stroke="#000" stroke-width="1"/></svg></div>
+        <div class="heart"><svg viewBox="0 0 14 14"><path d="M7 12 L2 7 Q0 5 0 3 Q0 0 3 0 Q5 0 7 2 Q9 0 11 0 Q14 0 14 3 Q14 5 12 7Z" fill="#e03030" stroke="#000" stroke-width="1"/></svg></div>
+      </div>
+    </div>
+    <div class="hud-block" style="align-items:center;">
+      <span class="hud-label">WORLD</span>
+      <div class="level-badge">LVL <span id="levelNum">01</span></div>
+    </div>
+    <div class="hud-block" style="align-items:center;">
+      <div class="coin-hud"><div class="coin-icon"></div>x<span id="coinCount">00</span></div>
+      <span class="hud-label" style="text-align:center;margin-top:2px;">COINS</span>
+    </div>
+    <div class="hud-block" style="align-items:flex-end;">
+      <span class="hud-label">SCORE</span>
+      <span class="score-val" id="scoreVal">000000</span>
+    </div>
+  </div>
+
+  <!-- SKY / CLOUDS -->
+  <div class="cloud cloud-1"></div>
+  <div class="cloud cloud-2"></div>
+
+  <!-- WORLD -->
+  <div class="world">
+    <!-- PLATFORMS -->
+    <div class="platform p1"></div>
+    <div class="platform p2"></div>
+    <div class="platform p3"></div>
+    <div class="platform p4"></div>
+
+    <!-- QUESTION BLOCKS -->
+    <div class="qblock qb1" data-project="0" title="Click!">?</div>
+    <div class="qblock qb2" data-project="1" title="Click!">?</div>
+    <div class="qblock qb3" data-project="2" title="Click!">?</div>
+    <div class="qblock qb4" data-project="3" title="Click!">?</div>
+
+    <!-- COIN POPS -->
+    <div class="coin-pop" id="cp0" style="bottom:328px;left:68px;"></div>
+    <div class="coin-pop" id="cp1" style="bottom:368px;left:208px;"></div>
+    <div class="coin-pop" id="cp2" style="bottom:348px;left:348px;"></div>
+    <div class="coin-pop" id="cp3" style="bottom:328px;left:488px;"></div>
+
+    <!-- SCORE POPS -->
+    <div class="score-pop" id="sp0" style="bottom:320px;left:52px;">+100</div>
+    <div class="score-pop" id="sp1" style="bottom:360px;left:192px;">+100</div>
+    <div class="score-pop" id="sp2" style="bottom:340px;left:332px;">+100</div>
+    <div class="score-pop" id="sp3" style="bottom:320px;left:472px;">+100</div>
+
+    <!-- PROJECT INFO PANELS -->
+    <div class="panel" id="panel0" style="bottom:340px;left:20px;">
+      <div class="panel-title">⭐ PIXEL DUNGEON</div>
+      <div class="panel-row"><span class="panel-tag">TYPE</span><span>ROGUELIKE RPG</span></div>
+      <div class="panel-row"><span class="panel-tag">STACK</span><span>GODOT 4</span></div>
+      <div class="panel-row"><span class="panel-tag">STARS</span><span>⭐ 1,240</span></div>
+      <div class="panel-row"><span class="panel-tag">STATUS</span><span style="color:#52c41a;">LIVE</span></div>
+    </div>
+    <div class="panel" id="panel1" style="bottom:380px;left:158px;">
+      <div class="panel-title">⭐ CHIP RUNNER</div>
+      <div class="panel-row"><span class="panel-tag">TYPE</span><span>PLATFORMER</span></div>
+      <div class="panel-row"><span class="panel-tag">STACK</span><span>UNITY</span></div>
+      <div class="panel-row"><span class="panel-tag">STARS</span><span>⭐ 870</span></div>
+      <div class="panel-row"><span class="panel-tag">STATUS</span><span style="color:#52c41a;">LIVE</span></div>
+    </div>
+    <div class="panel" id="panel2" style="bottom:360px;left:296px;">
+      <div class="panel-title">⭐ NEON QUEST</div>
+      <div class="panel-row"><span class="panel-tag">TYPE</span><span>ADVENTURE</span></div>
+      <div class="panel-row"><span class="panel-tag">STACK</span><span>PYGAME</span></div>
+      <div class="panel-row"><span class="panel-tag">STARS</span><span>⭐ 620</span></div>
+      <div class="panel-row"><span class="panel-tag">STATUS</span><span style="color:#f8d84a;">WIP</span></div>
+    </div>
+    <div class="panel" id="panel3" style="bottom:340px;left:430px;min-width:130px;">
+      <div class="panel-title">⭐ BLOCK WARS</div>
+      <div class="panel-row"><span class="panel-tag">TYPE</span><span>STRATEGY</span></div>
+      <div class="panel-row"><span class="panel-tag">STACK</span><span>LÖVE2D</span></div>
+      <div class="panel-row"><span class="panel-tag">STARS</span><span>⭐ 445</span></div>
+      <div class="panel-row"><span class="panel-tag">STATUS</span><span style="color:#f8d84a;">BETA</span></div>
+    </div>
+
+    <!-- PIPE -->
+    <div class="pipe pipe1"><div class="pipe-top"></div></div>
+
+    <!-- TREES -->
+    <div class="tree t1"><div class="tree-top"></div><div class="tree-trunk"></div></div>
+    <div class="tree t2" style="transform:scale(0.8);bottom:214px;"><div class="tree-top"></div><div class="tree-trunk"></div></div>
+
+    <!-- GRASS ROW -->
+    <div class="grass-row"></div>
+    <!-- DIRT -->
+    <div class="dirt-area"></div>
+
+    <!-- SPRITE CHARACTER -->
+    <div class="sprite" id="sprite">
+      <svg viewBox="0 0 32 40" xmlns="http://www.w3.org/2000/svg">
+        <!-- hat -->
+        <rect x="8" y="0" width="16" height="4" fill="#e03030" stroke="#000" stroke-width="1"/>
+        <rect x="4" y="4" width="24" height="3" fill="#e03030" stroke="#000" stroke-width="1"/>
+        <!-- face -->
+        <rect x="6" y="7" width="20" height="14" fill="#f5c38a" stroke="#000" stroke-width="1"/>
+        <!-- eyes -->
+        <rect x="9" y="10" width="4" height="4" fill="#000"/>
+        <rect x="19" y="10" width="4" height="4" fill="#000"/>
+        <rect x="10" y="11" width="2" height="2" fill="#fff"/>
+        <rect x="20" y="11" width="2" height="2" fill="#fff"/>
+        <!-- mouth -->
+        <rect x="11" y="17" width="10" height="2" fill="#c0622a"/>
+        <!-- mustache -->
+        <rect x="10" y="15" width="5" height="2" fill="#7a3a00"/>
+        <rect x="17" y="15" width="5" height="2" fill="#7a3a00"/>
+        <!-- body -->
+        <rect x="6" y="21" width="20" height="12" fill="#3060c0" stroke="#000" stroke-width="1"/>
+        <!-- overalls -->
+        <rect x="6" y="21" width="8" height="12" fill="#e03030"/>
+        <rect x="18" y="21" width="8" height="12" fill="#e03030"/>
+        <rect x="14" y="21" width="4" height="4" fill="#e03030"/>
+        <!-- buttons -->
+        <rect x="9" y="24" width="2" height="2" fill="#f8d84a"/>
+        <rect x="21" y="24" width="2" height="2" fill="#f8d84a"/>
+        <!-- legs -->
+        <rect x="7" y="33" width="8" height="7" fill="#3060c0" stroke="#000" stroke-width="1"/>
+        <rect x="17" y="33" width="8" height="7" fill="#3060c0" stroke="#000" stroke-width="1"/>
+        <!-- shoes -->
+        <rect x="5" y="37" width="12" height="3" fill="#4a2a00" stroke="#000" stroke-width="1"/>
+        <rect x="15" y="37" width="12" height="3" fill="#4a2a00" stroke="#000" stroke-width="1"/>
+      </svg>
+    </div>
+
+    <div class="press-start blink">— CLICK ? BLOCKS TO VIEW PROJECTS —</div>
+  </div>
+
+  <!-- SKILL CARDS -->
+  <div class="skill-cards">
+    <div class="skill-card selected" data-skill="gamedev">
+      <span class="skill-icon">🎮</span>
+      GAME DEV
+    </div>
+    <div class="skill-card" data-skill="pixel">
+      <span class="skill-icon">🖼</span>
+      PIXEL ART
+    </div>
+    <div class="skill-card" data-skill="audio">
+      <span class="skill-icon">🎵</span>
+      8-BIT AUDIO
+    </div>
+    <div class="skill-card" data-skill="engine">
+      <span class="skill-icon">⚙</span>
+      ENGINE DEV
+    </div>
+    <div class="skill-card" data-skill="jam">
+      <span class="skill-icon">🏆</span>
+      GAME JAMS
+    </div>
+  </div>
+
+</div>
+
+<script>
+const coins = [0,0,0,0];
+const panels = [false,false,false,false];
+let totalCoins = 0;
+let score = 0;
+
+const qblocks = document.querySelectorAll('.qblock');
+const coinCountEl = document.getElementById('coinCount');
+const scoreEl = document.getElementById('scoreVal');
+
+qblocks.forEach((block, i) => {
+  block.addEventListener('click', () => {
+    const panel = document.getElementById('panel'+i);
+    const cp = document.getElementById('cp'+i);
+    const sp = document.getElementById('sp'+i);
+
+    if(!panels[i]) {
+      panels[i] = true;
+      panel.classList.add('active');
+      block.style.background = '#888';
+      block.style.color = '#555';
+      block.style.animation = 'none';
+
+      cp.style.display = 'block';
+      cp.style.animation = 'none';
+      void cp.offsetWidth;
+      cp.style.animation = 'coinup .6s ease-out forwards';
+
+      sp.style.display = 'block';
+      sp.style.animation = 'none';
+      void sp.offsetWidth;
+      sp.style.animation = 'scoreup .8s ease-out forwards';
+
+      totalCoins++;
+      score += 100;
+      coinCountEl.textContent = String(totalCoins).padStart(2,'0');
+      scoreEl.textContent = String(score).padStart(6,'0');
+
+      setTimeout(() => { cp.style.display='none'; sp.style.display='none'; }, 700);
+
+      const sprite = document.getElementById('sprite');
+      sprite.style.left = (block.offsetLeft - 0) + 'px';
+    } else {
+      panels[i] = false;
+      panel.classList.remove('active');
+    }
+  });
+});
+
+const skillCards = document.querySelectorAll('.skill-card');
+skillCards.forEach(card => {
+  card.addEventListener('click', () => {
+    skillCards.forEach(c => c.classList.remove('selected'));
+    card.classList.add('selected');
+  });
+});
+</script>

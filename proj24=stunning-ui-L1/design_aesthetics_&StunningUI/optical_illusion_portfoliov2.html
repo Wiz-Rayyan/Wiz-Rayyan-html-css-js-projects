@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #000; color: #fff; font-family: 'Helvetica Neue', sans-serif; overflow-x: hidden; }
+
+  /* MOIRÉ BACKGROUND */
+  .moire-bg {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0;
+    background: #000;
+    overflow: hidden;
+    pointer-events: none;
+  }
+  .moire-layer {
+    position: absolute; top: 50%; left: 50%;
+    width: 900px; height: 900px;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: repeating-radial-gradient(circle, transparent 0px, transparent 7px, rgba(255,255,255,0.18) 7px, rgba(255,255,255,0.18) 8px);
+    animation: moireRotate 18s linear infinite;
+  }
+  .moire-layer2 {
+    position: absolute; top: 50%; left: 50%;
+    width: 900px; height: 900px;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: repeating-radial-gradient(circle, transparent 0px, transparent 6px, rgba(255,255,255,0.13) 6px, rgba(255,255,255,0.13) 7px);
+    animation: moireRotate2 22s linear infinite;
+  }
+  @keyframes moireRotate { 0%{transform:translate(-50%,-50%) scale(1);} 50%{transform:translate(-50%,-50%) scale(1.07);} 100%{transform:translate(-50%,-50%) scale(1);} }
+  @keyframes moireRotate2 { 0%{transform:translate(-50%,-50%) rotate(0deg);} 100%{transform:translate(-50%,-50%) rotate(360deg);} }
+
+  /* LAYOUT */
+  .page { position: relative; z-index: 1; min-height: 100vh; padding: 2rem 1.5rem 4rem; }
+
+  /* RUBIN VASE HEADER */
+  .header {
+    text-align: center;
+    padding: 2.5rem 1rem 1.5rem;
+    position: relative;
+  }
+  .rubin-container {
+    display: flex; justify-content: center; align-items: center;
+    margin-bottom: 1.5rem;
+    position: relative;
+  }
+  .rubin-svg { cursor: pointer; }
+  .rubin-svg:hover .vase-fill { fill: white; }
+  .rubin-svg:hover .face-l { fill: black; }
+  .rubin-svg:hover .face-r { fill: black; }
+  .face-l, .face-r, .vase-fill { transition: fill 0.6s ease; }
+  .vase-fill { fill: black; }
+  .face-l { fill: white; }
+  .face-r { fill: white; }
+
+  .site-title {
+    font-size: clamp(1.4rem, 4vw, 2.2rem);
+    font-weight: 200;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: #fff;
+  }
+  .site-sub {
+    font-size: 0.75rem;
+    letter-spacing: 0.3em;
+    color: rgba(255,255,255,0.35);
+    text-transform: uppercase;
+    margin-top: 0.4rem;
+  }
+
+  /* HOVER-TEXT STRIP */
+  .vanish-strip {
+    background: rgba(255,255,255,0.04);
+    border: 0.5px solid rgba(255,255,255,0.1);
+    border-radius: 4px;
+    padding: 1rem 1.5rem;
+    text-align: center;
+    margin: 1.5rem 0;
+    cursor: default;
+    position: relative;
+    overflow: hidden;
+  }
+  .vanish-strip .show-text {
+    font-size: 0.8rem; letter-spacing: 0.2em; text-transform: uppercase;
+    color: rgba(255,255,255,0.25);
+    transition: opacity 0.4s;
+  }
+  .vanish-strip .hidden-text {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 0.9rem; letter-spacing: 0.15em; text-transform: uppercase;
+    color: #fff;
+    opacity: 0;
+    transition: opacity 0.4s;
+    white-space: nowrap;
+  }
+  .vanish-strip:hover .show-text { opacity: 0; }
+  .vanish-strip:hover .hidden-text { opacity: 1; }
+
+  /* SECTION LABELS */
+  .section-label {
+    font-size: 0.65rem; letter-spacing: 0.35em; text-transform: uppercase;
+    color: rgba(255,255,255,0.3);
+    margin: 2.5rem 0 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 0.5px solid rgba(255,255,255,0.1);
+  }
+
+  /* PENROSE PANEL */
+  .penrose-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.5rem;
+    background: rgba(255,255,255,0.03);
+    border: 0.5px solid rgba(255,255,255,0.1);
+    border-radius: 4px;
+    margin-bottom: 1.5rem;
+  }
+  .penrose-panel h3 {
+    font-size: 0.7rem; letter-spacing: 0.25em; text-transform: uppercase;
+    color: rgba(255,255,255,0.4);
+    text-align: center;
+  }
+
+  /* NECKER CUBE */
+  .necker-wrap {
+    display: flex; flex-direction: column; align-items: center; gap: 0.75rem;
+    padding: 1.5rem;
+    background: rgba(255,255,255,0.03);
+    border: 0.5px solid rgba(255,255,255,0.1);
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .necker-wrap h3 {
+    font-size: 0.7rem; letter-spacing: 0.25em; text-transform: uppercase;
+    color: rgba(255,255,255,0.4);
+  }
+  .necker-hint {
+    font-size: 0.65rem; letter-spacing: 0.1em; color: rgba(255,255,255,0.25);
+    text-align: center;
+  }
+  /* Necker cube toggling between two interpretations */
+  .necker-face { transition: fill 0.5s ease, stroke 0.5s ease; }
+  .front-face { fill: rgba(255,255,255,0.07); }
+  .back-face  { fill: rgba(255,255,255,0.0); }
+  .necker-wrap.flipped .front-face { fill: rgba(255,255,255,0.0); }
+  .necker-wrap.flipped .back-face  { fill: rgba(255,255,255,0.1); }
+
+  /* GRID 2-col */
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  @media(max-width:520px){ .grid2 { grid-template-columns: 1fr; } }
+
+  /* BLEND MODE PANEL */
+  .blend-panel {
+    padding: 1.5rem;
+    background: #000;
+    border: 0.5px solid rgba(255,255,255,0.1);
+    border-radius: 4px;
+    display: flex; flex-direction: column; align-items: center; gap: 0.75rem;
+    cursor: pointer;
+    overflow: hidden;
+    position: relative;
+  }
+  .blend-panel h3 {
+    font-size: 0.7rem; letter-spacing: 0.25em; text-transform: uppercase;
+    color: rgba(255,255,255,0.4); z-index:2; position:relative;
+  }
+  .blend-layers { position:relative; width:140px; height:100px; }
+  .blend-a {
+    position:absolute; top:0; left:0;
+    width:100px; height:100px;
+    background: white;
+    border-radius: 50%;
+    mix-blend-mode: difference;
+    transition: transform 1s ease;
+  }
+  .blend-b {
+    position:absolute; top:20px; left:40px;
+    width:100px; height:100px;
+    background: white;
+    border-radius: 50%;
+    mix-blend-mode: difference;
+    transition: transform 1s ease;
+  }
+  .blend-panel:hover .blend-a { transform: translateX(20px); }
+  .blend-panel:hover .blend-b { transform: translateX(-20px); }
+  .blend-hint { font-size:0.65rem; color:rgba(255,255,255,0.25); letter-spacing:0.1em; z-index:2; position:relative; }
+
+  /* IMPOSSIBLE TRIANGLE MINI */
+  .triangle-hint { font-size:0.65rem; color:rgba(255,255,255,0.25); letter-spacing:0.1em; text-align:center; }
+
+  /* GHOSTING FOOTER */
+  .ghost-footer {
+    margin-top: 3rem;
+    text-align: center;
+    position: relative;
+    height: 60px;
+  }
+  .ghost-word {
+    position: absolute; left: 50%; transform: translateX(-50%);
+    font-size: 0.65rem; letter-spacing: 0.4em; text-transform: uppercase;
+    color: rgba(255,255,255,0.0);
+    transition: color 0.8s, opacity 0.8s;
+    white-space: nowrap;
+  }
+  .ghost-footer:hover .ghost-word { color: rgba(255,255,255,0.5); }
+  .ghost-footer:hover .g1 { transition-delay: 0s; }
+  .ghost-footer:hover .g2 { transition-delay: 0.15s; }
+  .ghost-footer:hover .g3 { transition-delay: 0.3s; }
+  .g1 { top: 0; }
+  .g2 { top: 22px; }
+  .g3 { top: 44px; }
+</style>
+</head>
+<body>
+<div class="moire-bg">
+  <div class="moire-layer"></div>
+  <div class="moire-layer2"></div>
+</div>
+
+<div class="page">
+
+  <!-- RUBIN VASE HEADER (hover to flip perception) -->
+  <div class="header">
+    <div class="rubin-container">
+      <svg class="rubin-svg" width="180" height="110" viewBox="0 0 180 110" xmlns="http://www.w3.org/2000/svg" title="Rubin vase illusion — hover to flip">
+        <!-- Left face (white profile) -->
+        <path class="face-l" d="M0,0 C0,0 30,10 40,30 C50,50 50,60 40,80 C30,100 0,110 0,110 Z"/>
+        <!-- Right face (white profile) -->
+        <path class="face-r" d="M180,0 C180,0 150,10 140,30 C130,50 130,60 140,80 C150,100 180,110 180,110 Z"/>
+        <!-- Vase fill (black) -->
+        <path class="vase-fill" d="M40,30 C50,10 70,0 90,0 C110,0 130,10 140,30 C130,50 130,60 140,80 C130,100 110,110 90,110 C70,110 50,100 40,80 C50,60 50,50 40,30 Z"/>
+        <!-- Top and bottom bars -->
+        <rect class="vase-fill" x="0" y="0" width="180" height="2"/>
+        <rect class="vase-fill" x="0" y="108" width="180" height="2"/>
+      </svg>
+    </div>
+    <div class="site-title">Perceptual Studies</div>
+    <div class="site-sub">A collection of visual paradoxes &amp; impossible forms</div>
+  </div>
+
+  <div class="vanish-strip">
+    <span class="show-text">Hover to reveal the hidden message</span>
+    <span class="hidden-text">You were always looking at the wrong thing</span>
+  </div>
+
+  <!-- PENROSE IMPOSSIBLE TRIANGLE -->
+  <div class="section-label">01 — Impossible geometry</div>
+  <div class="penrose-panel">
+    <h3>Penrose Triangle</h3>
+    <svg width="200" height="180" viewBox="0 0 200 180" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <!-- Impossible triangle via 3 trapezoidal faces -->
+      </defs>
+      <!-- Face A: top beam -->
+      <polygon points="100,10 140,78 120,78 100,44 80,78 60,78" fill="rgba(255,255,255,0.85)" stroke="none"/>
+      <!-- Face B: bottom-right beam -->
+      <polygon points="140,78 160,113 140,113 100,44 120,78" fill="rgba(255,255,255,0.55)" stroke="none"/>
+      <!-- Face C: bottom-left beam (with the impossible corner) -->
+      <polygon points="60,78 100,44 80,78 40,113 140,113 160,113 140,140 20,140 40,113" fill="rgba(255,255,255,0.3)" stroke="none"/>
+      <!-- Outline borders to reinforce the impossible merge -->
+      <polyline points="100,10 160,113 40,113 100,10" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="1.5"/>
+      <line x1="100" y1="44" x2="100" y2="10" stroke="none"/>
+      <!-- Inner lines for depth -->
+      <polyline points="100,44 120,78 140,78" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="1"/>
+      <polyline points="100,44 80,78 60,78" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="1"/>
+      <line x1="120" y1="78" x2="140" y2="113" stroke="rgba(255,255,255,0.6)" stroke-width="1"/>
+      <line x1="80" y1="78" x2="40" y2="113" stroke="rgba(255,255,255,0.4)" stroke-width="1"/>
+      <line x1="60" y1="78" x2="140" y2="78" stroke="rgba(255,255,255,0.35)" stroke-width="0.5"/>
+    </svg>
+    <p class="triangle-hint">Each corner is locally consistent — the whole is globally impossible</p>
+  </div>
+
+  <!-- NECKER CUBE + BLEND MODE in 2-col -->
+  <div class="section-label">02 — Figure reversal</div>
+  <div class="grid2">
+
+    <!-- NECKER CUBE -->
+    <div class="necker-wrap" id="neckerBox">
+      <h3>Necker Cube</h3>
+      <svg width="130" height="130" viewBox="0 0 130 130" xmlns="http://www.w3.org/2000/svg">
+        <!-- Back face -->
+        <polygon class="necker-face back-face" points="45,20 95,20 95,70 45,70" stroke="rgba(255,255,255,0.5)" stroke-width="1" fill="rgba(255,255,255,0.0)"/>
+        <!-- Left side -->
+        <polygon class="necker-face" points="20,45 45,20 45,70 20,95" stroke="rgba(255,255,255,0.5)" stroke-width="1" fill="rgba(255,255,255,0.04)"/>
+        <!-- Bottom side -->
+        <polygon class="necker-face" points="20,95 45,70 95,70 70,95" stroke="rgba(255,255,255,0.5)" stroke-width="1" fill="rgba(255,255,255,0.06)"/>
+        <!-- Front face -->
+        <polygon class="necker-face front-face" points="20,45 70,45 70,95 20,95" stroke="rgba(255,255,255,0.8)" stroke-width="1.5"/>
+        <!-- Top side -->
+        <polygon class="necker-face" points="20,45 45,20 95,20 70,45" stroke="rgba(255,255,255,0.5)" stroke-width="1" fill="rgba(255,255,255,0.02)"/>
+        <!-- Right side -->
+        <polygon class="necker-face" points="70,45 95,20 95,70 70,95" stroke="rgba(255,255,255,0.5)" stroke-width="1" fill="rgba(255,255,255,0.03)"/>
+      </svg>
+      <p class="necker-hint">Click to flip which face is in front</p>
+    </div>
+
+    <!-- BLEND MODE -->
+    <div class="blend-panel">
+      <h3>mix-blend-mode</h3>
+      <div class="blend-layers">
+        <div class="blend-a"></div>
+        <div class="blend-b"></div>
+      </div>
+      <p class="blend-hint">Hover to separate circles</p>
+    </div>
+
+  </div>
+
+  <!-- VANISHING TEXT SECTION -->
+  <div class="section-label">03 — Text as illusion</div>
+  <div style="display:grid; gap:0.5rem;">
+    <div class="vanish-strip"><span class="show-text">· · · · · · · · · · · · · · ·</span><span class="hidden-text">Perception is a hypothesis</span></div>
+    <div class="vanish-strip"><span class="show-text">· · · · · · · · · · · · · · ·</span><span class="hidden-text">The gap is where meaning hides</span></div>
+    <div class="vanish-strip"><span class="show-text">· · · · · · · · · · · · · · ·</span><span class="hidden-text">Your brain wrote this sentence</span></div>
+  </div>
+
+  <!-- GHOST FOOTER -->
+  <div class="ghost-footer">
+    <span class="ghost-word g1">What you see</span>
+    <span class="ghost-word g2">is not what is there</span>
+    <span class="ghost-word g3">it is what you expect</span>
+  </div>
+
+</div>
+
+<script>
+  const necker = document.getElementById('neckerBox');
+  necker.addEventListener('click', () => necker.classList.toggle('flipped'));
+</script>
+</body>
+</html>

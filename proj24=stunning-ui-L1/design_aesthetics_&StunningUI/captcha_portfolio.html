@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #F0EDE8;
+    font-family: 'Courier Prime', 'Courier New', monospace;
+    min-height: 100vh;
+    padding: 40px 20px;
+    color: #1a1a1a;
+  }
+
+  .page-header {
+    text-align: center;
+    margin-bottom: 48px;
+    position: relative;
+  }
+
+  .page-header h1 {
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    color: #888;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .distorted-title {
+    font-size: 52px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -2px;
+    color: #1a1a1a;
+    filter: url(#distort-subtle);
+    position: relative;
+  }
+
+  .distorted-title span {
+    display: inline-block;
+    transform: skewX(-1deg) scaleY(0.97);
+  }
+
+  .distorted-title .blurred {
+    filter: blur(1.2px);
+    opacity: 0.85;
+  }
+
+  .subtitle {
+    font-size: 12px;
+    color: #888;
+    margin-top: 10px;
+    letter-spacing: 0.12em;
+    font-style: italic;
+    filter: blur(0.3px);
+  }
+
+  .sections-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  .captcha-card {
+    background: #FAFAF8;
+    border: 1px solid #D4D0C8;
+    padding: 20px;
+    position: relative;
+  }
+
+  .captcha-card::before {
+    content: '';
+    position: absolute;
+    top: 3px; left: 3px; right: -3px; bottom: -3px;
+    border: 1px solid #C8C4BC;
+    z-index: -1;
+  }
+
+  .card-label {
+    font-size: 9px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: #aaa;
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .card-label .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #4CAF50;
+    display: inline-block;
+    animation: blink 2s infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  /* ─── CARD 1: Classic image grid ─── */
+  .instruction-bar {
+    background: #4A7DB5;
+    color: white;
+    font-family: 'Courier Prime', monospace;
+    font-size: 12px;
+    padding: 10px 12px;
+    margin-bottom: 2px;
+    line-height: 1.4;
+  }
+
+  .image-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+    margin-bottom: 2px;
+  }
+
+  .grid-cell {
+    aspect-ratio: 1;
+    position: relative;
+    cursor: pointer;
+    overflow: hidden;
+    background: #E8E4DC;
+  }
+
+  .grid-cell svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .grid-cell.selected::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 3px solid #4A7DB5;
+    background: rgba(74,125,181,0.15);
+    pointer-events: none;
+  }
+
+  .grid-cell.selected .check-overlay {
+    display: flex;
+  }
+
+  .check-overlay {
+    display: none;
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 20px;
+    height: 20px;
+    background: #4A7DB5;
+    border-radius: 50%;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 11px;
+  }
+
+  .verify-btn {
+    background: #E8E4DC;
+    border: 1px solid #C0BDB5;
+    font-family: 'Courier Prime', monospace;
+    font-size: 11px;
+    padding: 8px 16px;
+    width: 100%;
+    cursor: pointer;
+    letter-spacing: 0.1em;
+    color: #444;
+    text-align: center;
+    transition: background 0.2s;
+  }
+
+  .verify-btn:hover { background: #DDD9D1; }
+
+  /* ─── CARD 2: Classic checkbox ─── */
+  .robot-widget {
+    border: 1px solid #C0BDB5;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: #F5F2EC;
+    margin-bottom: 12px;
+  }
+
+  .robot-checkbox {
+    width: 26px;
+    height: 26px;
+    border: 2px solid #AAAAAA;
+    background: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: border-color 0.2s;
+  }
+
+  .robot-checkbox.checked {
+    border-color: #4CAF50;
+    background: white;
+  }
+
+  .robot-checkbox.checked::after {
+    content: '✓';
+    color: #4CAF50;
+    font-size: 16px;
+    font-weight: bold;
+  }
+
+  .robot-label {
+    font-size: 13px;
+    color: #333;
+    letter-spacing: 0.02em;
+    filter: blur(0.2px);
+  }
+
+  .recaptcha-badge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-left: auto;
+    gap: 2px;
+  }
+
+  .recaptcha-logo {
+    width: 32px;
+    height: 32px;
+  }
+
+  .recaptcha-text {
+    font-size: 7px;
+    color: #aaa;
+    text-align: center;
+    letter-spacing: 0.05em;
+  }
+
+  .distorted-chars {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 8px;
+    padding: 14px 0;
+    text-align: center;
+    background: #F0EDE8;
+    border: 1px solid #C0BDB5;
+    margin-bottom: 8px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .distorted-chars::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 4px,
+      rgba(0,0,0,0.03) 4px,
+      rgba(0,0,0,0.03) 5px
+    );
+    pointer-events: none;
+  }
+
+  .char { display: inline-block; }
+  .char:nth-child(1) { transform: rotate(-4deg) translateY(2px); filter: blur(0.5px); color: #2a2a6a; }
+  .char:nth-child(2) { transform: rotate(2deg) scaleX(1.15) translateY(-1px); color: #6a2a2a; }
+  .char:nth-child(3) { transform: rotate(-2deg) scaleY(1.1); filter: blur(0.8px); color: #1a4a1a; }
+  .char:nth-child(4) { transform: rotate(5deg) translateY(3px); color: #4a2a6a; }
+  .char:nth-child(5) { transform: rotate(-3deg) scaleX(0.9); filter: blur(0.3px); color: #6a4a1a; }
+  .char:nth-child(6) { transform: rotate(1deg) scaleY(0.95) translateY(-2px); color: #2a4a6a; }
+
+  .char-input {
+    width: 100%;
+    border: 1px solid #C0BDB5;
+    background: #FAFAF8;
+    font-family: 'Courier Prime', monospace;
+    font-size: 13px;
+    padding: 8px 10px;
+    letter-spacing: 0.15em;
+    color: #333;
+    outline: none;
+    margin-bottom: 8px;
+  }
+
+  .char-input:focus { border-color: #4A7DB5; }
+
+  .audio-refresh {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .icon-btn {
+    border: 1px solid #C0BDB5;
+    background: #F0EDE8;
+    font-size: 14px;
+    padding: 6px 10px;
+    cursor: pointer;
+    font-family: monospace;
+    color: #555;
+  }
+
+  /* ─── CARD 3: Select tiles ─── */
+  .select-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2px;
+    margin-bottom: 2px;
+  }
+
+  .select-tile {
+    aspect-ratio: 1;
+    background: #E8E4DC;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .select-tile.sel::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 3px solid #4A7DB5;
+    background: rgba(74,125,181,0.2);
+  }
+
+  .select-tile svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* ─── CARD 4: Portfolio info ─── */
+  .info-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .info-row {
+    border-bottom: 1px solid #E0DDD5;
+    padding-bottom: 10px;
+  }
+
+  .info-row:last-child { border-bottom: none; }
+
+  .info-key {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.25em;
+    color: #aaa;
+    margin-bottom: 3px;
+  }
+
+  .info-val {
+    font-size: 13px;
+    color: #333;
+    line-height: 1.5;
+    filter: blur(0.15px);
+  }
+
+  .info-val.blurry {
+    filter: blur(0.8px);
+    user-select: none;
+    cursor: help;
+    transition: filter 0.3s;
+  }
+
+  .info-val.blurry:hover { filter: blur(0px); }
+
+  /* ─── Footer ─── */
+  .footer-strip {
+    max-width: 720px;
+    margin: 24px auto 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 0;
+    border-top: 1px solid #C0BDB5;
+  }
+
+  .footer-text {
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    color: #aaa;
+    text-transform: uppercase;
+  }
+
+  .progress-bar {
+    width: 120px;
+    height: 2px;
+    background: #D4D0C8;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: #4A7DB5;
+    animation: scan 3s infinite;
+    width: 40%;
+  }
+
+  @keyframes scan {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(350%); }
+  }
+
+  .full-width {
+    grid-column: 1 / -1;
+  }
+
+  .sessions-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+  }
+
+  .session-pill {
+    font-size: 10px;
+    background: #E8E4DC;
+    border: 1px solid #C0BDB5;
+    padding: 3px 8px;
+    color: #666;
+    letter-spacing: 0.08em;
+    cursor: default;
+  }
+</style>
+
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <filter id="distort-subtle">
+      <feTurbulence type="turbulence" baseFrequency="0.015 0.04" numOctaves="2" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="3" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <filter id="blur-slight">
+      <feGaussianBlur stdDeviation="0.6"/>
+    </filter>
+  </defs>
+</svg>
+
+<div class="page-header">
+  <h1>Portfolio — human verification required</h1>
+  <div class="distorted-title">
+    <span>KAR</span><span class="blurred">TIK</span><span> DES</span><span class="blurred">IGN</span>
+  </div>
+  <div class="subtitle">proving humanity since 2019 · net art · surveillance commentary</div>
+</div>
+
+<div class="sections-grid">
+
+  <!-- Card 1: Bus grid -->
+  <div class="captcha-card">
+    <div class="card-label">Challenge 01 <span class="dot"></span></div>
+    <div class="instruction-bar">Select all squares with<br><strong>BUSES</strong></div>
+    <div class="image-grid" id="busGrid"></div>
+    <button class="verify-btn" onclick="verifyGrid()">VERIFY →</button>
+  </div>
+
+  <!-- Card 2: Text captcha + checkbox -->
+  <div class="captcha-card">
+    <div class="card-label">Challenge 02 <span class="dot"></span></div>
+
+    <div class="robot-widget">
+      <div class="robot-checkbox" id="robotCheck" onclick="toggleRobot()"></div>
+      <div class="robot-label">I'm not a robot</div>
+      <div class="recaptcha-badge">
+        <svg class="recaptcha-logo" viewBox="0 0 64 64">
+          <circle cx="32" cy="32" r="30" fill="none" stroke="#4A7DB5" stroke-width="2"/>
+          <path d="M20 32 C20 24, 44 24, 44 32 C44 40, 20 40, 20 32Z" fill="none" stroke="#4A7DB5" stroke-width="1.5"/>
+          <circle cx="32" cy="32" r="6" fill="#4A7DB5" opacity="0.4"/>
+          <path d="M32 14 L36 22 L28 22Z" fill="#4A7DB5" opacity="0.6"/>
+          <path d="M32 50 L36 42 L28 42Z" fill="#4A7DB5" opacity="0.6"/>
+        </svg>
+        <div class="recaptcha-text">reCAPTCHA<br>Privacy · Terms</div>
+      </div>
+    </div>
+
+    <div class="distorted-chars" id="charDisplay">
+      <span class="char">R</span><span class="char">4</span><span class="char">X</span><span class="char">m</span><span class="char">K</span><span class="char">9</span>
+    </div>
+    <input class="char-input" placeholder="Type the characters above..." maxlength="6"/>
+    <div class="audio-refresh">
+      <button class="icon-btn" onclick="refreshChars()" title="Refresh">↻ New</button>
+      <button class="icon-btn" title="Audio">♫ Audio</button>
+      <button class="verify-btn" style="flex:1;margin:0" onclick="verifyChars()">SUBMIT</button>
+    </div>
+  </div>
+
+  <!-- Card 3: Traffic lights tile select -->
+  <div class="captcha-card">
+    <div class="card-label">Challenge 03 <span class="dot"></span></div>
+    <div class="instruction-bar" style="font-size:11px">Click each image containing<br><strong>TRAFFIC LIGHTS</strong></div>
+    <div class="select-grid" id="tileGrid"></div>
+    <button class="verify-btn" style="margin-top:2px" onclick="verifyTiles()">VERIFY →</button>
+  </div>
+
+  <!-- Card 4: About / info -->
+  <div class="captcha-card">
+    <div class="card-label">Identity verification <span class="dot"></span></div>
+    <div class="info-rows">
+      <div class="info-row">
+        <div class="info-key">Entity</div>
+        <div class="info-val">Designer / Net Artist<br>Surveillance Commentator</div>
+      </div>
+      <div class="info-row">
+        <div class="info-key">Human score</div>
+        <div class="info-val">0.7 / 1.0 · <em style="color:#aaa;font-size:11px">suspicious browsing detected</em></div>
+      </div>
+      <div class="info-row">
+        <div class="info-key">Session fingerprint</div>
+        <div class="info-val blurry" title="hover to reveal">a3:f9:2c:88:19:4d:cc:7b</div>
+      </div>
+      <div class="info-row">
+        <div class="info-key">Recent sessions</div>
+        <div class="sessions-row">
+          <div class="session-pill">Portfolio ✓</div>
+          <div class="session-pill">Contact ✓</div>
+          <div class="session-pill">Works — 403</div>
+          <div class="session-pill">CV — blocked</div>
+        </div>
+      </div>
+      <div class="info-row">
+        <div class="info-key">Contact</div>
+        <div class="info-val blurry" title="hover to reveal">k*r**k@design.io</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer-strip">
+  <div class="footer-text">© human verification required — all rights reserved to verified humans</div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <div class="footer-text">scanning</div>
+    <div class="progress-bar"><div class="progress-fill"></div></div>
+  </div>
+</div>
+
+<script>
+const CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+function rndChar() {
+  return CHARS[Math.floor(Math.random() * CHARS.length)];
+}
+
+function makeSceneColor(type) {
+  const palettes = {
+    bus: ['#E8C87A','#D4A82A','#C09020','#8B6914','#5C4A1E'],
+    road: ['#8C8C8C','#6E6E6E','#A0A0A0','#B8B8B8','#545454'],
+    tree: ['#5B8A4E','#3D6B32','#7AAD64','#4A7A3A','#2C5020'],
+    building: ['#C4B49A','#A89070','#DDD0B8','#7A6A54','#E8E0D0'],
+    sky: ['#87CEEB','#6AB8D8','#A8DCEF','#5A9FC0','#B8E8F8'],
+    car: ['#D44040','#A03030','#E87070','#883020','#F0A0A0'],
+    light: ['#E8E040','#D4C820','#F0EC80','#ACA010','#F4F080'],
+    cross: ['#F0F0F0','#E0E0E0','#FFFFFF','#C8C8C8','#D8D8D8'],
+  };
+  return palettes[type] || palettes.road;
+}
+
+function makeBusScene(hasBus) {
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('viewBox','0 0 80 80');
+  svg.setAttribute('xmlns', ns);
+
+  const sky = document.createElementNS(ns,'rect');
+  sky.setAttribute('width','80'); sky.setAttribute('height','50');
+  sky.setAttribute('fill', hasBus ? '#B8D8E8' : '#C8D8B8');
+  svg.appendChild(sky);
+
+  const ground = document.createElementNS(ns,'rect');
+  ground.setAttribute('x','0'); ground.setAttribute('y','50');
+  ground.setAttribute('width','80'); ground.setAttribute('height','30');
+  ground.setAttribute('fill', hasBus ? '#8C8C8C' : '#7A9A6A');
+  svg.appendChild(ground);
+
+  if (!hasBus) {
+    [10,40,62].forEach(x => {
+      const t = document.createElementNS(ns,'ellipse');
+      t.setAttribute('cx', x); t.setAttribute('cy','52');
+      t.setAttribute('rx','8'); t.setAttribute('ry','16');
+      t.setAttribute('fill','#4A7A3A');
+      svg.appendChild(t);
+    });
+  } else {
+    const road = document.createElementNS(ns,'rect');
+    road.setAttribute('x','0'); road.setAttribute('y','48');
+    road.setAttribute('width','80'); road.setAttribute('height','6');
+    road.setAttribute('fill','#777');
+    svg.appendChild(road);
+
+    const stripe = document.createElementNS(ns,'rect');
+    stripe.setAttribute('x','10'); stripe.setAttribute('y','50.5');
+    stripe.setAttribute('width','12'); stripe.setAttribute('height','2');
+    stripe.setAttribute('fill','#EEE'); stripe.setAttribute('opacity','0.7');
+    svg.appendChild(stripe);
+
+    const stripe2 = document.createElementNS(ns,'rect');
+    stripe2.setAttribute('x','36'); stripe2.setAttribute('y','50.5');
+    stripe2.setAttribute('width','12'); stripe2.setAttribute('height','2');
+    stripe2.setAttribute('fill','#EEE'); stripe2.setAttribute('opacity','0.7');
+    svg.appendChild(stripe2);
+
+    const busBody = document.createElementNS(ns,'rect');
+    busBody.setAttribute('x','6'); busBody.setAttribute('y','30');
+    busBody.setAttribute('width','50'); busBody.setAttribute('height','22');
+    busBody.setAttribute('fill','#E8C030'); busBody.setAttribute('rx','2');
+    svg.appendChild(busBody);
+
+    const busTop = document.createElementNS(ns,'rect');
+    busTop.setAttribute('x','8'); busTop.setAttribute('y','28');
+    busTop.setAttribute('width','46'); busTop.setAttribute('height','4');
+    busTop.setAttribute('fill','#D4A820'); busTop.setAttribute('rx','1');
+    svg.appendChild(busTop);
+
+    [[10,33,10,8],[23,33,10,8],[36,33,10,8]].forEach(([x,y,w,h]) => {
+      const win = document.createElementNS(ns,'rect');
+      win.setAttribute('x',x); win.setAttribute('y',y);
+      win.setAttribute('width',w); win.setAttribute('height',h);
+      win.setAttribute('fill','#8AD0F0'); win.setAttribute('rx','1');
+      svg.appendChild(win);
+    });
+
+    [[12,50],[44,50]].forEach(([x,y]) => {
+      const wh = document.createElementNS(ns,'circle');
+      wh.setAttribute('cx',x); wh.setAttribute('cy',y+3);
+      wh.setAttribute('r','5'); wh.setAttribute('fill','#333');
+      svg.appendChild(wh);
+      const hub = document.createElementNS(ns,'circle');
+      hub.setAttribute('cx',x); hub.setAttribute('cy',y+3);
+      hub.setAttribute('r','2'); hub.setAttribute('fill','#888');
+      svg.appendChild(hub);
+    });
+
+    const front = document.createElementNS(ns,'rect');
+    front.setAttribute('x','56'); front.setAttribute('y','34');
+    front.setAttribute('width','8'); front.setAttribute('height','16');
+    front.setAttribute('fill','#D0A010'); front.setAttribute('rx','1');
+    svg.appendChild(front);
+
+    const headlight = document.createElementNS(ns,'rect');
+    headlight.setAttribute('x','63'); headlight.setAttribute('y','38');
+    headlight.setAttribute('width','4'); headlight.setAttribute('height','3');
+    headlight.setAttribute('fill','#FFF8B0');
+    svg.appendChild(headlight);
+  }
+
+  const noiseRect = document.createElementNS(ns,'rect');
+  noiseRect.setAttribute('width','80'); noiseRect.setAttribute('height','80');
+  noiseRect.setAttribute('fill','rgba(0,0,0,0.04)');
+  svg.appendChild(noiseRect);
+
+  return svg;
+}
+
+function makeTrafficScene(hasLight) {
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('viewBox','0 0 60 60');
+  svg.setAttribute('xmlns', ns);
+
+  const bg = document.createElementNS(ns,'rect');
+  bg.setAttribute('width','60'); bg.setAttribute('height','60');
+  bg.setAttribute('fill', hasLight ? '#C8C8C8' : '#8AB870');
+  svg.appendChild(bg);
+
+  if (hasLight) {
+    const post = document.createElementNS(ns,'rect');
+    post.setAttribute('x','27'); post.setAttribute('y','10');
+    post.setAttribute('width','5'); post.setAttribute('height','45');
+    post.setAttribute('fill','#555');
+    svg.appendChild(post);
+
+    const box = document.createElementNS(ns,'rect');
+    box.setAttribute('x','20'); box.setAttribute('y','8');
+    box.setAttribute('width','19'); box.setAttribute('height','32');
+    box.setAttribute('fill','#222'); box.setAttribute('rx','2');
+    svg.appendChild(box);
+
+    const colors = ['#FF3333','#FFAA00','#33FF33'];
+    colors.forEach((c,i) => {
+      const light = document.createElementNS(ns,'circle');
+      light.setAttribute('cx','29.5'); light.setAttribute('cy', 15 + i*10);
+      light.setAttribute('r','4'); light.setAttribute('fill', i===0 ? c : '#333');
+      svg.appendChild(light);
+      if (i===0) {
+        const glow = document.createElementNS(ns,'circle');
+        glow.setAttribute('cx','29.5'); glow.setAttribute('cy', 15);
+        glow.setAttribute('r','5'); glow.setAttribute('fill',c); glow.setAttribute('opacity','0.3');
+        svg.appendChild(glow);
+      }
+    });
+  } else {
+    [10,35,50].forEach((x,i) => {
+      const bld = document.createElementNS(ns,'rect');
+      const h = 20 + i*5;
+      bld.setAttribute('x', x); bld.setAttribute('y', 60-h);
+      bld.setAttribute('width','14'); bld.setAttribute('height',h);
+      bld.setAttribute('fill','#B8A898');
+      svg.appendChild(bld);
+
+      [0,1,2].forEach(wy => {
+        const win = document.createElementNS(ns,'rect');
+        win.setAttribute('x', x+3); win.setAttribute('y', 60-h+4+wy*6);
+        win.setAttribute('width','3'); win.setAttribute('height','3');
+        win.setAttribute('fill','#E8D890'); win.setAttribute('opacity','0.8');
+        svg.appendChild(win);
+      });
+    });
+  }
+
+  return svg;
+}
+
+function buildBusGrid() {
+  const grid = document.getElementById('busGrid');
+  grid.innerHTML = '';
+  const pattern = [true,false,true,false,true,false,true,false,false];
+  pattern.sort(()=>Math.random()-0.5);
+
+  pattern.forEach((hasBus, i) => {
+    const cell = document.createElement('div');
+    cell.className = 'grid-cell';
+    cell.dataset.hasBus = hasBus;
+    cell.dataset.idx = i;
+    cell.appendChild(makeBusScene(hasBus));
+    const check = document.createElement('div');
+    check.className = 'check-overlay';
+    check.textContent = '✓';
+    cell.appendChild(check);
+    cell.addEventListener('click', () => {
+      cell.classList.toggle('selected');
+    });
+    grid.appendChild(cell);
+  });
+}
+
+function buildTileGrid() {
+  const grid = document.getElementById('tileGrid');
+  grid.innerHTML = '';
+  const pattern = [true,false,true,false,true,false,false,true,false,false,true,false,true,false,true,false];
+  pattern.sort(()=>Math.random()-0.5);
+  pattern.slice(0,12).forEach((hasLight, i) => {
+    const cell = document.createElement('div');
+    cell.className = 'select-tile';
+    cell.dataset.hasLight = hasLight;
+    cell.appendChild(makeTrafficScene(hasLight));
+    cell.addEventListener('click', () => {
+      cell.classList.toggle('sel');
+    });
+    grid.appendChild(cell);
+  });
+}
+
+function verifyGrid() {
+  const cells = document.querySelectorAll('#busGrid .grid-cell');
+  const correct = [...cells].every(c => {
+    const hasBus = c.dataset.hasBus === 'true';
+    const selected = c.classList.contains('selected');
+    return hasBus === selected;
+  });
+  alert(correct ? '✓ Humanity confirmed. Score: 0.94' : '✗ Verification failed. You may be a robot. Try again.');
+  if (correct) buildBusGrid();
+}
+
+function verifyChars() {
+  const input = document.querySelector('.char-input');
+  alert(input.value.length >= 4 ? '✓ Text recognized. Proceed.' : '✗ Insufficient characters detected.');
+  input.value = '';
+  refreshChars();
+}
+
+function verifyTiles() {
+  const cells = document.querySelectorAll('#tileGrid .select-tile');
+  const correct = [...cells].every(c => {
+    const hasLight = c.dataset.hasLight === 'true';
+    const selected = c.classList.contains('sel');
+    return hasLight === selected;
+  });
+  alert(correct ? '✓ Traffic lights confirmed. Welcome, human.' : '✗ Incorrect selection. Your humanity is in question.');
+  if (correct) buildTileGrid();
+}
+
+function toggleRobot() {
+  const cb = document.getElementById('robotCheck');
+  cb.classList.toggle('checked');
+}
+
+function refreshChars() {
+  const display = document.getElementById('charDisplay');
+  const chars = Array.from({length:6}, rndChar);
+  display.innerHTML = chars.map(c => `<span class="char">${c}</span>`).join('');
+}
+
+buildBusGrid();
+buildTileGrid();
+</script>

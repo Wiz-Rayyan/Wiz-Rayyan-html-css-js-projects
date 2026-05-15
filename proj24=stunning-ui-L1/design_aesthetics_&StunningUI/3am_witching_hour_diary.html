@@ -1,0 +1,345 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap');
+  
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  .shell {
+    background: #0A0C10;
+    min-height: 100vh;
+    font-family: 'Courier Prime', 'Courier New', monospace;
+    color: #B0BEC5;
+    filter: contrast(1.08);
+    padding: 0;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .noise {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+    background-size: 128px 128px;
+  }
+
+  .vignette {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.72) 100%);
+  }
+
+  .content {
+    position: relative;
+    z-index: 2;
+    max-width: 620px;
+    margin: 0 auto;
+    padding: 3rem 2rem 5rem;
+  }
+
+  .clock {
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    color: #455A64;
+    text-transform: uppercase;
+    margin-bottom: 3.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  .clock::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #1C2128;
+  }
+
+  .lamp-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #FFB74D;
+    box-shadow: 0 0 8px 2px rgba(255,183,77,0.35);
+    margin-right: 8px;
+    animation: pulse 3s ease-in-out infinite;
+    vertical-align: middle;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 0.7; box-shadow: 0 0 8px 2px rgba(255,183,77,0.35); }
+    50% { opacity: 1; box-shadow: 0 0 14px 4px rgba(255,183,77,0.5); }
+  }
+
+  .hero-time {
+    font-size: clamp(52px, 12vw, 80px);
+    font-weight: 700;
+    color: #1E2733;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    margin-bottom: 0.5rem;
+    user-select: none;
+  }
+
+  .hero-subtitle {
+    font-size: 13px;
+    color: #37474F;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 4rem;
+  }
+
+  .divider {
+    width: 32px;
+    height: 1px;
+    background: #1C2128;
+    margin: 3rem 0;
+  }
+
+  .entry-label {
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    color: #37474F;
+    text-transform: uppercase;
+    margin-bottom: 1.25rem;
+  }
+
+  .entry-body {
+    font-size: 15px;
+    line-height: 1.9;
+    color: #90A4AE;
+  }
+  .entry-body p { margin-bottom: 1.2em; }
+  .entry-body p:last-child { margin-bottom: 0; }
+
+  .entry-block {
+    margin-bottom: 3.5rem;
+    padding-bottom: 3.5rem;
+    border-bottom: 1px solid #111820;
+  }
+
+  .entry-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 1.5rem;
+  }
+
+  .entry-num {
+    font-size: 9px;
+    color: #263238;
+    letter-spacing: 0.2em;
+  }
+
+  .entry-date {
+    font-size: 10px;
+    color: #37474F;
+    letter-spacing: 0.1em;
+  }
+
+  .compose-area {
+    margin-top: 4rem;
+  }
+
+  .compose-label {
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    color: #37474F;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+  }
+
+  textarea#thought {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-top: 1px solid #1C2128;
+    border-bottom: 1px dashed #1C2128;
+    color: #B0BEC5;
+    font-family: 'Courier Prime', 'Courier New', monospace;
+    font-size: 15px;
+    line-height: 1.9;
+    padding: 1.25rem 0;
+    resize: none;
+    outline: none;
+    min-height: 120px;
+    caret-color: #FFB74D;
+  }
+  textarea#thought::placeholder { color: #263238; }
+
+  .compose-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 1.25rem;
+  }
+
+  .char-count {
+    font-size: 10px;
+    color: #263238;
+    letter-spacing: 0.1em;
+  }
+
+  .send-btn {
+    background: transparent;
+    border: 1px solid #FFB74D;
+    color: #FFB74D;
+    font-family: 'Courier Prime', 'Courier New', monospace;
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    padding: 0.6rem 1.4rem;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+  }
+  .send-btn:hover {
+    background: rgba(255,183,77,0.08);
+  }
+  .send-btn:active { opacity: 0.7; }
+
+  .toast {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(8px);
+    background: #0D1117;
+    border: 1px solid #1C2128;
+    color: #546E7A;
+    font-family: 'Courier Prime', monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    padding: 0.6rem 1.5rem;
+    opacity: 0;
+    transition: opacity 0.4s, transform 0.4s;
+    pointer-events: none;
+    z-index: 10;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .footer-line {
+    font-size: 10px;
+    color: #1C2128;
+    letter-spacing: 0.2em;
+    text-align: center;
+    margin-top: 5rem;
+    text-transform: uppercase;
+  }
+
+  #live-entries { margin-top: 2rem; }
+
+  .new-entry {
+    animation: fadeIn 0.6s ease;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>
+
+<div class="shell">
+  <div class="noise"></div>
+  <div class="vignette"></div>
+  <div class="content">
+
+    <div class="clock">
+      <span class="lamp-dot"></span>
+      <span id="liveclock">03:00:00</span>
+    </div>
+
+    <div class="hero-time" id="big-time">03:00</div>
+    <div class="hero-subtitle">the witching hour</div>
+
+    <div class="entry-block">
+      <div class="entry-meta">
+        <span class="entry-num">#001</span>
+        <span class="entry-date">may 14 — 03:17 am</span>
+      </div>
+      <div class="entry-label">thoughts from tonight</div>
+      <div class="entry-body">
+        <p>everyone else is asleep and i keep thinking about a conversation from three weeks ago. not sure why it stays. the apartment hum is louder than usual. or maybe it's always this loud and i only hear it now.</p>
+        <p>the window fog makes the streetlights look like they're breathing.</p>
+      </div>
+    </div>
+
+    <div class="entry-block">
+      <div class="entry-meta">
+        <span class="entry-num">#002</span>
+        <span class="entry-date">may 13 — 02:51 am</span>
+      </div>
+      <div class="entry-label">something honest</div>
+      <div class="entry-body">
+        <p>i read somewhere that 3am has the highest rate of clarity and the lowest rate of judgment. this feels true. i'm more myself at this hour than i am at noon.</p>
+        <p>tired but not sleepy. the difference matters.</p>
+      </div>
+    </div>
+
+    <div id="live-entries"></div>
+
+    <div class="divider"></div>
+
+    <div class="compose-area">
+      <div class="compose-label">write something</div>
+      <textarea id="thought" placeholder="it's quiet enough now to be honest..." maxlength="500" rows="5"></textarea>
+      <div class="compose-footer">
+        <span class="char-count" id="cc">0 / 500</span>
+        <button class="send-btn" onclick="addEntry()">— leave it here</button>
+      </div>
+    </div>
+
+    <div class="footer-line">anonymous · unsaved · 3am</div>
+  </div>
+</div>
+
+<div class="toast" id="toast">entry left in the dark</div>
+
+<script>
+  function tick() {
+    const now = new Date();
+    const h = String(now.getHours()).padStart(2,'0');
+    const m = String(now.getMinutes()).padStart(2,'0');
+    const s = String(now.getSeconds()).padStart(2,'0');
+    document.getElementById('liveclock').textContent = h+':'+m+':'+s;
+    document.getElementById('big-time').textContent = h+':'+m;
+  }
+  tick();
+  setInterval(tick, 1000);
+
+  const ta = document.getElementById('thought');
+  const cc = document.getElementById('cc');
+  ta.addEventListener('input', () => { cc.textContent = ta.value.length + ' / 500'; });
+
+  let entryCount = 3;
+
+  function addEntry() {
+    const val = ta.value.trim();
+    if (!val) return;
+    entryCount++;
+    const now = new Date();
+    const mon = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'][now.getMonth()];
+    const day = now.getDate();
+    const h = String(now.getHours()).padStart(2,'0');
+    const m = String(now.getMinutes()).padStart(2,'0');
+    const ampm = now.getHours() >= 12 ? 'pm' : 'am';
+    const dateStr = mon + ' ' + day + ' — ' + h + ':' + m + ' ' + ampm;
+    const num = String(entryCount).padStart(3,'0');
+
+    const div = document.createElement('div');
+    div.className = 'entry-block new-entry';
+    div.innerHTML = '<div class="entry-meta"><span class="entry-num">#'+num+'</span><span class="entry-date">'+dateStr+'</span></div><div class="entry-label">just now</div><div class="entry-body"><p>'+val.replace(/</g,'&lt;').replace(/\n/g,'</p><p>')+'</p></div>';
+
+    const liveArea = document.getElementById('live-entries');
+    liveArea.insertBefore(div, liveArea.firstChild);
+
+    ta.value = '';
+    cc.textContent = '0 / 500';
+    ta.style.borderBottomColor = '#FFB74D';
+    setTimeout(() => { ta.style.borderBottomColor = '#1C2128'; }, 1200);
+
+    const toast = document.getElementById('toast');
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2200);
+  }
+</script>

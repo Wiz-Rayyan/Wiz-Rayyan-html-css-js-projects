@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0B3B60;
+    color: #FFFFFF;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .map-bg {
+    position: fixed;
+    inset: 0;
+    opacity: 0.06;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='600' viewBox='0 0 800 600'%3E%3Cg fill='none' stroke='%23FFFFFF' stroke-width='0.8'%3E%3Ccircle cx='400' cy='300' r='280' stroke-width='0.5' stroke-dasharray='4,6'/%3E%3Ccircle cx='400' cy='300' r='220' stroke-width='0.5' stroke-dasharray='4,6'/%3E%3Ccircle cx='400' cy='300' r='160' stroke-width='0.5' stroke-dasharray='4,6'/%3E%3Cline x1='0' y1='300' x2='800' y2='300'/%3E%3Cline x1='400' y1='0' x2='400' y2='600'/%3E%3Cline x1='0' y1='150' x2='800' y2='150' stroke-dasharray='2,8'/%3E%3Cline x1='0' y1='450' x2='800' y2='450' stroke-dasharray='2,8'/%3E%3Cline x1='200' y1='0' x2='200' y2='600' stroke-dasharray='2,8'/%3E%3Cline x1='600' y1='0' x2='600' y2='600' stroke-dasharray='2,8'/%3E%3Cellipse cx='300' cy='270' rx='80' ry='55' stroke-width='1.2'/%3E%3Cellipse cx='480' cy='240' rx='120' ry='70' stroke-width='1.2'/%3E%3Cellipse cx='200' cy='320' rx='60' ry='40' stroke-width='1.2'/%3E%3Cellipse cx='580' cy='330' rx='50' ry='35' stroke-width='1.2'/%3E%3Cellipse cx='650' cy='260' rx='45' ry='30' stroke-width='1.2'/%3E%3Cellipse cx='150' cy='200' rx='35' ry='22' stroke-width='1.2'/%3E%3C/g%3E%3C/svg%3E");
+    background-size: cover;
+    background-position: center;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .window-frame {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 10;
+    border: 28px solid rgba(5,22,40,0.85);
+    box-shadow: inset 0 0 0 4px rgba(255,255,255,0.08), inset 0 0 80px rgba(0,0,0,0.5);
+  }
+  .window-frame::before {
+    content: '';
+    position: absolute;
+    top: -28px; left: 50%; transform: translateX(-50%);
+    width: 4px; height: 100vh;
+    background: rgba(255,255,255,0.07);
+  }
+  .window-frame::after {
+    content: '';
+    position: absolute;
+    left: -28px; top: 50%; transform: translateY(-50%);
+    height: 4px; width: 100vw;
+    background: rgba(255,255,255,0.07);
+  }
+
+  .page {
+    position: relative;
+    z-index: 1;
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 60px 32px 80px;
+  }
+
+  .masthead {
+    text-align: center;
+    margin-bottom: 56px;
+    border-bottom: 1px solid rgba(255,255,255,0.15);
+    padding-bottom: 40px;
+  }
+
+  .stamp-row {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+  }
+
+  .stamp {
+    border: 2px solid rgba(255,255,255,0.35);
+    border-radius: 50%;
+    width: 64px; height: 64px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 7px;
+    letter-spacing: 0.05em;
+    color: rgba(255,255,255,0.6);
+    text-transform: uppercase;
+    position: relative;
+    opacity: 0.75;
+    animation: stampIn 0.5s ease both;
+  }
+  .stamp:nth-child(1) { animation-delay: 0.1s; }
+  .stamp:nth-child(2) { animation-delay: 0.25s; }
+  .stamp:nth-child(3) { animation-delay: 0.4s; }
+  .stamp:nth-child(4) { animation-delay: 0.55s; }
+
+  @keyframes stampIn {
+    from { transform: scale(1.4); opacity: 0; }
+    to { transform: scale(1); opacity: 0.75; }
+  }
+
+  .stamp .city { font-size: 9px; font-weight: bold; color: rgba(255,255,255,0.85); }
+  .stamp .year { font-size: 8px; color: rgba(255,255,255,0.5); }
+  .stamp::before {
+    content: '';
+    position: absolute;
+    inset: 4px;
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 50%;
+  }
+
+  .site-name {
+    font-size: 11px;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.5);
+    font-family: 'Share Tech Mono', monospace;
+    margin-bottom: 12px;
+  }
+
+  .hero-title {
+    font-size: 58px;
+    font-weight: 300;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    margin-bottom: 16px;
+    color: #FFFFFF;
+    font-style: italic;
+  }
+
+  .hero-sub {
+    font-size: 16px;
+    color: rgba(255,255,255,0.55);
+    font-style: italic;
+    font-weight: 300;
+    letter-spacing: 0.04em;
+  }
+
+  .departures-board {
+    background: #040F1A;
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 20px 24px;
+    margin: 48px 0 56px;
+    border-radius: 3px;
+  }
+
+  .board-header {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    color: rgba(255,255,255,0.35);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .flight-row {
+    display: grid;
+    grid-template-columns: 80px 1fr 80px 90px;
+    gap: 8px;
+    padding: 10px 0;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    align-items: center;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+  }
+
+  .flight-time { color: rgba(255,255,255,0.9); }
+  .flight-dest { color: #FFFFFF; }
+  .flight-num { color: rgba(255,255,255,0.4); font-size: 11px; }
+
+  .status-flip {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 2px;
+  }
+  .status-dep { background: rgba(255,170,0,0.15); color: #FFAA00; }
+  .status-brd { background: rgba(50,200,100,0.15); color: #32C864; }
+  .status-del { background: rgba(220,60,60,0.15); color: #DC4040; }
+
+  .flip-word {
+    display: inline-block;
+    animation: flipWord 0.4s cubic-bezier(0.22,1,0.36,1) both;
+  }
+
+  @keyframes flipWord {
+    from { transform: rotateX(90deg) translateY(-10px); opacity: 0; }
+    to { transform: rotateX(0deg) translateY(0); opacity: 1; }
+  }
+
+  .article-grid {
+    display: grid;
+    gap: 48px;
+  }
+
+  .article {
+    display: grid;
+    grid-template-columns: 3px 1fr;
+    gap: 0 24px;
+  }
+
+  .article-accent {
+    background: linear-gradient(to bottom, rgba(255,255,255,0.5), rgba(255,255,255,0.05));
+    border-radius: 2px;
+  }
+
+  .article-body {}
+
+  .article-tag {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.4);
+    margin-bottom: 8px;
+  }
+
+  .article-heading {
+    font-size: 28px;
+    font-weight: 300;
+    font-style: italic;
+    line-height: 1.2;
+    margin-bottom: 12px;
+    color: #FFFFFF;
+  }
+
+  .article-lede {
+    font-size: 17px;
+    line-height: 1.75;
+    color: rgba(255,255,255,0.65);
+    font-weight: 300;
+    margin-bottom: 16px;
+  }
+
+  .article-meta {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    color: rgba(255,255,255,0.25);
+    text-transform: uppercase;
+  }
+
+  .read-more {
+    display: inline-block;
+    margin-top: 14px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.5);
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+    padding-bottom: 2px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .read-more:hover { color: #FFF; border-color: rgba(255,255,255,0.6); }
+
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin: 8px 0 8px;
+    opacity: 0.2;
+  }
+  .divider::before, .divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #FFF;
+  }
+  .divider-glyph {
+    font-size: 12px;
+    letter-spacing: 4px;
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  .pullquote {
+    border-left: 2px solid rgba(255,255,255,0.3);
+    padding: 12px 0 12px 24px;
+    margin: 32px 0;
+    font-size: 22px;
+    font-style: italic;
+    font-weight: 300;
+    line-height: 1.5;
+    color: rgba(255,255,255,0.75);
+  }
+
+  .footer-strip {
+    margin-top: 72px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    padding-top: 28px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: gap;
+  }
+
+  .footer-coords {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: rgba(255,255,255,0.25);
+    letter-spacing: 0.15em;
+  }
+
+  .footer-logo {
+    font-size: 13px;
+    font-style: italic;
+    font-weight: 300;
+    color: rgba(255,255,255,0.3);
+  }
+
+  .location-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 20px;
+    padding: 4px 12px 4px 8px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: rgba(255,255,255,0.5);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+  .pin-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: rgba(255,150,100,0.7);
+    box-shadow: 0 0 6px rgba(255,150,100,0.4);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.7); }
+  }
+</style>
+</head>
+<body>
+<div class="map-bg"></div>
+<div class="window-frame"></div>
+
+<div class="page">
+  <div class="masthead">
+    <div class="stamp-row">
+      <div class="stamp"><span class="city">FCO</span><span>ROME</span><span class="year">2019</span></div>
+      <div class="stamp"><span class="city">NRT</span><span>TOKYO</span><span class="year">2020</span></div>
+      <div class="stamp"><span class="city">LHR</span><span>LONDON</span><span class="year">2022</span></div>
+      <div class="stamp"><span class="city">GRU</span><span>SÃO PAULO</span><span class="year">2023</span></div>
+    </div>
+    <div class="site-name">Onism Journal</div>
+    <h1 class="hero-title">The Frustration<br>of Here</h1>
+    <p class="hero-sub">dispatches from the only place you ever actually are</p>
+  </div>
+
+  <div class="departures-board">
+    <div class="board-header">
+      <span>DEPARTURES</span>
+      <span id="board-time">00:00</span>
+    </div>
+    <div class="flight-row">
+      <span class="flight-time">06:40</span>
+      <span class="flight-dest"><span class="flip-word" style="animation-delay:0.2s">Reykjavík</span></span>
+      <span class="flight-num">FI 452</span>
+      <span class="status-flip status-brd"><span class="flip-word" style="animation-delay:0.3s">Boarding</span></span>
+    </div>
+    <div class="flight-row">
+      <span class="flight-time">07:15</span>
+      <span class="flight-dest"><span class="flip-word" style="animation-delay:0.4s">Marrakech</span></span>
+      <span class="flight-num">AT 801</span>
+      <span class="status-flip status-dep"><span class="flip-word" style="animation-delay:0.5s">Departed</span></span>
+    </div>
+    <div class="flight-row">
+      <span class="flight-time">08:55</span>
+      <span class="flight-dest"><span class="flip-word" style="animation-delay:0.6s">Ulaanbaatar</span></span>
+      <span class="flight-num">OM 222</span>
+      <span class="status-flip status-del"><span class="flip-word" style="animation-delay:0.7s">Delayed</span></span>
+    </div>
+    <div class="flight-row">
+      <span class="flight-time">10:20</span>
+      <span class="flight-dest"><span class="flip-word" style="animation-delay:0.8s">Tbilisi</span></span>
+      <span class="flight-num">A9 317</span>
+      <span class="status-flip status-dep"><span class="flip-word" style="animation-delay:0.9s">Departed</span></span>
+    </div>
+  </div>
+
+  <div class="article-grid">
+    <div class="article">
+      <div class="article-accent"></div>
+      <div class="article-body">
+        <div class="location-pill"><span class="pin-dot"></span>Mumbai, India · 18.9°N, 72.8°E</div>
+        <div class="article-tag">Essay · Wanderlust</div>
+        <h2 class="article-heading">Every Map Is a Small Cruelty</h2>
+        <p class="article-lede">You can trace the route with your finger — the coast road north of Dubrovnik, the ferry from Brindisi, the train that climbs through the Montenegrin hills in the dark. It costs nothing. It changes nothing. The walls of this apartment remain exactly where they are.</p>
+        <a class="read-more" onclick="sendPrompt('Write the full essay: Every Map Is a Small Cruelty, about the frustration of onism')">Continue reading ↗</a>
+        <div class="article-meta" style="margin-top:16px">12 May 2026 · 8 min read</div>
+      </div>
+    </div>
+
+    <div class="divider"><span class="divider-glyph">✦ ✦ ✦</span></div>
+
+    <div class="pullquote">
+      "Onism: the frustration of being stuck in just one body, that inhabits only one place at a time."
+    </div>
+
+    <div class="article">
+      <div class="article-accent"></div>
+      <div class="article-body">
+        <div class="article-tag">Field Notes · Departure</div>
+        <h2 class="article-heading">The Departure Board as Meditation Object</h2>
+        <p class="article-lede">There is a particular quality of attention that arrives when you sit below an airport departures board and simply watch the cities scroll. Kathmandu. Accra. Vladivostok. Each word a window that opens onto a whole geography of self you will never quite inhabit.</p>
+        <a class="read-more" onclick="sendPrompt('Write about departure boards as meditation objects — the onism of airports')">Continue reading ↗</a>
+        <div class="article-meta" style="margin-top:16px">28 Apr 2026 · 6 min read</div>
+      </div>
+    </div>
+
+    <div class="divider"><span class="divider-glyph">✦ ✦ ✦</span></div>
+
+    <div class="article">
+      <div class="article-accent"></div>
+      <div class="article-body">
+        <div class="article-tag">Photo Essay · Windows</div>
+        <h2 class="article-heading">On the Far Side of Glass</h2>
+        <p class="article-lede">Rain on a terminal window. A tarmac stretching toward mountains you cannot name. There is something about glass that makes distance physical — you can see the elsewhere, press your palm against it, feel the cold coming through.</p>
+        <a class="read-more" onclick="sendPrompt('Write the photo essay: On the Far Side of Glass, about watching the world through airport windows')">Continue reading ↗</a>
+        <div class="article-meta" style="margin-top:16px">3 Apr 2026 · 11 min read</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-strip">
+    <div class="footer-coords">19°04′N 72°52′E · UTC+5:30</div>
+    <div class="footer-logo">Onism Journal</div>
+    <div class="footer-coords">Issue No. 47 · Vol. IV</div>
+  </div>
+</div>
+
+<script>
+function updateBoardTime() {
+  const now = new Date();
+  const h = String(now.getHours()).padStart(2,'0');
+  const m = String(now.getMinutes()).padStart(2,'0');
+  const el = document.getElementById('board-time');
+  if (el) el.textContent = h + ':' + m;
+}
+updateBoardTime();
+setInterval(updateBoardTime, 1000);
+</script>
+</body>
+</html>

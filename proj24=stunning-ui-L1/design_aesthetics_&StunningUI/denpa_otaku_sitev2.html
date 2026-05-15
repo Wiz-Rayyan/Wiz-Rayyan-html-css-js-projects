@@ -1,0 +1,670 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap');
+
+  .denpa-root {
+    background: #1A1A2E;
+    min-height: 100vh;
+    font-family: 'Share Tech Mono', 'Courier New', monospace;
+    color: #E0E0FF;
+    overflow: hidden;
+    position: relative;
+    padding: 0;
+    margin: 0;
+    width: 100%;
+  }
+
+  /* scanline overlay */
+  .denpa-root::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.12) 2px,
+      rgba(0,0,0,0.12) 4px
+    );
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  .neon-pink { color: #FF2D78; }
+  .neon-cyan { color: #00FFF0; }
+  .neon-yellow { color: #FFE600; }
+  .neon-green { color: #39FF14; }
+
+  /* ── HEADER BAR ── */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    border-bottom: 1px solid #FF2D78;
+    background: rgba(26,26,46,0.95);
+    position: relative;
+    z-index: 10;
+  }
+  .logo {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #FF2D78;
+    text-shadow: 0 0 8px #FF2D78aa;
+  }
+  .logo span { color: #00FFF0; }
+  .header-nav {
+    display: flex;
+    gap: 18px;
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: #00FFF0;
+  }
+  .header-nav a {
+    color: inherit;
+    text-decoration: none;
+  }
+  .header-nav a:hover { color: #FF2D78; }
+  .blink {
+    animation: blink 1.1s step-end infinite;
+    color: #FF2D78;
+    font-size: 11px;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* ── TICKER ── */
+  .ticker {
+    background: #FF2D78;
+    color: #1A1A2E;
+    font-size: 10px;
+    letter-spacing: 2px;
+    padding: 3px 0;
+    overflow: hidden;
+    white-space: nowrap;
+    position: relative;
+    z-index: 10;
+  }
+  .ticker-inner {
+    display: inline-block;
+    animation: scroll-ticker 18s linear infinite;
+  }
+  @keyframes scroll-ticker {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+
+  /* ── MAIN GRID ── */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 200px 1fr 160px;
+    grid-template-rows: auto auto;
+    gap: 0;
+    position: relative;
+    z-index: 5;
+  }
+
+  /* ── LEFT SIDEBAR ── */
+  .sidebar-left {
+    border-right: 1px solid #00FFF055;
+    padding: 12px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .widget-box {
+    border: 1px solid #00FFF066;
+    background: rgba(0,255,240,0.04);
+    padding: 8px;
+    position: relative;
+  }
+  .widget-box::before {
+    content: attr(data-title);
+    position: absolute;
+    top: -9px;
+    left: 8px;
+    background: #1A1A2E;
+    padding: 0 4px;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: #00FFF0;
+    text-transform: uppercase;
+  }
+
+  .widget-box.pink-border { border-color: #FF2D7866; background: rgba(255,45,120,0.04); }
+  .widget-box.pink-border::before { color: #FF2D78; }
+
+  .now-playing {
+    font-size: 10px;
+    line-height: 1.6;
+  }
+  .np-title { color: #FFE600; font-size: 11px; }
+  .progress-bar {
+    width: 100%;
+    height: 3px;
+    background: #ffffff22;
+    margin-top: 6px;
+    position: relative;
+  }
+  .progress-fill {
+    width: 63%;
+    height: 100%;
+    background: #FF2D78;
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+
+  .fig-silhouette {
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 6px;
+    padding: 6px 0 0;
+    height: 70px;
+  }
+
+  .tag-cloud {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .tag {
+    font-size: 9px;
+    padding: 2px 5px;
+    letter-spacing: 1px;
+  }
+  .tag.cyan { border: 1px solid #00FFF0; color: #00FFF0; }
+  .tag.pink { border: 1px solid #FF2D78; color: #FF2D78; }
+  .tag.yellow { border: 1px solid #FFE600; color: #FFE600; }
+
+  .rank-list { font-size: 10px; line-height: 2; }
+  .rank-list li { list-style: none; display: flex; align-items: center; gap: 6px; }
+  .rank-num { color: #FF2D78; font-weight: 700; min-width: 14px; }
+  .rank-title { color: #E0E0FF; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* ── CENTER ── */
+  .center-col {
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Hero overlapping posters */
+  .hero-zone {
+    position: relative;
+    height: 220px;
+    overflow: hidden;
+    border-bottom: 1px solid #FF2D7844;
+  }
+  .hero-bg {
+    position: absolute;
+    inset: 0;
+    background: #16162A;
+    overflow: hidden;
+  }
+  .grid-lines {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(#00FFF011 1px, transparent 1px),
+      linear-gradient(90deg, #00FFF011 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+
+  .hero-text {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 20;
+  }
+  .hero-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 36px;
+    font-weight: 700;
+    line-height: 1;
+    color: #fff;
+    text-shadow: 2px 0 0 #FF2D78, -2px 0 0 #00FFF0;
+  }
+  .hero-sub {
+    font-size: 10px;
+    letter-spacing: 4px;
+    color: #00FFF0;
+    margin-top: 6px;
+  }
+  .hero-counter {
+    font-size: 9px;
+    color: #FF2D78;
+    margin-top: 8px;
+    letter-spacing: 1px;
+  }
+
+  /* Overlapping poster cards */
+  .poster {
+    position: absolute;
+    border: 1px solid;
+    display: flex;
+    align-items: flex-end;
+    padding: 4px 6px;
+    font-size: 9px;
+    letter-spacing: 1px;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+  }
+
+  /* Manga grid */
+  .manga-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: #000;
+    flex: 1;
+  }
+  .manga-panel {
+    background: #16162A;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 90px;
+    position: relative;
+    overflow: hidden;
+  }
+  .manga-panel::after {
+    content: '';
+    position: absolute;
+    bottom: 0; right: 0;
+    width: 0; height: 0;
+    border-style: solid;
+    border-width: 0 0 16px 16px;
+    border-color: transparent transparent #000 transparent;
+  }
+  .manga-panel.span2 { grid-column: span 2; }
+  .manga-panel.accent-pink { border-top: 2px solid #FF2D78; }
+  .manga-panel.accent-cyan { border-top: 2px solid #00FFF0; }
+  .manga-panel.accent-yellow { border-top: 2px solid #FFE600; }
+  .manga-panel.dark { background: #0D0D1F; }
+
+  .panel-label {
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  .panel-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+  .panel-meta {
+    font-size: 9px;
+    color: #ffffff55;
+  }
+  .panel-rating {
+    font-size: 11px;
+    color: #FFE600;
+  }
+  .panel-ep {
+    font-size: 10px;
+    padding: 2px 5px;
+    border: 1px solid currentColor;
+    display: inline-block;
+    margin-top: 2px;
+    width: fit-content;
+  }
+
+  /* big shape decorations in panels */
+  .panel-deco {
+    position: absolute;
+    opacity: 0.08;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 80px;
+    color: #fff;
+    right: -8px;
+    top: -10px;
+    line-height: 1;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  /* Speed lines */
+  .speed-lines {
+    position: absolute;
+    inset: 0;
+    opacity: 0.05;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  /* ── RIGHT SIDEBAR ── */
+  .sidebar-right {
+    border-left: 1px solid #FF2D7855;
+    padding: 10px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    font-size: 10px;
+  }
+
+  .energy-can {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .energy-label {
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: #39FF14;
+    text-transform: uppercase;
+  }
+
+  .stat-block { display: flex; flex-direction: column; gap: 3px; }
+  .stat-row { display: flex; justify-content: space-between; gap: 4px; border-bottom: 1px dashed #ffffff11; padding: 3px 0; }
+  .stat-key { color: #ffffff55; font-size: 9px; }
+  .stat-val { color: #00FFF0; font-size: 9px; }
+
+  .notif-list { display: flex; flex-direction: column; gap: 4px; }
+  .notif { padding: 4px 6px; background: rgba(255,45,120,0.1); border-left: 2px solid #FF2D78; font-size: 9px; line-height: 1.4; }
+  .notif.cyan-notif { background: rgba(0,255,240,0.07); border-left-color: #00FFF0; }
+
+  /* ── BOTTOM BAR ── */
+  .bottom-bar {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px;
+    border-top: 1px solid #00FFF033;
+    background: rgba(13,13,31,0.9);
+    font-size: 9px;
+    letter-spacing: 1px;
+    position: relative;
+    z-index: 10;
+  }
+  .bb-left { color: #ffffff44; }
+  .bb-center { color: #FF2D78; }
+  .bb-right { color: #00FFF0; }
+
+  /* decorative rotated sticker */
+  .sticker {
+    position: absolute;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    padding: 3px 6px;
+    transform-origin: center;
+    z-index: 30;
+    pointer-events: none;
+  }
+
+  /* cursor blink on header */
+  .cursor::after {
+    content: '|';
+    animation: blink 0.8s step-end infinite;
+    color: #FF2D78;
+  }
+
+</style>
+
+<div class="denpa-root" aria-label="Denpa Otaku fan site mockup">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="logo">電波<span>CAVE</span>.moe</div>
+    <div class="header-nav">
+      <a href="#">BLOG</a>
+      <a href="#">REVIEWS</a>
+      <a href="#">FIGURES</a>
+      <a href="#">ABOUT</a>
+    </div>
+    <div class="blink">● LIVE</div>
+  </div>
+
+  <!-- TICKER -->
+  <div class="ticker" aria-label="news ticker">
+    <span class="ticker-inner">
+      &nbsp;★ NEW EP REVIEW: MUSHISHI S3 WHEN??&nbsp;★&nbsp;FIGURE PRE-ORDER: ALTER 1/7 RYUKO ¥18,000&nbsp;★&nbsp;CURRENTLY WATCHING: 12 SHOWS&nbsp;★&nbsp;MANGA STACK: 847 VOLUMES&nbsp;★&nbsp;LAST SLEEP: 26HRS AGO&nbsp;★&nbsp;ENERGY DRINKS TODAY: 4&nbsp;★&nbsp;WAITING FOR BERSERK TO FINISH: 32 YEARS&nbsp;★&nbsp;NEW EP REVIEW: MUSHISHI S3 WHEN??&nbsp;★&nbsp;FIGURE PRE-ORDER: ALTER 1/7 RYUKO ¥18,000&nbsp;★&nbsp;CURRENTLY WATCHING: 12 SHOWS&nbsp;★&nbsp;MANGA STACK: 847 VOLUMES&nbsp;★&nbsp;LAST SLEEP: 26HRS AGO&nbsp;★&nbsp;ENERGY DRINKS TODAY: 4&nbsp;★&nbsp;WAITING FOR BERSERK TO FINISH: 32 YEARS&nbsp;★
+    </span>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main-grid">
+
+    <!-- LEFT SIDEBAR -->
+    <div class="sidebar-left">
+
+      <div class="widget-box" data-title="// NOW PLAYING">
+        <div class="now-playing">
+          <div class="np-title">Zankoku na Tenshi no These</div>
+          <div style="color:#ffffff66; font-size:9px; margin-top:2px;">Yoko Takahashi · OST</div>
+          <div class="progress-bar"><div class="progress-fill"></div></div>
+          <div style="display:flex;justify-content:space-between;font-size:9px;color:#ffffff44;margin-top:3px;"><span>2:14</span><span>3:33</span></div>
+        </div>
+      </div>
+
+      <div class="widget-box pink-border" data-title="// SHELF">
+        <div class="fig-silhouette">
+          <!-- figurine shapes as abstract SVG silhouettes -->
+          <svg width="28" height="60" viewBox="0 0 28 60" aria-hidden="true">
+            <ellipse cx="14" cy="8" rx="6" ry="7" fill="#FF2D78" opacity=".7"/>
+            <rect x="9" y="14" width="10" height="22" rx="2" fill="#FF2D78" opacity=".5"/>
+            <rect x="7" y="35" width="4" height="18" rx="2" fill="#FF2D78" opacity=".5"/>
+            <rect x="16" y="35" width="4" height="18" rx="2" fill="#FF2D78" opacity=".5"/>
+            <rect x="2" y="16" width="4" height="14" rx="2" fill="#FF2D78" opacity=".3"/>
+            <rect x="22" y="16" width="4" height="14" rx="2" fill="#FF2D78" opacity=".3"/>
+          </svg>
+          <svg width="22" height="50" viewBox="0 0 22 50" aria-hidden="true">
+            <ellipse cx="11" cy="7" rx="5" ry="6" fill="#00FFF0" opacity=".5"/>
+            <rect x="7" y="12" width="8" height="18" rx="2" fill="#00FFF0" opacity=".4"/>
+            <rect x="5" y="29" width="3" height="15" rx="2" fill="#00FFF0" opacity=".4"/>
+            <rect x="13" y="29" width="3" height="15" rx="2" fill="#00FFF0" opacity=".4"/>
+          </svg>
+          <svg width="24" height="55" viewBox="0 0 24 55" aria-hidden="true">
+            <ellipse cx="12" cy="8" rx="5" ry="7" fill="#FFE600" opacity=".6"/>
+            <rect x="8" y="14" width="8" height="20" rx="1" fill="#FFE600" opacity=".4"/>
+            <rect x="6" y="33" width="3" height="16" rx="2" fill="#FFE600" opacity=".4"/>
+            <rect x="14" y="33" width="3" height="16" rx="2" fill="#FFE600" opacity=".4"/>
+          </svg>
+          <svg width="18" height="44" viewBox="0 0 18 44" aria-hidden="true">
+            <ellipse cx="9" cy="6" rx="4" ry="5" fill="#FF2D78" opacity=".4"/>
+            <rect x="6" y="10" width="7" height="16" rx="1" fill="#FF2D78" opacity=".35"/>
+            <rect x="4" y="25" width="3" height="13" rx="2" fill="#FF2D78" opacity=".35"/>
+            <rect x="11" y="25" width="3" height="13" rx="2" fill="#FF2D78" opacity=".35"/>
+          </svg>
+        </div>
+        <div style="font-size:9px;color:#ffffff44;text-align:center;margin-top:4px;">FIGURE COUNT: 47</div>
+      </div>
+
+      <div class="widget-box" data-title="// TAGS">
+        <div class="tag-cloud">
+          <span class="tag cyan">isekai</span>
+          <span class="tag pink">moe</span>
+          <span class="tag yellow">denpa</span>
+          <span class="tag cyan">slice-of-life</span>
+          <span class="tag pink">mecha</span>
+          <span class="tag cyan">VN</span>
+          <span class="tag yellow">OST</span>
+          <span class="tag pink">figures</span>
+          <span class="tag cyan">manga</span>
+          <span class="tag yellow">keion</span>
+        </div>
+      </div>
+
+      <div class="widget-box pink-border" data-title="// TOP SERIES">
+        <ul class="rank-list">
+          <li><span class="rank-num">01</span><span class="rank-title" style="color:#FF2D78">Lain</span></li>
+          <li><span class="rank-num">02</span><span class="rank-title">Haruhi</span></li>
+          <li><span class="rank-num">03</span><span class="rank-title">Evangelion</span></li>
+          <li><span class="rank-num">04</span><span class="rank-title">Tatami Galaxy</span></li>
+          <li><span class="rank-num">05</span><span class="rank-title" style="color:#00FFF0">Umineko</span></li>
+        </ul>
+      </div>
+
+    </div>
+
+    <!-- CENTER COLUMN -->
+    <div class="center-col">
+
+      <!-- HERO ZONE with overlapping posters -->
+      <div class="hero-zone">
+        <div class="hero-bg">
+          <div class="grid-lines"></div>
+        </div>
+
+        <!-- Overlapping posters (SVG-based colored rectangles with text) -->
+        <!-- Poster 1 - background right -->
+        <div class="poster" style="right:20px;top:15px;width:110px;height:140px;border-color:#FF2D78;background:rgba(255,45,120,0.12);color:#FF2D78;transform:rotate(3deg);z-index:1;">
+          <div>
+            <div style="font-size:16px;line-height:1;">NEON<br>GENESIS</div>
+            <div style="font-size:9px;opacity:.6;margin-top:2px;">EVA-01</div>
+          </div>
+        </div>
+        <!-- Poster 2 - mid -->
+        <div class="poster" style="right:80px;top:25px;width:90px;height:120px;border-color:#00FFF0;background:rgba(0,255,240,0.1);color:#00FFF0;transform:rotate(-4deg);z-index:2;">
+          <div>
+            <div style="font-size:14px;line-height:1.1;">SERIAL<br>EXPERI-<br>MENTS</div>
+            <div style="font-size:9px;margin-top:2px;">LAIN</div>
+          </div>
+        </div>
+        <!-- Poster 3 - front -->
+        <div class="poster" style="right:50px;top:60px;width:80px;height:100px;border-color:#FFE600;background:rgba(255,230,0,0.09);color:#FFE600;transform:rotate(1deg);z-index:3;">
+          <div>
+            <div style="font-size:13px;line-height:1.1;">HARUHI<br>SUZUMIYA</div>
+          </div>
+        </div>
+
+        <!-- Sticker -->
+        <div class="sticker" style="right:14px;top:8px;background:#FF2D78;color:#1A1A2E;transform:rotate(-12deg);">★ GOD TIER</div>
+
+        <!-- Hero Text -->
+        <div class="hero-text">
+          <div class="hero-title">電波BLOG<span class="cursor"></span></div>
+          <div class="hero-sub">OTAKU MODE: MAXIMUM OVERDRIVE</div>
+          <div class="hero-counter">POSTS: 1,847 · SINCE: 2009 · STILL GOING</div>
+          <div style="margin-top:10px;display:flex;gap:8px;">
+            <div style="font-size:9px;padding:4px 8px;border:1px solid #FF2D78;color:#FF2D78;letter-spacing:2px;cursor:pointer;">ENTER CAVE →</div>
+            <div style="font-size:9px;padding:4px 8px;border:1px solid #00FFF044;color:#00FFF0;letter-spacing:2px;cursor:pointer;">ARCHIVES</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MANGA PANEL GRID -->
+      <div class="manga-grid">
+
+        <div class="manga-panel span2 accent-pink dark">
+          <div class="panel-deco">新</div>
+          <div>
+            <div class="panel-label neon-pink">★ FEATURED REVIEW</div>
+            <div class="panel-title" style="color:#FF2D78;font-size:18px;">Chainsaw Man<br>Ch. 168</div>
+          </div>
+          <div>
+            <div class="panel-rating">★★★★★</div>
+            <div class="panel-meta">Posted 2h ago · 12 comments</div>
+          </div>
+        </div>
+
+        <div class="manga-panel accent-cyan">
+          <div class="panel-deco">見</div>
+          <div class="panel-label neon-cyan">CURRENTLY</div>
+          <div class="panel-title">Frieren</div>
+          <div class="panel-ep neon-cyan">EP 28 →</div>
+          <div class="panel-meta">↑ ep this week</div>
+        </div>
+
+        <div class="manga-panel accent-yellow dark">
+          <div class="panel-deco">読</div>
+          <div class="panel-label neon-yellow">DROPPED</div>
+          <div class="panel-title">Another Isekai</div>
+          <div class="panel-meta">ch.3 · not sorry</div>
+          <div style="font-size:9px;color:#FFE600;margin-top:4px;">★☆☆☆☆</div>
+        </div>
+
+        <div class="manga-panel accent-cyan dark">
+          <div class="panel-deco">論</div>
+          <div class="panel-label neon-cyan">HOT TAKE</div>
+          <div class="panel-title" style="font-size:12px;">Lucky Star is perfect anime</div>
+          <div class="panel-meta">287 agrees · 14 fights</div>
+        </div>
+
+        <div class="manga-panel accent-pink">
+          <div class="panel-deco">買</div>
+          <div class="panel-label neon-pink">HAUL</div>
+          <div class="panel-title" style="font-size:12px;">Tokyo Figure Haul #38</div>
+          <div class="panel-meta">¥47,200 spent</div>
+          <div style="font-size:9px;color:#FF2D78;margin-top:2px;">worth it probably</div>
+        </div>
+
+        <div class="manga-panel accent-yellow">
+          <div class="panel-deco">語</div>
+          <div class="panel-label neon-yellow">ESSAY</div>
+          <div class="panel-title" style="font-size:11px;">Why Lain is<br>still ahead</div>
+          <div class="panel-meta">3,200 words · 1998</div>
+        </div>
+
+        <div class="manga-panel accent-pink dark">
+          <div class="panel-deco">聴</div>
+          <div class="panel-label neon-pink">OST RECS</div>
+          <div class="panel-title" style="font-size:12px;">Yuki Kajiura<br>Deep Cuts</div>
+          <div class="panel-meta">playlist · 4h 12m</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- RIGHT SIDEBAR -->
+    <div class="sidebar-right">
+
+      <div class="energy-can">
+        <svg width="36" height="60" viewBox="0 0 36 60" aria-hidden="true">
+          <rect x="8" y="4" width="20" height="52" rx="4" fill="#1a2a1a" stroke="#39FF14" stroke-width="1"/>
+          <rect x="8" y="4" width="20" height="18" rx="4" fill="#39FF14" opacity=".15"/>
+          <text x="18" y="34" text-anchor="middle" fill="#39FF14" font-size="8" font-family="monospace" font-weight="700">ULTRA</text>
+          <text x="18" y="44" text-anchor="middle" fill="#39FF14" font-size="7" font-family="monospace" opacity=".7">CAFFEINE</text>
+          <ellipse cx="18" cy="8" rx="6" ry="3" fill="#39FF14" opacity=".3"/>
+        </svg>
+        <div class="energy-label">CAN 4/∞</div>
+      </div>
+
+      <div class="widget-box" data-title="// STATS">
+        <div class="stat-block">
+          <div class="stat-row"><span class="stat-key">ANIME SEEN</span><span class="stat-val">1,204</span></div>
+          <div class="stat-row"><span class="stat-key">MANGA READ</span><span class="stat-val">847</span></div>
+          <div class="stat-row"><span class="stat-key">FIGURES</span><span class="stat-val">47</span></div>
+          <div class="stat-row"><span class="stat-key">BACKLOG</span><span class="stat-val neon-pink">∞</span></div>
+          <div class="stat-row"><span class="stat-key">SLEEP HRS</span><span class="stat-val neon-pink">??</span></div>
+        </div>
+      </div>
+
+      <div class="widget-box pink-border" data-title="// ALERTS">
+        <div class="notif-list">
+          <div class="notif">NEW CHAPTER: CSM #168</div>
+          <div class="notif cyan-notif">PREORDER OPEN: KOTOBUKIYA RELIC</div>
+          <div class="notif">SALE: Animate 20% off</div>
+          <div class="notif cyan-notif" style="color:#FFE600;border-left-color:#FFE600;background:rgba(255,230,0,.06);">LAIN REWATCH SAT 21:00 JST</div>
+        </div>
+      </div>
+
+      <div style="text-align:center;padding-top:4px;">
+        <div style="font-size:8px;letter-spacing:2px;color:#ffffff33;">VISITOR NO.</div>
+        <div style="font-size:16px;font-family:'Rajdhani',sans-serif;font-weight:700;color:#FF2D78;letter-spacing:4px;">082,419</div>
+        <div style="width:100%;height:1px;background:linear-gradient(90deg,transparent,#FF2D7866,transparent);margin-top:4px;"></div>
+        <div style="font-size:8px;color:#ffffff22;margin-top:4px;letter-spacing:1px;">since 04.11.2009</div>
+      </div>
+
+    </div>
+
+    <!-- BOTTOM BAR -->
+    <div class="bottom-bar">
+      <div class="bb-left">© 電波CAVE 2009–2025 · ALL RIGHTS RESERVED (but please pirate the anime)</div>
+      <div class="bb-center">MADE WITH LOVE AND 4 ENERGY DRINKS</div>
+      <div class="bb-right">[ <span class="blink">●</span> ONLINE ]</div>
+    </div>
+
+  </div>
+</div>

@@ -1,0 +1,247 @@
+
+<style>
+  @keyframes fogDrift {
+    0% { transform: translateX(-5%) translateY(0); opacity: 0.45; }
+    50% { transform: translateX(5%) translateY(-2%); opacity: 0.6; }
+    100% { transform: translateX(-5%) translateY(0); opacity: 0.45; }
+  }
+  @keyframes ripple {
+    0% { transform: scaleX(1); opacity: 0.18; }
+    50% { transform: scaleX(1.015); opacity: 0.28; }
+    100% { transform: scaleX(1); opacity: 0.18; }
+  }
+  @keyframes flicker {
+    0%, 100% { opacity: 1; }
+    92% { opacity: 1; }
+    93% { opacity: 0.88; }
+    94% { opacity: 1; }
+    96% { opacity: 0.92; }
+    97% { opacity: 1; }
+  }
+  .pool-wrap {
+    position: relative;
+    width: 100%;
+    height: 540px;
+    overflow: hidden;
+    background: #c8ede4;
+    font-family: var(--font-mono);
+  }
+  .tile-floor {
+    position: absolute;
+    inset: 0;
+    background-color: #daf4ec;
+    background-image:
+      linear-gradient(rgba(160,210,195,0.55) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(160,210,195,0.55) 1px, transparent 1px),
+      linear-gradient(rgba(140,195,180,0.18) 2px, transparent 2px),
+      linear-gradient(90deg, rgba(140,195,180,0.18) 2px, transparent 2px);
+    background-size: 48px 48px, 48px 48px, 240px 240px, 240px 240px;
+    transform: perspective(700px) rotateX(38deg) scaleY(1.7) translateY(14%);
+    transform-origin: 50% 100%;
+  }
+  .tile-walls {
+    position: absolute;
+    inset: 0;
+    background-color: #e6f8f3;
+    background-image:
+      linear-gradient(rgba(160,210,195,0.5) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(160,210,195,0.5) 1px, transparent 1px),
+      linear-gradient(rgba(140,195,180,0.15) 2px, transparent 2px),
+      linear-gradient(90deg, rgba(140,195,180,0.15) 2px, transparent 2px);
+    background-size: 48px 48px, 48px 48px, 240px 240px, 240px 240px;
+    clip-path: polygon(0 0, 100% 0, 72% 58%, 28% 58%);
+  }
+  .pool-water {
+    position: absolute;
+    left: 12%;
+    right: 12%;
+    top: 30%;
+    bottom: 0;
+    background: linear-gradient(180deg, #3bbfa0 0%, #1e9078 30%, #156858 70%, #0d4f44 100%);
+    border-top: 2px solid rgba(180,240,225,0.7);
+    transform: perspective(700px) rotateX(38deg) scaleY(1.7) translateY(14%);
+    transform-origin: 50% 100%;
+  }
+  .pool-water-surface {
+    position: absolute;
+    left: 12%;
+    right: 12%;
+    top: 30.2%;
+    height: 18%;
+    background: linear-gradient(180deg, rgba(100,230,200,0.22) 0%, transparent 100%);
+    transform: perspective(700px) rotateX(38deg) scaleY(1.7) translateY(14%);
+    transform-origin: 50% 100%;
+    animation: ripple 4s ease-in-out infinite;
+  }
+  .pool-lane-lines {
+    position: absolute;
+    left: 12%;
+    right: 12%;
+    top: 30%;
+    bottom: 0;
+    display: flex;
+    justify-content: space-around;
+    align-items: flex-start;
+    padding-top: 4px;
+    transform: perspective(700px) rotateX(38deg) scaleY(1.7) translateY(14%);
+    transform-origin: 50% 100%;
+  }
+  .lane-line {
+    width: 2px;
+    height: 100%;
+    background: repeating-linear-gradient(
+      180deg,
+      rgba(255,200,80,0.6) 0px,
+      rgba(255,200,80,0.6) 10px,
+      rgba(255,200,80,0.15) 10px,
+      rgba(255,200,80,0.15) 20px
+    );
+  }
+  .yellow-light {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 80% 40% at 50% 0%, rgba(255,230,120,0.18) 0%, transparent 70%);
+    mix-blend-mode: multiply;
+    pointer-events: none;
+    animation: flicker 8s ease-in-out infinite;
+  }
+  .ceiling-lights {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 56%;
+    display: flex;
+    justify-content: space-around;
+    align-items: flex-start;
+    padding: 0 10%;
+    pointer-events: none;
+  }
+  .ceiling-light {
+    width: 2px;
+    height: 100%;
+    background: linear-gradient(180deg, rgba(255,245,180,0.55) 0%, transparent 100%);
+    filter: blur(2px);
+  }
+  .ceiling-light-halo {
+    position: absolute;
+    top: 0;
+    width: 80px;
+    height: 3px;
+    background: rgba(255,245,180,0.7);
+    border-radius: 2px;
+    transform: translateX(-50%);
+    filter: blur(1px);
+  }
+  .reflection-pool {
+    position: absolute;
+    left: 12%;
+    right: 12%;
+    bottom: 0;
+    height: 40%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(180,240,225,0.07) 100%);
+    transform: perspective(700px) rotateX(38deg) scaleY(1.7) translateY(14%);
+    transform-origin: 50% 100%;
+    pointer-events: none;
+  }
+  .fog-layer {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg,
+      rgba(240,252,248,0.72) 0%,
+      rgba(220,248,240,0.4) 35%,
+      rgba(200,240,230,0.12) 55%,
+      transparent 70%
+    );
+    animation: fogDrift 9s ease-in-out infinite;
+    pointer-events: none;
+  }
+  .fog-layer-2 {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(170deg,
+      transparent 20%,
+      rgba(230,250,245,0.22) 50%,
+      transparent 80%
+    );
+    animation: fogDrift 13s ease-in-out infinite reverse;
+    pointer-events: none;
+  }
+  .vignette {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 100% 100% at 50% 50%,
+      transparent 40%,
+      rgba(10,50,40,0.38) 100%
+    );
+    pointer-events: none;
+  }
+  .wet-sheen {
+    position: absolute;
+    left: 0; right: 0;
+    bottom: 0;
+    height: 55%;
+    background: linear-gradient(180deg, transparent 0%, rgba(255,255,255,0.07) 100%);
+    pointer-events: none;
+  }
+  .depth-fade {
+    position: absolute;
+    top: 42%;
+    left: 0; right: 0;
+    height: 18%;
+    background: linear-gradient(180deg, transparent, rgba(200,240,230,0.28), transparent);
+    pointer-events: none;
+  }
+  .caption {
+    position: absolute;
+    bottom: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    color: rgba(180,235,220,0.45);
+    text-transform: uppercase;
+    white-space: nowrap;
+    pointer-events: none;
+    user-select: none;
+  }
+</style>
+
+<h2 class="sr-only">Liminal poolrooms — an infinite indoor pool rendered in pale aqua tile with fog, yellow lighting, and wet reflections. No people. Unsettling calm.</h2>
+
+<div class="pool-wrap">
+  <div class="tile-walls"></div>
+  <div class="tile-floor"></div>
+  <div class="pool-water"></div>
+  <div class="pool-water-surface"></div>
+  <div class="pool-lane-lines">
+    <div class="lane-line"></div>
+    <div class="lane-line"></div>
+    <div class="lane-line"></div>
+    <div class="lane-line"></div>
+  </div>
+  <div class="reflection-pool"></div>
+
+  <div class="ceiling-lights">
+    <div style="position:relative; display:flex; flex-direction:column; align-items:center;">
+      <div class="ceiling-light-halo"></div>
+      <div class="ceiling-light"></div>
+    </div>
+    <div style="position:relative; display:flex; flex-direction:column; align-items:center;">
+      <div class="ceiling-light-halo"></div>
+      <div class="ceiling-light"></div>
+    </div>
+    <div style="position:relative; display:flex; flex-direction:column; align-items:center;">
+      <div class="ceiling-light-halo"></div>
+      <div class="ceiling-light"></div>
+    </div>
+  </div>
+
+  <div class="yellow-light"></div>
+  <div class="wet-sheen"></div>
+  <div class="depth-fade"></div>
+  <div class="fog-layer"></div>
+  <div class="fog-layer-2"></div>
+  <div class="vignette"></div>
+  <div class="caption">level 37 — the poolrooms — no exit found</div>
+</div>

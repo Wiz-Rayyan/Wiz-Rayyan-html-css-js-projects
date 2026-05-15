@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #000;
+    color: #fff;
+    font-family: 'Courier New', Courier, monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .page {
+    background: #000;
+    padding: 0;
+    position: relative;
+  }
+
+  /* Steganographic overlay — barely visible */
+  .steg-layer {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    opacity: 0.04;
+    font-size: 7px;
+    line-height: 1.1;
+    letter-spacing: 0.5px;
+    color: #fff;
+    word-break: break-all;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+    padding: 4px;
+    font-family: 'Courier New', monospace;
+  }
+
+  .content {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Header */
+  .header {
+    border-bottom: 1px solid #222;
+    padding: 28px 40px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+  }
+
+  .site-id {
+    font-size: 11px;
+    color: #444;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+  }
+
+  .site-num {
+    font-size: 32px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -1px;
+    line-height: 1;
+  }
+
+  .header-right {
+    text-align: right;
+  }
+
+  .coordinates {
+    font-size: 10px;
+    color: #333;
+    letter-spacing: 2px;
+  }
+
+  .status-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #fff;
+    margin-right: 6px;
+    animation: blink 2s infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.1; }
+  }
+
+  .status {
+    font-size: 10px;
+    color: #555;
+    letter-spacing: 3px;
+  }
+
+  /* Hero section */
+  .hero {
+    padding: 48px 40px 32px;
+    border-bottom: 1px solid #111;
+    display: grid;
+    grid-template-columns: 1fr 160px;
+    gap: 40px;
+    align-items: start;
+  }
+
+  .latin-header {
+    font-size: 10px;
+    color: #333;
+    letter-spacing: 5px;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  .main-headline {
+    font-size: 22px;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.3;
+    letter-spacing: 0.5px;
+    margin-bottom: 20px;
+  }
+
+  .latin-body {
+    font-size: 12px;
+    color: #444;
+    line-height: 1.8;
+    letter-spacing: 1px;
+  }
+
+  /* QR code SVG */
+  .qr-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .qr-label {
+    font-size: 8px;
+    color: #333;
+    letter-spacing: 3px;
+    text-align: center;
+  }
+
+  /* Separator with runes */
+  .rune-strip {
+    padding: 14px 40px;
+    border-bottom: 1px solid #111;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    overflow: hidden;
+  }
+
+  .rune-line {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, transparent, #222, transparent);
+  }
+
+  .runes {
+    font-size: 16px;
+    color: #2a2a2a;
+    letter-spacing: 10px;
+    white-space: nowrap;
+  }
+
+  /* Puzzle grid */
+  .puzzle-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-bottom: 1px solid #111;
+  }
+
+  .puzzle-cell {
+    padding: 28px 40px;
+    border-right: 1px solid #111;
+    border-bottom: 1px solid #111;
+  }
+
+  .puzzle-cell:nth-child(even) {
+    border-right: none;
+  }
+
+  .puzzle-cell:nth-last-child(-n+2) {
+    border-bottom: none;
+  }
+
+  .cell-index {
+    font-size: 9px;
+    color: #2a2a2a;
+    letter-spacing: 4px;
+    margin-bottom: 10px;
+  }
+
+  .cell-title {
+    font-size: 13px;
+    color: #888;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    font-weight: 700;
+  }
+
+  .cell-body {
+    font-size: 11px;
+    color: #2d2d2d;
+    line-height: 1.8;
+    letter-spacing: 1px;
+  }
+
+  /* Cipher block */
+  .cipher-block {
+    padding: 28px 40px;
+    border-bottom: 1px solid #111;
+    font-family: 'Courier New', monospace;
+  }
+
+  .cipher-label {
+    font-size: 9px;
+    color: #333;
+    letter-spacing: 5px;
+    margin-bottom: 14px;
+  }
+
+  .cipher-text {
+    font-size: 12px;
+    color: #1e1e1e;
+    word-break: break-all;
+    line-height: 1.9;
+    letter-spacing: 2px;
+  }
+
+  .cipher-text span.highlight {
+    color: #555;
+  }
+
+  /* Inverted block */
+  .inverted-block {
+    margin: 0 40px;
+    background: #fff;
+    color: #000;
+    padding: 20px 24px;
+    margin-top: 28px;
+    margin-bottom: 28px;
+    position: relative;
+  }
+
+  .inverted-block::before {
+    content: '[ DECODE THIS LAYER ]';
+    position: absolute;
+    top: -18px;
+    left: 0;
+    font-size: 9px;
+    color: #222;
+    letter-spacing: 4px;
+  }
+
+  .inv-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #000;
+    margin-bottom: 8px;
+  }
+
+  .inv-body {
+    font-size: 10px;
+    color: #555;
+    line-height: 1.7;
+    letter-spacing: 1px;
+  }
+
+  /* Symbol row */
+  .symbol-row {
+    padding: 20px 40px;
+    border-bottom: 1px solid #111;
+    display: flex;
+    gap: 28px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .symbol-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .symbol-glyph {
+    font-size: 22px;
+    color: #1c1c1c;
+  }
+
+  .symbol-code {
+    font-size: 8px;
+    color: #2a2a2a;
+    letter-spacing: 2px;
+  }
+
+  /* CTA / Terminal */
+  .terminal {
+    padding: 32px 40px;
+    border-bottom: 1px solid #111;
+  }
+
+  .terminal-prompt {
+    font-size: 12px;
+    color: #333;
+    margin-bottom: 6px;
+  }
+
+  .terminal-prompt::before {
+    content: '> ';
+    color: #fff;
+  }
+
+  .terminal-line {
+    font-size: 13px;
+    color: #fff;
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .cursor {
+    display: inline-block;
+    width: 8px;
+    height: 14px;
+    background: #fff;
+    animation: blink 1s infinite;
+    vertical-align: middle;
+  }
+
+  /* Footer */
+  .footer {
+    padding: 18px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .footer-left {
+    font-size: 9px;
+    color: #1e1e1e;
+    letter-spacing: 3px;
+  }
+
+  .footer-right {
+    font-size: 9px;
+    color: #1e1e1e;
+    letter-spacing: 2px;
+  }
+
+  /* Scan lines overlay */
+  .scanlines {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(
+      to bottom,
+      transparent 0px,
+      transparent 3px,
+      rgba(0,0,0,0.04) 3px,
+      rgba(0,0,0,0.04) 4px
+    );
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  /* Hash strip */
+  .hash-strip {
+    padding: 10px 40px;
+    background: #050505;
+    border-bottom: 1px solid #111;
+    font-size: 9px;
+    color: #1a1a1a;
+    letter-spacing: 2px;
+    word-break: break-all;
+    line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Steganographic noise layer -->
+  <div class="steg-layer">3301 LIBER PRIMUS ᚠᚢᚦᚨᚱᚲᚷᚹᚺᚾᛁᛃᛇᛈᛉᛊᛏᛒᛖᛗᛚᛜᛞᛟ OUT OF DARKNESS COMETH LIGHT PARABLE OF THE MONK AND THE MERCHANT THE PHYSICIAN OF MADOC THE SEARCHER THE WISE MAN THE PROVERB THE PARABLE THE KOAN WISDOM IS FOUND IN UNEXPECTED PLACES SEEK THE KEY HIDDEN IN PLAIN SIGHT 3301 MDC CCXLII THE FIRST PUZZLE WAS HIDDEN IN A JPEG THE NUMBERS APPEAR TO THOSE WHO SEE 3301 3301 3301 CICADA BEGINS AGAIN NULL CIPHER ROT-13 APPLY THE FIBONACCI SEQUENCE THE VIGENERE KEY IS WITHIN LIBER PRIMUS RUNIC ALPHABET ELDER FUTHARK DECODE LAYER TWO BEFORE PROCEEDING DO NOT SHARE THIS WITH OTHERS FIND THE BOOK FIND THE KEY OPEN THE DOOR WISDOM AWAITS ᚠᚢᚦᚨᚱᚲᚷᚹᚺᚾᛁᛃᛇᛈᛉᛊᛏᛒᛖᛗᛚᛜᛞᛟ THE PRIME NUMBERS ARE THE KEY 3 7 11 13 17 19 23 29 31 37 41 43 47 59 67 71 79 83 89 97 THE ONES WHO COME THIS FAR HAVE UNDERSTOOD THE FIRST PRINCIPLE DARKNESS IS PREFERABLE TO IGNORANCE SOLVE THE ONION ROUTE FIND THE .onion URL EMBEDDED IN THE SPECTRUM ANALYSER OUTPUT 3301 AWAITS</div>
+
+  <div class="content">
+
+    <!-- Header -->
+    <header class="header">
+      <div>
+        <div class="site-id">CLASSIFIED · LEVEL 0 ACCESS</div>
+        <div class="site-num">3301</div>
+      </div>
+      <div class="header-right">
+        <div class="coordinates">52.5174°N · 13.4038°E · ALT 34M</div>
+        <br>
+        <div class="status"><span class="status-dot"></span>TRANSMISSION ACTIVE</div>
+      </div>
+    </header>
+
+    <!-- Hash strip -->
+    <div class="hash-strip">
+      SHA-512 · e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855d35b8e39e7427a6f64a9f5e1d2c3b4a5f6e7d8c9b0a1f2e3d4c5b6a7f8e9d0c1b2a3f4e5d6c7b8a9f0e1d2c3b4a5f6e7d8c9b0a1f2e3d4c5b6a7f8e9d0c1b2a3f4e5 · VERIFY INTEGRITY BEFORE PROCEEDING
+    </div>
+
+    <!-- Hero -->
+    <section class="hero">
+      <div>
+        <div class="latin-header">ANNO DOMINI MMXXVI · PUZZLE SEQUENCE VII</div>
+        <div class="main-headline">Welcome, Seeker.<br>The path requires patience.</div>
+        <div class="latin-body">
+          Qui quaerit, invenit. Iterum venimus. Hoc non est lusus —<br>
+          hoc est via. Sapientes ubique locorum nos quaerunt.<br>
+          <br>
+          The question was never whether you could find us.<br>
+          The question is whether you deserve to.
+        </div>
+      </div>
+      <div class="qr-wrapper">
+        <!-- QR Code SVG (functional-looking) -->
+        <svg width="140" height="140" viewBox="0 0 140 140" xmlns="http://www.w3.org/2000/svg">
+          <rect width="140" height="140" fill="#000"/>
+          <!-- Top-left finder -->
+          <rect x="8" y="8" width="42" height="42" fill="none" stroke="#fff" stroke-width="3"/>
+          <rect x="16" y="16" width="26" height="26" fill="#fff"/>
+          <rect x="20" y="20" width="18" height="18" fill="#000"/>
+          <!-- Top-right finder -->
+          <rect x="90" y="8" width="42" height="42" fill="none" stroke="#fff" stroke-width="3"/>
+          <rect x="98" y="16" width="26" height="26" fill="#fff"/>
+          <rect x="102" y="20" width="18" height="18" fill="#000"/>
+          <!-- Bottom-left finder -->
+          <rect x="8" y="90" width="42" height="42" fill="none" stroke="#fff" stroke-width="3"/>
+          <rect x="16" y="98" width="26" height="26" fill="#fff"/>
+          <rect x="20" y="102" width="18" height="18" fill="#000"/>
+          <!-- Data modules (random-looking pattern) -->
+          <rect x="58" y="8" width="6" height="6" fill="#fff"/>
+          <rect x="70" y="8" width="6" height="6" fill="#fff"/>
+          <rect x="64" y="16" width="6" height="6" fill="#fff"/>
+          <rect x="76" y="16" width="6" height="6" fill="#fff"/>
+          <rect x="58" y="24" width="6" height="6" fill="#fff"/>
+          <rect x="70" y="24" width="6" height="6" fill="#fff"/>
+          <rect x="64" y="32" width="6" height="6" fill="#fff"/>
+          <rect x="58" y="40" width="6" height="6" fill="#fff"/>
+          <rect x="76" y="40" width="6" height="6" fill="#fff"/>
+          <rect x="8" y="58" width="6" height="6" fill="#fff"/>
+          <rect x="20" y="58" width="6" height="6" fill="#fff"/>
+          <rect x="32" y="58" width="6" height="6" fill="#fff"/>
+          <rect x="44" y="58" width="6" height="6" fill="#fff"/>
+          <rect x="8" y="70" width="6" height="6" fill="#fff"/>
+          <rect x="26" y="70" width="6" height="6" fill="#fff"/>
+          <rect x="44" y="70" width="6" height="6" fill="#fff"/>
+          <rect x="14" y="76" width="6" height="6" fill="#fff"/>
+          <rect x="38" y="76" width="6" height="6" fill="#fff"/>
+          <rect x="8" y="82" width="6" height="6" fill="#fff"/>
+          <rect x="20" y="82" width="6" height="6" fill="#fff"/>
+          <rect x="32" y="82" width="6" height="6" fill="#fff"/>
+          <rect x="58" y="58" width="6" height="6" fill="#fff"/>
+          <rect x="70" y="64" width="6" height="6" fill="#fff"/>
+          <rect x="82" y="58" width="6" height="6" fill="#fff"/>
+          <rect x="94" y="64" width="6" height="6" fill="#fff"/>
+          <rect x="106" y="58" width="6" height="6" fill="#fff"/>
+          <rect x="118" y="58" width="6" height="6" fill="#fff"/>
+          <rect x="58" y="76" width="6" height="6" fill="#fff"/>
+          <rect x="76" y="70" width="6" height="6" fill="#fff"/>
+          <rect x="94" y="76" width="6" height="6" fill="#fff"/>
+          <rect x="112" y="70" width="6" height="6" fill="#fff"/>
+          <rect x="64" y="88" width="6" height="6" fill="#fff"/>
+          <rect x="82" y="88" width="6" height="6" fill="#fff"/>
+          <rect x="100" y="88" width="6" height="6" fill="#fff"/>
+          <rect x="118" y="82" width="6" height="6" fill="#fff"/>
+          <rect x="58" y="94" width="6" height="6" fill="#fff"/>
+          <rect x="76" y="100" width="6" height="6" fill="#fff"/>
+          <rect x="88" y="94" width="6" height="6" fill="#fff"/>
+          <rect x="106" y="100" width="6" height="6" fill="#fff"/>
+          <rect x="118" y="94" width="6" height="6" fill="#fff"/>
+          <rect x="64" y="106" width="6" height="6" fill="#fff"/>
+          <rect x="82" y="112" width="6" height="6" fill="#fff"/>
+          <rect x="94" y="106" width="6" height="6" fill="#fff"/>
+          <rect x="112" y="112" width="6" height="6" fill="#fff"/>
+          <rect x="126" y="106" width="6" height="6" fill="#fff"/>
+          <rect x="58" y="118" width="6" height="6" fill="#fff"/>
+          <rect x="70" y="124" width="6" height="6" fill="#fff"/>
+          <rect x="88" y="118" width="6" height="6" fill="#fff"/>
+          <rect x="100" y="124" width="6" height="6" fill="#fff"/>
+          <rect x="118" y="118" width="6" height="6" fill="#fff"/>
+          <rect x="126" y="124" width="6" height="6" fill="#fff"/>
+        </svg>
+        <div class="qr-label">LAYER 01 · SCAN</div>
+      </div>
+    </section>
+
+    <!-- Rune strip -->
+    <div class="rune-strip">
+      <div class="rune-line"></div>
+      <div class="runes">ᚠ ᚢ ᚦ ᚨ ᚱ ᚲ ᚷ ᚹ ᚺ ᚾ ᛁ ᛃ ᛇ ᛈ ᛉ ᛊ ᛏ ᛒ ᛖ ᛗ ᛚ ᛜ ᛞ ᛟ</div>
+      <div class="rune-line"></div>
+    </div>
+
+    <!-- Puzzle grid -->
+    <div class="puzzle-grid">
+      <div class="puzzle-cell">
+        <div class="cell-index">[ 00 · LAYER ONE ]</div>
+        <div class="cell-title">Cryptography</div>
+        <div class="cell-body">The first transformation is visual. The image contains what the image appears not to contain. LSB encoding. Tool of choice: StegSolve, zsteg, binwalk.</div>
+      </div>
+      <div class="puzzle-cell">
+        <div class="cell-index">[ 01 · LAYER TWO ]</div>
+        <div class="cell-title">Prime numbers</div>
+        <div class="cell-body">Every prime tells a story. Apply the Sieve. The sequence is not arbitrary. Fibonacci governs the gaps. Consult the rune table before you proceed.</div>
+      </div>
+      <div class="puzzle-cell">
+        <div class="cell-index">[ 02 · LAYER THREE ]</div>
+        <div class="cell-title">OSINT</div>
+        <div class="cell-body">The physical world holds a clue. GPS coordinates embedded in layer one resolve to a location. Visit it. The poster is real. Photograph the next QR.</div>
+      </div>
+      <div class="puzzle-cell">
+        <div class="cell-index">[ 03 · LAYER FOUR ]</div>
+        <div class="cell-title">Darknet</div>
+        <div class="cell-body">The final layer exists on a different network. Tor required. The .onion address is obtained only upon successful completion of layers 0–3. Do not guess.</div>
+      </div>
+    </div>
+
+    <!-- Cipher block -->
+    <div class="cipher-block">
+      <div class="cipher-label">VIGENÈRE CIPHER · KEY UNKNOWN · BEGIN DECRYPTION</div>
+      <div class="cipher-text">
+        MZDVZ <span class="highlight">OLYXF</span> QGINT UURMS BWCEP PAXKK NJMVL TWAQX RDHZZ MKFEP · <span class="highlight">GXOIV</span> WUMRS KZBEP NVKXI TRQMO SZGFD WULIX YQBMS CXDRN PZTMV · FMJWQ OXVLR HDNZZ PWKSI UTBNM QOYRP HVXZJ KCLMW OBQNP TXRVY
+      </div>
+    </div>
+
+    <!-- Inverted block -->
+    <div class="inverted-block">
+      <div class="inv-title">You are being evaluated</div>
+      <div class="inv-body">
+        3301 does not recruit. 3301 reveals itself to those who have already earned it. If you are reading this in a browser, you have not yet looked closely enough. The answer to layer one is already visible to you. It has been since you arrived.
+      </div>
+    </div>
+
+    <!-- Symbol row -->
+    <div class="symbol-row">
+      <div class="symbol-item">
+        <div class="symbol-glyph">☽</div>
+        <div class="symbol-code">U+263D</div>
+      </div>
+      <div class="symbol-item">
+        <div class="symbol-glyph">⊕</div>
+        <div class="symbol-code">U+2295</div>
+      </div>
+      <div class="symbol-item">
+        <div class="symbol-glyph">△</div>
+        <div class="symbol-code">U+25B3</div>
+      </div>
+      <div class="symbol-item">
+        <div class="symbol-glyph">⌬</div>
+        <div class="symbol-code">U+2C20</div>
+      </div>
+      <div class="symbol-item">
+        <div class="symbol-glyph">☿</div>
+        <div class="symbol-code">U+263F</div>
+      </div>
+      <div class="symbol-item">
+        <div class="symbol-glyph">⚸</div>
+        <div class="symbol-code">U+26B8</div>
+      </div>
+      <div class="symbol-item">
+        <div class="symbol-glyph">♄</div>
+        <div class="symbol-code">U+2644</div>
+      </div>
+      <div class="symbol-item">
+        <div class="symbol-glyph">⟁</div>
+        <div class="symbol-code">U+27C1</div>
+      </div>
+      <div class="symbol-item">
+        <div class="symbol-glyph">✦</div>
+        <div class="symbol-code">U+2726</div>
+      </div>
+      <div class="symbol-item">
+        <div class="symbol-glyph">ᛜ</div>
+        <div class="symbol-code">U+16DC</div>
+      </div>
+    </div>
+
+    <!-- Terminal CTA -->
+    <div class="terminal">
+      <div class="terminal-prompt">AWAITING INPUT</div>
+      <div class="terminal-prompt">PROVE YOUR VALUE</div>
+      <div class="terminal-prompt">FIND THE KEY. SOLVE THE CIPHER. RETURN HERE.</div>
+      <br>
+      <div class="terminal-line">_ <span class="cursor"></span></div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="footer-left">3301 · MCMXCIX · ALL RIGHTS RESERVED TO THOSE WHO UNDERSTAND RIGHTS</div>
+      <div class="footer-right">PGP: 7A35090F · LIBER PRIMUS · PAGE 01</div>
+    </footer>
+
+  </div>
+
+  <!-- Scan line overlay -->
+  <div class="scanlines"></div>
+
+</div>
+</body>
+</html>

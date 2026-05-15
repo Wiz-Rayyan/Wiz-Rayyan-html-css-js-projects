@@ -1,0 +1,286 @@
+
+<style>
+  @keyframes fadeInOut {
+    0%,100%{opacity:0;} 40%,60%{opacity:1;}
+  }
+  @keyframes floatDrift {
+    0%{transform:translateY(0px) translateX(0px);}
+    33%{transform:translateY(-18px) translateX(8px);}
+    66%{transform:translateY(6px) translateX(-12px);}
+    100%{transform:translateY(0px) translateX(0px);}
+  }
+  @keyframes blurPulse {
+    0%,100%{filter:blur(3px);opacity:0.3;}
+    50%{filter:blur(0.5px);opacity:0.85;}
+  }
+  @keyframes spinDrift {
+    0%{transform:rotate(0deg) translateY(0px);}
+    100%{transform:rotate(360deg) translateY(-30px);}
+  }
+  @keyframes textShimmer {
+    0%,100%{opacity:0;transform:translateX(-8px);}
+    30%,70%{opacity:1;transform:translateX(0);}
+  }
+  @keyframes glitchSlip {
+    0%,90%,100%{transform:translateX(0);}
+    92%{transform:translateX(-4px);}
+    94%{transform:translateX(6px);}
+    96%{transform:translateX(-2px);}
+  }
+  @keyframes breathe {
+    0%,100%{transform:scale(1);}
+    50%{transform:scale(1.04);}
+  }
+  @keyframes inkSpread {
+    0%{opacity:0;transform:scale(0.7);}
+    40%{opacity:0.6;transform:scale(1.05);}
+    100%{opacity:0;transform:scale(1.2);}
+  }
+
+  .dream-canvas {
+    position: relative;
+    width: 100%;
+    min-height: 540px;
+    background: #09090f;
+    overflow: hidden;
+    border-radius: 12px;
+    font-family: var(--font-sans);
+    cursor: default;
+    user-select: none;
+  }
+
+  .fragment {
+    position: absolute;
+    color: rgba(210,200,255,0.88);
+    animation: fadeInOut linear infinite, floatDrift ease-in-out infinite;
+    pointer-events: none;
+    letter-spacing: 0.04em;
+  }
+
+  .fragment.blurred {
+    animation: blurPulse ease-in-out infinite, floatDrift ease-in-out infinite;
+    color: rgba(180,210,255,0.6);
+  }
+
+  .fragment.glitch {
+    animation: fadeInOut linear infinite, floatDrift ease-in-out infinite, glitchSlip linear infinite;
+  }
+
+  .fragment.large {
+    font-size: 22px;
+    font-weight: 500;
+    color: rgba(230,215,255,0.7);
+  }
+
+  .fragment.small {
+    font-size: 12px;
+    color: rgba(180,180,220,0.55);
+    letter-spacing: 0.1em;
+    text-transform: lowercase;
+  }
+
+  .icon-float {
+    position: absolute;
+    color: rgba(180,160,255,0.5);
+    font-size: 28px;
+    animation: fadeInOut ease-in-out infinite, floatDrift ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  .ink-blob {
+    position: absolute;
+    border-radius: 50%;
+    animation: inkSpread ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  .dream-date {
+    position: absolute;
+    top: 22px;
+    left: 28px;
+    font-size: 11px;
+    color: rgba(140,130,180,0.5);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    animation: breathe 6s ease-in-out infinite;
+  }
+
+  .dream-title {
+    position: absolute;
+    top: 16px;
+    right: 28px;
+    font-size: 12px;
+    color: rgba(160,140,210,0.4);
+    letter-spacing: 0.22em;
+  }
+
+  .static-line {
+    position: absolute;
+    width: 60%;
+    height: 0.5px;
+    background: linear-gradient(90deg, transparent, rgba(160,130,255,0.3), transparent);
+    animation: fadeInOut ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  .add-btn {
+    position: absolute;
+    bottom: 20px;
+    right: 24px;
+    background: transparent;
+    border: 0.5px solid rgba(160,130,255,0.35);
+    color: rgba(180,160,255,0.65);
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    padding: 8px 18px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.4s ease;
+    z-index: 10;
+    font-family: var(--font-sans);
+  }
+  .add-btn:hover {
+    border-color: rgba(180,150,255,0.7);
+    color: rgba(210,190,255,0.9);
+    background: rgba(100,80,180,0.1);
+  }
+
+  .new-entry {
+    position: absolute;
+    bottom: 20px;
+    left: 0; right: 0;
+    display: flex;
+    justify-content: center;
+    z-index: 10;
+    opacity: 0;
+    transition: opacity 0.6s;
+  }
+  .new-entry.visible { opacity: 1; }
+  .new-entry input {
+    background: rgba(30,20,50,0.8);
+    border: 0.5px solid rgba(160,130,255,0.4);
+    color: rgba(210,200,255,0.9);
+    font-size: 13px;
+    padding: 8px 16px;
+    border-radius: 20px;
+    width: 280px;
+    font-family: var(--font-sans);
+    outline: none;
+    letter-spacing: 0.05em;
+  }
+  .new-entry input::placeholder { color: rgba(140,120,200,0.45); }
+</style>
+
+<h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);">Hypnagogic dream log: animated floating text fragments and icons drifting in a dreamlike, dark canvas</h2>
+
+<div class="dream-canvas" id="canvas">
+  <div class="dream-date">dream log — hypnagogic</div>
+  <div class="dream-title">threshold state</div>
+
+  <div class="ink-blob" style="width:320px;height:320px;top:-60px;left:-80px;background:radial-gradient(circle,rgba(80,50,160,0.18),transparent 70%);animation-duration:9s;animation-delay:0s;"></div>
+  <div class="ink-blob" style="width:260px;height:260px;bottom:-40px;right:-60px;background:radial-gradient(circle,rgba(40,80,160,0.15),transparent 70%);animation-duration:11s;animation-delay:3s;"></div>
+  <div class="ink-blob" style="width:200px;height:200px;top:40%;left:55%;background:radial-gradient(circle,rgba(120,60,180,0.12),transparent 70%);animation-duration:14s;animation-delay:6s;"></div>
+
+  <div class="static-line" style="top:38%;left:5%;animation-duration:7s;animation-delay:0s;"></div>
+  <div class="static-line" style="top:62%;left:20%;animation-duration:9s;animation-delay:4s;width:40%;"></div>
+
+  <div id="fragments"></div>
+  <div id="icons-layer"></div>
+
+  <button class="add-btn" id="addBtn" onclick="showInput()">+ log a fragment</button>
+  <div class="new-entry" id="inputBox">
+    <input type="text" id="dreamInput" placeholder="what do you half-remember…" maxlength="60" onkeydown="handleKey(event)" />
+  </div>
+</div>
+
+<script>
+const fragments = [
+  {text:"the door opened inward into nothing",x:8,y:18,size:14,dur:8,delay:0,type:""},
+  {text:"my hands were not my hands",x:55,y:72,size:16,dur:10,delay:2,type:"large"},
+  {text:"falling upward",x:18,y:55,size:13,dur:9,delay:4,type:"blurred"},
+  {text:"someone left the water running",x:40,y:30,size:13,dur:11,delay:1,type:"glitch"},
+  {text:"teeth",x:72,y:44,size:19,dur:7,delay:3,type:"large"},
+  {text:"the clock had too many hands",x:6,y:80,size:12,dur:13,delay:6,type:"blurred"},
+  {text:"i knew exactly where i was",x:60,y:86,size:12,dur:8,delay:5,type:""},
+  {text:"geography",x:82,y:14,size:11,dur:6,delay:2,type:"small"},
+  {text:"it was important that i not look",x:28,y:46,size:13,dur:12,delay:0.5,type:"blurred"},
+  {text:"stairs",x:48,y:63,size:20,dur:5,delay:3.5,type:"large"},
+  {text:"a colour without a name",x:75,y:28,size:11,dur:9,delay:7,type:""},
+  {text:"we had been here before",x:12,y:35,size:12,dur:10,delay:1.5,type:"glitch"},
+  {text:"light through glass that wasn't there",x:38,y:90,size:11,dur:14,delay:4.5,type:"blurred"},
+  {text:"soft",x:90,y:60,size:18,dur:7,delay:2.5,type:"large"},
+  {text:"the corridor extended",x:62,y:55,size:12,dur:11,delay:8,type:"small"},
+  {text:"everyone understood except me",x:20,y:70,size:13,dur:9,delay:5.5,type:""},
+  {text:"dissolving",x:46,y:18,size:17,dur:6,delay:1,type:"large"},
+];
+
+const iconList = [
+  {icon:"ti-moon",x:88,y:18,dur:12,delay:0},
+  {icon:"ti-eye",x:5,y:50,dur:8,delay:2},
+  {icon:"ti-feather",x:48,y:8,dur:10,delay:5},
+  {icon:"ti-wave-square",x:72,y:75,dur:9,delay:3},
+  {icon:"ti-cloud",x:22,y:88,dur:13,delay:1},
+  {icon:"ti-stars",x:58,y:40,dur:7,delay:4},
+];
+
+const canvas = document.getElementById('canvas');
+const h = 540;
+
+function renderFragment(f, id) {
+  const el = document.createElement('div');
+  el.className = 'fragment' + (f.type ? ' ' + f.type : '');
+  el.textContent = f.text;
+  el.style.cssText = `
+    left:${f.x}%;top:${(f.y / 100) * h}px;
+    font-size:${f.size || 13}px;
+    animation-duration:${f.dur}s,${f.dur * 1.6}s${f.type === 'glitch' ? ',' + (f.dur * 0.3) + 's' : ''};
+    animation-delay:${f.delay}s,${f.delay * 0.7}s${f.type === 'glitch' ? ',' + f.delay + 's' : ''};
+  `;
+  if (id !== undefined) el.dataset.id = id;
+  return el;
+}
+
+const fragLayer = document.getElementById('fragments');
+fragments.forEach((f, i) => fragLayer.appendChild(renderFragment(f, i)));
+
+const iconLayer = document.getElementById('icons-layer');
+iconList.forEach(ic => {
+  const el = document.createElement('i');
+  el.className = `ti ${ic.icon} icon-float`;
+  el.setAttribute('aria-hidden', 'true');
+  el.style.cssText = `left:${ic.x}%;top:${(ic.y / 100) * h}px;animation-duration:${ic.dur}s,${ic.dur * 1.4}s;animation-delay:${ic.delay}s,${ic.delay * 0.8}s;`;
+  iconLayer.appendChild(el);
+});
+
+function showInput() {
+  const box = document.getElementById('inputBox');
+  box.classList.toggle('visible');
+  if (box.classList.contains('visible')) {
+    setTimeout(() => document.getElementById('dreamInput').focus(), 100);
+  }
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter') {
+    const val = e.target.value.trim();
+    if (val) {
+      const newF = {
+        text: val,
+        x: Math.random() * 55 + 5,
+        y: Math.random() * 70 + 10,
+        size: 12 + Math.floor(Math.random() * 6),
+        dur: 8 + Math.random() * 6,
+        delay: 0,
+        type: ['','blurred','glitch',''][Math.floor(Math.random() * 4)]
+      };
+      fragLayer.appendChild(renderFragment(newF));
+    }
+    e.target.value = '';
+    document.getElementById('inputBox').classList.remove('visible');
+  }
+  if (e.key === 'Escape') {
+    e.target.value = '';
+    document.getElementById('inputBox').classList.remove('visible');
+  }
+}
+</script>

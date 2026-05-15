@@ -1,0 +1,212 @@
+
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  #stage {
+    position: relative;
+    width: 100%;
+    min-height: 600px;
+    background: #fff;
+    overflow: hidden;
+    font-family: var(--font-sans);
+  }
+  .card {
+    position: absolute;
+    background: #fff;
+    border: 1px solid #000;
+    padding: 12px 16px;
+    cursor: default;
+    transition: all 2.8s cubic-bezier(0.23, 1, 0.32, 1);
+    will-change: transform, left, top;
+    user-select: none;
+  }
+  .card:hover { z-index: 99; }
+  .card .label {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #888;
+    margin-bottom: 4px;
+  }
+  .card .title {
+    font-size: 15px;
+    font-weight: 500;
+    color: #000;
+    line-height: 1.3;
+  }
+  .card .sub {
+    font-size: 12px;
+    color: #444;
+    margin-top: 6px;
+    line-height: 1.5;
+  }
+  .card.accent {
+    background: #000;
+    border-color: #000;
+  }
+  .card.accent .title, .card.accent .sub { color: #fff; }
+  .card.accent .label { color: #999; }
+  .card.outline {
+    border: 2px solid #000;
+  }
+  #counter {
+    position: absolute;
+    bottom: 16px;
+    right: 16px;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: #bbb;
+    z-index: 200;
+    font-family: var(--font-mono, monospace);
+  }
+  #tagline {
+    position: absolute;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #ccc;
+    bottom: 16px;
+    left: 16px;
+    z-index: 200;
+  }
+  .dot {
+    position: absolute;
+    border-radius: 50%;
+    background: #000;
+    transition: all 2.8s cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .line {
+    position: absolute;
+    background: #000;
+    transition: all 2.8s cubic-bezier(0.23, 1, 0.32, 1);
+    transform-origin: left center;
+  }
+</style>
+
+<div id="stage" aria-label="Shapeless portfolio — elements reposition every 3 seconds">
+
+  <div class="card" id="c0">
+    <div class="label">Work</div>
+    <div class="title">Selected Projects</div>
+    <div class="sub">2019 — ongoing</div>
+  </div>
+
+  <div class="card accent" id="c1">
+    <div class="label">Identity</div>
+    <div class="title">Studio Null</div>
+    <div class="sub">No fixed address.</div>
+  </div>
+
+  <div class="card outline" id="c2">
+    <div class="label">Field</div>
+    <div class="title">Graphic Design<br>+ Net Art</div>
+  </div>
+
+  <div class="card" id="c3">
+    <div class="label">Contact</div>
+    <div class="title">hello@null.studio</div>
+    <div class="sub">Currently available.</div>
+  </div>
+
+  <div class="card" id="c4">
+    <div class="label">Case study 01</div>
+    <div class="title">Anti-Interface<br>Exhibition</div>
+    <div class="sub">Participating artist,<br>2023 Biennale</div>
+  </div>
+
+  <div class="card accent" id="c5">
+    <div class="title" style="font-size:28px; font-weight:500; line-height:1.1;">Order<br>is an<br>illusion.</div>
+  </div>
+
+  <div class="card" id="c6">
+    <div class="label">Case study 02</div>
+    <div class="title">Formless Type<br>Specimen</div>
+    <div class="sub">Variable font exploration</div>
+  </div>
+
+  <div class="card outline" id="c7">
+    <div class="label">Philosophy</div>
+    <div class="title">"The grid is a<br>prison."</div>
+    <div class="sub">— someone, 1972</div>
+  </div>
+
+  <div class="card" id="c8">
+    <div class="label">Tools</div>
+    <div class="title">Pen, code,<br>chance.</div>
+  </div>
+
+  <div class="dot" id="d0" style="width:8px;height:8px;"></div>
+  <div class="dot" id="d1" style="width:14px;height:14px;"></div>
+  <div class="dot" id="d2" style="width:5px;height:5px;"></div>
+  <div class="line" id="l0" style="height:1px;width:60px;"></div>
+  <div class="line" id="l1" style="height:1px;width:80px;"></div>
+
+  <div id="counter">∞</div>
+  <div id="tagline">No two views identical</div>
+</div>
+
+<script>
+const stage = document.getElementById('stage');
+const cards = Array.from(document.querySelectorAll('.card'));
+const dots = Array.from(document.querySelectorAll('.dot'));
+const lines = Array.from(document.querySelectorAll('.line'));
+const counter = document.getElementById('counter');
+
+let iteration = 0;
+
+function rnd(min, max) { return Math.random() * (max - min) + min; }
+function rndInt(min, max) { return Math.floor(rnd(min, max)); }
+
+function stageW() { return stage.offsetWidth || 680; }
+function stageH() { return stage.offsetHeight || 600; }
+
+const cardSizes = [
+  [140, 80], [160, 90], [180, 100], [200, 110], [140, 120],
+  [160, 80], [190, 105], [150, 90], [170, 95]
+];
+
+function randomize() {
+  iteration++;
+  const sw = stageW();
+  const sh = stageH();
+
+  cards.forEach((card, i) => {
+    const [cw, ch] = cardSizes[i];
+    const maxLeft = Math.max(0, sw - cw - 20);
+    const maxTop = Math.max(0, sh - ch - 40);
+
+    const left = rnd(10, maxLeft);
+    const top = rnd(10, maxTop);
+    const rotate = rnd(-6, 6);
+    const scale = rnd(0.88, 1.08);
+    const z = rndInt(1, 20);
+
+    card.style.left = left + 'px';
+    card.style.top = top + 'px';
+    card.style.transform = `rotate(${rotate.toFixed(1)}deg) scale(${scale.toFixed(2)})`;
+    card.style.zIndex = z;
+    card.style.width = cw + 'px';
+  });
+
+  dots.forEach(dot => {
+    dot.style.left = rnd(5, sw - 20) + 'px';
+    dot.style.top = rnd(5, sh - 20) + 'px';
+    dot.style.opacity = rnd(0.15, 0.5);
+  });
+
+  lines.forEach(line => {
+    const w = rnd(30, 120);
+    const angle = rnd(-45, 45);
+    line.style.left = rnd(5, sw - 130) + 'px';
+    line.style.top = rnd(5, sh - 10) + 'px';
+    line.style.width = w + 'px';
+    line.style.transform = `rotate(${angle.toFixed(1)}deg)`;
+    line.style.opacity = rnd(0.1, 0.4);
+  });
+
+  counter.textContent = '#' + iteration.toString().padStart(4, '0');
+}
+
+randomize();
+setInterval(randomize, 3000);
+</script>

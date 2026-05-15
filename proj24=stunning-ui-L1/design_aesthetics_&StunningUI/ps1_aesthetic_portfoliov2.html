@@ -1,0 +1,352 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; image-rendering: pixelated; image-rendering: crisp-edges; }
+
+  #ps1-root {
+    background: #0a0010;
+    min-height: 600px;
+    font-family: 'Press Start 2P', 'Courier New', monospace;
+    color: #e0d0ff;
+    position: relative;
+    overflow: hidden;
+    padding: 0;
+  }
+
+  .scanlines {
+    position: absolute; inset: 0; pointer-events: none; z-index: 10;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.18) 2px, rgba(0,0,0,0.18) 4px);
+  }
+
+  .crt-vignette {
+    position: absolute; inset: 0; pointer-events: none; z-index: 9;
+    background: radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.7) 100%);
+  }
+
+  .header-bar {
+    background: #1a0030;
+    border-bottom: 2px solid #6600cc;
+    padding: 10px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative; z-index: 5;
+  }
+
+  .header-title {
+    font-size: 8px;
+    color: #cc44ff;
+    text-shadow: 0 0 8px #cc44ff, 2px 2px 0 #330066;
+    letter-spacing: 2px;
+  }
+
+  .header-sub {
+    font-size: 6px;
+    color: #8844aa;
+    animation: blink 1.2s step-end infinite;
+  }
+
+  @keyframes blink { 50% { opacity: 0; } }
+
+  .main-area {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    position: relative; z-index: 5;
+  }
+
+  .canvas-panel {
+    background: #050010;
+    border-right: 1px solid #440088;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    min-height: 300px;
+  }
+
+  canvas#ps1canvas {
+    border: 1px solid #6600cc;
+    display: block;
+    image-rendering: pixelated;
+    box-shadow: 0 0 20px rgba(102,0,204,0.4);
+  }
+
+  .info-panel {
+    background: #070014;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #220044;
+    padding-bottom: 6px;
+  }
+
+  .stat-label { font-size: 6px; color: #8844aa; }
+  .stat-value { font-size: 6px; color: #ff88ff; }
+
+  .menu-items {
+    margin-top: 4px;
+  }
+
+  .menu-item {
+    font-size: 7px;
+    color: #aa66cc;
+    padding: 5px 0;
+    border-bottom: 1px solid #180030;
+    cursor: pointer;
+    transition: color 0.1s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .menu-item:hover { color: #ff44ff; }
+  .menu-item.active { color: #ffffff; }
+  .menu-item.active::before { content: "▶"; color: #ff44ff; font-size: 6px; }
+  .menu-item:not(.active)::before { content: " "; }
+
+  .bottom-bar {
+    background: #0d0020;
+    border-top: 2px solid #330066;
+    padding: 8px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative; z-index: 5;
+  }
+
+  .health-bar-wrap { display: flex; align-items: center; gap: 6px; }
+  .bar-label { font-size: 6px; color: #8844aa; }
+  .bar-track { width: 80px; height: 6px; background: #220044; border: 1px solid #440088; }
+  .bar-fill { height: 100%; background: #cc44ff; transition: width 0.3s; }
+
+  .coords { font-size: 6px; color: #554477; }
+
+  .glitch-text {
+    font-size: 10px;
+    color: #ff44ff;
+    text-shadow: 2px 0 #00ffff, -2px 0 #ff0044;
+    animation: glitch 3s infinite;
+    letter-spacing: 1px;
+    padding: 8px 0 4px;
+  }
+
+  @keyframes glitch {
+    0%, 90%, 100% { text-shadow: 2px 0 #00ffff, -2px 0 #ff0044; transform: none; }
+    92% { text-shadow: -2px 0 #00ffff, 2px 0 #ff0044; transform: translateX(2px); }
+    94% { text-shadow: 2px 0 #00ffff, -2px 0 #ff0044; transform: translateX(-2px); }
+    96% { transform: none; }
+  }
+
+  .pixel-badge {
+    font-size: 5px;
+    background: #330066;
+    border: 1px solid #6600cc;
+    color: #cc88ff;
+    padding: 3px 6px;
+    display: inline-block;
+  }
+
+  .about-section {
+    background: #080016;
+    border-top: 1px solid #220044;
+    padding: 12px 16px;
+    position: relative; z-index: 5;
+  }
+
+  .about-text {
+    font-size: 6px;
+    color: #7755aa;
+    line-height: 2;
+    max-width: 520px;
+  }
+
+  .about-text span { color: #cc88ff; }
+</style>
+
+<div id="ps1-root">
+  <div class="scanlines"></div>
+  <div class="crt-vignette"></div>
+
+  <div class="header-bar">
+    <div>
+      <div class="header-title">◆ PIXEL FORGE STUDIOS ◆</div>
+      <div style="font-size:6px; color:#554477; margin-top:4px; font-family: monospace;">EST. 1998 &nbsp;|&nbsp; v1.2.7</div>
+    </div>
+    <div style="text-align:right">
+      <div class="header-sub">▼ INSERT COIN ▼</div>
+      <div style="font-size:6px; color:#330066; margin-top:4px" id="clock-disp">00:00:00</div>
+    </div>
+  </div>
+
+  <div class="main-area">
+    <div class="canvas-panel">
+      <canvas id="ps1canvas" width="200" height="200"></canvas>
+    </div>
+
+    <div class="info-panel">
+      <div class="glitch-text">DREADMOOR.EXE</div>
+      <div class="pixel-badge">INDIE HORROR / SURVIVAL</div>
+
+      <div class="stat-row" style="margin-top:6px">
+        <span class="stat-label">DEVELOPER</span>
+        <span class="stat-value">PIXEL FORGE</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">PLATFORM</span>
+        <span class="stat-value">PC / PSX</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">POLYGONS</span>
+        <span class="stat-value" id="poly-count">1,284</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">TEXTURE RES</span>
+        <span class="stat-value">64×64 PX</span>
+      </div>
+
+      <div class="menu-items">
+        <div class="menu-item active" id="mi-play">PLAY DEMO</div>
+        <div class="menu-item" id="mi-gallery">GALLERY</div>
+        <div class="menu-item" id="mi-credits">CREDITS</div>
+        <div class="menu-item" id="mi-options">OPTIONS</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="about-section">
+    <div class="about-text">
+      <span>DREADMOOR</span> is a survival horror game built with authentic
+      <span>PS1-era rendering</span> — low-poly environments, affine texture warping,
+      vertex jitter, and <span>no anti-aliasing</span>. Navigate fog-drenched ruins.
+      Survive what lurks in the <span>low-resolution dark</span>.
+    </div>
+  </div>
+
+  <div class="bottom-bar">
+    <div class="health-bar-wrap">
+      <span class="bar-label">HP</span>
+      <div class="bar-track"><div class="bar-fill" id="hp-bar" style="width:72%"></div></div>
+    </div>
+    <div class="health-bar-wrap">
+      <span class="bar-label">MP</span>
+      <div class="bar-track"><div class="bar-fill" id="mp-bar" style="width:45%; background:#44ccff"></div></div>
+    </div>
+    <div class="coords" id="coords-disp">X:0128 Y:0064 Z:0200</div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function() {
+  const canvas = document.getElementById('ps1canvas');
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: false });
+  renderer.setPixelRatio(1);
+  renderer.setSize(200, 200);
+  renderer.setClearColor(0x050010, 1);
+
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.Fog(0x050010, 4, 18);
+
+  const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 100);
+  camera.position.set(0, 0.5, 3.2);
+  camera.lookAt(0, 0, 0);
+
+  const geom = new THREE.BoxGeometry(1.4, 1.4, 1.4, 2, 2, 2);
+  const mat = new THREE.MeshLambertMaterial({
+    color: 0x9944cc,
+    flatShading: true,
+    wireframe: false,
+  });
+  const cube = new THREE.Mesh(geom, mat);
+  scene.add(cube);
+
+  const wireMat = new THREE.MeshBasicMaterial({ color: 0x6600cc, wireframe: true });
+  const wire = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.4, 1.4, 2, 2, 2), wireMat);
+  cube.add(wire);
+
+  const floorGeo = new THREE.PlaneGeometry(6, 6, 4, 4);
+  const floorMat = new THREE.MeshLambertMaterial({ color: 0x1a0030, flatShading: true });
+  const floor = new THREE.Mesh(floorGeo, floorMat);
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.y = -1.2;
+  scene.add(floor);
+
+  const light1 = new THREE.PointLight(0xcc44ff, 2.5, 10);
+  light1.position.set(2, 2, 2);
+  scene.add(light1);
+
+  const light2 = new THREE.PointLight(0x0044ff, 1.5, 8);
+  light2.position.set(-2, -1, -2);
+  scene.add(light2);
+
+  const ambient = new THREE.AmbientLight(0x110022, 1);
+  scene.add(ambient);
+
+  const posArr = geom.attributes.position.array;
+  const origPos = Float32Array.from(posArr);
+
+  let t = 0;
+  let frame = 0;
+
+  function jitter() {
+    if (frame % 3 !== 0) return;
+    for (let i = 0; i < posArr.length; i++) {
+      posArr[i] = origPos[i] + (Math.random() - 0.5) * 0.018;
+    }
+    geom.attributes.position.needsUpdate = true;
+  }
+
+  function animate() {
+    requestAnimationFrame(animate);
+    t += 0.016;
+    frame++;
+
+    cube.rotation.y += 0.012;
+    cube.rotation.x += 0.006;
+
+    light1.position.x = Math.sin(t * 0.8) * 2.5;
+    light1.position.z = Math.cos(t * 0.8) * 2.5;
+
+    jitter();
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  const menuItems = document.querySelectorAll('.menu-item');
+  menuItems.forEach(item => {
+    item.addEventListener('click', () => {
+      menuItems.forEach(m => m.classList.remove('active'));
+      item.classList.add('active');
+    });
+  });
+
+  function tick() {
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2,'0');
+    const mm = String(now.getMinutes()).padStart(2,'0');
+    const ss = String(now.getSeconds()).padStart(2,'0');
+    document.getElementById('clock-disp').textContent = hh+':'+mm+':'+ss;
+
+    const cx = Math.round(128 + Math.sin(Date.now()/1000)*12);
+    const cy = Math.round(64 + Math.cos(Date.now()/800)*8);
+    document.getElementById('coords-disp').textContent =
+      'X:'+String(cx).padStart(4,'0')+' Y:'+String(cy).padStart(4,'0')+' Z:0200';
+
+    const polyBase = 1284;
+    const poly = polyBase + Math.round((Math.random()-0.5)*12);
+    document.getElementById('poly-count').textContent = poly.toLocaleString();
+
+    setTimeout(tick, 1000);
+  }
+  tick();
+})();
+</script>
