@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #050508;
+    color: #e8e0ff;
+    font-family: 'Courier New', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .site-wrap { position: relative; min-height: 100vh; }
+
+  canvas#bg {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 0;
+    opacity: 0.85;
+  }
+
+  .overlay-grid {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 1;
+    background-image:
+      linear-gradient(rgba(140,80,255,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(140,80,255,0.04) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+  }
+
+  .content { position: relative; z-index: 2; }
+
+  nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 2.5rem;
+    border-bottom: 1px solid rgba(140,80,255,0.2);
+    backdrop-filter: blur(8px);
+    background: rgba(5,5,8,0.4);
+  }
+
+  .logo {
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: 0.25em;
+    color: #c084fc;
+    text-transform: uppercase;
+  }
+  .logo span { color: #00ffe0; }
+
+  .nav-links { display: flex; gap: 2rem; }
+  .nav-links a {
+    color: rgba(232,224,255,0.6);
+    text-decoration: none;
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    transition: color 0.2s;
+    cursor: pointer;
+  }
+  .nav-links a:hover { color: #00ffe0; }
+
+  .hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 5rem 2rem 3rem;
+    text-align: center;
+  }
+
+  .freq-badge {
+    display: inline-block;
+    font-size: 0.65rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: #00ffe0;
+    border: 1px solid rgba(0,255,224,0.3);
+    padding: 0.4rem 1.2rem;
+    border-radius: 2px;
+    margin-bottom: 2.5rem;
+    animation: pulse-border 3s ease-in-out infinite;
+  }
+
+  @keyframes pulse-border {
+    0%, 100% { border-color: rgba(0,255,224,0.3); box-shadow: 0 0 0 rgba(0,255,224,0); }
+    50% { border-color: rgba(0,255,224,0.8); box-shadow: 0 0 12px rgba(0,255,224,0.15); }
+  }
+
+  h1 {
+    font-size: clamp(2.5rem, 6vw, 5rem);
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    line-height: 1.05;
+    margin-bottom: 1.5rem;
+    font-family: sans-serif;
+  }
+  h1 em {
+    font-style: normal;
+    color: #c084fc;
+    display: block;
+  }
+
+  .tagline {
+    font-size: 0.85rem;
+    letter-spacing: 0.1em;
+    color: rgba(232,224,255,0.5);
+    max-width: 420px;
+    line-height: 1.8;
+    margin-bottom: 3rem;
+  }
+
+  .cta-row { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-bottom: 4rem; }
+
+  .btn-primary {
+    background: #c084fc;
+    color: #050508;
+    border: none;
+    padding: 0.85rem 2.2rem;
+    font-family: 'Courier New', monospace;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: background 0.2s, transform 0.1s;
+  }
+  .btn-primary:hover { background: #a855f7; transform: translateY(-1px); }
+
+  .btn-secondary {
+    background: transparent;
+    color: #00ffe0;
+    border: 1px solid rgba(0,255,224,0.4);
+    padding: 0.85rem 2.2rem;
+    font-family: 'Courier New', monospace;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: border-color 0.2s, transform 0.1s;
+  }
+  .btn-secondary:hover { border-color: #00ffe0; transform: translateY(-1px); }
+
+  .freq-display {
+    width: 100%;
+    max-width: 700px;
+    margin: 0 auto 4rem;
+    position: relative;
+  }
+
+  .chladni-container {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1;
+    max-width: 340px;
+    margin: 0 auto 1.5rem;
+    border: 1px solid rgba(140,80,255,0.25);
+    border-radius: 4px;
+    overflow: hidden;
+    background: #08080f;
+  }
+
+  canvas#chladni {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .freq-controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 0.75rem;
+  }
+
+  .freq-btn {
+    background: rgba(192,132,252,0.1);
+    border: 1px solid rgba(192,132,252,0.3);
+    color: #c084fc;
+    padding: 0.4rem 1rem;
+    font-family: 'Courier New', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: background 0.2s, border-color 0.2s;
+    text-transform: uppercase;
+  }
+  .freq-btn:hover, .freq-btn.active {
+    background: rgba(192,132,252,0.25);
+    border-color: #c084fc;
+  }
+
+  .freq-readout {
+    text-align: center;
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    color: rgba(0,255,224,0.7);
+    margin-bottom: 2rem;
+  }
+
+  .wave-section {
+    padding: 2rem 2.5rem 3rem;
+    border-top: 1px solid rgba(140,80,255,0.15);
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  .section-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    color: rgba(0,255,224,0.6);
+    margin-bottom: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(0,255,224,0.15);
+  }
+
+  .interference-wrap {
+    width: 100%;
+    overflow: hidden;
+    border: 1px solid rgba(140,80,255,0.2);
+    border-radius: 4px;
+    background: #060609;
+    margin-bottom: 2rem;
+  }
+
+  canvas#wave {
+    width: 100%;
+    display: block;
+  }
+
+  .modes-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 3rem;
+  }
+
+  .mode-card {
+    border: 1px solid rgba(140,80,255,0.2);
+    border-radius: 4px;
+    padding: 1rem;
+    background: rgba(8,8,15,0.8);
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    text-align: center;
+  }
+  .mode-card:hover {
+    border-color: rgba(192,132,252,0.5);
+    background: rgba(192,132,252,0.06);
+  }
+  .mode-card.selected {
+    border-color: #c084fc;
+    background: rgba(192,132,252,0.1);
+  }
+
+  .mode-num {
+    font-size: 1.5rem;
+    font-weight: 900;
+    color: #c084fc;
+    font-family: sans-serif;
+    line-height: 1;
+    margin-bottom: 0.3rem;
+  }
+  .mode-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(232,224,255,0.4);
+  }
+  .mode-freq {
+    font-size: 0.75rem;
+    color: #00ffe0;
+    margin-top: 0.25rem;
+  }
+
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    border: 1px solid rgba(140,80,255,0.2);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 2rem;
+  }
+  .stat {
+    background: rgba(8,8,15,0.9);
+    padding: 1.2rem 1rem;
+    text-align: center;
+  }
+  .stat-val {
+    font-size: 1.8rem;
+    font-weight: 900;
+    color: #c084fc;
+    font-family: sans-serif;
+    line-height: 1;
+    margin-bottom: 0.3rem;
+  }
+  .stat-lbl {
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(232,224,255,0.4);
+  }
+</style>
+</head>
+<body>
+<div class="site-wrap">
+  <canvas id="bg"></canvas>
+  <div class="overlay-grid"></div>
+
+  <div class="content">
+    <nav>
+      <div class="logo">KYMAT<span>IX</span></div>
+      <div class="nav-links">
+        <a>Frequencies</a>
+        <a>Patterns</a>
+        <a>Resonance</a>
+        <a>Listen</a>
+      </div>
+    </nav>
+
+    <div class="hero">
+      <div class="freq-badge">Sound · Cymatics · Resonance</div>
+      <h1>SOUND<em>MADE VISIBLE</em></h1>
+      <p class="tagline">Every frequency has a shape. Every vibration a geometry. We make the invisible structure of sound tangible.</p>
+      <div class="cta-row">
+        <button class="btn-primary">Explore Frequencies</button>
+        <button class="btn-secondary">Watch Patterns Form</button>
+      </div>
+
+      <div class="freq-display">
+        <div class="chladni-container">
+          <canvas id="chladni"></canvas>
+        </div>
+        <div class="freq-controls">
+          <button class="freq-btn active" data-m="2" data-n="2">2,2</button>
+          <button class="freq-btn" data-m="3" data-n="2">3,2</button>
+          <button class="freq-btn" data-m="3" data-n="3">3,3</button>
+          <button class="freq-btn" data-m="4" data-n="3">4,3</button>
+          <button class="freq-btn" data-m="4" data-n="4">4,4</button>
+          <button class="freq-btn" data-m="5" data-n="4">5,4</button>
+        </div>
+        <div class="freq-readout" id="freq-readout">MODE (2,2) · 440 Hz · RESONANT NODE</div>
+      </div>
+    </div>
+
+    <div class="wave-section">
+      <div class="section-label">Wave Interference</div>
+      <div class="interference-wrap">
+        <canvas id="wave" height="120"></canvas>
+      </div>
+
+      <div class="section-label">Vibrational Modes</div>
+      <div class="modes-grid">
+        <div class="mode-card selected" data-m="2" data-n="2">
+          <div class="mode-num">2,2</div>
+          <div class="mode-label">Fundamental</div>
+          <div class="mode-freq">440 Hz</div>
+        </div>
+        <div class="mode-card" data-m="3" data-n="2">
+          <div class="mode-num">3,2</div>
+          <div class="mode-label">Second Partial</div>
+          <div class="mode-freq">660 Hz</div>
+        </div>
+        <div class="mode-card" data-m="3" data-n="3">
+          <div class="mode-num">3,3</div>
+          <div class="mode-label">Third Partial</div>
+          <div class="mode-freq">880 Hz</div>
+        </div>
+        <div class="mode-card" data-m="4" data-n="3">
+          <div class="mode-num">4,3</div>
+          <div class="mode-label">Fourth Mode</div>
+          <div class="mode-freq">1100 Hz</div>
+        </div>
+        <div class="mode-card" data-m="4" data-n="4">
+          <div class="mode-num">4,4</div>
+          <div class="mode-label">Fifth Mode</div>
+          <div class="mode-freq">1320 Hz</div>
+        </div>
+        <div class="mode-card" data-m="5" data-n="4">
+          <div class="mode-num">5,4</div>
+          <div class="mode-label">Sixth Mode</div>
+          <div class="mode-freq">1760 Hz</div>
+        </div>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat">
+          <div class="stat-val">432</div>
+          <div class="stat-lbl">Schumann Hz</div>
+        </div>
+        <div class="stat">
+          <div class="stat-val">∞</div>
+          <div class="stat-lbl">Resonant Forms</div>
+        </div>
+        <div class="stat">
+          <div class="stat-val">7.83</div>
+          <div class="stat-lbl">Earth Resonance</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// --- Background particle field ---
+const bgCanvas = document.getElementById('bg');
+const bgCtx = bgCanvas.getContext('2d');
+
+function resizeBg() {
+  bgCanvas.width = window.innerWidth;
+  bgCanvas.height = window.innerHeight;
+}
+resizeBg();
+window.addEventListener('resize', resizeBg);
+
+// --- Chladni pattern ---
+const chladni = document.getElementById('chladni');
+const cCtx = chladni.getContext('2d');
+const SIZE = 340;
+chladni.width = SIZE;
+chladni.height = SIZE;
+
+let currentM = 2, currentN = 2;
+let animPhase = 0;
+
+const freqMap = {
+  '2,2': 440, '3,2': 660, '3,3': 880,
+  '4,3': 1100, '4,4': 1320, '5,4': 1760
+};
+const labelMap = {
+  '2,2': 'FUNDAMENTAL NODE', '3,2': 'SECOND PARTIAL',
+  '3,3': 'THIRD PARTIAL', '4,3': 'FOURTH MODE',
+  '4,4': 'FIFTH MODE', '5,4': 'SIXTH HARMONIC'
+};
+
+function drawChladni(m, n, phase) {
+  const w = SIZE, h = SIZE;
+  const imageData = cCtx.createImageData(w, h);
+  const data = imageData.data;
+
+  const vibAmp = 0.15 * Math.sin(phase * 0.8);
+
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const fx = (x / w) * Math.PI;
+      const fy = (y / h) * Math.PI;
+      const val = Math.cos(m * fx + vibAmp) * Math.cos(n * fy + vibAmp)
+                - Math.cos(n * fx + vibAmp) * Math.cos(m * fy + vibAmp);
+
+      const idx = (y * w + x) * 4;
+      const threshold = 0.08;
+
+      if (Math.abs(val) < threshold) {
+        // Node lines — bright
+        const brightness = 1 - Math.abs(val) / threshold;
+        const r = Math.floor(192 + 63 * brightness);
+        const g = Math.floor(132 + 123 * brightness * 0.4);
+        const b = 252;
+        data[idx] = r;
+        data[idx+1] = g;
+        data[idx+2] = b;
+        data[idx+3] = Math.floor(230 * brightness + 25);
+      } else {
+        // Antinodes — subtle glow based on amplitude
+        const amp = Math.abs(val);
+        const glow = Math.max(0, 0.5 - amp * 0.7);
+        data[idx] = Math.floor(60 * glow);
+        data[idx+1] = Math.floor(20 * glow);
+        data[idx+2] = Math.floor(80 * glow + 15);
+        data[idx+3] = Math.floor(80 + 100 * glow);
+      }
+    }
+  }
+  cCtx.putImageData(imageData, 0, 0);
+
+  // Teal accent overlay on nodes
+  cCtx.save();
+  cCtx.globalCompositeOperation = 'screen';
+  for (let y = 0; y < h; y += 2) {
+    for (let x = 0; x < w; x += 2) {
+      const fx = (x / w) * Math.PI;
+      const fy = (y / h) * Math.PI;
+      const val = Math.cos(m * fx + vibAmp) * Math.cos(n * fy + vibAmp)
+                - Math.cos(n * fx + vibAmp) * Math.cos(m * fy + vibAmp);
+      if (Math.abs(val) < 0.04) {
+        const brightness = 1 - Math.abs(val) / 0.04;
+        cCtx.fillStyle = `rgba(0,255,224,${brightness * 0.4})`;
+        cCtx.fillRect(x, y, 2, 2);
+      }
+    }
+  }
+  cCtx.restore();
+}
+
+// --- Background animated dots ---
+const dots = Array.from({length: 60}, () => ({
+  x: Math.random(),
+  y: Math.random(),
+  vx: (Math.random() - 0.5) * 0.0003,
+  vy: (Math.random() - 0.5) * 0.0003,
+  r: Math.random() * 1.5 + 0.5,
+  opacity: Math.random() * 0.4 + 0.1
+}));
+
+function drawBg(phase) {
+  const w = bgCanvas.width, h = bgCanvas.height;
+  bgCtx.clearRect(0, 0, w, h);
+
+  // Large bg Chladni-like gradient
+  const grad = bgCtx.createRadialGradient(w/2, h/2, 0, w/2, h/2, Math.max(w,h)*0.7);
+  grad.addColorStop(0, 'rgba(60,20,90,0.3)');
+  grad.addColorStop(0.5, 'rgba(20,8,40,0.2)');
+  grad.addColorStop(1, 'rgba(5,5,8,0)');
+  bgCtx.fillStyle = grad;
+  bgCtx.fillRect(0, 0, w, h);
+
+  // Wave rings
+  for (let i = 0; i < 5; i++) {
+    const r = (i + 1) * Math.min(w, h) * 0.12 + Math.sin(phase * 0.5 + i) * 15;
+    const alpha = 0.06 - i * 0.01;
+    bgCtx.beginPath();
+    bgCtx.arc(w/2, h/2, r, 0, Math.PI * 2);
+    bgCtx.strokeStyle = `rgba(192,132,252,${alpha})`;
+    bgCtx.lineWidth = 1;
+    bgCtx.stroke();
+  }
+
+  // Dots
+  dots.forEach(d => {
+    d.x = (d.x + d.vx + 1) % 1;
+    d.y = (d.y + d.vy + 1) % 1;
+    bgCtx.beginPath();
+    bgCtx.arc(d.x * w, d.y * h, d.r, 0, Math.PI * 2);
+    bgCtx.fillStyle = `rgba(192,132,252,${d.opacity})`;
+    bgCtx.fill();
+  });
+}
+
+// --- Wave interference canvas ---
+const waveCanvas = document.getElementById('wave');
+const wCtx = waveCanvas.getContext('2d');
+
+function resizeWave() {
+  waveCanvas.width = waveCanvas.offsetWidth || 680;
+}
+resizeWave();
+
+function drawWave(phase) {
+  const w = waveCanvas.width, h = 120;
+  wCtx.clearRect(0, 0, w, h);
+
+  // Wave 1
+  wCtx.beginPath();
+  for (let x = 0; x < w; x++) {
+    const y = h/2 + 25 * Math.sin((x / w) * Math.PI * 6 - phase * 1.2);
+    x === 0 ? wCtx.moveTo(x, y) : wCtx.lineTo(x, y);
+  }
+  wCtx.strokeStyle = 'rgba(192,132,252,0.7)';
+  wCtx.lineWidth = 1.5;
+  wCtx.stroke();
+
+  // Wave 2
+  wCtx.beginPath();
+  for (let x = 0; x < w; x++) {
+    const y = h/2 + 20 * Math.sin((x / w) * Math.PI * 9 - phase * 0.8);
+    x === 0 ? wCtx.moveTo(x, y) : wCtx.lineTo(x, y);
+  }
+  wCtx.strokeStyle = 'rgba(0,255,224,0.5)';
+  wCtx.lineWidth = 1.5;
+  wCtx.stroke();
+
+  // Interference / sum
+  wCtx.beginPath();
+  for (let x = 0; x < w; x++) {
+    const y1 = 25 * Math.sin((x / w) * Math.PI * 6 - phase * 1.2);
+    const y2 = 20 * Math.sin((x / w) * Math.PI * 9 - phase * 0.8);
+    const y = h/2 + (y1 + y2) * 0.55;
+    x === 0 ? wCtx.moveTo(x, y) : wCtx.lineTo(x, y);
+  }
+  wCtx.strokeStyle = 'rgba(255,255,255,0.9)';
+  wCtx.lineWidth = 1.5;
+  wCtx.stroke();
+
+  // Labels
+  wCtx.font = '9px Courier New';
+  wCtx.fillStyle = 'rgba(192,132,252,0.6)';
+  wCtx.fillText('f₁', 6, 18);
+  wCtx.fillStyle = 'rgba(0,255,224,0.6)';
+  wCtx.fillText('f₂', 6, 32);
+  wCtx.fillStyle = 'rgba(255,255,255,0.6)';
+  wCtx.fillText('Σ', 6, 46);
+}
+
+// --- Animation loop ---
+function animate() {
+  animPhase += 0.04;
+  drawBg(animPhase);
+  drawChladni(currentM, currentN, animPhase);
+  drawWave(animPhase);
+  requestAnimationFrame(animate);
+}
+animate();
+
+// --- Controls ---
+document.querySelectorAll('.freq-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.freq-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentM = parseInt(btn.dataset.m);
+    currentN = parseInt(btn.dataset.n);
+    const key = `${currentM},${currentN}`;
+    document.getElementById('freq-readout').textContent =
+      `MODE (${key}) · ${freqMap[key]} Hz · ${labelMap[key]}`;
+  });
+});
+
+document.querySelectorAll('.mode-card').forEach(card => {
+  card.addEventListener('click', () => {
+    document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('selected'));
+    card.classList.add('selected');
+    currentM = parseInt(card.dataset.m);
+    currentN = parseInt(card.dataset.n);
+    const key = `${currentM},${currentN}`;
+    document.getElementById('freq-readout').textContent =
+      `MODE (${key}) · ${freqMap[key]} Hz · ${labelMap[key]}`;
+    document.querySelectorAll('.freq-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.m == currentM && b.dataset.n == currentN);
+    });
+  });
+});
+
+window.addEventListener('resize', () => {
+  resizeBg();
+  resizeWave();
+});
+</script>
+</body>
+</html>

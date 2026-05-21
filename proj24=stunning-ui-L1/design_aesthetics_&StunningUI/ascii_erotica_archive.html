@@ -1,0 +1,336 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #000; }
+  .terminal {
+    background: #000;
+    color: #0f0;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 13px;
+    line-height: 1.4;
+    padding: 1rem 1.25rem 1.5rem;
+    min-height: 600px;
+  }
+  .header {
+    border-bottom: 1px solid #0f0;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+    color: #0f0;
+  }
+  .header h1 { font-size: 15px; font-weight: bold; letter-spacing: 2px; color: #0f0; }
+  .header .sub { font-size: 11px; color: #0a0; margin-top: 3px; }
+  .gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  .card {
+    border: 1px solid #090;
+    padding: 0.75rem;
+    background: #000;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .card:hover { border-color: #0f0; background: #010e01; }
+  .card.active { border-color: #0f0; background: #010e01; }
+  .card .art {
+    white-space: pre;
+    font-size: 11px;
+    line-height: 1.25;
+    color: #0f0;
+    margin-bottom: 0.5rem;
+    display: block;
+    overflow: hidden;
+  }
+  .card .title { font-size: 11px; color: #0a0; text-transform: uppercase; letter-spacing: 1px; }
+  .viewer {
+    border: 1px solid #0f0;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    min-height: 260px;
+    background: #000;
+  }
+  .viewer pre {
+    white-space: pre;
+    color: #0f0;
+    font-size: 12px;
+    line-height: 1.35;
+    font-family: 'Courier New', Courier, monospace;
+  }
+  .viewer .vtitle { color: #0f0; font-size: 12px; letter-spacing: 2px; margin-bottom: 0.75rem; border-bottom: 1px dashed #060; padding-bottom: 4px; }
+  .nav-row { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+  .btn {
+    background: #000;
+    color: #0f0;
+    border: 1px solid #090;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 11px;
+    padding: 4px 10px;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .btn:hover { background: #010e01; border-color: #0f0; }
+  .btn.active { background: #020; border-color: #0f0; }
+  .status { color: #060; font-size: 11px; margin-top: 0.5rem; }
+  .blink { animation: blink 1s step-end infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  .tag { display: inline-block; border: 1px solid #060; color: #0a0; font-size: 10px; padding: 1px 6px; margin: 2px; }
+  .footer { border-top: 1px solid #060; padding-top: 0.5rem; margin-top: 1rem; color: #060; font-size: 10px; }
+</style>
+<div class="terminal">
+  <h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">ASCII erotica archive — retro BBS text art gallery with monospace character figures</h2>
+  <div class="header">
+    <h1>★ ASCII EROTICA ARCHIVE v2.6 ★</h1>
+    <div class="sub">RETRO BBS TEXT ART // EST. 1993 // ALL CONTENT: PURE CHARACTER ART<span class="blink">_</span></div>
+  </div>
+
+  <div class="nav-row" id="navRow"></div>
+
+  <div class="viewer" id="viewer">
+    <div class="vtitle" id="vtitle">SELECT A PIECE BELOW</div>
+    <pre id="vart"></pre>
+    <div class="status" id="vstatus"></div>
+  </div>
+
+  <div class="gallery" id="gallery"></div>
+
+  <div class="footer">
+    [SYSOP: ANON] [NODE: 12] [CALLS: 88,432] [FILES: 512] // NO IMAGES — PURE TEXT ART // TYPE /HELP FOR COMMANDS
+  </div>
+</div>
+
+<script>
+const pieces = [
+  {
+    id: 0,
+    title: "The Tango",
+    tags: ["dance","couple","classic"],
+    art: `
+        \\o/    \\o/
+         |      |
+     ____/\\____/\\____
+    /   TANGO NIGHT   \\
+   /                   \\
+  (   he: \\o   she: o/  )
+  (         \\./         )
+  (          |           )
+   \\        /|\\         /
+    \\      / | \\       /
+     \\    /  |  \\     /
+      \\--'   |   '--/ 
+           PASO
+             DOBLE`,
+    desc: "Classic ballroom tension. Two bodies, one rhythm."
+  },
+  {
+    id: 1,
+    title: "Moonlight Serenade",
+    tags: ["romance","night","couple"],
+    art: `
+   *    .  *    .   *  .   *
+       .        .         .
+  *   .  *   .    *   .  *  .
+
+         \\o/
+          |    <3
+         /|\\      \\o/
+         / \\       |
+               ===<+>===
+                   |
+                  / \\
+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  ~  the wave  ~  the pull  ~  the ~
+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  *  .  *    .   *   .  *   .   *  .`,
+    desc: "Under the asterisks. A pull like gravity."
+  },
+  {
+    id: 2,
+    title: "The Proposition",
+    tags: ["suggestive","solo","classic"],
+    art: `
+   ;)  wink  ;)  wink  ;)
+  
+     _____________________
+    |                     |
+    |   ( . Y . )         |
+    |                     |
+    |  "come hither"      |
+    |_____________________|
+  
+    <  she typed, at 2am  >
+     ---------------------
+      \\
+       \\   ^__^
+        \\  (oo)\\_______
+           (__)\\       )\\/\\
+               ||----w |
+               ||     ||`,
+    desc: "A message in the dark. Also a cow for scale."
+  },
+  {
+    id: 3,
+    title: "Lovers Entwined",
+    tags: ["couple","intimate","poetic"],
+    art: `
+       .-~~~-.
+      /   ^   \\         .-~~~-.
+     |  (o o)  |       /   ^   \\
+      \\   v   /  <3   |  (o o)  |
+       '-___-'    <3   \\   v   /
+          |        <3   '-___-'
+          |               |
+          +-------+--------+
+                  |
+              ----+----
+             /    |    \\
+            /     |     \\
+           '      |      '
+  .........|......|.......|.........
+  two selves, one gravity`,
+    desc: "The oldest story. Still being written."
+  },
+  {
+    id: 4,
+    title: "8===D ASCII Classic",
+    tags: ["explicit","glyph","iconic"],
+    art: `
+   THE CLASSICS ROOM
+   =================
+
+   Basic:          8===D     ~
+   Fancy:         8=====D   ~~~
+   Tiny:            8=D     ~
+
+   Her reply:     (  :  )
+   His reply:     8====D-->(:)
+
+   The math:
+    (:)  +  8==D  =  (*)
+   
+   ...as understood by
+   every BBS user since 1991.
+
+   [ RATED: ASCII-17 ]`,
+    desc: "The one that started it all. Canonical glyphs."
+  },
+  {
+    id: 5,
+    title: "Tantric Geometry",
+    tags:["abstract","artistic","geometry"],
+    art: `
+              *
+            * | *
+           *  |  *
+     *----*---+---*----*
+          *   |   *
+           *  |  *
+            * | *
+              *
+         phi ratio
+        of desire
+       (vertical axis
+        horizontal axis
+         intersection
+          = you
+           = me
+            = !)
+  
+  O   <--radii-->   O
+   \\ attraction /
+    \\__________/`,
+    desc: "Sacred geometry, but make it spicy."
+  },
+  {
+    id: 6,
+    title: "The Phone Call",
+    tags: ["suggestive","narrative","retro"],
+    art: `
+  RING RING   RING RING
+  
+  SHE: hello?
+  HIM: ...hey.
+  SHE: ...hey.
+  HIM: so.
+  SHE: so.
+  
+         [long pause]
+  
+  SHE: you up?
+  HIM: [typing...]
+  
+     ( . )( . )
+     
+  HIM: ...yeah
+  
+  SHE: come over.
+  HIM: its 2am
+  SHE: i know
+  
+  [call ended: 0:00:23]
+  [front door unlocks: 2:17am]`,
+    desc: "The whole story, told in glyphs and white space."
+  },
+  {
+    id: 7,
+    title: "Mirror Mirror",
+    tags: ["solo","artistic","poetic"],
+    art: `
+  +=========================+
+  |                         |
+  |    ~(   )~  ~(   )~     |
+  |      ( Y )              |
+  |     /|   |\\             |
+  |    / |   | \\            |
+  |   /  +---+  \\           |
+  |      |   |             |
+  |      |   |             |
+  |     / \\ / \\            |
+  |                         |
+  |  she looked at herself  |
+  |  and finally said:      |
+  |                         |
+  |     "damn."             |
+  |                         |
+  +=========================+`,
+    desc: "Self-regard as erotic act. The mirror agrees."
+  }
+];
+
+let current = 0;
+const gallery = document.getElementById('gallery');
+const navRow = document.getElementById('navRow');
+const vtitle = document.getElementById('vtitle');
+const vart = document.getElementById('vart');
+const vstatus = document.getElementById('vstatus');
+
+function show(id) {
+  current = id;
+  const p = pieces[id];
+  vtitle.textContent = `[ ${p.title.toUpperCase()} ]`;
+  vart.textContent = p.art;
+  vstatus.innerHTML = p.tags.map(t => `<span class="tag">#${t}</span>`).join('') + `  &mdash; ${p.desc}`;
+  document.querySelectorAll('.card').forEach(c => c.classList.toggle('active', +c.dataset.id === id));
+  document.querySelectorAll('.btn[data-id]').forEach(b => b.classList.toggle('active', +b.dataset.id === id));
+}
+
+pieces.forEach((p, i) => {
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.dataset.id = i;
+  card.innerHTML = `<span class="art">${p.art.slice(0,180).replace(/</g,'&lt;')}</span><div class="title">${p.title}</div>`;
+  card.onclick = () => show(i);
+  gallery.appendChild(card);
+
+  const btn = document.createElement('button');
+  btn.className = 'btn';
+  btn.dataset.id = i;
+  btn.textContent = `[${String(i+1).padStart(2,'0')}] ${p.title.slice(0,12)}`;
+  btn.onclick = () => show(i);
+  navRow.appendChild(btn);
+});
+
+show(0);
+</script>

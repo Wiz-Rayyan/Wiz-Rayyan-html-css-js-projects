@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=Cormorant:ital,wght@0,300;1,300&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #1a0f08;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    color: #D7CCC8;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .scene {
+    position: relative;
+    min-height: 100vh;
+    background:
+      repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 28px,
+        rgba(139,90,43,0.04) 28px,
+        rgba(139,90,43,0.04) 29px
+      ),
+      repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 60px,
+        rgba(139,90,43,0.02) 60px,
+        rgba(139,90,43,0.02) 61px
+      ),
+      radial-gradient(ellipse 80% 50% at 70% 20%, rgba(210,140,60,0.18) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 70% at 20% 80%, rgba(80,40,15,0.4) 0%, transparent 70%),
+      linear-gradient(160deg, #2a1508 0%, #1a0f08 40%, #110a05 100%);
+  }
+
+  /* Dust motes canvas */
+  #motes {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* Afternoon light shaft */
+  .light-shaft {
+    position: fixed;
+    top: 0; right: 15%;
+    width: 180px; height: 100vh;
+    background: linear-gradient(180deg,
+      rgba(210,155,60,0.12) 0%,
+      rgba(210,155,60,0.07) 30%,
+      rgba(210,155,60,0.04) 60%,
+      transparent 100%
+    );
+    transform: skewX(-8deg);
+    transform-origin: top;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .light-shaft::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 30px; right: 30px;
+    height: 100%;
+    background: linear-gradient(180deg,
+      rgba(255,200,90,0.08) 0%,
+      rgba(255,200,90,0.03) 40%,
+      transparent 80%
+    );
+  }
+
+  .content {
+    position: relative;
+    z-index: 2;
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 0 32px 64px;
+  }
+
+  /* Header */
+  .masthead {
+    padding: 56px 0 32px;
+    border-bottom: 0.5px solid rgba(180,130,80,0.25);
+    margin-bottom: 48px;
+  }
+
+  .shop-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 11px;
+    font-weight: 400;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: rgba(180,130,60,0.7);
+    margin-bottom: 12px;
+  }
+
+  .title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 52px;
+    font-weight: 300;
+    line-height: 1.0;
+    color: #e8d5b8;
+    letter-spacing: -0.01em;
+    margin-bottom: 6px;
+  }
+
+  .title em {
+    font-style: italic;
+    color: #c4a068;
+  }
+
+  .subtitle {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 15px;
+    font-weight: 300;
+    font-style: italic;
+    color: rgba(180,150,110,0.6);
+    letter-spacing: 0.05em;
+    margin-top: 10px;
+  }
+
+  .nav {
+    display: flex;
+    gap: 28px;
+    margin-top: 24px;
+  }
+
+  .nav a {
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(180,140,90,0.55);
+    text-decoration: none;
+    transition: color 0.4s;
+    cursor: pointer;
+  }
+
+  .nav a:hover { color: rgba(210,180,130,0.85); }
+
+  /* Featured book */
+  .featured {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: 32px;
+    margin-bottom: 56px;
+    padding-bottom: 48px;
+    border-bottom: 0.5px solid rgba(139,90,43,0.2);
+  }
+
+  .book-spine {
+    width: 120px;
+    height: 168px;
+    background: linear-gradient(135deg, #4a2c14 0%, #2e1a0a 60%, #1e1008 100%);
+    border-radius: 2px 6px 6px 2px;
+    border-left: 6px solid #6b3d1a;
+    position: relative;
+    box-shadow:
+      inset -4px 0 8px rgba(0,0,0,0.4),
+      inset 4px 0 6px rgba(180,100,40,0.1),
+      4px 6px 20px rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .book-spine::before {
+    content: '';
+    position: absolute;
+    top: 12px; bottom: 12px; left: 12px; right: 12px;
+    border: 0.5px solid rgba(180,120,50,0.2);
+    border-radius: 2px;
+  }
+
+  .book-spine-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 11px;
+    font-weight: 400;
+    color: rgba(210,170,100,0.8);
+    letter-spacing: 0.15em;
+    text-align: center;
+    padding: 0 12px;
+    line-height: 1.5;
+  }
+
+  .featured-label {
+    font-size: 9px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: rgba(180,120,50,0.5);
+    margin-bottom: 8px;
+  }
+
+  .featured-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 28px;
+    font-weight: 400;
+    line-height: 1.15;
+    color: #d4b896;
+    margin-bottom: 6px;
+  }
+
+  .featured-author {
+    font-size: 13px;
+    font-weight: 300;
+    font-style: italic;
+    color: rgba(180,140,90,0.6);
+    margin-bottom: 16px;
+  }
+
+  .featured-desc {
+    font-size: 15px;
+    font-weight: 300;
+    line-height: 1.75;
+    color: rgba(200,175,145,0.7);
+    margin-bottom: 20px;
+  }
+
+  .price-row {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+  }
+
+  .price {
+    font-size: 18px;
+    font-weight: 500;
+    color: #c4945a;
+  }
+
+  .condition {
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: rgba(160,120,70,0.5);
+  }
+
+  /* Divider ornament */
+  .ornament {
+    text-align: center;
+    font-size: 18px;
+    color: rgba(180,120,50,0.25);
+    margin: 0 0 40px;
+    letter-spacing: 0.5em;
+  }
+
+  /* Book grid */
+  .section-header {
+    font-size: 9px;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: rgba(180,120,50,0.4);
+    margin-bottom: 24px;
+  }
+
+  .books-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    margin-bottom: 48px;
+  }
+
+  .book-card {
+    cursor: pointer;
+  }
+
+  .book-cover {
+    width: 100%;
+    aspect-ratio: 2/3;
+    border-radius: 1px 4px 4px 1px;
+    border-left: 4px solid var(--spine);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: flex-end;
+    padding: 12px 10px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.4s ease, box-shadow 0.4s ease;
+  }
+
+  .book-card:hover .book-cover {
+    transform: translateY(-3px) rotate(-0.5deg);
+    box-shadow: 3px 8px 24px rgba(0,0,0,0.5);
+  }
+
+  .book-cover::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 8px,
+      rgba(0,0,0,0.04) 8px,
+      rgba(0,0,0,0.04) 9px
+    );
+  }
+
+  .cover-text {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 11px;
+    font-weight: 400;
+    line-height: 1.4;
+    position: relative;
+    z-index: 1;
+  }
+
+  .card-title {
+    font-size: 14px;
+    font-weight: 400;
+    color: #c8aa86;
+    line-height: 1.3;
+    margin-bottom: 3px;
+  }
+
+  .card-author {
+    font-size: 11px;
+    font-style: italic;
+    font-weight: 300;
+    color: rgba(180,140,90,0.45);
+  }
+
+  .card-price {
+    font-size: 12px;
+    color: rgba(180,110,50,0.6);
+    margin-top: 4px;
+  }
+
+  /* Quote */
+  .quote-block {
+    border-left: 1px solid rgba(180,120,50,0.3);
+    padding: 4px 0 4px 24px;
+    margin: 48px 0;
+  }
+
+  .quote-text {
+    font-size: 20px;
+    font-weight: 300;
+    font-style: italic;
+    line-height: 1.65;
+    color: rgba(210,180,140,0.65);
+    margin-bottom: 12px;
+  }
+
+  .quote-attr {
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(160,110,60,0.4);
+  }
+
+  /* Footer */
+  .footer {
+    padding-top: 32px;
+    border-top: 0.5px solid rgba(139,90,43,0.15);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 32px;
+    flex-wrap: wrap;
+  }
+
+  .footer-col { flex: 1; min-width: 140px; }
+
+  .footer-label {
+    font-size: 9px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: rgba(180,120,50,0.35);
+    margin-bottom: 10px;
+  }
+
+  .footer-text {
+    font-size: 13px;
+    font-weight: 300;
+    font-style: italic;
+    line-height: 1.7;
+    color: rgba(180,150,110,0.45);
+  }
+
+  .grain {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 10;
+    opacity: 0.03;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+    background-size: 128px 128px;
+  }
+</style>
+</head>
+<body>
+<div class="grain"></div>
+<div class="light-shaft"></div>
+<canvas id="motes"></canvas>
+
+<div class="scene">
+  <div class="content">
+
+    <header class="masthead">
+      <div class="shop-name">Established 1889 &nbsp;·&nbsp; Rare &amp; Secondhand Books</div>
+      <h1 class="title"><em>The Vellichor</em><br>Bookshop</h1>
+      <p class="subtitle">Where forgotten stories wait to be remembered</p>
+      <nav class="nav">
+        <a>Catalogue</a>
+        <a>Rare Finds</a>
+        <a>First Editions</a>
+        <a>Visiting Hours</a>
+      </nav>
+    </header>
+
+    <div class="featured">
+      <div class="book-spine">
+        <div class="book-spine-title">The House of Leaves</div>
+      </div>
+      <div>
+        <div class="featured-label">This week's discovery</div>
+        <div class="featured-title">The House<br>of Leaves</div>
+        <div class="featured-author">Mark Z. Danielewski, 2000</div>
+        <p class="featured-desc">
+          Found beneath a stack of atlases. The margins are annotated in two different hands — one in blue ink, one in pencil. Someone loved this book twice.
+        </p>
+        <div class="price-row">
+          <span class="price">$18</span>
+          <span class="condition">Good condition · margin notes</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="ornament">· · ·</div>
+
+    <div class="section-header">Recently shelved</div>
+
+    <div class="books-grid" id="bookGrid"></div>
+
+    <blockquote class="quote-block">
+      <p class="quote-text">"A used bookstore is a record of all the reading that has gone before — and all the reading that might still come."</p>
+      <div class="quote-attr">Overheard, Tuesday afternoon</div>
+    </blockquote>
+
+    <footer class="footer">
+      <div class="footer-col">
+        <div class="footer-label">Hours</div>
+        <div class="footer-text">Monday — Saturday<br>10am until the light fades<br>Sunday, by feeling</div>
+      </div>
+      <div class="footer-col">
+        <div class="footer-label">Find us</div>
+        <div class="footer-text">17 Antiquarian Lane<br>Above the clock repair shop<br>Ring the brass bell</div>
+      </div>
+      <div class="footer-col">
+        <div class="footer-label">A note</div>
+        <div class="footer-text">We accept books in trade.<br>Especially the ones<br>you've read twice.</div>
+      </div>
+    </footer>
+
+  </div>
+</div>
+
+<script>
+const books = [
+  { title: "The God of Small Things", author: "Arundhati Roy", year: 1997, price: "$9", bg: "#2d1a0e", spine: "#6b3518", text: "#c8956a", condition: "worn" },
+  { title: "Wide Sargasso Sea", author: "Jean Rhys", year: 1966, price: "$7", bg: "#1a1a2e", spine: "#2e2e5c", text: "#9090c8", condition: "yellowed" },
+  { title: "Housekeeping", author: "Marilynne Robinson", year: 1980, price: "$11", bg: "#0e2318", spine: "#1a5038", text: "#6aaa80", condition: "fine" },
+  { title: "Stoner", author: "John Williams", year: 1965, price: "$8", bg: "#2e1e10", spine: "#7a4520", text: "#c8805a", condition: "reading copy" },
+  { title: "A Field Guide to Getting Lost", author: "Rebecca Solnit", year: 2005, price: "$12", bg: "#1e1a10", spine: "#5a4a18", text: "#c8aa50", condition: "good" },
+  { title: "The Rings of Saturn", author: "W.G. Sebald", year: 1995, price: "$14", bg: "#1a1818", spine: "#4a4040", text: "#b0a090", condition: "ex-library" },
+];
+
+const grid = document.getElementById('bookGrid');
+books.forEach(b => {
+  const card = document.createElement('div');
+  card.className = 'book-card';
+  card.innerHTML = `
+    <div class="book-cover" style="background:${b.bg}; --spine:${b.spine}; box-shadow: inset -2px 0 6px rgba(0,0,0,0.3), 2px 4px 12px rgba(0,0,0,0.4);">
+      <div class="cover-text" style="color:${b.text};">${b.title}<br><span style="font-size:9px;opacity:0.6;letter-spacing:0.1em">${b.year}</span></div>
+    </div>
+    <div class="card-title">${b.title}</div>
+    <div class="card-author">${b.author}</div>
+    <div class="card-price">${b.price} · ${b.condition}</div>
+  `;
+  grid.appendChild(card);
+});
+
+// Dust mote animation
+const canvas = document.getElementById('motes');
+const ctx = canvas.getContext('2d');
+let W, H, motes;
+
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+
+function initMotes() {
+  motes = Array.from({length: 38}, () => ({
+    x: Math.random() * W,
+    y: Math.random() * H,
+    r: Math.random() * 1.8 + 0.4,
+    vx: (Math.random() - 0.5) * 0.18,
+    vy: (Math.random() - 0.7) * 0.12,
+    opacity: Math.random() * 0.35 + 0.05,
+    pulse: Math.random() * Math.PI * 2,
+  }));
+}
+
+function drawMotes(t) {
+  ctx.clearRect(0, 0, W, H);
+  motes.forEach(m => {
+    m.pulse += 0.008;
+    const glow = Math.sin(m.pulse) * 0.12 + 0.88;
+    const alpha = m.opacity * glow;
+
+    // Only render in the light shaft region (right side)
+    const inLight = m.x > W * 0.5;
+    if (!inLight && Math.random() > 0.3) return;
+
+    ctx.beginPath();
+    const grad = ctx.createRadialGradient(m.x, m.y, 0, m.x, m.y, m.r * 2.5);
+    grad.addColorStop(0, `rgba(240,210,160,${alpha})`);
+    grad.addColorStop(1, `rgba(240,210,160,0)`);
+    ctx.fillStyle = grad;
+    ctx.arc(m.x, m.y, m.r * 2.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    m.x += m.vx;
+    m.y += m.vy;
+    if (m.x < -10) m.x = W + 10;
+    if (m.x > W + 10) m.x = -10;
+    if (m.y < -10) m.y = H + 10;
+    if (m.y > H + 10) m.y = -10;
+  });
+  requestAnimationFrame(drawMotes);
+}
+
+resize();
+initMotes();
+window.addEventListener('resize', () => { resize(); initMotes(); });
+requestAnimationFrame(drawMotes);
+</script>
+</body>
+</html>

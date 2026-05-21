@@ -1,0 +1,320 @@
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap');
+  .captcha-wrap {
+    background: #F0EDE6;
+    border: 1.5px solid #C8C4B8;
+    border-radius: 4px;
+    max-width: 380px;
+    margin: 2rem auto;
+    font-family: 'Courier Prime', 'Courier New', monospace;
+    box-shadow: 2px 3px 0 #C0BDB3;
+    overflow: hidden;
+  }
+  .cap-header {
+    background: #E8E4DC;
+    border-bottom: 1px solid #C8C4B8;
+    padding: 10px 14px 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .cap-header span {
+    font-size: 11px;
+    color: #6A6860;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .cap-logo {
+    font-size: 13px;
+    font-weight: 700;
+    color: #4A6B8A;
+    letter-spacing: -0.02em;
+  }
+  .cap-instruction {
+    padding: 14px 14px 10px;
+    background: #4A6B8A;
+    color: #E8F0F8;
+    font-size: 14px;
+    letter-spacing: 0.02em;
+    line-height: 1.4;
+  }
+  .cap-instruction .sub {
+    font-size: 11px;
+    opacity: 0.75;
+    margin-top: 3px;
+    display: block;
+  }
+  .cap-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 3px;
+    padding: 3px;
+    background: #C8C4B8;
+  }
+  .cap-cell {
+    position: relative;
+    aspect-ratio: 1;
+    background: #D8D4C8;
+    cursor: pointer;
+    overflow: hidden;
+    transition: opacity 0.1s;
+  }
+  .cap-cell:hover .overlay { opacity: 0.12; }
+  .cap-cell.selected { outline: 3px solid #4A6B8A; outline-offset: -3px; }
+  .cap-cell.selected::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(74,107,138,0.3);
+  }
+  .cap-cell.selected .check-mark { display: flex; }
+  .check-mark {
+    display: none;
+    position: absolute;
+    top: 4px; right: 4px;
+    width: 18px; height: 18px;
+    background: #4A6B8A;
+    border-radius: 2px;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+  }
+  .check-mark::after { content: '✓'; color: white; font-size: 11px; font-weight: 700; }
+  .overlay { position:absolute;inset:0;background:#000;opacity:0;transition:opacity 0.1s;pointer-events:none; }
+  .cap-footer {
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #F0EDE6;
+    border-top: 1px solid #C8C4B8;
+  }
+  .checkbox-area {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    cursor: pointer;
+  }
+  .custom-cb {
+    width: 22px; height: 22px;
+    border: 2px solid #A0A09A;
+    background: white;
+    border-radius: 3px;
+    position: relative;
+    flex-shrink: 0;
+    transition: border-color 0.15s;
+  }
+  .custom-cb.checked { border-color: #4A9A6A; background: #4A9A6A; }
+  .custom-cb.checked::after { content:'✓'; position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:white;font-size:13px;font-weight:700; }
+  .cb-label {
+    font-size: 14px;
+    color: #3A3A38;
+    letter-spacing: 0.01em;
+    user-select: none;
+  }
+  .cap-brand {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+  }
+  .cap-brand .brand-name { font-size: 9px; color: #9A9890; letter-spacing: 0.05em; }
+  .cap-brand .brand-logo { font-size: 18px; color: #9A9890; }
+  .blurry-section {
+    padding: 10px 14px 6px;
+    background: #ECEAE2;
+    border-bottom: 1px solid #C8C4B8;
+    text-align: center;
+  }
+  .distorted-text {
+    font-family: 'Courier Prime', monospace;
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 0.25em;
+    color: #2A2A28;
+    display: inline-block;
+    filter: blur(0.6px);
+    position: relative;
+    line-height: 1;
+    padding: 4px 8px;
+    background: repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(120,110,90,0.06) 2px, rgba(120,110,90,0.06) 4px);
+  }
+  .distorted-text .c1 { display:inline-block; transform:rotate(-3deg) skewX(-4deg); }
+  .distorted-text .c2 { display:inline-block; transform:rotate(5deg) translateY(-2px); }
+  .distorted-text .c3 { display:inline-block; transform:rotate(-2deg) skewX(6deg); }
+  .distorted-text .c4 { display:inline-block; transform:rotate(4deg) translateY(3px); }
+  .distorted-text .c5 { display:inline-block; transform:rotate(-6deg) skewX(-3deg); }
+  .distorted-text .c6 { display:inline-block; transform:rotate(2deg) skewX(5deg); }
+  .distorted-hint { font-size: 10px; color: #8A8880; margin-top: 3px; letter-spacing: 0.04em; }
+  .cap-verify-btn {
+    display: block;
+    width: calc(100% - 28px);
+    margin: 8px 14px 12px;
+    padding: 9px;
+    background: #4A6B8A;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    font-family: 'Courier Prime', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.15s, opacity 0.15s;
+  }
+  .cap-verify-btn:hover { background: #3A5B7A; }
+  .cap-verify-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .status-msg { text-align:center; font-size:11px; color:#6A8A6A; padding:2px 14px 8px; letter-spacing:0.03em; min-height:18px; }
+  .noise-line { position:absolute;top:50%;left:0;right:0;height:1px;background:rgba(80,70,60,0.25);transform:translateY(-50%) rotate(-1deg);pointer-events:none; }
+</style>
+
+<h2 class="sr-only" style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden">CAPTCHA human verification widget — select all images containing buses in a 3×3 grid</h2>
+
+<div class="captcha-wrap" id="cap">
+
+  <div class="cap-header">
+    <span>Human Verification</span>
+    <span class="cap-logo">reCAPTCHA</span>
+  </div>
+
+  <div class="blurry-section">
+    <div class="distorted-text">
+      <span class="c1">W</span><span class="c2">x</span><span class="c3">9</span><span class="c4">B</span><span class="c5">f</span><span class="c6">4</span>
+      <div class="noise-line"></div>
+    </div>
+    <div class="distorted-hint">Type the characters above — or ignore them, we don't check</div>
+  </div>
+
+  <div class="cap-instruction">
+    Select all squares with <strong>buses</strong>
+    <span class="sub">Click all matching images. If none, click Skip.</span>
+  </div>
+
+  <div class="cap-grid" id="grid">
+  </div>
+
+  <div class="cap-footer">
+    <div class="checkbox-area" id="cbArea">
+      <div class="custom-cb" id="cb"></div>
+      <span class="cb-label">I'm not a robot</span>
+    </div>
+    <div class="cap-brand">
+      <span class="brand-logo">🔒</span>
+      <span class="brand-name">Privacy · Terms</span>
+    </div>
+  </div>
+
+  <div class="status-msg" id="status"></div>
+
+  <button class="cap-verify-btn" id="verifyBtn" disabled>Verify</button>
+
+</div>
+
+<script>
+const cells = [
+  { label: 'bus', emoji: '🚌', bg: '#C8D4E0', text: '#4A6B8A', desc: 'City transit bus' },
+  { label: 'traffic', emoji: '🚦', bg: '#E0CCC8', text: '#8A4A4A', desc: 'Traffic signal' },
+  { label: 'bus', emoji: '🚍', bg: '#C8D4DC', text: '#4A6A78', desc: 'Double route bus' },
+  { label: 'bicycle', emoji: '🚲', bg: '#D4E0CC', text: '#4A7A4A', desc: 'Bicycle lane' },
+  { label: 'bus', emoji: '🚎', bg: '#C4D0DC', text: '#4A5A7A', desc: 'Trolley bus' },
+  { label: 'car', emoji: '🚗', bg: '#E0D8CC', text: '#7A6A4A', desc: 'Sedan vehicle' },
+  { label: 'bus', emoji: '🚐', bg: '#CCCCE0', text: '#5A4A8A', desc: 'Minibus shuttle' },
+  { label: 'truck', emoji: '🚚', bg: '#E0E0CC', text: '#6A6A3A', desc: 'Delivery truck' },
+  { label: 'bus', emoji: '🚌', bg: '#C8D8E0', text: '#3A6A8A', desc: 'Intercity bus' },
+];
+
+const busCells = new Set([0,2,4,6,8]);
+const grid = document.getElementById('grid');
+const verifyBtn = document.getElementById('verifyBtn');
+const status = document.getElementById('status');
+const cb = document.getElementById('cb');
+const cbArea = document.getElementById('cbArea');
+
+let selected = new Set();
+let cbChecked = false;
+let verified = false;
+
+cells.forEach((c, i) => {
+  const cell = document.createElement('div');
+  cell.className = 'cap-cell';
+  cell.setAttribute('role', 'checkbox');
+  cell.setAttribute('aria-label', c.desc);
+  cell.setAttribute('aria-checked', 'false');
+  cell.style.cssText = `background:${c.bg};display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px;`;
+
+  const emo = document.createElement('div');
+  emo.style.cssText = `font-size:36px;filter:blur(0.4px);`;
+  emo.textContent = c.emoji;
+
+  const lbl = document.createElement('div');
+  lbl.style.cssText = `font-family:'Courier Prime',monospace;font-size:9px;letter-spacing:0.08em;color:${c.text};opacity:0.6;text-transform:uppercase;filter:blur(0.3px);`;
+  lbl.textContent = c.desc.split(' ')[0].toUpperCase().substring(0,6);
+
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay';
+
+  const chk = document.createElement('div');
+  chk.className = 'check-mark';
+
+  cell.appendChild(overlay);
+  cell.appendChild(emo);
+  cell.appendChild(lbl);
+  cell.appendChild(chk);
+
+  cell.addEventListener('click', () => {
+    if (verified) return;
+    if (selected.has(i)) {
+      selected.delete(i);
+      cell.classList.remove('selected');
+      cell.setAttribute('aria-checked', 'false');
+    } else {
+      selected.add(i);
+      cell.classList.add('selected');
+      cell.setAttribute('aria-checked', 'true');
+    }
+    updateVerifyBtn();
+    status.textContent = '';
+  });
+
+  grid.appendChild(cell);
+});
+
+function updateVerifyBtn() {
+  verifyBtn.disabled = !(cbChecked && selected.size > 0);
+}
+
+cbArea.addEventListener('click', () => {
+  if (verified) return;
+  cbChecked = !cbChecked;
+  cb.className = 'custom-cb' + (cbChecked ? ' checked' : '');
+  updateVerifyBtn();
+  if (cbChecked) status.textContent = '';
+});
+
+verifyBtn.addEventListener('click', () => {
+  const correct = [...selected].every(i => busCells.has(i)) && [...busCells].every(i => selected.has(i));
+  if (correct) {
+    status.style.color = '#4A8A5A';
+    status.textContent = '✓ Verification successful. You appear human.';
+    verifyBtn.textContent = 'VERIFIED ✓';
+    verifyBtn.style.background = '#4A8A5A';
+    verifyBtn.disabled = true;
+    verified = true;
+  } else {
+    status.style.color = '#8A4A3A';
+    status.textContent = '✗ Incorrect. Please try again — select all buses.';
+    selected.forEach(i => {
+      grid.children[i].classList.remove('selected');
+      grid.children[i].setAttribute('aria-checked','false');
+    });
+    selected.clear();
+    cbChecked = false;
+    cb.className = 'custom-cb';
+    verifyBtn.disabled = true;
+    verifyBtn.textContent = 'VERIFY';
+    verifyBtn.style.background = '';
+  }
+});
+</script>

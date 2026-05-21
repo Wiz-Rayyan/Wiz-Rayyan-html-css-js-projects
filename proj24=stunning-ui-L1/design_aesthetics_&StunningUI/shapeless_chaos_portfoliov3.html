@@ -1,0 +1,152 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #fff; }
+#canvas {
+  position: relative;
+  width: 100%;
+  min-height: 560px;
+  background: #fff;
+  overflow: hidden;
+  font-family: var(--font-sans);
+}
+.card {
+  position: absolute;
+  background: #fff;
+  border: 1.5px solid #000;
+  padding: 14px 18px;
+  cursor: default;
+  user-select: none;
+  transition: top 0.9s cubic-bezier(0.23,1,0.32,1),
+              left 0.9s cubic-bezier(0.23,1,0.32,1),
+              transform 0.9s cubic-bezier(0.23,1,0.32,1),
+              width 0.9s ease,
+              font-size 0.9s ease;
+  z-index: 1;
+}
+.card:hover { z-index: 99; outline: 2.5px solid #000; }
+.card-label {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #aaa;
+  margin-bottom: 4px;
+}
+.card-title {
+  font-weight: 500;
+  color: #000;
+  line-height: 1.25;
+}
+.card-sub {
+  color: #555;
+  margin-top: 5px;
+  line-height: 1.4;
+}
+#ticker {
+  position: absolute;
+  bottom: 12px;
+  right: 16px;
+  font-size: 11px;
+  color: #ccc;
+  letter-spacing: 0.08em;
+  z-index: 200;
+}
+#chaos-btn {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: #000;
+  color: #fff;
+  border: none;
+  padding: 6px 14px;
+  cursor: pointer;
+  z-index: 200;
+}
+#chaos-btn:hover { background: #333; }
+</style>
+
+<div id="canvas" aria-label="Shapeless portfolio — elements reposition every 3 seconds">
+  <button id="chaos-btn" onclick="scramble()">Scramble now</button>
+  <div id="ticker">next chaos in <span id="countdown">3</span>s</div>
+</div>
+
+<script>
+const cards = [
+  { label: "Name", title: "Studio Zero", sub: "Experimental design collective", w: [160,220] },
+  { label: "Work", title: "Unform Project", sub: "Anti-grid visual system, 2024", w: [170,240] },
+  { label: "Work", title: "Noise Engine", sub: "Generative type, variable font", w: [170,230] },
+  { label: "Work", title: "Absence of Grid", sub: "Web installation, net art", w: [160,220] },
+  { label: "Contact", title: "hello@studz.io", sub: null, w: [140,200] },
+  { label: "Year", title: "2026", sub: null, w: [80,120] },
+  { label: "About", title: "We reject layout as authority.", sub: "Form follows entropy.", w: [180,260] },
+  { label: "Medium", title: "Screen, Print, Space", sub: null, w: [150,210] },
+  { label: "Status", title: "Available for chaos", sub: null, w: [150,200] },
+];
+
+const canvas = document.getElementById('canvas');
+const els = [];
+
+function r(min, max) { return Math.random() * (max - min) + min; }
+function ri(min, max) { return Math.floor(r(min, max)); }
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+cards.forEach((data, i) => {
+  const el = document.createElement('div');
+  el.className = 'card';
+  el.innerHTML = `<div class="card-label">${data.label}</div>
+    <div class="card-title" style="font-size:${ri(13,19)}px">${data.title}</div>
+    ${data.sub ? `<div class="card-sub" style="font-size:${ri(11,14)}px">${data.sub}</div>` : ''}`;
+  canvas.appendChild(el);
+  els.push({ el, data });
+});
+
+function scramble() {
+  const cw = canvas.offsetWidth || 680;
+  const ch = canvas.offsetHeight || 560;
+
+  els.forEach(({ el, data }) => {
+    const w = ri(data.w[0], data.w[1]);
+    const h = el.offsetHeight || 80;
+    const maxX = Math.max(0, cw - w - 20);
+    const maxY = Math.max(0, ch - h - 20);
+    const rot = r(-6, 6);
+    const fs = ri(11, 20);
+    const subFs = ri(10, 15);
+
+    el.style.width = w + 'px';
+    el.style.left = ri(10, maxX) + 'px';
+    el.style.top = ri(10, maxY) + 'px';
+    el.style.transform = `rotate(${rot.toFixed(1)}deg)`;
+    el.querySelector('.card-title').style.fontSize = fs + 'px';
+    const sub = el.querySelector('.card-sub');
+    if (sub) sub.style.fontSize = subFs + 'px';
+
+    const styles = [
+      { border: '1.5px solid #000', background: '#fff', color: '#000' },
+      { border: '1.5px solid #000', background: '#000', color: '#fff' },
+      { border: '1.5px dashed #000', background: '#fff', color: '#000' },
+      { border: '3px solid #000', background: '#fff', color: '#000' },
+    ];
+    const s = pick(styles);
+    el.style.border = s.border;
+    el.style.background = s.background;
+    el.style.color = s.color;
+    el.querySelectorAll('.card-label, .card-sub').forEach(e => {
+      e.style.color = s.background === '#000' ? '#aaa' : '#888';
+    });
+  });
+}
+
+scramble();
+
+let sec = 3;
+const cdEl = document.getElementById('countdown');
+setInterval(() => {
+  sec--;
+  if (sec <= 0) { scramble(); sec = 3; }
+  cdEl.textContent = sec;
+}, 1000);
+</script>

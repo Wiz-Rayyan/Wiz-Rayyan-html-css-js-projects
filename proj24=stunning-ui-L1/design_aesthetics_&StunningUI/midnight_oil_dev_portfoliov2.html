@@ -1,0 +1,284 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600&display=swap');
+  .mo-root { background: #0A0A0A; color: #00FF41; font-family: 'Fira Code', monospace; padding: 0; min-height: 600px; border: 1px solid #1A1A1A; }
+  .mo-root * { box-sizing: border-box; }
+  .scanline { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,255,65,0.015) 2px, rgba(0,255,65,0.015) 4px); z-index: 0; }
+  .mo-header { border-bottom: 1px solid #1A1A1A; padding: 10px 16px; display: flex; align-items: center; gap: 12px; position: relative; }
+  .mo-dots { display: flex; gap: 6px; }
+  .mo-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .mo-dot.r { background: #FF5F57; }
+  .mo-dot.y { background: #FEBC2E; }
+  .mo-dot.g { background: #28C840; }
+  .mo-title { font-size: 11px; color: #3A3A3A; flex: 1; text-align: center; }
+  .mo-body { display: grid; grid-template-columns: 200px 1fr; min-height: 560px; position: relative; }
+  .mo-sidebar { border-right: 1px solid #1A1A1A; padding: 16px 0; }
+  .mo-nav-item { padding: 8px 16px; font-size: 11px; cursor: pointer; display: flex; align-items: center; gap: 8px; color: #2A6B2A; transition: all 0.1s; }
+  .mo-nav-item:hover, .mo-nav-item.active { color: #00FF41; background: #0F0F0F; }
+  .mo-nav-item.active { border-left: 2px solid #00FF41; }
+  .mo-nav-section { font-size: 9px; color: #1A3A1A; padding: 12px 16px 4px; letter-spacing: 2px; }
+  .mo-main { padding: 20px; position: relative; overflow: hidden; }
+  .mo-prompt { color: #2A6B2A; font-size: 11px; margin-bottom: 4px; }
+  .mo-prompt span { color: #00FF41; }
+  .mo-prompt .dir { color: #00AAFF; }
+  .mo-prompt .branch { color: #FF9500; }
+  .mo-section { margin-bottom: 24px; }
+  .mo-section-title { font-size: 9px; color: #2A6B2A; letter-spacing: 3px; margin-bottom: 12px; padding-bottom: 4px; border-bottom: 1px solid #111; }
+  .mo-name { font-size: 22px; font-weight: 600; color: #00FF41; letter-spacing: -1px; margin-bottom: 2px; }
+  .mo-role { font-size: 12px; color: #2A6B2A; margin-bottom: 16px; }
+  .mo-status { display: inline-flex; align-items: center; gap: 6px; font-size: 10px; color: #00FF41; }
+  .mo-blink { animation: blink 1s step-end infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+  .mo-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 20px; }
+  .mo-stat { border: 1px solid #1A1A1A; padding: 10px; }
+  .mo-stat-val { font-size: 18px; font-weight: 600; color: #00FF41; }
+  .mo-stat-label { font-size: 9px; color: #2A6B2A; letter-spacing: 1px; margin-top: 2px; }
+  .mo-skill-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .mo-skill-name { font-size: 10px; color: #2A6B2A; width: 80px; flex-shrink: 0; }
+  .mo-bar-track { flex: 1; height: 3px; background: #111; }
+  .mo-bar-fill { height: 100%; background: #00FF41; transition: width 1.2s cubic-bezier(.4,0,.2,1); }
+  .mo-bar-fill.amber { background: #FF9500; }
+  .mo-skill-pct { font-size: 9px; color: #1A3A1A; width: 28px; text-align: right; }
+  .mo-commits { display: grid; grid-template-columns: repeat(53, 1fr); gap: 2px; margin-bottom: 6px; }
+  .mo-commit-cell { aspect-ratio: 1; }
+  .mo-commit-months { display: flex; justify-content: space-between; font-size: 8px; color: #1A3A1A; margin-bottom: 12px; }
+  .mo-log { font-size: 10px; color: #2A6B2A; }
+  .mo-log-row { display: flex; gap: 8px; align-items: flex-start; padding: 5px 0; border-bottom: 1px solid #0D0D0D; }
+  .mo-log-hash { color: #FF9500; flex-shrink: 0; }
+  .mo-log-msg { color: #00FF41; flex: 1; }
+  .mo-log-time { color: #1A3A1A; flex-shrink: 0; font-size: 9px; }
+  .mo-log-tag { font-size: 8px; border: 1px solid #00FF41; color: #00FF41; padding: 1px 4px; flex-shrink: 0; }
+  .mo-log-tag.amber { border-color: #FF9500; color: #FF9500; }
+  .mo-cursor { display: inline-block; width: 7px; height: 13px; background: #00FF41; vertical-align: middle; }
+  .mo-proj { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .mo-proj-card { border: 1px solid #1A1A1A; padding: 10px; cursor: pointer; transition: border-color 0.15s; }
+  .mo-proj-card:hover { border-color: #00FF41; }
+  .mo-proj-name { font-size: 11px; color: #00FF41; margin-bottom: 4px; }
+  .mo-proj-desc { font-size: 9px; color: #2A6B2A; line-height: 1.5; margin-bottom: 8px; }
+  .mo-proj-meta { display: flex; gap: 8px; font-size: 8px; }
+  .mo-proj-lang { color: #FF9500; }
+  .mo-proj-stars { color: #1A3A1A; }
+  .mo-footer { border-top: 1px solid #1A1A1A; padding: 6px 20px; display: flex; justify-content: space-between; font-size: 9px; color: #1A3A1A; }
+  .mo-footer-green { color: #2A6B2A; }
+</style>
+
+<div class="mo-root">
+  <div class="mo-header">
+    <div class="mo-dots">
+      <div class="mo-dot r"></div>
+      <div class="mo-dot y"></div>
+      <div class="mo-dot g"></div>
+    </div>
+    <div class="mo-title">portfolio.sh — bash — 120×38</div>
+  </div>
+
+  <div class="mo-body">
+    <div class="mo-sidebar">
+      <div class="mo-nav-section">EXPLORER</div>
+      <div class="mo-nav-item active" onclick="showSection('about')">
+        <span>▶</span> about.md
+      </div>
+      <div class="mo-nav-item" onclick="showSection('projects')">
+        <span>&nbsp;&nbsp;</span> projects/
+      </div>
+      <div class="mo-nav-item" onclick="showSection('skills')">
+        <span>&nbsp;&nbsp;</span> skills.json
+      </div>
+      <div class="mo-nav-item" onclick="showSection('log')">
+        <span>&nbsp;&nbsp;</span> git.log
+      </div>
+
+      <div class="mo-nav-section">SYSTEM</div>
+      <div class="mo-nav-item">
+        <span>&nbsp;&nbsp;</span> uptime: <span style="color:#00FF41">847h</span>
+      </div>
+      <div class="mo-nav-item">
+        <span>&nbsp;&nbsp;</span> cpu: <span style="color:#FF9500">34%</span>
+      </div>
+      <div class="mo-nav-item">
+        <span>&nbsp;&nbsp;</span> mem: <span style="color:#00FF41">6.2G</span>
+      </div>
+      <div class="mo-nav-item">
+        <span>&nbsp;&nbsp;</span> ☕ caffeine: <span style="color:#FF9500">HIGH</span>
+      </div>
+
+      <div class="mo-nav-section">CONTACT</div>
+      <div class="mo-nav-item">
+        <span>&nbsp;&nbsp;</span> gh/devname
+      </div>
+      <div class="mo-nav-item">
+        <span>&nbsp;&nbsp;</span> @devname
+      </div>
+    </div>
+
+    <div class="mo-main">
+      <div id="sec-about">
+        <div class="mo-prompt"><span>~/portfolio</span> <span class="dir">on</span> <span class="branch">⎇ main</span> <span class="dir">➜</span> cat about.md</div>
+
+        <div class="mo-section" style="margin-top:16px">
+          <div class="mo-name">ALEX MORGAN</div>
+          <div class="mo-role">// full-stack engineer · systems architect · open source contributor</div>
+          <div class="mo-status"><span class="mo-blink">●</span> available for work — remote preferred</div>
+        </div>
+
+        <div class="mo-section">
+          <div class="mo-section-title">// METRICS</div>
+          <div class="mo-stats">
+            <div class="mo-stat">
+              <div class="mo-stat-val" id="commits-count">0</div>
+              <div class="mo-stat-label">COMMITS</div>
+            </div>
+            <div class="mo-stat">
+              <div class="mo-stat-val">47</div>
+              <div class="mo-stat-label">REPOS</div>
+            </div>
+            <div class="mo-stat">
+              <div class="mo-stat-val">3.2k</div>
+              <div class="mo-stat-label">STARS</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mo-section">
+          <div class="mo-section-title">// CONTRIBUTION GRAPH (52 weeks)</div>
+          <div class="mo-commits" id="commit-graph"></div>
+          <div class="mo-commit-months">
+            <span>JAN</span><span>FEB</span><span>MAR</span><span>APR</span><span>MAY</span><span>JUN</span>
+            <span>JUL</span><span>AUG</span><span>SEP</span><span>OCT</span><span>NOV</span><span>DEC</span>
+          </div>
+        </div>
+
+        <div class="mo-prompt" style="margin-top:4px">
+          <span>~/portfolio</span> <span class="dir">➜</span> <span class="mo-cursor mo-blink"></span>
+        </div>
+      </div>
+
+      <div id="sec-projects" style="display:none">
+        <div class="mo-prompt"><span>~/portfolio</span> <span class="dir">➜</span> ls -la projects/</div>
+        <div class="mo-section" style="margin-top:16px">
+          <div class="mo-section-title">// PINNED REPOSITORIES</div>
+          <div class="mo-proj">
+            <div class="mo-proj-card">
+              <div class="mo-proj-name">◈ neural-runtime</div>
+              <div class="mo-proj-desc">Lightweight inference engine for edge deployment. Zero deps, WASM target.</div>
+              <div class="mo-proj-meta"><span class="mo-proj-lang">● Rust</span><span class="mo-proj-stars">★ 1.2k</span><span class="mo-proj-stars">⑂ 89</span></div>
+            </div>
+            <div class="mo-proj-card">
+              <div class="mo-proj-name">◈ fstdb</div>
+              <div class="mo-proj-desc">Column-oriented time-series DB. 10M inserts/sec on commodity hardware.</div>
+              <div class="mo-proj-meta"><span class="mo-proj-lang">● Go</span><span class="mo-proj-stars">★ 847</span><span class="mo-proj-stars">⑂ 41</span></div>
+            </div>
+            <div class="mo-proj-card">
+              <div class="mo-proj-name">◈ cryptex</div>
+              <div class="mo-proj-desc">CLI secrets manager. Local-first, GPG-backed, shell integration.</div>
+              <div class="mo-proj-meta"><span class="mo-proj-lang">● TypeScript</span><span class="mo-proj-stars">★ 512</span><span class="mo-proj-stars">⑂ 33</span></div>
+            </div>
+            <div class="mo-proj-card">
+              <div class="mo-proj-name">◈ shade</div>
+              <div class="mo-proj-desc">Distributed tracing library. OpenTelemetry-compatible, minimal overhead.</div>
+              <div class="mo-proj-meta"><span class="mo-proj-lang">● Python</span><span class="mo-proj-stars">★ 391</span><span class="mo-proj-stars">⑂ 27</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="mo-prompt" style="margin-top:16px">
+          <span>~/portfolio/projects</span> <span class="dir">➜</span> <span class="mo-cursor mo-blink"></span>
+        </div>
+      </div>
+
+      <div id="sec-skills" style="display:none">
+        <div class="mo-prompt"><span>~/portfolio</span> <span class="dir">➜</span> cat skills.json | jq .</div>
+        <div class="mo-section" style="margin-top:16px">
+          <div class="mo-section-title">// PROFICIENCY</div>
+          <div class="mo-skill-row"><span class="mo-skill-name">Rust</span><div class="mo-bar-track"><div class="mo-bar-fill" style="width:0%" data-w="94%"></div></div><span class="mo-skill-pct">94%</span></div>
+          <div class="mo-skill-row"><span class="mo-skill-name">Go</span><div class="mo-bar-track"><div class="mo-bar-fill" style="width:0%" data-w="91%"></div></div><span class="mo-skill-pct">91%</span></div>
+          <div class="mo-skill-row"><span class="mo-skill-name">TypeScript</span><div class="mo-bar-track"><div class="mo-bar-fill" style="width:0%" data-w="88%"></div></div><span class="mo-skill-pct">88%</span></div>
+          <div class="mo-skill-row"><span class="mo-skill-name">Python</span><div class="mo-bar-track"><div class="mo-bar-fill" style="width:0%" data-w="85%"></div></div><span class="mo-skill-pct">85%</span></div>
+          <div class="mo-skill-row"><span class="mo-skill-name">Linux</span><div class="mo-bar-track"><div class="mo-bar-fill" style="width:0%" data-w="96%"></div></div><span class="mo-skill-pct">96%</span></div>
+          <div class="mo-skill-row"><span class="mo-skill-name">Postgres</span><div class="mo-bar-track"><div class="mo-bar-fill amber" style="width:0%" data-w="79%"></div></div><span class="mo-skill-pct">79%</span></div>
+          <div class="mo-skill-row"><span class="mo-skill-name">K8s</span><div class="mo-bar-track"><div class="mo-bar-fill amber" style="width:0%" data-w="74%"></div></div><span class="mo-skill-pct">74%</span></div>
+          <div class="mo-skill-row"><span class="mo-skill-name">WASM</span><div class="mo-bar-track"><div class="mo-bar-fill amber" style="width:0%" data-w="68%"></div></div><span class="mo-skill-pct">68%</span></div>
+        </div>
+        <div class="mo-prompt"><span>~/portfolio</span> <span class="dir">➜</span> <span class="mo-cursor mo-blink"></span></div>
+      </div>
+
+      <div id="sec-log" style="display:none">
+        <div class="mo-prompt"><span>~/portfolio</span> <span class="dir">➜</span> git log --oneline --graph</div>
+        <div class="mo-section" style="margin-top:12px">
+          <div class="mo-section-title">// RECENT COMMITS</div>
+          <div class="mo-log">
+            <div class="mo-log-row"><span class="mo-log-hash">a3f9c2e</span><span class="mo-log-msg">feat: zero-copy deserialization in neural-runtime</span><span class="mo-log-tag">v2.1.0</span><span class="mo-log-time">2h ago</span></div>
+            <div class="mo-log-row"><span class="mo-log-hash">88d1b4f</span><span class="mo-log-msg">perf: reduce allocations in hot path by 40%</span><span style="width:8px"></span><span class="mo-log-time">5h ago</span></div>
+            <div class="mo-log-row"><span class="mo-log-hash">c71e05a</span><span class="mo-log-msg">fix: race condition in fstdb WAL writer</span><span class="mo-log-tag amber">fix</span><span class="mo-log-time">1d ago</span></div>
+            <div class="mo-log-row"><span class="mo-log-hash">2d884cc</span><span class="mo-log-msg">docs: update cryptex README with shell hook examples</span><span style="width:8px"></span><span class="mo-log-time">2d ago</span></div>
+            <div class="mo-log-row"><span class="mo-log-hash">f0a3819</span><span class="mo-log-msg">chore: bump dependencies, fix WASM build on musl</span><span style="width:8px"></span><span class="mo-log-time">3d ago</span></div>
+            <div class="mo-log-row"><span class="mo-log-hash">9e1c77d</span><span class="mo-log-msg">feat: distributed lock primitive in shade tracing</span><span class="mo-log-tag">feat</span><span class="mo-log-time">5d ago</span></div>
+            <div class="mo-log-row"><span class="mo-log-hash">3b5f2ea</span><span class="mo-log-msg">refactor: extract query planner into standalone crate</span><span style="width:8px"></span><span class="mo-log-time">1w ago</span></div>
+          </div>
+        </div>
+        <div class="mo-prompt"><span>~/portfolio</span> <span class="dir">➜</span> <span class="mo-cursor mo-blink"></span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mo-footer">
+    <span><span class="mo-footer-green">⎇ main</span> · 2847 commits ahead of origin</span>
+    <span>UTF-8 · LF · Fira Code · <span class="mo-footer-green">●●● flow state</span></span>
+    <span>23:47 <span class="mo-blink">■</span></span>
+  </div>
+</div>
+
+<script>
+function showSection(id) {
+  ['about','projects','skills','log'].forEach(s => {
+    document.getElementById('sec-'+s).style.display = s===id ? 'block' : 'none';
+  });
+  document.querySelectorAll('.mo-nav-item').forEach((el,i) => el.classList.remove('active'));
+  const items = document.querySelectorAll('.mo-nav-item');
+  const map = {about:0,projects:1,skills:2,log:3};
+  if(items[map[id]]) items[map[id]].classList.add('active');
+  if(id==='skills') setTimeout(animateBars, 80);
+}
+
+function animateBars() {
+  document.querySelectorAll('.mo-bar-fill').forEach(b => {
+    b.style.width = b.dataset.w;
+  });
+}
+
+function buildCommitGraph() {
+  const g = document.getElementById('commit-graph');
+  const levels = ['#0A0A0A','#0D2B0D','#1A5C1A','#29A629','#00FF41'];
+  const totalWeeks = 53;
+  let totalCommits = 0;
+  for(let w=0;w<totalWeeks;w++) {
+    for(let d=0;d<7;d++) {
+      const cell = document.createElement('div');
+      cell.className = 'mo-commit-cell';
+      const rand = Math.random();
+      let lvl;
+      if(rand < 0.35) lvl = 0;
+      else if(rand < 0.52) lvl = 1;
+      else if(rand < 0.70) lvl = 2;
+      else if(rand < 0.85) lvl = 3;
+      else lvl = 4;
+      if(lvl > 0) totalCommits += [0,1,3,7,15][lvl];
+      cell.style.background = levels[lvl];
+      cell.style.borderRadius = '1px';
+      g.appendChild(cell);
+    }
+  }
+  animateCounter(document.getElementById('commits-count'), totalCommits);
+}
+
+function animateCounter(el, target) {
+  let current = 0;
+  const step = Math.ceil(target / 40);
+  const timer = setInterval(() => {
+    current = Math.min(current + step, target);
+    el.textContent = current.toLocaleString();
+    if(current >= target) clearInterval(timer);
+  }, 30);
+}
+
+buildCommitGraph();
+</script>

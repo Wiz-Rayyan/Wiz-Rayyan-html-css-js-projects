@@ -1,0 +1,73 @@
+
+<style>
+  @keyframes fogDrift { 0%{transform:translateX(0) translateY(0)} 50%{transform:translateX(18px) translateY(-8px)} 100%{transform:translateX(0) translateY(0)} }
+  @keyframes waterShimmer { 0%{opacity:0.18} 50%{opacity:0.32} 100%{opacity:0.18} }
+  @keyframes flicker { 0%,100%{opacity:1} 93%{opacity:0.92} 95%{opacity:0.78} 97%{opacity:0.95} }
+  @keyframes ripple { 0%{transform:scaleX(1) translateY(0);opacity:0.22} 50%{transform:scaleX(1.04) translateY(-1px);opacity:0.35} 100%{transform:scaleX(1) translateY(0);opacity:0.22} }
+  .pool-scene { position:relative; width:100%; height:520px; overflow:hidden; background:#b8d4c8; font-family:monospace; }
+  .ceiling { position:absolute; top:0; left:0; width:100%; height:72px; background:linear-gradient(180deg,#c8ddd3 0%,#bfd4ca 100%); z-index:2; }
+  .ceiling-tiles { position:absolute; top:0; left:0; width:100%; height:72px; background-image: repeating-linear-gradient(90deg, transparent, transparent 59px, rgba(100,130,120,0.18) 59px, rgba(100,130,120,0.18) 60px), repeating-linear-gradient(0deg, transparent, transparent 35px, rgba(100,130,120,0.18) 35px, rgba(100,130,120,0.18) 36px); z-index:3; }
+  .light-strip { position:absolute; top:18px; height:10px; background:linear-gradient(90deg,transparent 0%,rgba(240,220,140,0.7) 15%,rgba(255,240,160,0.9) 50%,rgba(240,220,140,0.7) 85%,transparent 100%); z-index:4; animation:flicker 7s ease-in-out infinite; }
+  .light-glow { position:absolute; top:0; height:120px; background:radial-gradient(ellipse 60% 60px at 50% 0%, rgba(240,220,120,0.22) 0%, transparent 100%); z-index:5; pointer-events:none; }
+  .back-wall { position:absolute; top:72px; left:0; width:100%; height:180px; background:linear-gradient(180deg,#c2d5ca 0%,#b5ccc0 100%); z-index:1; }
+  .wall-tiles { position:absolute; top:72px; left:0; width:100%; height:180px; background-image: repeating-linear-gradient(90deg, transparent, transparent 49px, rgba(90,120,110,0.15) 49px, rgba(90,120,110,0.15) 50px), repeating-linear-gradient(0deg, transparent, transparent 49px, rgba(90,120,110,0.15) 49px, rgba(90,120,110,0.15) 50px); z-index:2; }
+  .arch-left, .arch-right { position:absolute; top:72px; width:90px; height:180px; background:linear-gradient(90deg,#a8c0b5,#b5ccbf); z-index:3; }
+  .arch-left { left:0; background:linear-gradient(90deg,#9ab5aa,#b5ccbf); }
+  .arch-right { right:0; background:linear-gradient(270deg,#9ab5aa,#b5ccbf); }
+  .pillar { position:absolute; top:72px; width:22px; height:180px; background:linear-gradient(90deg,#a2bbb0,#c5d8ce,#a2bbb0); border-left:1px solid rgba(90,120,110,0.2); border-right:1px solid rgba(90,120,110,0.2); z-index:4; }
+  .pool-surround { position:absolute; top:252px; left:0; width:100%; height:48px; background:#c0d5c8; background-image: repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(90,120,110,0.2) 39px, rgba(90,120,110,0.2) 40px), repeating-linear-gradient(0deg, transparent, transparent 23px, rgba(90,120,110,0.2) 23px, rgba(90,120,110,0.2) 24px); z-index:5; }
+  .pool-edge { position:absolute; top:294px; left:0; width:100%; height:6px; background:linear-gradient(180deg,rgba(180,210,200,0.8),rgba(140,180,165,0.9)); z-index:6; border-bottom:1px solid rgba(100,150,130,0.4); }
+  .water { position:absolute; top:300px; left:0; width:100%; height:220px; background:linear-gradient(180deg,#7fb8a8 0%,#6aab98 30%,#5d9e8c 60%,#4e8e7c 100%); z-index:4; overflow:hidden; }
+  .water-tiles { position:absolute; top:0; left:0; width:100%; height:100%; background-image: repeating-linear-gradient(90deg, transparent, transparent 49px, rgba(60,100,90,0.12) 49px, rgba(60,100,90,0.12) 50px), repeating-linear-gradient(0deg, transparent, transparent 49px, rgba(60,100,90,0.12) 49px, rgba(60,100,90,0.12) 50px); z-index:1; }
+  .water-shimmer { position:absolute; top:0; left:0; width:100%; height:100%; background:repeating-linear-gradient(172deg, transparent, transparent 18px, rgba(200,240,230,0.08) 19px, transparent 22px); animation:waterShimmer 4s ease-in-out infinite; z-index:2; }
+  .water-gloss { position:absolute; top:0; left:0; width:100%; height:60px; background:linear-gradient(180deg,rgba(220,245,235,0.28) 0%,transparent 100%); z-index:3; animation:ripple 5s ease-in-out infinite; }
+  .reflection-overlay { position:absolute; top:0; left:0; width:100%; height:100%; background:linear-gradient(180deg, rgba(240,220,140,0.08) 0%, transparent 40%); z-index:4; }
+  .fog-layer { position:absolute; top:60px; left:0; width:130%; height:260px; background:linear-gradient(180deg,rgba(210,230,225,0.55) 0%,rgba(200,225,218,0.3) 40%,transparent 100%); z-index:10; animation:fogDrift 14s ease-in-out infinite; pointer-events:none; }
+  .fog-layer2 { position:absolute; top:200px; left:-10%; width:120%; height:150px; background:linear-gradient(180deg,transparent 0%,rgba(200,225,218,0.2) 50%,transparent 100%); z-index:11; animation:fogDrift 20s ease-in-out infinite reverse; pointer-events:none; }
+  .yellow-tint { position:absolute; top:0; left:0; width:100%; height:100%; background:linear-gradient(180deg,rgba(240,210,100,0.08) 0%,rgba(240,210,80,0.04) 50%,transparent 100%); z-index:12; pointer-events:none; }
+  .depth-fade { position:absolute; bottom:0; left:0; width:100%; height:80px; background:linear-gradient(180deg,transparent,rgba(50,80,72,0.55)); z-index:6; pointer-events:none; }
+  .vignette { position:absolute; top:0; left:0; width:100%; height:100%; background:radial-gradient(ellipse 100% 100% at 50% 50%, transparent 40%, rgba(30,55,48,0.55) 100%); z-index:13; pointer-events:none; }
+  .caption { position:absolute; bottom:18px; left:0; width:100%; text-align:center; font-size:11px; letter-spacing:0.18em; color:rgba(200,230,220,0.45); z-index:15; pointer-events:none; text-transform:uppercase; }
+</style>
+
+<div class="pool-scene" role="img" aria-label="Liminal poolrooms scene: empty indoor pool with tile walls, fog, yellow fluorescent lighting, and an unsettling stillness">
+
+  <div class="ceiling"></div>
+  <div class="ceiling-tiles"></div>
+
+  <div class="light-strip" style="left:10%;width:24%;"></div>
+  <div class="light-strip" style="left:42%;width:18%;animation-delay:1.3s;"></div>
+  <div class="light-strip" style="left:68%;width:22%;animation-delay:2.7s;"></div>
+  <div class="light-glow" style="left:10%;width:24%;"></div>
+  <div class="light-glow" style="left:42%;width:18%;"></div>
+  <div class="light-glow" style="left:68%;width:22%;"></div>
+
+  <div class="back-wall"></div>
+  <div class="wall-tiles"></div>
+
+  <div class="arch-left"></div>
+  <div class="arch-right"></div>
+
+  <div class="pillar" style="left:18%;"></div>
+  <div class="pillar" style="left:36%;"></div>
+  <div class="pillar" style="left:54%;"></div>
+  <div class="pillar" style="left:72%;"></div>
+
+  <div class="pool-surround"></div>
+  <div class="pool-edge"></div>
+
+  <div class="water">
+    <div class="water-tiles"></div>
+    <div class="water-shimmer"></div>
+    <div class="water-gloss"></div>
+    <div class="reflection-overlay"></div>
+    <div class="depth-fade"></div>
+  </div>
+
+  <div class="fog-layer"></div>
+  <div class="fog-layer2"></div>
+  <div class="yellow-tint"></div>
+  <div class="vignette"></div>
+
+  <div class="caption">level 37 — the poolrooms — no exit found</div>
+</div>

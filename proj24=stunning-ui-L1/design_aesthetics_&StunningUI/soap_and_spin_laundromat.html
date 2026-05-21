@@ -1,0 +1,505 @@
+
+<style>
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  @keyframes spinSlow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  @keyframes bubble { 0%,100%{transform:translateY(0) scale(1);opacity:0.7} 50%{transform:translateY(-12px) scale(1.1);opacity:1} }
+  @keyframes bubble2 { 0%,100%{transform:translateY(0) scale(1);opacity:0.5} 50%{transform:translateY(-8px) scale(1.08);opacity:0.85} }
+  @keyframes flicker { 0%,100%{opacity:1} 50%{opacity:0.75} }
+  .drum { animation: spin 3.2s linear infinite; transform-origin: center; }
+  .drum-slow { animation: spinSlow 8s linear infinite; transform-origin: center; }
+  .bub1 { animation: bubble 2.4s ease-in-out infinite; }
+  .bub2 { animation: bubble2 3.1s ease-in-out infinite 0.6s; }
+  .bub3 { animation: bubble 1.9s ease-in-out infinite 1.2s; }
+  .bub4 { animation: bubble2 2.7s ease-in-out infinite 0.3s; }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  .wrapper {
+    background: #E8F0F0;
+    font-family: 'Courier New', Courier, monospace;
+    color: #2C3E50;
+    padding: 0;
+    min-height: 100vh;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Linoleum floor pattern */
+  .floor-strip {
+    width: 100%;
+    height: 12px;
+    background: repeating-linear-gradient(90deg, #D4E8E0 0px, #D4E8E0 18px, #C8D8D0 18px, #C8D8D0 36px);
+    border-top: 1px solid #B0C4DE;
+    border-bottom: 1px solid #B0C4DE;
+  }
+
+  header {
+    text-align: center;
+    padding: 2rem 1.5rem 1rem;
+    position: relative;
+  }
+
+  .logo-tag {
+    display: inline-block;
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: #7EB8A0;
+    border: 1px solid #B0C4DE;
+    padding: 3px 10px;
+    margin-bottom: 0.75rem;
+  }
+
+  h1 {
+    font-size: 38px;
+    font-weight: 700;
+    color: #2C3E50;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+
+  h1 span {
+    color: #E8A0B0;
+  }
+
+  .tagline {
+    font-size: 12px;
+    color: #5A7A88;
+    letter-spacing: 0.15em;
+    margin-top: 0.5rem;
+  }
+
+  /* Bubble decorations */
+  .bubbles-area {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin: 0.75rem 0;
+    height: 40px;
+    align-items: flex-end;
+  }
+
+  .bubble {
+    border-radius: 50%;
+    border: 1.5px solid #B8D8E8;
+    background: rgba(200,225,235,0.45);
+  }
+
+  /* Machines row */
+  .machines {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    padding: 1.5rem 1rem 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .machine {
+    background: #F0F8F4;
+    border: 1px solid #B0C4DE;
+    border-radius: 6px;
+    width: 140px;
+    padding: 14px 10px 12px;
+    text-align: center;
+    position: relative;
+  }
+
+  .machine-top {
+    height: 10px;
+    background: #D8E8E0;
+    border: 1px solid #B0C4DE;
+    border-radius: 3px 3px 0 0;
+    margin: -14px -10px 8px;
+  }
+
+  .machine-label {
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    color: #7EB8A0;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .drum-container {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 10px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .drum-glass {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: rgba(190,220,235,0.3);
+    border: 2px solid #B0C4DE;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .drum-inner {
+    width: 64px;
+    height: 64px;
+  }
+
+  .coin-slot {
+    width: 28px;
+    height: 6px;
+    background: #2C3E50;
+    border-radius: 3px;
+    margin: 0 auto 8px;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .coin-slot:hover { background: #E8A0B0; }
+  .coin-slot::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%,-50%);
+    width: 18px;
+    height: 2px;
+    background: rgba(255,255,255,0.25);
+    border-radius: 1px;
+  }
+
+  .machine-status {
+    font-size: 9px;
+    color: #7EB8A0;
+    letter-spacing: 0.15em;
+    animation: flicker 2s ease-in-out infinite;
+  }
+
+  .machine-status.busy { color: #E8A0B0; }
+
+  /* Info section */
+  .info-strip {
+    display: flex;
+    justify-content: center;
+    gap: 1px;
+    margin: 1.5rem 0 0;
+    border-top: 1px solid #B0C4DE;
+    border-bottom: 1px solid #B0C4DE;
+    background: #B0C4DE;
+  }
+
+  .info-cell {
+    flex: 1;
+    background: #E8F0F0;
+    padding: 14px 10px;
+    text-align: center;
+    max-width: 160px;
+  }
+
+  .info-cell .num {
+    font-size: 24px;
+    font-weight: 700;
+    color: #2C3E50;
+    line-height: 1;
+  }
+
+  .info-cell .desc {
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #5A7A88;
+    margin-top: 4px;
+  }
+
+  /* Coin button */
+  .coin-btn-row {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    padding: 1.5rem 1rem;
+    flex-wrap: wrap;
+  }
+
+  .coin-btn {
+    background: transparent;
+    border: 1px solid #B0C4DE;
+    color: #2C3E50;
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+  }
+
+  .coin-btn:hover {
+    background: #E8A0B0;
+    border-color: #E8A0B0;
+    color: #2C3E50;
+  }
+
+  .coin-btn.primary {
+    background: #2C3E50;
+    border-color: #2C3E50;
+    color: #E8F0F0;
+  }
+
+  .coin-btn.primary:hover {
+    background: #7EB8A0;
+    border-color: #7EB8A0;
+  }
+
+  /* Services */
+  .services {
+    padding: 0 1.5rem 0.5rem;
+  }
+
+  .services-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1px;
+    background: #B0C4DE;
+    border: 1px solid #B0C4DE;
+  }
+
+  .service-item {
+    background: #F5F9F7;
+    padding: 14px 12px;
+  }
+
+  .service-name {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #2C3E50;
+    margin-bottom: 3px;
+  }
+
+  .service-price {
+    font-size: 18px;
+    color: #7EB8A0;
+    font-weight: 700;
+  }
+
+  .service-desc {
+    font-size: 9px;
+    color: #5A7A88;
+    letter-spacing: 0.08em;
+    margin-top: 2px;
+  }
+
+  /* Hours / footer */
+  .hours-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 1.5rem;
+    border-top: 1px solid #B0C4DE;
+    margin-top: 1.5rem;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    color: #5A7A88;
+    text-transform: uppercase;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .hours-open {
+    color: #7EB8A0;
+    font-weight: 700;
+    animation: flicker 3s ease-in-out infinite;
+  }
+
+  .pink-dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #E8A0B0;
+    margin-right: 5px;
+    vertical-align: middle;
+  }
+
+  /* floating bubbles bg */
+  .bg-bubbles {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 0;
+  }
+
+  .content { position: relative; z-index: 1; }
+</style>
+
+<div class="wrapper">
+  <div class="bg-bubbles">
+    <svg width="100%" height="100%" viewBox="0 0 680 600" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+      <circle class="bub1" cx="60" cy="120" r="22" fill="none" stroke="#C8DFF0" stroke-width="1.5" opacity="0.5"/>
+      <circle class="bub2" cx="610" cy="80" r="14" fill="none" stroke="#E8C8D8" stroke-width="1.5" opacity="0.45"/>
+      <circle class="bub3" cx="580" cy="260" r="28" fill="none" stroke="#B8E0D0" stroke-width="1.5" opacity="0.4"/>
+      <circle class="bub4" cx="30" cy="340" r="18" fill="none" stroke="#C8DFF0" stroke-width="1.5" opacity="0.45"/>
+      <circle class="bub1" cx="640" cy="420" r="10" fill="none" stroke="#E8C8D8" stroke-width="1.5" opacity="0.4"/>
+      <circle class="bub2" cx="90" cy="480" r="20" fill="none" stroke="#B8E0D0" stroke-width="1.5" opacity="0.35"/>
+    </svg>
+  </div>
+
+  <div class="content">
+    <header>
+      <div class="logo-tag">Est. 1987</div>
+      <h1>Soap <span>&</span> Spin</h1>
+      <p class="tagline">self-service laundromat · open every day</p>
+
+      <div class="bubbles-area">
+        <div class="bubble bub1" style="width:18px;height:18px;"></div>
+        <div class="bubble bub2" style="width:12px;height:12px;"></div>
+        <div class="bubble bub3" style="width:22px;height:22px;"></div>
+        <div class="bubble bub4" style="width:10px;height:10px;"></div>
+        <div class="bubble bub1" style="width:16px;height:16px;"></div>
+        <div class="bubble bub2" style="width:8px;height:8px;"></div>
+        <div class="bubble bub3" style="width:14px;height:14px;"></div>
+      </div>
+    </header>
+
+    <div class="floor-strip"></div>
+
+    <div class="machines">
+
+      <div class="machine">
+        <div class="machine-top"></div>
+        <div class="machine-label">Washer #3</div>
+        <div class="drum-container">
+          <div class="drum-glass">
+            <svg class="drum-inner" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+              <g class="drum" style="transform-origin:32px 32px">
+                <circle cx="32" cy="32" r="26" fill="none" stroke="#B0C4DE" stroke-width="1.5"/>
+                <circle cx="32" cy="10" r="5" fill="#D8EEE8" stroke="#B0C4DE" stroke-width="1"/>
+                <circle cx="32" cy="54" r="5" fill="#D8EEE8" stroke="#B0C4DE" stroke-width="1"/>
+                <circle cx="10" cy="32" r="5" fill="#F0C8D8" stroke="#B0C4DE" stroke-width="1"/>
+                <circle cx="54" cy="32" r="5" fill="#F0C8D8" stroke="#B0C4DE" stroke-width="1"/>
+                <circle cx="32" cy="32" r="8" fill="none" stroke="#B0C4DE" stroke-width="1.5"/>
+                <line x1="32" y1="24" x2="32" y2="40" stroke="#B0C4DE" stroke-width="1"/>
+                <line x1="24" y1="32" x2="40" y2="32" stroke="#B0C4DE" stroke-width="1"/>
+              </g>
+            </svg>
+          </div>
+        </div>
+        <div class="coin-slot" title="Insert coin"></div>
+        <div class="machine-status busy">● in use</div>
+      </div>
+
+      <div class="machine">
+        <div class="machine-top"></div>
+        <div class="machine-label">Washer #4</div>
+        <div class="drum-container">
+          <div class="drum-glass">
+            <svg class="drum-inner" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+              <g class="drum-slow" style="transform-origin:32px 32px">
+                <circle cx="32" cy="32" r="26" fill="none" stroke="#B0C4DE" stroke-width="1.5"/>
+                <circle cx="32" cy="10" r="5" fill="#D8EEE8" stroke="#B0C4DE" stroke-width="1"/>
+                <circle cx="32" cy="54" r="5" fill="#D8EEE8" stroke="#B0C4DE" stroke-width="1"/>
+                <circle cx="10" cy="32" r="5" fill="#D8EEE8" stroke="#B0C4DE" stroke-width="1"/>
+                <circle cx="54" cy="32" r="5" fill="#D8EEE8" stroke="#B0C4DE" stroke-width="1"/>
+                <circle cx="32" cy="32" r="8" fill="none" stroke="#B0C4DE" stroke-width="1.5"/>
+                <line x1="32" y1="24" x2="32" y2="40" stroke="#B0C4DE" stroke-width="1"/>
+                <line x1="24" y1="32" x2="40" y2="32" stroke="#B0C4DE" stroke-width="1"/>
+              </g>
+            </svg>
+          </div>
+        </div>
+        <div class="coin-slot" title="Insert coin"></div>
+        <div class="machine-status">○ available</div>
+      </div>
+
+      <div class="machine">
+        <div class="machine-top" style="background:#F0D8E0;"></div>
+        <div class="machine-label">Dryer #1</div>
+        <div class="drum-container">
+          <div class="drum-glass" style="background:rgba(240,200,210,0.2);">
+            <svg class="drum-inner" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+              <g class="drum" style="transform-origin:32px 32px; animation-duration:2s;">
+                <circle cx="32" cy="32" r="26" fill="none" stroke="#D0A8B8" stroke-width="1.5"/>
+                <path d="M32 8 L36 16 L44 18 L38 24 L40 32 L32 28 L24 32 L26 24 L20 18 L28 16 Z" fill="none" stroke="#D0A8B8" stroke-width="1.2"/>
+                <circle cx="32" cy="32" r="8" fill="none" stroke="#D0A8B8" stroke-width="1.5"/>
+              </g>
+            </svg>
+          </div>
+        </div>
+        <div class="coin-slot" title="Insert coin"></div>
+        <div class="machine-status busy">● in use</div>
+      </div>
+
+      <div class="machine">
+        <div class="machine-top" style="background:#F0D8E0;"></div>
+        <div class="machine-label">Dryer #2</div>
+        <div class="drum-container">
+          <div class="drum-glass" style="background:rgba(240,200,210,0.2);">
+            <svg class="drum-inner" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+              <g class="drum-slow" style="transform-origin:32px 32px; animation-duration:5s;">
+                <circle cx="32" cy="32" r="26" fill="none" stroke="#D0A8B8" stroke-width="1.5"/>
+                <path d="M32 8 L36 16 L44 18 L38 24 L40 32 L32 28 L24 32 L26 24 L20 18 L28 16 Z" fill="none" stroke="#D0A8B8" stroke-width="1.2"/>
+                <circle cx="32" cy="32" r="8" fill="none" stroke="#D0A8B8" stroke-width="1.5"/>
+              </g>
+            </svg>
+          </div>
+        </div>
+        <div class="coin-slot" title="Insert coin"></div>
+        <div class="machine-status">○ available</div>
+      </div>
+
+    </div>
+
+    <div class="info-strip">
+      <div class="info-cell"><div class="num">12</div><div class="desc">Machines</div></div>
+      <div class="info-cell"><div class="num" style="color:#E8A0B0;">$2</div><div class="desc">Per Load</div></div>
+      <div class="info-cell"><div class="num">45</div><div class="desc">Min Cycle</div></div>
+      <div class="info-cell"><div class="num" style="color:#7EB8A0;">Free</div><div class="desc">Wifi</div></div>
+    </div>
+
+    <div class="coin-btn-row">
+      <button class="coin-btn primary">⬤ Start Machine</button>
+      <button class="coin-btn">Get Change</button>
+      <button class="coin-btn">Buy Detergent</button>
+      <button class="coin-btn">Report Issue</button>
+    </div>
+
+    <div class="services">
+      <div class="services-grid">
+        <div class="service-item">
+          <div class="service-name">Wash & Fold</div>
+          <div class="service-price">$1.25<span style="font-size:11px;color:#5A7A88;">/lb</span></div>
+          <div class="service-desc">Drop off by 10am, pick up same day</div>
+        </div>
+        <div class="service-item">
+          <div class="service-name">Dry Cleaning</div>
+          <div class="service-price">$8.00</div>
+          <div class="service-desc">Delicates, wool & formal wear</div>
+        </div>
+        <div class="service-item">
+          <div class="service-name">Bulk Wash</div>
+          <div class="service-price">$6.50</div>
+          <div class="service-desc">Comforters, duvets & rugs</div>
+        </div>
+        <div class="service-item">
+          <div class="service-name">Alterations</div>
+          <div class="service-price">From $4</div>
+          <div class="service-desc">Hemming, zippers, patches</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="floor-strip" style="margin-top:1.5rem;"></div>
+
+    <div class="hours-bar">
+      <span><span class="pink-dot"></span>114 Elm Street, Unit B</span>
+      <span class="hours-open">● Open Now</span>
+      <span>7am – 11pm Daily</span>
+    </div>
+  </div>
+</div>

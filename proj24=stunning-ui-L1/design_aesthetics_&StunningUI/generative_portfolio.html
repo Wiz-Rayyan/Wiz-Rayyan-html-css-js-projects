@@ -1,0 +1,388 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;700;800&family=DM+Serif+Display:ital@0;1&family=Bebas+Neue&family=Playfair+Display:ital,wght@0,400;1,700&family=Instrument+Serif:ital@0;1&family=Neue+Haas+Unica:wght@400;700&display=swap');
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  #gen-root {
+    min-height: 520px;
+    padding: 32px;
+    transition: background 0.6s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  #gen-root::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0.04;
+    pointer-events: none;
+    background-image: repeating-linear-gradient(
+      0deg, transparent, transparent 39px, currentColor 39px, currentColor 40px
+    ), repeating-linear-gradient(
+      90deg, transparent, transparent 39px, currentColor 39px, currentColor 40px
+    );
+  }
+
+  .gen-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 28px;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .gen-title {
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+
+  .gen-subtitle {
+    margin-top: 8px;
+    font-size: 13px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    opacity: 0.6;
+  }
+
+  .gen-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .gen-btn {
+    padding: 8px 16px;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border: 1.5px solid currentColor;
+    background: transparent;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s;
+    opacity: 0.75;
+  }
+
+  .gen-btn:hover { opacity: 1; }
+
+  .gen-seed {
+    font-size: 11px;
+    font-family: 'Space Mono', monospace;
+    opacity: 0.4;
+    letter-spacing: 0.06em;
+    padding: 8px 0;
+    align-self: flex-end;
+  }
+
+  .gen-grid {
+    transition: all 0.5s ease;
+  }
+
+  .gen-card {
+    padding: 24px;
+    transition: border-radius 0.5s ease, transform 0.3s ease;
+    cursor: default;
+  }
+
+  .gen-card:hover { transform: translateY(-2px); }
+
+  .gen-card-label {
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    opacity: 0.5;
+    margin-bottom: 10px;
+  }
+
+  .gen-card-title {
+    font-size: 22px;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    margin-bottom: 8px;
+  }
+
+  .gen-card-body {
+    font-size: 13px;
+    line-height: 1.65;
+    opacity: 0.7;
+  }
+
+  .gen-card-num {
+    font-size: 52px;
+    font-weight: 700;
+    line-height: 1;
+    opacity: 0.12;
+    position: absolute;
+    bottom: 12px;
+    right: 18px;
+  }
+
+  .gen-card { position: relative; }
+
+  .gen-divider {
+    height: 1.5px;
+    margin: 24px 0;
+    opacity: 0.15;
+    background: currentColor;
+  }
+
+  .gen-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    opacity: 0.4;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .gen-tag {
+    display: inline-block;
+    padding: 4px 10px;
+    border: 1px solid currentColor;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    opacity: 0.5;
+    margin-right: 6px;
+    margin-bottom: 4px;
+  }
+
+  .gen-tags { margin-top: 20px; }
+
+  .gen-fade { animation: gfade 0.4s ease; }
+  @keyframes gfade { from { opacity:0; transform: translateY(6px); } to { opacity:1; transform:none; } }
+</style>
+
+<div id="gen-root">
+
+<div class="gen-header">
+  <div>
+    <div class="gen-title" id="g-title">STUDIO</div>
+    <div class="gen-subtitle" id="g-subtitle">Experimental Design</div>
+  </div>
+  <div style="display:flex; flex-direction:column; align-items:flex-end; gap:8px;">
+    <div class="gen-controls">
+      <button class="gen-btn" id="btn-refresh" onclick="generate()">↻ Refresh</button>
+      <button class="gen-btn" id="btn-save" onclick="saveSeed()">⊕ Save</button>
+    </div>
+    <div class="gen-seed" id="g-seed">seed: —</div>
+  </div>
+</div>
+
+<div class="gen-divider"></div>
+
+<div class="gen-grid" id="g-grid"></div>
+
+<div class="gen-tags" id="g-tags"></div>
+
+<div class="gen-divider"></div>
+
+<div class="gen-footer">
+  <span id="g-palette">Palette: —</span>
+  <span id="g-cols">Columns: —</span>
+  <span id="g-radius">Radius: —</span>
+</div>
+
+</div>
+
+<script>
+const FONT_PAIRS = [
+  { display: "'Syne', sans-serif", body: "'Space Mono', monospace", name: "Syne / Mono" },
+  { display: "'DM Serif Display', serif", body: "'Space Mono', monospace", name: "DM Serif / Mono" },
+  { display: "'Bebas Neue', cursive", body: "'Syne', sans-serif", name: "Bebas / Syne" },
+  { display: "'Playfair Display', serif", body: "'Instrument Serif', serif", name: "Playfair / Instrument" },
+  { display: "'Syne', sans-serif", body: "'DM Serif Display', serif", name: "Syne / DM Serif" },
+  { display: "'Instrument Serif', serif", body: "'Space Mono', monospace", name: "Instrument / Mono" },
+];
+
+const PALETTE_NAMES = [
+  "Solstice", "Deep Ocean", "Rust & Stone", "Forest Dusk",
+  "Neon Dusk", "Obsidian", "Sand & Blood", "Arctic"
+];
+
+const CARD_CONTENT = [
+  { label: "Selected Work", title: "Identity Systems", body: "Holistic visual identities that balance timelessness with cultural relevance." },
+  { label: "Process", title: "Research First", body: "Every project begins with deep contextual research before a single mark is made." },
+  { label: "Philosophy", title: "Functional Beauty", body: "Aesthetics in service of communication. Form and function are not opposites." },
+  { label: "Studio", title: "Small + Focused", body: "A deliberately small practice working on a handful of meaningful projects per year." },
+  { label: "Approach", title: "Systems Thinking", body: "Designing flexible systems rather than fixed artifacts. Adaptable by nature." },
+  { label: "Expertise", title: "Type & Space", body: "Typography as architecture. Whitespace as a material with weight and intention." },
+  { label: "Clients", title: "Cultural Sector", body: "Museums, publishers, cultural institutions, and independent artists." },
+  { label: "Output", title: "Print + Digital", body: "No medium bias. The idea dictates the channel, never the other way around." },
+];
+
+const TAGS_POOL = [
+  "Brand Identity", "Editorial", "Typography", "Print",
+  "Motion", "Spatial", "Interactive", "Packaging",
+  "Systems", "Visual Language", "Art Direction", "Concept"
+];
+
+const TITLES = ["STUDIO", "ATELIER", "BUREAU", "PRACTICE", "COLLECTIVE", "WERK"];
+const SUBTITLES = ["Experimental Design", "Visual Culture", "Graphic Art", "Image & Type", "Form Studies", "Design Research"];
+
+function mulberry32(a) {
+  return function() {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+let currentSeed = null;
+
+function generate(seed) {
+  if (seed === undefined) seed = Math.floor(Math.random() * 999999);
+  currentSeed = seed;
+  const rng = mulberry32(seed);
+  const r = () => rng();
+
+  const root = document.getElementById('gen-root');
+  const grid = document.getElementById('g-grid');
+
+  // Hue + palette
+  const baseHue = Math.floor(r() * 360);
+  const scheme = Math.floor(r() * 4);
+  let bg, fg, accent, cardBg, cardBorder;
+
+  if (scheme === 0) {
+    // Dark
+    bg = `hsl(${baseHue}, 18%, 8%)`;
+    fg = `hsl(${baseHue}, 12%, 88%)`;
+    accent = `hsl(${(baseHue + 180) % 360}, 70%, 65%)`;
+    cardBg = `hsl(${baseHue}, 14%, 13%)`;
+    cardBorder = `hsl(${baseHue}, 12%, 22%)`;
+  } else if (scheme === 1) {
+    // Light neutral
+    bg = `hsl(${baseHue}, 15%, 96%)`;
+    fg = `hsl(${baseHue}, 18%, 12%)`;
+    accent = `hsl(${(baseHue + 150) % 360}, 65%, 40%)`;
+    cardBg = `hsl(${baseHue}, 10%, 100%)`;
+    cardBorder = `hsl(${baseHue}, 10%, 82%)`;
+  } else if (scheme === 2) {
+    // Saturated dark
+    bg = `hsl(${baseHue}, 55%, 10%)`;
+    fg = `hsl(${baseHue}, 30%, 92%)`;
+    accent = `hsl(${(baseHue + 60) % 360}, 90%, 70%)`;
+    cardBg = `hsl(${baseHue}, 40%, 15%)`;
+    cardBorder = `hsl(${baseHue}, 35%, 28%)`;
+  } else {
+    // Warm paper
+    bg = `hsl(${(baseHue + 20) % 360}, 40%, 93%)`;
+    fg = `hsl(${baseHue}, 35%, 14%)`;
+    accent = `hsl(${(baseHue + 200) % 360}, 60%, 35%)`;
+    cardBg = `hsl(${(baseHue + 20) % 360}, 30%, 97%)`;
+    cardBorder = `hsl(${baseHue}, 18%, 72%)`;
+  }
+
+  // Columns: 2, 3 or 4
+  const colCount = [2, 3, 4][Math.floor(r() * 3)];
+
+  // Border radius
+  const radius = Math.floor(r() * 33);
+
+  // Font pair
+  const font = FONT_PAIRS[Math.floor(r() * FONT_PAIRS.length)];
+
+  // Title/subtitle
+  const titleText = TITLES[Math.floor(r() * TITLES.length)];
+  const subtitleText = SUBTITLES[Math.floor(r() * SUBTITLES.length)];
+
+  // Cards: pick colCount * 2 (fill 2 rows roughly) but min 4
+  const numCards = Math.min(CARD_CONTENT.length, Math.max(4, colCount * 2));
+  const shuffled = [...CARD_CONTENT].sort(() => r() - 0.5).slice(0, numCards);
+
+  // Tags
+  const tagCount = 4 + Math.floor(r() * 5);
+  const tags = [...TAGS_POOL].sort(() => r() - 0.5).slice(0, tagCount);
+
+  // Palette name
+  const paletteName = PALETTE_NAMES[Math.floor(r() * PALETTE_NAMES.length)];
+
+  // Apply styles
+  root.style.background = bg;
+  root.style.color = fg;
+  root.style.fontFamily = font.body;
+
+  document.getElementById('g-title').style.fontFamily = font.display;
+  document.getElementById('g-title').style.fontSize = colCount === 4 ? '42px' : colCount === 3 ? '52px' : '64px';
+  document.getElementById('g-title').textContent = titleText;
+  document.getElementById('g-subtitle').textContent = subtitleText;
+  document.getElementById('g-seed').textContent = `seed: ${seed}`;
+
+  // Grid
+  grid.style.display = 'grid';
+  grid.style.gridTemplateColumns = `repeat(${colCount}, 1fr)`;
+  grid.style.gap = '12px';
+  grid.style.marginBottom = '0';
+
+  grid.innerHTML = '';
+  shuffled.forEach((c, i) => {
+    const card = document.createElement('div');
+    card.className = 'gen-card gen-fade';
+    card.style.background = cardBg;
+    card.style.border = `1.5px solid ${cardBorder}`;
+    card.style.borderRadius = radius + 'px';
+    card.style.animationDelay = (i * 0.04) + 's';
+    card.innerHTML = `
+      <div class="gen-card-label" style="font-family:${font.body}">${c.label}</div>
+      <div class="gen-card-title" style="font-family:${font.display}; color:${accent}">${c.title}</div>
+      <div class="gen-card-body" style="font-family:${font.body}">${c.body}</div>
+      <div class="gen-card-num" style="font-family:${font.display}; color:${fg}">${String(i+1).padStart(2,'0')}</div>
+    `;
+    grid.appendChild(card);
+  });
+
+  // Tags
+  const tagsEl = document.getElementById('g-tags');
+  tagsEl.innerHTML = '';
+  tags.forEach(t => {
+    const tag = document.createElement('span');
+    tag.className = 'gen-tag';
+    tag.style.fontFamily = font.body;
+    tag.style.color = fg;
+    tag.style.borderColor = cardBorder;
+    tag.textContent = t;
+    tagsEl.appendChild(tag);
+  });
+
+  // Footer
+  document.getElementById('g-palette').textContent = `Palette: ${paletteName}`;
+  document.getElementById('g-cols').textContent = `Columns: ${colCount}`;
+  document.getElementById('g-radius').textContent = `Radius: ${radius}px`;
+
+  // Buttons style
+  document.querySelectorAll('.gen-btn').forEach(b => {
+    b.style.color = fg;
+    b.style.borderColor = fg;
+    b.style.fontFamily = font.body;
+  });
+
+  document.querySelectorAll('.gen-seed, .gen-footer, .gen-subtitle').forEach(el => {
+    el.style.fontFamily = font.body;
+  });
+}
+
+function saveSeed() {
+  if (!currentSeed) return;
+  const url = new URL(window.location.href);
+  url.searchParams.set('seed', currentSeed);
+  navigator.clipboard.writeText(`Seed ${currentSeed} — regenerate at: ${url.toString()}`).catch(() => {});
+  const btn = document.getElementById('btn-save');
+  const orig = btn.textContent;
+  btn.textContent = '✓ Copied';
+  setTimeout(() => btn.textContent = orig, 1800);
+}
+
+// Check URL seed
+const params = new URLSearchParams(window.location.search);
+const urlSeed = parseInt(params.get('seed'));
+generate(isNaN(urlSeed) ? undefined : urlSeed);
+</script>
