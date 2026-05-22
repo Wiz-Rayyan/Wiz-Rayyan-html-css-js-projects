@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Jost:wght@200;300;400&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #f7f3ee;
+    font-family: 'Jost', sans-serif;
+    font-weight: 300;
+    color: #3a2f28;
+    overflow-x: hidden;
+  }
+
+  .paper {
+    position: relative;
+    min-height: 100vh;
+    background:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"),
+      #f7f3ee;
+    padding: 0;
+  }
+
+  /* Watercolor blob layers */
+  .blobs {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .blob {
+    position: absolute;
+    filter: blur(32px);
+    opacity: 0.22;
+    border-radius: 30% 70% 70% 30% / 60% 40% 60% 40%;
+    mix-blend-mode: multiply;
+    animation: drift 18s ease-in-out infinite alternate;
+  }
+
+  .blob-1 { width: 480px; height: 360px; background: #e8a0c0; top: -60px; left: -80px; animation-delay: 0s; }
+  .blob-2 { width: 400px; height: 500px; background: #9ec4e8; top: 80px; right: -100px; animation-delay: -4s; border-radius: 70% 30% 40% 60% / 40% 60% 40% 70%; }
+  .blob-3 { width: 520px; height: 300px; background: #b8daa0; top: 300px; left: 100px; animation-delay: -8s; border-radius: 50% 50% 30% 70% / 70% 30% 60% 40%; }
+  .blob-4 { width: 350px; height: 420px; background: #f0d080; top: 180px; left: -40px; animation-delay: -3s; border-radius: 40% 60% 60% 40% / 50% 50% 70% 30%; opacity: 0.15; }
+  .blob-5 { width: 300px; height: 280px; background: #c8a8d8; top: 500px; right: 20px; animation-delay: -6s; border-radius: 60% 40% 70% 30% / 30% 70% 40% 60%; }
+  .blob-6 { width: 440px; height: 200px; background: #f0a888; top: 650px; left: 60px; animation-delay: -11s; border-radius: 50% 50% 40% 60%; opacity: 0.18; }
+
+  @keyframes drift {
+    0% { transform: translate(0,0) rotate(0deg) scale(1); }
+    33% { transform: translate(12px,-8px) rotate(2deg) scale(1.03); }
+    66% { transform: translate(-8px,10px) rotate(-1deg) scale(0.97); }
+    100% { transform: translate(6px,4px) rotate(1deg) scale(1.01); }
+  }
+
+  /* Paper texture overlay */
+  .texture {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(180,160,140,0.025) 3px, rgba(180,160,140,0.025) 4px),
+      repeating-linear-gradient(90deg, transparent, transparent 5px, rgba(160,140,120,0.015) 5px, rgba(160,140,120,0.015) 6px);
+  }
+
+  /* Content */
+  .content { position: relative; z-index: 2; }
+
+  /* Nav */
+  nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 2rem 3rem;
+    border-bottom: 0.5px solid rgba(100,70,50,0.12);
+  }
+
+  .logo {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.5rem;
+    font-weight: 300;
+    font-style: italic;
+    letter-spacing: 0.04em;
+    color: #3a2f28;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 2.5rem;
+    list-style: none;
+  }
+
+  .nav-links a {
+    text-decoration: none;
+    font-size: 0.75rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(58,47,40,0.6);
+    transition: color 0.3s;
+  }
+
+  .nav-links a:hover { color: #3a2f28; }
+
+  /* Hero */
+  .hero {
+    padding: 5rem 3rem 3rem;
+    max-width: 640px;
+  }
+
+  .hero-eyebrow {
+    font-size: 0.68rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: rgba(58,47,40,0.45);
+    margin-bottom: 1.2rem;
+  }
+
+  .hero h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(2.8rem, 6vw, 4.2rem);
+    font-weight: 300;
+    line-height: 1.12;
+    color: #2a1f18;
+    margin-bottom: 1.4rem;
+  }
+
+  .hero h1 em {
+    font-style: italic;
+    color: #8b5a6a;
+  }
+
+  .hero p {
+    font-size: 0.95rem;
+    line-height: 1.75;
+    color: rgba(58,47,40,0.65);
+    max-width: 420px;
+    margin-bottom: 2.5rem;
+  }
+
+  .hero-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.8rem;
+    font-size: 0.72rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #3a2f28;
+    text-decoration: none;
+    border-bottom: 0.5px solid rgba(58,47,40,0.35);
+    padding-bottom: 0.25rem;
+    transition: border-color 0.3s, gap 0.3s;
+    cursor: pointer;
+  }
+
+  .hero-cta:hover { gap: 1.2rem; border-color: #8b5a6a; }
+
+  /* Gallery grid */
+  .gallery {
+    padding: 4rem 3rem;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+  }
+
+  .painting {
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    border-radius: 2px;
+  }
+
+  .painting-inner {
+    width: 100%;
+    aspect-ratio: 3/4;
+    position: relative;
+    transition: transform 0.6s cubic-bezier(0.25,0.46,0.45,0.94);
+  }
+
+  .painting:hover .painting-inner { transform: scale(1.02); }
+
+  .paint-canvas {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Individual painting styles */
+  .p1 .paint-canvas { background: #e8d5c0; }
+  .p2 .paint-canvas { background: #d0e4f0; }
+  .p3 .paint-canvas { background: #e0eed8; }
+  .p4 .paint-canvas { background: #f0dde8; }
+  .p5 .paint-canvas { background: #ede0d0; }
+  .p6 .paint-canvas { background: #dde8f0; }
+
+  .paint-canvas svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Caption */
+  .painting-caption {
+    padding: 0.8rem 0 0;
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity 0.4s, transform 0.4s;
+  }
+
+  .painting:hover .painting-caption { opacity: 1; transform: translateY(0); }
+
+  .caption-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 0.95rem;
+    color: #3a2f28;
+  }
+
+  .caption-meta {
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    color: rgba(58,47,40,0.45);
+    margin-top: 0.15rem;
+  }
+
+  /* Tall card for first one */
+  .painting.featured .painting-inner { aspect-ratio: 3/5; }
+
+  /* About strip */
+  .about-strip {
+    padding: 3rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+    border-top: 0.5px solid rgba(100,70,50,0.1);
+    margin-top: 1rem;
+  }
+
+  .about-strip h2 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 2rem;
+    font-weight: 300;
+    font-style: italic;
+    color: #2a1f18;
+    margin-bottom: 1rem;
+    line-height: 1.2;
+  }
+
+  .about-strip p {
+    font-size: 0.88rem;
+    line-height: 1.8;
+    color: rgba(58,47,40,0.6);
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    align-content: start;
+  }
+
+  .stat-num {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 2.8rem;
+    font-weight: 300;
+    color: #8b5a6a;
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(58,47,40,0.45);
+    margin-top: 0.3rem;
+  }
+
+  /* Contact */
+  .contact-bar {
+    padding: 2.5rem 3rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 0.5px solid rgba(100,70,50,0.1);
+    background: rgba(255,255,255,0.3);
+  }
+
+  .contact-text {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 1.1rem;
+    color: rgba(58,47,40,0.6);
+  }
+
+  .contact-btn {
+    font-size: 0.72rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    background: #3a2f28;
+    color: #f7f3ee;
+    border: none;
+    padding: 0.85rem 2rem;
+    cursor: pointer;
+    transition: background 0.3s;
+    font-family: 'Jost', sans-serif;
+    font-weight: 300;
+  }
+
+  .contact-btn:hover { background: #8b5a6a; }
+
+  /* Drip accent */
+  .drip-line {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #e8a0c0 0%, #9ec4e8 40%, #b8daa0 70%, #f0d080 100%);
+    opacity: 0.4;
+    filter: blur(1px);
+  }
+
+</style>
+</head>
+<body>
+<div class="paper">
+  <div class="blobs">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+    <div class="blob blob-4"></div>
+    <div class="blob blob-5"></div>
+    <div class="blob blob-6"></div>
+  </div>
+  <div class="texture"></div>
+
+  <div class="content">
+    <nav>
+      <div class="logo">Elena Vasari</div>
+      <ul class="nav-links">
+        <li><a href="#">Work</a></li>
+        <li><a href="#">Process</a></li>
+        <li><a href="#">Prints</a></li>
+        <li><a href="#">Studio</a></li>
+        <li><a href="#">Contact</a></li>
+      </ul>
+    </nav>
+
+    <div class="hero">
+      <p class="hero-eyebrow">Watercolor · Mixed Media · Illustration</p>
+      <h1>Painting in<br><em>light & water</em></h1>
+      <p>Each piece begins as a conversation between pigment and paper — I guide the water, but the colors find their own way home.</p>
+      <a class="hero-cta">View collection &nbsp;→</a>
+    </div>
+
+    <div class="gallery">
+
+      <!-- Painting 1: Botanical -->
+      <div class="painting p1 featured">
+        <div class="painting-inner">
+          <div class="paint-canvas">
+            <svg viewBox="0 0 300 500" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+              <defs>
+                <filter id="blur1"><feGaussianBlur stdDeviation="8"/></filter>
+                <filter id="blur2"><feGaussianBlur stdDeviation="4"/></filter>
+                <filter id="blur3"><feGaussianBlur stdDeviation="14"/></filter>
+              </defs>
+              <!-- Background wash -->
+              <ellipse cx="80" cy="200" rx="130" ry="180" fill="#c8d8a0" opacity="0.5" filter="url(#blur3)"/>
+              <ellipse cx="220" cy="300" rx="110" ry="140" fill="#d8c8a8" opacity="0.4" filter="url(#blur3)"/>
+              <!-- Large leaf forms -->
+              <path d="M60,380 Q100,200 140,100 Q180,200 160,380" fill="#6a9060" opacity="0.35" filter="url(#blur1)"/>
+              <path d="M100,400 Q80,250 50,150 Q150,220 180,400" fill="#8aac70" opacity="0.28" filter="url(#blur1)"/>
+              <path d="M160,360 Q200,220 230,130 Q240,260 200,400" fill="#5a8050" opacity="0.3" filter="url(#blur1)"/>
+              <!-- Stems (sharper) -->
+              <path d="M140,480 Q138,300 130,180" stroke="#4a6840" stroke-width="1.5" fill="none" opacity="0.5" filter="url(#blur2)"/>
+              <path d="M150,480 Q160,280 200,160" stroke="#5a7850" stroke-width="1" fill="none" opacity="0.4" filter="url(#blur2)"/>
+              <!-- Flowers / blossoms -->
+              <circle cx="128" cy="120" r="28" fill="#e87090" opacity="0.45" filter="url(#blur2)"/>
+              <circle cx="128" cy="120" r="18" fill="#f0a0b0" opacity="0.5" filter="url(#blur1)"/>
+              <circle cx="198" cy="160" r="22" fill="#e890a0" opacity="0.4" filter="url(#blur2)"/>
+              <circle cx="68" cy="200" r="16" fill="#d86880" opacity="0.3" filter="url(#blur2)"/>
+              <!-- Pollen dots -->
+              <circle cx="128" cy="118" r="5" fill="#f8d840" opacity="0.7"/>
+              <circle cx="200" cy="158" r="4" fill="#f8d840" opacity="0.6"/>
+              <!-- Water bloom edge -->
+              <ellipse cx="200" cy="80" rx="60" ry="40" fill="#e0f0d8" opacity="0.35" filter="url(#blur3)"/>
+              <!-- Drip/run marks -->
+              <path d="M128,148 Q130,180 127,220" stroke="#d06070" stroke-width="0.5" fill="none" opacity="0.25" filter="url(#blur2)"/>
+            </svg>
+          </div>
+          <div class="drip-line"></div>
+        </div>
+        <div class="painting-caption">
+          <div class="caption-title">June Peonies</div>
+          <div class="caption-meta">Watercolor on Fabriano · 2024</div>
+        </div>
+      </div>
+
+      <!-- Col 2: two stacked -->
+      <div style="display:flex;flex-direction:column;gap:1.5rem;">
+
+        <!-- Painting 2: Landscape -->
+        <div class="painting p2">
+          <div class="painting-inner">
+            <div class="paint-canvas">
+              <svg viewBox="0 0 300 340" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+                <defs>
+                  <filter id="blurL1"><feGaussianBlur stdDeviation="10"/></filter>
+                  <filter id="blurL2"><feGaussianBlur stdDeviation="4"/></filter>
+                  <filter id="blurL3"><feGaussianBlur stdDeviation="20"/></filter>
+                </defs>
+                <!-- Sky -->
+                <rect width="300" height="200" fill="#b0d0f0" opacity="0.4"/>
+                <!-- Clouds -->
+                <ellipse cx="80" cy="80" rx="90" ry="50" fill="white" opacity="0.5" filter="url(#blurL1)"/>
+                <ellipse cx="220" cy="60" rx="70" ry="40" fill="white" opacity="0.4" filter="url(#blurL1)"/>
+                <!-- Sun reflection / glow -->
+                <ellipse cx="220" cy="40" rx="40" ry="30" fill="#f8d870" opacity="0.3" filter="url(#blurL3)"/>
+                <!-- Horizon hills -->
+                <path d="M0,200 Q75,150 150,180 Q225,160 300,190 L300,340 L0,340Z" fill="#7aac60" opacity="0.45" filter="url(#blurL1)"/>
+                <path d="M0,220 Q60,195 130,210 Q200,200 300,215 L300,340 L0,340Z" fill="#5a8a48" opacity="0.5" filter="url(#blurL2)"/>
+                <!-- Water / lake -->
+                <ellipse cx="150" cy="270" rx="120" ry="30" fill="#8ab8e0" opacity="0.4" filter="url(#blurL1)"/>
+                <ellipse cx="150" cy="275" rx="90" ry="18" fill="#a0c8f0" opacity="0.35" filter="url(#blurL2)"/>
+                <!-- Trees silhouette -->
+                <path d="M40,220 Q50,180 60,220" stroke="#3a5a28" stroke-width="1.5" fill="none" opacity="0.5"/>
+                <ellipse cx="50" cy="185" rx="14" ry="22" fill="#3a5a28" opacity="0.4" filter="url(#blurL2)"/>
+                <path d="M240,215 Q250,175 260,215" stroke="#3a5a28" stroke-width="1.5" fill="none" opacity="0.45"/>
+                <ellipse cx="250" cy="178" rx="12" ry="20" fill="#3a5a28" opacity="0.35" filter="url(#blurL2)"/>
+                <!-- pigment bleeds -->
+                <ellipse cx="150" cy="180" rx="30" ry="10" fill="#90b870" opacity="0.2" filter="url(#blurL3)"/>
+              </svg>
+            </div>
+          </div>
+          <div class="painting-caption">
+            <div class="caption-title">Morning Lake</div>
+            <div class="caption-meta">Watercolor · 2024</div>
+          </div>
+        </div>
+
+        <!-- Painting 3: Abstract -->
+        <div class="painting p3">
+          <div class="painting-inner">
+            <div class="paint-canvas">
+              <svg viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+                <defs>
+                  <filter id="blurA1"><feGaussianBlur stdDeviation="12"/></filter>
+                  <filter id="blurA2"><feGaussianBlur stdDeviation="5"/></filter>
+                </defs>
+                <!-- Loose abstract washes -->
+                <ellipse cx="80" cy="100" rx="100" ry="80" fill="#f0b0d0" opacity="0.5" filter="url(#blurA1)"/>
+                <ellipse cx="200" cy="80" rx="90" ry="70" fill="#90c0e0" opacity="0.45" filter="url(#blurA1)"/>
+                <ellipse cx="150" cy="200" rx="110" ry="80" fill="#a0d090" opacity="0.4" filter="url(#blurA1)"/>
+                <ellipse cx="60" cy="220" rx="70" ry="60" fill="#f0d080" opacity="0.35" filter="url(#blurA1)"/>
+                <!-- Floating marks -->
+                <circle cx="140" cy="130" r="8" fill="#c060a0" opacity="0.4" filter="url(#blurA2)"/>
+                <circle cx="180" cy="160" r="5" fill="#4090c0" opacity="0.5" filter="url(#blurA2)"/>
+                <circle cx="100" cy="180" r="7" fill="#60a050" opacity="0.4" filter="url(#blurA2)"/>
+                <!-- Wet-on-wet bloom -->
+                <ellipse cx="150" cy="140" rx="40" ry="30" fill="white" opacity="0.25" filter="url(#blurA1)"/>
+              </svg>
+            </div>
+          </div>
+          <div class="painting-caption">
+            <div class="caption-title">Bloom Study III</div>
+            <div class="caption-meta">Experimental · 2025</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Col 3: two stacked -->
+      <div style="display:flex;flex-direction:column;gap:1.5rem;">
+
+        <!-- Painting 4: Portrait-ish -->
+        <div class="painting p4">
+          <div class="painting-inner">
+            <div class="paint-canvas">
+              <svg viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+                <defs>
+                  <filter id="blurP1"><feGaussianBlur stdDeviation="10"/></filter>
+                  <filter id="blurP2"><feGaussianBlur stdDeviation="4"/></filter>
+                  <filter id="blurP3"><feGaussianBlur stdDeviation="18"/></filter>
+                </defs>
+                <!-- Warm wash bg -->
+                <ellipse cx="150" cy="130" rx="120" ry="100" fill="#f0c0a0" opacity="0.5" filter="url(#blurP3)"/>
+                <!-- Face form (abstract) -->
+                <ellipse cx="150" cy="120" rx="60" ry="72" fill="#f0a888" opacity="0.45" filter="url(#blurP1)"/>
+                <!-- Hair mass -->
+                <ellipse cx="150" cy="70" rx="75" ry="50" fill="#704838" opacity="0.5" filter="url(#blurP1)"/>
+                <ellipse cx="90" cy="110" rx="30" ry="60" fill="#603828" opacity="0.4" filter="url(#blurP1)"/>
+                <ellipse cx="210" cy="115" rx="28" ry="55" fill="#603828" opacity="0.35" filter="url(#blurP1)"/>
+                <!-- Blush -->
+                <circle cx="118" cy="140" r="22" fill="#e07070" opacity="0.22" filter="url(#blurP1)"/>
+                <circle cx="182" cy="140" r="22" fill="#e07070" opacity="0.22" filter="url(#blurP1)"/>
+                <!-- Eyes (abstract marks) -->
+                <ellipse cx="130" cy="120" rx="10" ry="6" fill="#604848" opacity="0.6" filter="url(#blurP2)"/>
+                <ellipse cx="170" cy="120" rx="10" ry="6" fill="#604848" opacity="0.6" filter="url(#blurP2)"/>
+                <!-- Collar / garment wash -->
+                <ellipse cx="150" cy="240" rx="90" ry="50" fill="#b0c8e8" opacity="0.4" filter="url(#blurP3)"/>
+                <ellipse cx="150" cy="220" rx="60" ry="30" fill="#9ab8d8" opacity="0.3" filter="url(#blurP1)"/>
+              </svg>
+            </div>
+          </div>
+          <div class="painting-caption">
+            <div class="caption-title">Girl with Blue Light</div>
+            <div class="caption-meta">Portrait study · 2025</div>
+          </div>
+        </div>
+
+        <!-- Painting 5: Still life -->
+        <div class="painting p5">
+          <div class="painting-inner">
+            <div class="paint-canvas">
+              <svg viewBox="0 0 300 360" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+                <defs>
+                  <filter id="blurS1"><feGaussianBlur stdDeviation="8"/></filter>
+                  <filter id="blurS2"><feGaussianBlur stdDeviation="3"/></filter>
+                  <filter id="blurS3"><feGaussianBlur stdDeviation="16"/></filter>
+                </defs>
+                <!-- Background shadow -->
+                <ellipse cx="150" cy="320" rx="130" ry="20" fill="#b09080" opacity="0.2" filter="url(#blurS3)"/>
+                <!-- Table surface -->
+                <rect x="0" y="260" width="300" height="100" fill="#d4c0a8" opacity="0.35" filter="url(#blurS1)"/>
+                <!-- Vase -->
+                <path d="M120,260 Q100,240 95,200 Q90,170 110,160 Q130,155 150,155 Q170,155 190,160 Q210,170 205,200 Q200,240 180,260 Q165,270 150,272 Q135,270 120,260Z" fill="#b07858" opacity="0.5" filter="url(#blurS1)"/>
+                <ellipse cx="150" cy="260" rx="35" ry="10" fill="#906048" opacity="0.4" filter="url(#blurS2)"/>
+                <!-- Flowers in vase -->
+                <circle cx="130" cy="120" r="24" fill="#e87080" opacity="0.5" filter="url(#blurS1)"/>
+                <circle cx="165" cy="100" r="20" fill="#f8a0b0" opacity="0.45" filter="url(#blurS1)"/>
+                <circle cx="185" cy="130" r="18" fill="#d04060" opacity="0.4" filter="url(#blurS1)"/>
+                <circle cx="110" cy="150" r="15" fill="#e890a0" opacity="0.35" filter="url(#blurS1)"/>
+                <!-- Leaves -->
+                <path d="M140,160 Q120,130 100,120" stroke="#5a8040" stroke-width="2" fill="none" opacity="0.4" filter="url(#blurS2)"/>
+                <path d="M160,155 Q175,125 200,110" stroke="#6a9050" stroke-width="2" fill="none" opacity="0.35" filter="url(#blurS2)"/>
+                <!-- Water in vase -->
+                <ellipse cx="150" cy="200" rx="50" ry="15" fill="#a8c8e0" opacity="0.3" filter="url(#blurS1)"/>
+              </svg>
+            </div>
+          </div>
+          <div class="painting-caption">
+            <div class="caption-title">Wild Roses, October</div>
+            <div class="caption-meta">Still life · 2024</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- About -->
+    <div class="about-strip">
+      <div>
+        <h2>Water holds<br>the memory<br>of color</h2>
+        <p>Based between Rome and the Umbrian hills, I work primarily in watercolor and ink on cold-press cotton paper. My practice is rooted in observational drawing — the garden, the figure, the worn surface of old things.</p>
+        <br>
+        <p>Original works and limited archival prints are available for purchase. Commissions open seasonally.</p>
+      </div>
+      <div class="stats">
+        <div>
+          <div class="stat-num">14</div>
+          <div class="stat-label">Years practicing</div>
+        </div>
+        <div>
+          <div class="stat-num">340+</div>
+          <div class="stat-label">Originals sold</div>
+        </div>
+        <div>
+          <div class="stat-num">28</div>
+          <div class="stat-label">Exhibitions</div>
+        </div>
+        <div>
+          <div class="stat-num">12</div>
+          <div class="stat-label">Countries collected</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="contact-bar">
+      <span class="contact-text">Commissions open for autumn 2026</span>
+      <button class="contact-btn" onclick="sendPrompt('Tell me more about how watercolor portfolios should be structured')">Inquire →</button>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>

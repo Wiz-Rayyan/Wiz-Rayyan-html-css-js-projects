@@ -1,0 +1,363 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-sans); }
+
+.page { padding: 2rem 1rem 2.5rem; display: flex; flex-direction: column; gap: 2rem; }
+
+.section-label {
+  font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--color-text-tertiary); font-weight: 500; margin-bottom: 10px;
+}
+
+.mechanism-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+}
+.mech-card {
+  background: var(--color-background-primary);
+  border: 0.5px solid var(--color-border-tertiary);
+  border-radius: var(--border-radius-lg);
+  padding: 14px 14px 12px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.mech-card:hover { border-color: var(--color-border-secondary); }
+.mech-card.active { border-color: var(--color-border-primary); }
+.mech-icon { font-size: 18px; color: var(--color-text-secondary); margin-bottom: 8px; }
+.mech-title { font-size: 13px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 4px; }
+.mech-desc { font-size: 12px; color: var(--color-text-tertiary); line-height: 1.5; }
+
+.code-panel {
+  background: var(--color-background-secondary);
+  border: 0.5px solid var(--color-border-tertiary);
+  border-radius: var(--border-radius-lg);
+  overflow: hidden;
+}
+.code-tabs { display: flex; border-bottom: 0.5px solid var(--color-border-tertiary); }
+.code-tab {
+  padding: 8px 14px; font-size: 12px; color: var(--color-text-tertiary);
+  cursor: pointer; border-bottom: 1.5px solid transparent; margin-bottom: -0.5px;
+  transition: color 0.15s;
+}
+.code-tab.active { color: var(--color-text-primary); border-bottom-color: var(--color-text-primary); }
+.code-block {
+  font-family: var(--font-mono); font-size: 12px; line-height: 1.7;
+  padding: 16px 18px; color: var(--color-text-secondary);
+  display: none; white-space: pre; overflow-x: auto;
+}
+.code-block.visible { display: block; }
+.hl { color: var(--color-text-primary); font-weight: 500; }
+.cm { color: var(--color-text-tertiary); font-style: italic; }
+
+.demo-row {
+  display: grid; grid-template-columns: 1fr 48px 1fr; gap: 0; align-items: start;
+}
+.demo-col { display: flex; flex-direction: column; gap: 10px; }
+.demo-mid { display: flex; flex-direction: column; align-items: center; justify-content: center; padding-top: 32px; gap: 6px; }
+.signal-line {
+  width: 1px; height: 60px;
+  background: var(--color-border-tertiary);
+  position: relative; overflow: visible;
+}
+.signal-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: #7F77DD;
+  position: absolute; left: -2.5px; top: 0;
+  opacity: 0;
+  transition: none;
+}
+.signal-dot.firing {
+  animation: travel 0.4s ease-in forwards;
+}
+@keyframes travel { 0%{top:0;opacity:1} 100%{top:54px;opacity:0} }
+
+.demo-label { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-text-tertiary); font-weight: 500; }
+
+.target-box {
+  border: 0.5px solid var(--color-border-tertiary);
+  border-radius: var(--border-radius-md);
+  background: var(--color-background-primary);
+  padding: 12px 14px;
+  font-size: 13px; color: var(--color-text-secondary);
+  min-height: 44px; display: flex; align-items: center;
+  transition: background 0.25s, border-color 0.25s, color 0.25s;
+}
+.target-box.lit {
+  background: #EEEDFE; border-color: #AFA9EC; color: #3C3489;
+}
+@media (prefers-color-scheme: dark) {
+  .target-box.lit { background: #26215C; border-color: #534AB7; color: #CECBF6; }
+}
+
+.mutation-source {
+  border: 0.5px solid var(--color-border-secondary);
+  border-radius: var(--border-radius-md);
+  background: var(--color-background-primary);
+  padding: 10px 14px;
+  font-size: 13px;
+}
+.attr-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.attr-key { font-size: 11px; color: var(--color-text-tertiary); font-family: var(--font-mono); }
+.attr-val {
+  font-size: 11px; color: var(--color-text-secondary); font-family: var(--font-mono);
+  background: var(--color-background-secondary);
+  border: 0.5px solid var(--color-border-tertiary);
+  border-radius: 4px; padding: 2px 7px;
+  cursor: pointer; transition: background 0.15s;
+}
+.attr-val:hover { background: var(--color-background-tertiary); }
+
+.log-strip {
+  border: 0.5px solid var(--color-border-tertiary);
+  border-radius: var(--border-radius-md);
+  background: var(--color-background-secondary);
+  padding: 10px 14px; min-height: 44px;
+  font-family: var(--font-mono); font-size: 11px;
+  color: var(--color-text-tertiary); line-height: 1.6;
+}
+.log-line { color: var(--color-text-secondary); }
+.log-line.fresh { color: #534AB7; }
+@media (prefers-color-scheme: dark) {
+  .log-line.fresh { color: #AFA9EC; }
+}
+
+.run-btn {
+  align-self: flex-start;
+  font-size: 12px; padding: 6px 14px;
+  border-radius: var(--border-radius-md);
+  border: 0.5px solid var(--color-border-secondary);
+  background: transparent; cursor: pointer;
+  color: var(--color-text-secondary);
+  transition: background 0.15s;
+}
+.run-btn:hover { background: var(--color-background-secondary); }
+.run-btn:active { transform: scale(0.97); }
+
+.three-mech { display: flex; flex-direction: column; gap: 16px; }
+.mech-row { display: grid; grid-template-columns: 90px 1fr; gap: 0; align-items: stretch; }
+.mech-pill {
+  font-size: 11px; letter-spacing: 0.07em; text-transform: uppercase;
+  font-weight: 500; color: #534AB7; background: #EEEDFE;
+  border-radius: var(--border-radius-md) 0 0 var(--border-radius-md);
+  border: 0.5px solid #AFA9EC; border-right: none;
+  display: flex; align-items: center; justify-content: center; text-align: center;
+  padding: 0 8px; line-height: 1.3;
+}
+@media (prefers-color-scheme: dark) {
+  .mech-pill { background: #26215C; border-color: #534AB7; color: #CECBF6; }
+}
+.mech-body {
+  border: 0.5px solid var(--color-border-tertiary);
+  border-radius: 0 var(--border-radius-md) var(--border-radius-md) 0;
+  background: var(--color-background-primary);
+  padding: 10px 14px; font-size: 12px; color: var(--color-text-secondary); line-height: 1.6;
+}
+.mech-body code { font-family: var(--font-mono); font-size: 11px; color: var(--color-text-primary); background: var(--color-background-secondary); border-radius: 3px; padding: 1px 5px; }
+</style>
+
+<h2 style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">Quantum entanglement — page 2: how it works technically</h2>
+
+<div class="page">
+
+  <div>
+    <div class="section-label">Three binding mechanisms</div>
+    <div class="three-mech">
+      <div class="mech-row">
+        <div class="mech-pill">Event<br>listener</div>
+        <div class="mech-body">A <code>click</code> or <code>input</code> listener on element A calls a handler that immediately sets the same property on element B. Zero setTimeout, zero debounce — synchronous propagation is what creates the "instant" feel.</div>
+      </div>
+      <div class="mech-row">
+        <div class="mech-pill">Mutation<br>observer</div>
+        <div class="mech-body"><code>MutationObserver</code> watches a DOM node's <code>attributes</code>, <code>childList</code>, or <code>characterData</code>. When A changes (even from a third-party script), the callback fires and mirrors the delta to B — without A knowing B exists.</div>
+      </div>
+      <div class="mech-row">
+        <div class="mech-pill">Scroll<br>sync</div>
+        <div class="mech-body">A <code>scroll</code> listener on element A reads <code>scrollTop / scrollHeight</code> as a 0–1 ratio, then sets <code>scrollTop = ratio × B.scrollHeight</code>. This handles differing content heights gracefully. A guard flag prevents the echo-loop.</div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="section-label">Code reference</div>
+    <div class="code-panel">
+      <div class="code-tabs">
+        <div class="code-tab active" onclick="showTab('click')">click sync</div>
+        <div class="code-tab" onclick="showTab('mutation')">MutationObserver</div>
+        <div class="code-tab" onclick="showTab('scroll')">scroll sync</div>
+        <div class="code-tab" onclick="showTab('mirror')">transform mirror</div>
+      </div>
+
+      <div class="code-block visible" id="tab-click"><span class="cm">// Bind a pair of elements — click A animates B instantly</span>
+<span class="hl">function</span> entangle(a, b) {
+  <span class="hl">const</span> sync = (source, target) => {
+    source.<span class="hl">addEventListener</span>(<span class="hl">'click'</span>, () => {
+      target.classList.<span class="hl">toggle</span>('active');
+      target.dispatchEvent(<span class="hl">new</span> Event(<span class="hl">'entangled'</span>));
+    });
+  };
+  sync(a, b);
+  sync(b, a); <span class="cm">// bidirectional</span>
+}</div>
+
+      <div class="code-block" id="tab-mutation"><span class="cm">// Watch A for attribute changes, mirror to B</span>
+<span class="hl">function</span> entangleAttr(a, b, attr) {
+  <span class="hl">const</span> obs = <span class="hl">new</span> MutationObserver(mutations => {
+    mutations.<span class="hl">forEach</span>(m => {
+      <span class="hl">if</span> (m.attributeName === attr) {
+        <span class="hl">const</span> val = a.<span class="hl">getAttribute</span>(attr);
+        b.<span class="hl">setAttribute</span>(attr, val); <span class="cm">// instant mirror</span>
+      }
+    });
+  });
+  obs.<span class="hl">observe</span>(a, { <span class="hl">attributes</span>: true });
+}</div>
+
+      <div class="code-block" id="tab-scroll"><span class="cm">// Sync scroll position as a ratio (handles height diff)</span>
+<span class="hl">let</span> syncing = false;
+
+<span class="hl">function</span> syncScroll(a, b) {
+  a.<span class="hl">addEventListener</span>(<span class="hl">'scroll'</span>, () => {
+    <span class="hl">if</span> (syncing) return;
+    syncing = true;
+    <span class="hl">const</span> ratio = a.scrollTop / (a.scrollHeight - a.clientHeight);
+    b.scrollTop = ratio * (b.scrollHeight - b.clientHeight);
+    syncing = false;
+  });
+}</div>
+
+      <div class="code-block" id="tab-mirror"><span class="cm">// Mirror a CSS transform — rotation, scale, translate</span>
+<span class="hl">function</span> mirrorTransform(a, b) {
+  <span class="hl">const</span> obs = <span class="hl">new</span> MutationObserver(() => {
+    <span class="hl">const</span> t = <span class="hl">getComputedStyle</span>(a).transform;
+    <span class="hl">const</span> [,a,b2,c,d] = t.<span class="hl">match</span>(/matrix\((.+)\)/)
+      ?.<span class="hl">map</span>(Number) ?? [];
+    <span class="cm">// Negate rotation to create mirror effect</span>
+    b.style.transform = <span class="hl">`matrix(${a},${-b2},${-c},${d},0,0)`</span>;
+  });
+  obs.<span class="hl">observe</span>(a, { attributeFilter: [<span class="hl">'style'</span>] });
+}</div>
+    </div>
+  </div>
+
+  <div>
+    <div class="section-label">Live demo — MutationObserver</div>
+    <div class="demo-row">
+      <div class="demo-col">
+        <div class="demo-label">Source (observed)</div>
+        <div class="mutation-source" id="mut-source">
+          <div style="font-size:12px;color:var(--color-text-secondary);">DOM node</div>
+          <div class="attr-row">
+            <span class="attr-key">data-state=</span>
+            <span class="attr-val" id="attr-display" onclick="cycleAttr()">"idle"</span>
+          </div>
+          <div style="font-size:11px;color:var(--color-text-tertiary);margin-top:8px;">click value to mutate</div>
+        </div>
+        <div class="log-strip" id="source-log">waiting for mutation…</div>
+      </div>
+
+      <div class="demo-mid">
+        <div class="signal-line"><div class="signal-dot" id="sig-dot"></div></div>
+        <div style="font-size:10px;color:var(--color-text-tertiary);letter-spacing:0.05em;writing-mode:horizontal-tb;">obs</div>
+        <div class="signal-line"><div class="signal-dot" id="sig-dot2"></div></div>
+      </div>
+
+      <div class="demo-col">
+        <div class="demo-label">Mirror (entangled)</div>
+        <div class="target-box" id="mut-target">Waiting…</div>
+        <div class="log-strip" id="mirror-log">no signal yet</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function showTab(id) {
+    document.querySelectorAll('.code-tab').forEach((t,i) => {
+      const ids = ['click','mutation','scroll','mirror'];
+      t.classList.toggle('active', ids[i] === id);
+    });
+    document.querySelectorAll('.code-block').forEach(b => {
+      b.classList.toggle('visible', b.id === 'tab-'+id);
+    });
+  }
+
+  const states = ['idle', 'active', 'collapsed', 'entangled'];
+  let stateIdx = 0;
+  const attrDisplay = document.getElementById('attr-display');
+  const target = document.getElementById('mut-target');
+  const sourceLog = document.getElementById('source-log');
+  const mirrorLog = document.getElementById('mirror-log');
+
+  const fakeNode = document.createElement('div');
+  fakeNode.setAttribute('data-state', 'idle');
+
+  const colors = {
+    idle: null,
+    active: '#EEEDFE',
+    collapsed: null,
+    entangled: '#EEEDFE'
+  };
+  const textMap = {
+    idle: 'state: idle',
+    active: 'state: active — mirrored',
+    collapsed: 'state: collapsed',
+    entangled: 'entangled — both particles share state'
+  };
+
+  let logLines = [];
+  function addLog(el, msg, fresh) {
+    logLines.push(msg);
+    if (logLines.length > 4) logLines = logLines.slice(-4);
+    el.innerHTML = logLines.map((l, i) =>
+      `<div class="log-line${i === logLines.length-1 && fresh ? ' fresh' : ''}">${l}</div>`
+    ).join('');
+  }
+
+  let srcLines = [], mirLines = [];
+  function addSrcLog(msg) {
+    srcLines.push(msg);
+    if (srcLines.length > 3) srcLines = srcLines.slice(-3);
+    sourceLog.innerHTML = srcLines.map((l,i) =>
+      `<div class="log-line${i === srcLines.length-1 ? ' fresh' : ''}">${l}</div>`
+    ).join('');
+  }
+  function addMirLog(msg) {
+    mirLines.push(msg);
+    if (mirLines.length > 3) mirLines = mirLines.slice(-3);
+    mirrorLog.innerHTML = mirLines.map((l,i) =>
+      `<div class="log-line${i === mirLines.length-1 ? ' fresh' : ''}">${l}</div>`
+    ).join('');
+  }
+
+  const obs = new MutationObserver(mutations => {
+    mutations.forEach(m => {
+      if (m.attributeName === 'data-state') {
+        const val = fakeNode.getAttribute('data-state');
+        const isLit = val === 'active' || val === 'entangled';
+        target.textContent = textMap[val] || val;
+        target.classList.toggle('lit', isLit);
+        fireDot();
+        addMirLog(`MutationObserver fired → "${val}"`);
+      }
+    });
+  });
+  obs.observe(fakeNode, { attributes: true });
+
+  function fireDot() {
+    ['sig-dot','sig-dot2'].forEach(id => {
+      const d = document.getElementById(id);
+      d.classList.remove('firing');
+      void d.offsetWidth;
+      d.classList.add('firing');
+    });
+  }
+
+  function cycleAttr() {
+    stateIdx = (stateIdx + 1) % states.length;
+    const val = states[stateIdx];
+    attrDisplay.textContent = `"${val}"`;
+    fakeNode.setAttribute('data-state', val);
+    addSrcLog(`setAttribute("data-state", "${val}")`);
+  }
+</script>

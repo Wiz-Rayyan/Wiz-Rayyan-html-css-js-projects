@@ -1,0 +1,218 @@
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: transparent; }
+#tachyon-root {
+  font-family: var(--font-mono, monospace);
+  color: var(--color-text-primary);
+  padding: 1.5rem 0;
+  user-select: none;
+}
+.t-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.75rem 1.25rem;
+  border: 0.5px solid var(--color-border-tertiary);
+  border-radius: var(--border-radius-lg);
+  background: var(--color-background-secondary);
+  margin-bottom: 1rem;
+}
+.t-logo { font-size: 13px; font-weight: 500; letter-spacing: 0.08em; color: var(--color-text-secondary); }
+.t-clock {
+  font-size: 13px; font-weight: 500;
+  color: var(--color-text-danger, #A32D2D);
+  letter-spacing: 0.04em;
+}
+.t-nav { display: flex; gap: 8px; }
+.t-btn {
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+  padding: 5px 14px;
+  border: 0.5px solid var(--color-border-secondary);
+  border-radius: var(--border-radius-md);
+  background: var(--color-background-primary);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: background 0.12s;
+  display: flex; align-items: center; gap: 6px;
+}
+.t-btn:hover { background: var(--color-background-tertiary); }
+.t-btn:active { transform: scale(0.97); }
+.t-btn.primary { border-color: var(--color-border-danger, #A32D2D); color: var(--color-text-danger, #A32D2D); }
+.scroll-viewport {
+  height: 340px;
+  overflow: hidden;
+  border: 0.5px solid var(--color-border-tertiary);
+  border-radius: var(--border-radius-lg);
+  background: var(--color-background-primary);
+  position: relative;
+  cursor: ns-resize;
+}
+.scroll-inner {
+  position: absolute; left: 0; right: 0;
+  padding: 1rem 1.25rem;
+  transition: top 0.08s linear;
+}
+.entry {
+  padding: 0.75rem 0;
+  border-bottom: 0.5px solid var(--color-border-tertiary);
+}
+.entry:last-child { border-bottom: none; }
+.entry-ts { font-size: 11px; color: var(--color-text-tertiary); margin-bottom: 4px; }
+.entry-title { font-size: 14px; font-weight: 500; margin-bottom: 3px; }
+.entry-body { font-size: 13px; color: var(--color-text-secondary); line-height: 1.5; }
+.hint-bar {
+  margin-top: 0.75rem;
+  padding: 0.6rem 1rem;
+  background: var(--color-background-secondary);
+  border-radius: var(--border-radius-md);
+  border: 0.5px solid var(--color-border-tertiary);
+  display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
+}
+.hint { font-size: 11px; color: var(--color-text-secondary); display: flex; align-items: center; gap: 6px; }
+.hint-key {
+  display: inline-block; padding: 2px 7px;
+  border: 0.5px solid var(--color-border-secondary);
+  border-radius: 4px; font-size: 10px;
+  background: var(--color-background-primary);
+}
+.reversal-badge {
+  font-size: 10px; padding: 2px 8px;
+  background: var(--color-background-danger);
+  color: var(--color-text-danger);
+  border-radius: 99px; letter-spacing: 0.05em; font-weight: 500;
+}
+.page-indicator {
+  font-size: 12px; color: var(--color-text-secondary);
+  text-align: center; margin-top: 0.5rem;
+  letter-spacing: 0.03em;
+}
+.flash {
+  position: absolute; inset: 0; pointer-events: none;
+  border-radius: var(--border-radius-lg);
+  background: var(--color-background-danger);
+  opacity: 0; transition: opacity 0.15s;
+}
+</style>
+
+<div id="tachyon-root">
+  <h2 class="sr-only" style="position:absolute;left:-9999px">Tachyon interface — a reversed-time UI demo where scroll and navigation are inverted</h2>
+
+  <div class="t-header">
+    <div style="display:flex;align-items:center;gap:10px">
+      <span class="t-logo">⟲ TACHYON</span>
+      <span class="reversal-badge">TIME REVERSED</span>
+    </div>
+    <span class="t-clock" id="clock">T-00:00:00</span>
+    <div class="t-nav">
+      <button class="t-btn primary" id="btn-prev" aria-label="next page (reversed)">
+        <i class="ti ti-arrow-left" aria-hidden="true"></i> next
+      </button>
+      <button class="t-btn primary" id="btn-next" aria-label="previous page (reversed)">
+        prev <i class="ti ti-arrow-right" aria-hidden="true"></i>
+      </button>
+    </div>
+  </div>
+
+  <div class="scroll-viewport" id="viewport">
+    <div class="flash" id="flash"></div>
+    <div class="scroll-inner" id="inner"></div>
+  </div>
+  <div class="page-indicator" id="page-ind"></div>
+
+  <div class="hint-bar">
+    <div class="hint"><span class="hint-key">↑ scroll</span> moves you forward in time</div>
+    <div class="hint"><span class="hint-key">next →</span> goes to the previous page</div>
+    <div class="hint"><span class="hint-key">← prev</span> goes to the next page</div>
+    <div class="hint"><i class="ti ti-clock" aria-hidden="true" style="font-size:13px"></i> clock counts down</div>
+  </div>
+</div>
+
+<script>
+const PAGES = [
+  {
+    label: "page 3 / future",
+    entries: [
+      { title: "Quantum foam stabilised", body: "Planck-scale fluctuations recede as the field coherence reaches maximum. Observers report déjà-vu cascades." },
+      { title: "Retrocausal handshake confirmed", body: "The signal arrived before it was sent. Lab instruments registered the echo three milliseconds prior to transmission." },
+      { title: "Memory crystallises", body: "Future memories are the clearest. They have already happened somewhere downstream." },
+      { title: "Entropy gradient inverts", body: "Broken glass assembles on the table. Coffee unstirs. The room grows tidier with each passing moment." },
+    ]
+  },
+  {
+    label: "page 2 / present",
+    entries: [
+      { title: "Tachyon interface loaded", body: "You are here, somewhere between cause and effect. Scroll up to advance. Scroll down to retreat." },
+      { title: "Navigation is inverted", body: "Pressing 'next' retrieves what came before. The labels are legacy artefacts from causal time." },
+      { title: "Timestamps are decreasing", body: "The clock above subtracts. Every second you watch it, it moves further into the past." },
+      { title: "The cursor hesitates", body: "Even the pointer seems uncertain which direction to resolve. It flickers between two probable positions." },
+    ]
+  },
+  {
+    label: "page 1 / past",
+    entries: [
+      { title: "Origin event", body: "Before the interface existed, the data was already here, waiting to be un-created." },
+      { title: "First photon absorbed", body: "Light entered the system. Or left. The distinction collapses at this temporal depth." },
+      { title: "Causal chain begins (ends?)", body: "Every subsequent event was already encoded in this moment. Causality is a matter of perspective." },
+      { title: "Void prior to page", body: "There is nothing further back. Or perhaps this is as far forward as anything goes." },
+    ]
+  }
+];
+
+let currentPage = 1;
+let scrollOffset = 0;
+const MAX_SCROLL = 320;
+const startEpoch = Date.now();
+
+const inner = document.getElementById('inner');
+const clock = document.getElementById('clock');
+const pageInd = document.getElementById('page-ind');
+const viewport = document.getElementById('viewport');
+const flash = document.getElementById('flash');
+
+function renderPage() {
+  const p = PAGES[currentPage];
+  const now = Date.now();
+  inner.innerHTML = p.entries.map((e, i) => {
+    const fakeTs = now - (startEpoch - now) - i * 3600000 * (2 - currentPage) - i * 240000;
+    const d = new Date(fakeTs);
+    const ts = d.toISOString().replace('T',' ').slice(0,19) + ' UTC';
+    return `<div class="entry">
+      <div class="entry-ts">${ts}</div>
+      <div class="entry-title">${e.title}</div>
+      <div class="entry-body">${e.body}</div>
+    </div>`;
+  }).join('');
+  scrollOffset = 0;
+  inner.style.top = '0px';
+  pageInd.textContent = p.label;
+}
+
+function doFlash() {
+  flash.style.opacity = '0.12';
+  setTimeout(() => { flash.style.opacity = '0'; }, 180);
+}
+
+document.getElementById('btn-prev').addEventListener('click', () => {
+  if (currentPage < PAGES.length - 1) { currentPage++; renderPage(); doFlash(); }
+});
+document.getElementById('btn-next').addEventListener('click', () => {
+  if (currentPage > 0) { currentPage--; renderPage(); doFlash(); }
+});
+
+viewport.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const reversed = e.deltaY * -1;
+  scrollOffset = Math.max(-MAX_SCROLL, Math.min(0, scrollOffset - reversed * 0.6));
+  inner.style.top = scrollOffset + 'px';
+}, { passive: false });
+
+let elapsed = 0;
+setInterval(() => {
+  elapsed++;
+  const h = String(Math.floor(elapsed / 3600)).padStart(2,'0');
+  const m = String(Math.floor((elapsed % 3600) / 60)).padStart(2,'0');
+  const s = String(elapsed % 60).padStart(2,'0');
+  clock.textContent = `T-${h}:${m}:${s}`;
+}, 1000);
+
+renderPage();
+</script>

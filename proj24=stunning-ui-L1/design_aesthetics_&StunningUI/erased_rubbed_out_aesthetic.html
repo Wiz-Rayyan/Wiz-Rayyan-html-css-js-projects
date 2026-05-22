@@ -1,0 +1,297 @@
+
+<style>
+  :root {
+    --paper: #f9f7f2;
+    --ink: #1a1814;
+    --ink-faint: #b0a898;
+    --smudge: rgba(249,247,242,0.92);
+    --smudge-hard: #f9f7f2;
+    --line: #e0dbd1;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #1a1916;
+      --ink: #e8e2d6;
+      --ink-faint: #5a544a;
+      --smudge: rgba(26,25,22,0.92);
+      --smudge-hard: #1a1916;
+      --line: #2e2c28;
+    }
+  }
+
+  .page {
+    background: var(--paper);
+    font-family: 'Georgia', serif;
+    padding: 3rem 2.5rem 3.5rem;
+    position: relative;
+    overflow: hidden;
+    border: 0.5px solid var(--line);
+    border-radius: 4px;
+  }
+
+  .ruled-lines {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-image: repeating-linear-gradient(
+      transparent,
+      transparent 38px,
+      var(--line) 38px,
+      var(--line) 39px
+    );
+    background-position: 0 82px;
+    pointer-events: none;
+  }
+
+  .section {
+    position: relative;
+    margin-bottom: 2.8rem;
+  }
+
+  .label {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-bottom: 0.6rem;
+    font-family: var(--font-sans), sans-serif;
+  }
+
+  p.line {
+    font-size: 17px;
+    line-height: 39px;
+    color: var(--ink);
+    margin: 0;
+    position: relative;
+  }
+
+  /* Hard white block redaction */
+  .redact {
+    display: inline-block;
+    background: var(--smudge-hard);
+    color: transparent;
+    border-radius: 1px;
+    position: relative;
+    margin: 0 1px;
+    vertical-align: baseline;
+    user-select: none;
+  }
+  .redact::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--smudge-hard);
+  }
+
+  /* Smeared / rubbed out — rough edge effect */
+  .smear {
+    display: inline-block;
+    position: relative;
+    color: transparent;
+    margin: 0 1px;
+    vertical-align: baseline;
+    user-select: none;
+  }
+  .smear::before {
+    content: attr(data-word);
+    position: absolute;
+    left: 0; top: 0;
+    color: var(--ink-faint);
+    filter: blur(1.8px);
+    opacity: 0.35;
+    pointer-events: none;
+  }
+  .smear::after {
+    content: '';
+    position: absolute;
+    inset: -2px -4px;
+    background: linear-gradient(105deg, 
+      transparent 0%, 
+      var(--smudge) 25%, 
+      var(--smudge-hard) 52%, 
+      var(--smudge) 75%, 
+      transparent 100%
+    );
+    border-radius: 2px;
+  }
+
+  /* Ghost — barely there */
+  .ghost {
+    display: inline;
+    color: var(--ink-faint);
+    opacity: 0.18;
+    position: relative;
+  }
+
+  /* Fade out gradient */
+  .fade-line {
+    position: relative;
+    display: inline;
+  }
+  .fade-line::after {
+    content: '';
+    position: absolute;
+    top: 0; right: -2px;
+    width: 60%;
+    height: 100%;
+    background: linear-gradient(to right, transparent, var(--paper) 85%);
+    pointer-events: none;
+  }
+
+  /* Thick strikethrough with white stroke */
+  .struck {
+    position: relative;
+    display: inline;
+  }
+  .struck::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0;
+    top: 50%; 
+    height: 6px;
+    margin-top: -3px;
+    background: var(--smudge-hard);
+    border-radius: 1px;
+  }
+
+  /* Margin note */
+  .margin-note {
+    position: absolute;
+    left: -2.1rem;
+    top: 0;
+    width: 1.6rem;
+    font-size: 10px;
+    color: var(--ink-faint);
+    text-align: right;
+    line-height: 1.3;
+    font-family: var(--font-sans), sans-serif;
+    opacity: 0.5;
+  }
+
+  /* Pencil circle — annotation ring */
+  .circle-word {
+    display: inline-block;
+    border: 1px solid var(--ink-faint);
+    border-radius: 50% 45% 50% 45%;
+    padding: 0 4px;
+    margin: 0 1px;
+    opacity: 0.4;
+    transform: rotate(-1deg);
+  }
+
+  .big-redact {
+    display: inline-block;
+    background: var(--ink);
+    color: var(--ink);
+    border-radius: 1px;
+    margin: 0 1px;
+    user-select: none;
+    opacity: 0.9;
+  }
+
+  .eraser-marks {
+    position: absolute;
+    top: 50%; left: 30%;
+    width: 120px; height: 14px;
+    background: repeating-linear-gradient(
+      88deg,
+      transparent 0px,
+      transparent 3px,
+      rgba(160,150,135,0.08) 3px,
+      rgba(160,150,135,0.08) 5px
+    );
+    transform: translateY(-50%) rotate(-0.5deg);
+    pointer-events: none;
+    border-radius: 6px;
+  }
+
+  .torn-edge {
+    height: 1px;
+    background: var(--line);
+    margin: 0 -2.5rem;
+    position: relative;
+    opacity: 0.6;
+  }
+
+  .page-number {
+    position: absolute;
+    bottom: 1.2rem;
+    right: 2.5rem;
+    font-size: 11px;
+    color: var(--ink-faint);
+    font-family: var(--font-sans), sans-serif;
+    opacity: 0.4;
+  }
+</style>
+
+<div class="page" role="img" aria-label="Erased/rubbed out aesthetic: a page with words censored, smeared, ghosted, and faded to create meaning through absence">
+  <div class="ruled-lines" aria-hidden="true"></div>
+
+  <div class="section">
+    <div class="label">Memory fragment — I</div>
+    <p class="line">
+      I still remember the day you
+      <span class="redact">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+      without saying
+      <span class="redact">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>.
+    </p>
+    <p class="line">
+      The kitchen smelled like
+      <span class="smear" data-word="coffee">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+      and something I can no longer
+      <span class="ghost">name</span>.
+    </p>
+    <p class="line">
+      You were wearing
+      <span class="redact">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>,
+      the one I gave you for
+      <span class="smear" data-word="your birthday">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>.
+    </p>
+    <div class="eraser-marks" aria-hidden="true"></div>
+  </div>
+
+  <div class="torn-edge" aria-hidden="true"></div>
+
+  <div class="section" style="margin-top: 2.2rem;">
+    <div class="margin-note" aria-hidden="true">§2</div>
+    <div class="label">Classified correspondence</div>
+    <p class="line">
+      The committee has decided to
+      <span class="big-redact">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+    </p>
+    <p class="line">
+      effective
+      <span class="big-redact">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+      regardless of
+      <span class="struck">public consensus</span>
+      the outcome.
+    </p>
+    <p class="line">
+      All records pertaining to
+      <span class="circle-word" aria-hidden="true">Project</span>
+      <span class="big-redact">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+      are
+      <span class="redact">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>.
+    </p>
+  </div>
+
+  <div class="torn-edge" aria-hidden="true"></div>
+
+  <div class="section" style="margin-top: 2.2rem;">
+    <div class="label">What was left unsent</div>
+    <p class="line">
+      I should have told you that I
+      <span class="fade-line">loved you more than I knew how to say&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+    </p>
+    <p class="line" style="margin-top: 0;">
+      <span class="ghost">and that every morning I looked for you</span>
+      &nbsp;
+    </p>
+    <p class="line">
+      <span class="smear" data-word="You never">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+      wrote back. Some silences are
+      <span class="redact">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>.
+    </p>
+  </div>
+
+  <div class="page-number" aria-hidden="true">— 47 —</div>
+</div>

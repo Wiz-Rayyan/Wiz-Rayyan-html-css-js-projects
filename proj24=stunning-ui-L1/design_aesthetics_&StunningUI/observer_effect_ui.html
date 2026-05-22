@@ -1,0 +1,353 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  #obs-root {
+    font-family: var(--font-mono);
+    min-height: 520px;
+    background: var(--color-background-primary);
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--border-radius-lg);
+    overflow: hidden;
+    position: relative;
+    transition: filter 0.3s ease;
+  }
+
+  #obs-root.scrambled { filter: blur(3px) hue-rotate(90deg); }
+  #obs-root.chaos { transform: skewX(-2deg); filter: contrast(1.4); }
+
+  .obs-header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 20px;
+    border-bottom: 0.5px solid var(--color-border-tertiary);
+    background: var(--color-background-secondary);
+  }
+  .dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+  .d-red { background: #ff5f57; }
+  .d-yellow { background: #ffbd2e; }
+  .d-green { background: #28ca42; }
+  .obs-title { font-size: 13px; color: var(--color-text-secondary); margin-left: auto; letter-spacing: 0.05em; }
+
+  .obs-body { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--color-border-tertiary); height: 460px; }
+  .obs-panel {
+    background: var(--color-background-primary);
+    padding: 20px;
+    transition: all 0.4s ease;
+    position: relative; overflow: hidden;
+  }
+  .obs-panel.ghost { opacity: 0; transform: translateY(-20px); }
+  .obs-panel.shift { transform: translateX(30px) rotate(1deg); opacity: 0.4; }
+
+  .panel-label {
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--color-text-tertiary); margin-bottom: 14px;
+  }
+
+  .quantum-box {
+    border: 0.5px solid var(--color-border-secondary);
+    border-radius: var(--border-radius-md);
+    padding: 12px 16px; margin-bottom: 10px;
+    font-size: 13px; color: var(--color-text-secondary);
+    transition: all 0.3s;
+    position: relative;
+  }
+  .quantum-box .q-val {
+    font-size: 20px; font-weight: 500;
+    color: var(--color-text-primary);
+    display: block; margin-top: 4px;
+  }
+  .quantum-box.uncertain .q-val { letter-spacing: 0.3em; color: var(--color-text-tertiary); }
+  .quantum-box.uncertain::after {
+    content: "?";
+    position: absolute; right: 12px; top: 12px;
+    font-size: 18px; color: var(--color-text-tertiary);
+  }
+
+  .wave { height: 60px; position: relative; overflow: hidden; margin-bottom: 10px; }
+  .wave svg { width: 100%; height: 100%; }
+
+  .obs-btn {
+    width: 100%; padding: 9px 14px; margin-top: 6px;
+    font-family: var(--font-mono); font-size: 12px;
+    cursor: pointer;
+    border: 0.5px solid var(--color-border-secondary);
+    border-radius: var(--border-radius-md);
+    background: transparent;
+    color: var(--color-text-secondary);
+    transition: all 0.2s;
+    text-align: left;
+  }
+  .obs-btn:hover { background: var(--color-background-secondary); color: var(--color-text-primary); }
+  .obs-btn.danger { border-color: #E24B4A44; color: #E24B4A; }
+  .obs-btn.danger:hover { background: #FCEBEB; }
+
+  .status-bar {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    padding: 8px 20px;
+    font-size: 11px; font-family: var(--font-mono);
+    color: var(--color-text-tertiary);
+    border-top: 0.5px solid var(--color-border-tertiary);
+    background: var(--color-background-secondary);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .status-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: #28ca42; display: inline-block; margin-right: 6px;
+    animation: pulse 2s infinite;
+  }
+  .status-dot.warning { background: #ffbd2e; }
+  .status-dot.danger-dot { background: #ff5f57; animation: none; }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  @keyframes glitch {
+    0%{clip-path:inset(0 0 95% 0)} 10%{clip-path:inset(40% 0 50% 0)}
+    20%{clip-path:inset(80% 0 5% 0)} 30%{clip-path:inset(10% 0 80% 0)}
+    40%{clip-path:inset(60% 0 30% 0)} 100%{clip-path:inset(0 0 0 0)}
+  }
+
+  .glitch-overlay {
+    position: absolute; inset: 0; pointer-events: none;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,0,100,0.03) 2px, rgba(255,0,100,0.03) 4px);
+    opacity: 0; transition: opacity 0.2s;
+    z-index: 10;
+  }
+  #obs-root.observed .glitch-overlay { opacity: 1; animation: glitch 0.4s steps(1); }
+
+  .scramble-text { display: inline-block; }
+
+  .tooltip {
+    position: absolute; bottom: 44px; left: 50%; transform: translateX(-50%);
+    background: var(--color-background-primary);
+    border: 0.5px solid var(--color-border-secondary);
+    border-radius: var(--border-radius-md);
+    padding: 8px 14px; font-size: 12px; font-family: var(--font-mono);
+    color: var(--color-text-secondary); white-space: nowrap;
+    pointer-events: none; z-index: 20;
+    opacity: 0; transition: opacity 0.3s; box-shadow: none;
+  }
+  .tooltip.show { opacity: 1; }
+</style>
+
+<h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">Observer Effect UI: a conceptual demo where the act of measuring changes the interface — elements shift, values collapse, and the system destabilizes when observed.</h2>
+
+<div id="obs-root">
+  <div class="glitch-overlay" id="glitch"></div>
+
+  <div class="obs-header">
+    <span class="dot d-red"></span>
+    <span class="dot d-yellow"></span>
+    <span class="dot d-green"></span>
+    <span class="obs-title">quantum_ui.exe — unobserved state</span>
+  </div>
+
+  <div class="obs-body">
+
+    <div class="obs-panel" id="panel-a">
+      <div class="panel-label">Superposition</div>
+      <div class="quantum-box" id="qbox-1">
+        position
+        <span class="q-val" id="pos-val">( 0, 0 ) ± ∞</span>
+      </div>
+      <div class="quantum-box" id="qbox-2">
+        momentum
+        <span class="q-val" id="mom-val">ℏ/2</span>
+      </div>
+      <div class="wave">
+        <svg viewBox="0 0 200 60" preserveAspectRatio="none">
+          <path id="wave-path" d="" fill="none" stroke="var(--color-border-secondary)" stroke-width="1.5"/>
+        </svg>
+      </div>
+      <button class="obs-btn" id="btn-measure">→ measure state</button>
+    </div>
+
+    <div class="obs-panel" id="panel-b">
+      <div class="panel-label">Observation log</div>
+      <div id="log-output" style="font-size:11px;line-height:1.8;color:var(--color-text-secondary);height:180px;overflow-y:auto;"></div>
+      <button class="obs-btn danger" id="btn-devtools" style="margin-top:12px;">⚠ open inspector</button>
+      <button class="obs-btn" id="btn-screenshot" style="margin-top:6px;">⬛ capture screenshot</button>
+      <button class="obs-btn" id="btn-reset" style="margin-top:6px;">↺ collapse waveform</button>
+    </div>
+
+  </div>
+
+  <div class="status-bar">
+    <div><span class="status-dot" id="status-dot"></span><span id="status-text">waveform coherent — not yet observed</span></div>
+    <div id="obs-count" style="opacity:0.5">observations: 0</div>
+  </div>
+
+  <div class="tooltip" id="tooltip"></div>
+</div>
+
+<script>
+const root = document.getElementById('obs-root');
+const titleEl = root.querySelector('.obs-title');
+const posVal = document.getElementById('pos-val');
+const momVal = document.getElementById('mom-val');
+const wavePath = document.getElementById('wave-path');
+const logOut = document.getElementById('log-output');
+const statusDot = document.getElementById('status-dot');
+const statusText = document.getElementById('status-text');
+const obsCountEl = document.getElementById('obs-count');
+const tooltip = document.getElementById('tooltip');
+const panelA = document.getElementById('panel-a');
+const panelB = document.getElementById('panel-b');
+
+let obsCount = 0;
+let collapsed = false;
+let animFrame;
+let t = 0;
+
+const chars = '█▓▒░▌▐▄▀■□▪▫◆◇○●';
+const glitchChars = '!@#$%^&*<>?/|\\~`';
+
+function randChar() { return chars[Math.floor(Math.random()*chars.length)]; }
+function glitchStr(n) { return Array.from({length:n},()=>glitchChars[Math.floor(Math.random()*glitchChars.length)]).join(''); }
+
+function log(msg, type='normal') {
+  const ts = new Date().toISOString().slice(11,19);
+  const color = type==='warn' ? '#ffbd2e' : type==='err' ? '#ff5f57' : 'var(--color-text-tertiary)';
+  logOut.innerHTML += `<div style="color:${color}">[${ts}] ${msg}</div>`;
+  logOut.scrollTop = logOut.scrollHeight;
+}
+
+function animateWave() {
+  t += 0.04;
+  const pts = [];
+  for (let x=0; x<=200; x+=4) {
+    const y = 30 + Math.sin(x*0.08 + t)*12 + Math.sin(x*0.15 + t*1.3)*5;
+    pts.push(x===0 ? `M${x},${y}` : `L${x},${y}`);
+  }
+  wavePath.setAttribute('d', pts.join(' '));
+  animFrame = requestAnimationFrame(animateWave);
+}
+animateWave();
+
+function incrementObs(source) {
+  obsCount++;
+  obsCountEl.textContent = `observations: ${obsCount}`;
+  log(`observation #${obsCount} detected via ${source}`, 'warn');
+}
+
+function triggerObserve(severity='mild') {
+  incrementObs(severity === 'devtools' ? 'DevTools' : severity === 'screenshot' ? 'screen capture' : 'state measurement');
+
+  root.classList.add('observed');
+  setTimeout(() => root.classList.remove('observed'), 500);
+
+  if (severity === 'devtools') {
+    root.classList.add('scrambled');
+    titleEl.textContent = 'quantum_ui.exe — ⚠ OBSERVER DETECTED';
+    panelA.classList.add('shift');
+    panelB.classList.add('ghost');
+    statusDot.className = 'status-dot danger-dot';
+    statusText.textContent = 'waveform collapsed — observation event recorded';
+    posVal.textContent = glitchStr(8);
+    momVal.textContent = glitchStr(5);
+    log('DevTools access detected — waveform integrity compromised', 'err');
+    log('Schrödinger boundary violated — state indeterminate', 'err');
+    setTimeout(() => {
+      root.classList.remove('scrambled');
+      panelA.classList.remove('shift');
+      panelB.classList.remove('ghost');
+    }, 2800);
+  } else if (severity === 'screenshot') {
+    panelB.classList.add('ghost');
+    log('Screenshot attempt intercepted — elements entering superposition', 'warn');
+    posVal.textContent = '██ ██ ██ ██';
+    momVal.textContent = '???.?? ℏ';
+    setTimeout(() => {
+      panelB.classList.remove('ghost');
+      if (!collapsed) restoreValues();
+    }, 1800);
+  } else {
+    collapseWaveform();
+  }
+}
+
+function collapseWaveform() {
+  collapsed = true;
+  cancelAnimationFrame(animFrame);
+  wavePath.setAttribute('d', 'M0,30 L200,30');
+  posVal.textContent = `( ${(Math.random()*10-5).toFixed(2)}, ${(Math.random()*10-5).toFixed(2)} )`;
+  momVal.textContent = `${(Math.random()*2).toFixed(4)} ℏ`;
+  document.getElementById('qbox-1').classList.add('uncertain');
+  document.getElementById('qbox-2').classList.add('uncertain');
+  statusDot.className = 'status-dot warning';
+  statusText.textContent = 'waveform collapsed by measurement';
+  titleEl.textContent = 'quantum_ui.exe — state collapsed';
+  log('Waveform collapsed by direct measurement', 'warn');
+  log('Heisenberg limit reached — precision lost', 'warn');
+}
+
+function restoreValues() {
+  if (collapsed) return;
+  posVal.textContent = '( 0, 0 ) ± ∞';
+  momVal.textContent = 'ℏ/2';
+}
+
+document.getElementById('btn-measure').addEventListener('click', () => {
+  showTooltip('measuring collapses superposition…');
+  triggerObserve('mild');
+});
+
+document.getElementById('btn-devtools').addEventListener('click', () => {
+  showTooltip('simulating DevTools open…');
+  triggerObserve('devtools');
+});
+
+document.getElementById('btn-screenshot').addEventListener('click', () => {
+  showTooltip('elements fading before capture…');
+  triggerObserve('screenshot');
+});
+
+document.getElementById('btn-reset').addEventListener('click', () => {
+  collapsed = false;
+  cancelAnimationFrame(animFrame);
+  animateWave();
+  posVal.textContent = '( 0, 0 ) ± ∞';
+  momVal.textContent = 'ℏ/2';
+  document.getElementById('qbox-1').classList.remove('uncertain');
+  document.getElementById('qbox-2').classList.remove('uncertain');
+  root.classList.remove('scrambled', 'chaos', 'observed');
+  panelA.classList.remove('shift','ghost');
+  panelB.classList.remove('shift','ghost');
+  statusDot.className = 'status-dot';
+  statusText.textContent = 'waveform coherent — not yet observed';
+  titleEl.textContent = 'quantum_ui.exe — unobserved state';
+  log('--- waveform reset — coherence restored ---');
+});
+
+function showTooltip(msg) {
+  tooltip.textContent = msg;
+  tooltip.classList.add('show');
+  setTimeout(() => tooltip.classList.remove('show'), 2000);
+}
+
+let devtoolsOpen = false;
+setInterval(() => {
+  const threshold = 160;
+  const widthDiff = window.outerWidth - window.innerWidth > threshold;
+  const heightDiff = window.outerHeight - window.innerHeight > threshold;
+  const nowOpen = widthDiff || heightDiff;
+  if (nowOpen && !devtoolsOpen) {
+    devtoolsOpen = true;
+    triggerObserve('devtools');
+  } else if (!nowOpen && devtoolsOpen) {
+    devtoolsOpen = false;
+    log('observer removed — attempting waveform recovery');
+  }
+}, 1000);
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    log('tab hidden — partial decoherence event', 'warn');
+  } else {
+    log('observer returned — waveform disturbed by re-entry');
+    triggerObserve('mild');
+  }
+});
+
+log('system initialized — waveform stable');
+log('state: unobserved superposition');
+log('warning: interaction will collapse state');
+</script>

@@ -1,0 +1,275 @@
+
+<style>
+  :root {
+    --h-bg: var(--color-background-primary);
+    --h-surface: var(--color-background-secondary);
+    --h-border: var(--color-border-tertiary);
+    --h-text: var(--color-text-primary);
+    --h-muted: var(--color-text-secondary);
+  }
+  #hallway-root { padding: 0; font-family: var(--font-sans); }
+  #hall-nav { display: flex; gap: 8px; align-items: center; padding: 0; margin-bottom: 0; }
+  #hall-nav a { font-size: 14px; color: var(--h-muted); cursor: pointer; text-decoration: none; }
+  #hall-nav a:hover { color: var(--h-text); }
+  #hall-nav .sep { color: var(--h-border); font-size: 12px; }
+  .hall-page { transition: opacity 0.25s; }
+  .hall-header { display: flex; align-items: center; justify-content: space-between; }
+  .hall-logo { font-weight: 500; letter-spacing: -0.3px; }
+  .hall-nav-links { display: flex; gap: 0; }
+  .hall-nav-links span { cursor: pointer; font-size: 13px; color: var(--h-muted); }
+  .hall-nav-links span:hover { color: var(--h-text); }
+  .hall-hero { margin-top: 0; }
+  .hall-hero h1 { font-weight: 500; line-height: 1.25; margin: 0 0 12px; }
+  .hall-hero p { color: var(--h-muted); line-height: 1.6; margin: 0 0 20px; }
+  .hall-cta { display: inline-block; cursor: pointer; font-size: 14px; border: 0.5px solid var(--h-border); border-radius: 6px; background: var(--h-surface); color: var(--h-text); }
+  .hall-cta:hover { background: var(--h-bg); }
+  .hall-cards { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 24px; }
+  .hall-card { background: var(--h-surface); border: 0.5px solid var(--h-border); }
+  .hall-card-icon { font-size: 20px; color: var(--h-muted); margin-bottom: 8px; }
+  .hall-card h3 { font-weight: 500; margin: 0 0 6px; }
+  .hall-card p { color: var(--h-muted); margin: 0; line-height: 1.5; }
+  .hall-footer { display: flex; justify-content: space-between; align-items: center; border-top: 0.5px solid var(--h-border); }
+  .hall-footer-links { display: flex; }
+  .hall-footer-links span { font-size: 12px; color: var(--h-muted); cursor: pointer; }
+  .hall-counter { font-size: 11px; color: var(--h-muted); opacity: 0.5; font-variant-numeric: tabular-nums; }
+  .hall-diff-log { margin-top: 16px; border: 0.5px solid var(--h-border); border-radius: 8px; padding: 12px 16px; background: var(--h-surface); }
+  .hall-diff-log h4 { font-size: 12px; font-weight: 500; color: var(--h-muted); margin: 0 0 8px; letter-spacing: 0.05em; text-transform: uppercase; }
+  .diff-item { font-size: 12px; color: var(--h-muted); padding: 3px 0; display: flex; gap: 8px; align-items: baseline; font-family: var(--font-mono); }
+  .diff-prop { color: var(--h-text); min-width: 140px; }
+  .diff-old { text-decoration: line-through; opacity: 0.5; }
+  .diff-arrow { opacity: 0.4; }
+  .diff-new { color: var(--color-text-warning, #b35900); }
+  .navigate-btn { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-size: 14px; font-family: var(--font-sans); border: 0.5px solid var(--h-border); border-radius: 8px; background: var(--h-surface); color: var(--h-text); padding: 8px 18px; margin-top: 4px; }
+  .navigate-btn:hover { background: var(--h-bg); }
+  .navigate-btn:active { transform: scale(0.98); }
+  .drift-label { font-size: 11px; color: var(--h-muted); opacity: 0.6; margin-top: 6px; text-align: center; }
+</style>
+
+<div id="hallway-root">
+  <h2 class="sr-only">Infinite hallway: an interactive demo where page layout shifts subtly on each navigation</h2>
+
+  <div id="hall-page-wrap"></div>
+
+  <div style="display:flex; align-items:center; justify-content:space-between; margin-top:16px;">
+    <button class="navigate-btn" id="nav-btn" onclick="navigate()">
+      <i class="ti ti-arrow-right" aria-hidden="true"></i> Navigate
+    </button>
+    <span class="drift-label" id="drift-label">visit 0 — layout is pristine</span>
+  </div>
+
+  <div class="hall-diff-log" id="diff-log" style="display:none;">
+    <h4>drift log</h4>
+    <div id="diff-items"></div>
+  </div>
+</div>
+
+<script>
+const ICONS = ['ti-bolt','ti-leaf','ti-shield','ti-chart-bar','ti-cube','ti-circles'];
+const CARD_TITLES = [['Fast','Reliable','Simple'],['Quick','Stable','Clean'],['Swift','Solid','Light'],['Smart','Secure','Sleek']];
+const CARD_DESCS = [
+  'Everything you need, right where you expect it.',
+  'Designed to feel familiar from the first moment.',
+  'Built for the way you actually work.',
+  'Simple on the surface, powerful underneath.',
+  'The details are handled so you don\'t have to be.',
+  'Works without thinking about it.',
+];
+const HERO_LINES = [
+  'The platform that works the way you think.',
+  'A platform that works the way you think.',
+  'The platform that works how you think.',
+  'The platform that works the way you do.',
+];
+const NAV_LABELS = [
+  ['Product','Pricing','About','Log in'],
+  ['Products','Pricing','About us','Sign in'],
+  ['Product','Plans','About','Login'],
+  ['Features','Pricing','Company','Log in'],
+];
+const LOGO_NAMES = ['Forma','Forma','Forma','Forma.'];
+
+let visit = 0;
+let state = null;
+let prevState = null;
+
+function rnd(min, max) {
+  return min + Math.random() * (max - min);
+}
+function pick(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+function drift(base, delta) {
+  return Math.round(base + rnd(-delta, delta));
+}
+function driftF(base, delta, decimals) {
+  return parseFloat((base + rnd(-delta, delta)).toFixed(decimals));
+}
+function hslDrift(h, s, l, dh, ds, dl) {
+  return `hsl(${drift(h, dh)}, ${drift(s, ds)}%, ${drift(l, dl)}%)`;
+}
+
+function makeState(prev) {
+  const base = prev || {
+    fontSize: 22,
+    heroFontSize: 22,
+    bodyFontSize: 14,
+    headerPad: 18,
+    heroPadTop: 28,
+    heroPadBottom: 20,
+    cardPad: 14,
+    cardRadius: 8,
+    ctaPad: [8, 18],
+    ctaRadius: 6,
+    gapCards: 12,
+    gapNav: 24,
+    logoLetterSpacing: -0.3,
+    bodyLineHeight: 1.6,
+    footerPadTop: 12,
+    accentH: 220,
+    accentS: 60,
+    accentL: 50,
+    navIdx: 0,
+    heroIdx: 0,
+    titleSetIdx: 0,
+    cardDescSeed: [0,1,2],
+    iconSet: [0,1,2],
+  };
+  return {
+    fontSize: drift(base.fontSize, 2),
+    heroFontSize: drift(base.heroFontSize, 1),
+    bodyFontSize: drift(base.bodyFontSize, 1),
+    headerPad: drift(base.headerPad, 2),
+    heroPadTop: drift(base.heroPadTop, 3),
+    heroPadBottom: drift(base.heroPadBottom, 2),
+    cardPad: drift(base.cardPad, 2),
+    cardRadius: drift(base.cardRadius, 2),
+    ctaPad: [drift(base.ctaPad[0], 1), drift(base.ctaPad[1], 2)],
+    ctaRadius: drift(base.ctaRadius, 2),
+    gapCards: drift(base.gapCards, 3),
+    gapNav: drift(base.gapNav, 4),
+    logoLetterSpacing: driftF(base.logoLetterSpacing, 0.15, 2),
+    bodyLineHeight: driftF(base.bodyLineHeight, 0.05, 2),
+    footerPadTop: drift(base.footerPadTop, 3),
+    accentH: drift(base.accentH, 8),
+    accentS: drift(base.accentS, 5),
+    accentL: drift(base.accentL, 4),
+    navIdx: Math.min(NAV_LABELS.length - 1, Math.max(0, base.navIdx + (Math.random() > 0.6 ? (Math.random() > 0.5 ? 1 : -1) : 0))),
+    heroIdx: Math.min(HERO_LINES.length - 1, Math.max(0, base.heroIdx + (Math.random() > 0.65 ? (Math.random() > 0.5 ? 1 : -1) : 0))),
+    titleSetIdx: Math.min(CARD_TITLES.length - 1, Math.max(0, base.titleSetIdx + (Math.random() > 0.7 ? (Math.random() > 0.5 ? 1 : -1) : 0))),
+    cardDescSeed: [0,1,2].map(i => (base.cardDescSeed[i] + (Math.random() > 0.75 ? 1 : 0)) % CARD_DESCS.length),
+    iconSet: base.iconSet.map(i => (Math.random() > 0.8 ? (i + 1) % ICONS.length : i)),
+  };
+}
+
+const PROP_LABELS = {
+  fontSize: ['heading size', 'px'],
+  heroFontSize: ['hero h1 size', 'px'],
+  bodyFontSize: ['body text size', 'px'],
+  headerPad: ['header padding', 'px'],
+  heroPadTop: ['hero top padding', 'px'],
+  cardPad: ['card padding', 'px'],
+  cardRadius: ['card radius', 'px'],
+  gapCards: ['card gap', 'px'],
+  gapNav: ['nav gap', 'px'],
+  logoLetterSpacing: ['logo tracking', 'em'],
+  bodyLineHeight: ['line height', ''],
+  ctaRadius: ['button radius', 'px'],
+  footerPadTop: ['footer gap', 'px'],
+  accentH: ['accent hue', '°'],
+  accentS: ['accent saturation', '%'],
+  accentL: ['accent lightness', '%'],
+};
+
+function computeDiffs(prev, curr) {
+  if (!prev) return [];
+  const diffs = [];
+  for (const key of Object.keys(PROP_LABELS)) {
+    const [label, unit] = PROP_LABELS[key];
+    const pv = prev[key];
+    const cv = curr[key];
+    if (typeof pv === 'number' && pv !== cv) {
+      diffs.push({ label, old: pv + unit, nw: cv + unit });
+    }
+  }
+  if (prev.navIdx !== curr.navIdx) diffs.push({ label: 'nav labels', old: NAV_LABELS[prev.navIdx].join(' · '), nw: NAV_LABELS[curr.navIdx].join(' · ') });
+  if (prev.heroIdx !== curr.heroIdx) diffs.push({ label: 'headline text', old: HERO_LINES[prev.heroIdx], nw: HERO_LINES[curr.heroIdx] });
+  if (prev.titleSetIdx !== curr.titleSetIdx) diffs.push({ label: 'card titles', old: CARD_TITLES[prev.titleSetIdx].join(', '), nw: CARD_TITLES[curr.titleSetIdx].join(', ') });
+  return diffs;
+}
+
+function renderPage(s) {
+  const accent = `hsl(${s.accentH}, ${s.accentS}%, ${s.accentL}%)`;
+  const accentMuted = `hsl(${s.accentH}, ${s.accentS - 15}%, ${s.accentL + 15}%)`;
+  const navLabels = NAV_LABELS[s.navIdx];
+  const titles = CARD_TITLES[s.titleSetIdx];
+  const navSpans = navLabels.map((l, i) =>
+    `<span style="padding: 6px ${Math.round(s.gapNav * 0.45)}px; font-size: ${s.bodyFontSize}px;">${l}</span>`
+  ).join('');
+  const cards = [0,1,2].map(i => `
+    <div class="hall-card" style="padding: ${s.cardPad}px; border-radius: ${s.cardRadius}px;">
+      <div class="hall-card-icon"><i class="ti ${ICONS[s.iconSet[i]]}" aria-hidden="true"></i></div>
+      <h3 style="font-size: ${s.bodyFontSize + 1}px; color: var(--h-text);">${titles[i]}</h3>
+      <p style="font-size: ${s.bodyFontSize - 1}px; line-height: ${s.bodyLineHeight};">${CARD_DESCS[s.cardDescSeed[i]]}</p>
+    </div>
+  `).join('');
+  return `
+  <div class="hall-page" style="background: var(--h-bg); border: 0.5px solid var(--h-border); border-radius: 12px; padding: 0 20px; overflow: hidden;">
+    <div class="hall-header" style="padding: ${s.headerPad}px 0;">
+      <div class="hall-logo" style="font-size: ${s.fontSize - 3}px; letter-spacing: ${s.logoLetterSpacing}em; color: var(--h-text);">${LOGO_NAMES[s.navIdx % LOGO_NAMES.length]}</div>
+      <div class="hall-nav-links" style="gap: 0px;">${navSpans}</div>
+      <span class="hall-cta" style="padding: ${s.ctaPad[0]}px ${s.ctaPad[1]}px; border-radius: ${s.ctaRadius}px; font-size: ${s.bodyFontSize}px;">Get started</span>
+    </div>
+    <div class="hall-hero" style="padding: ${s.heroPadTop}px 0 ${s.heroPadBottom}px;">
+      <h1 style="font-size: ${s.heroFontSize}px; color: var(--h-text);">${HERO_LINES[s.heroIdx]}</h1>
+      <p style="font-size: ${s.bodyFontSize}px; line-height: ${s.bodyLineHeight}; max-width: 460px;">
+        You've been here before. Everything is in its place — or close enough. The button is where you left it. Probably.
+      </p>
+      <span class="hall-cta" style="padding: ${s.ctaPad[0]}px ${s.ctaPad[1]}px; border-radius: ${s.ctaRadius}px; font-size: ${s.bodyFontSize}px; color: ${accent}; border-color: ${accentMuted};">Start for free →</span>
+    </div>
+    <div class="hall-cards" style="grid-template-columns: 1fr 1fr 1fr; gap: ${s.gapCards}px;">${cards}</div>
+    <div class="hall-footer" style="padding: ${s.footerPadTop}px 0 14px; margin-top: 20px; gap: 12px;">
+      <div class="hall-footer-links" style="gap: ${Math.round(s.gapNav * 0.6)}px;">
+        ${navLabels.slice(0,3).map(l => `<span style="font-size: 12px; color: var(--h-muted);">${l}</span>`).join('')}
+      </div>
+      <span style="font-size: 11px; color: var(--h-muted); opacity: 0.4;">© ${new Date().getFullYear()} Forma, Inc.</span>
+    </div>
+  </div>
+  `;
+}
+
+function navigate() {
+  prevState = state;
+  state = makeState(state);
+  visit++;
+  const wrap = document.getElementById('hall-page-wrap');
+  wrap.style.opacity = '0';
+  setTimeout(() => {
+    wrap.innerHTML = renderPage(state);
+    wrap.style.transition = 'opacity 0.3s';
+    wrap.style.opacity = '1';
+  }, 180);
+
+  const label = document.getElementById('drift-label');
+  label.textContent = `visit ${visit} — something has shifted`;
+
+  const diffs = computeDiffs(prevState, state);
+  const logEl = document.getElementById('diff-log');
+  const itemsEl = document.getElementById('diff-items');
+  if (diffs.length > 0) {
+    logEl.style.display = '';
+    itemsEl.innerHTML = diffs.map(d => `
+      <div class="diff-item">
+        <span class="diff-prop">${d.label}</span>
+        <span class="diff-old">${d.old}</span>
+        <span class="diff-arrow">→</span>
+        <span class="diff-new">${d.nw}</span>
+      </div>
+    `).join('');
+  } else {
+    logEl.style.display = 'none';
+  }
+}
+
+state = makeState(null);
+document.getElementById('hall-page-wrap').innerHTML = renderPage(state);
+</script>

@@ -1,0 +1,291 @@
+
+<style>
+  @keyframes glitch { 0%,100%{transform:translate(0)} 20%{transform:translate(-2px,1px)} 40%{transform:translate(2px,-1px)} 60%{transform:translate(-1px,2px)} }
+  canvas { display: block; image-rendering: pixelated; }
+  #root { padding: 1.5rem; background: var(--color-background-tertiary); border-radius: var(--border-radius-xl); }
+  .panel { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1.25rem; margin-bottom: 1rem; }
+  .label { font-size: 11px; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.5rem; font-family: var(--font-mono); }
+  .stat { font-size: 13px; color: var(--color-text-secondary); font-family: var(--font-mono); }
+  .stat span { color: var(--color-text-primary); font-weight: 500; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .ctrl { display: flex; align-items: center; gap: 12px; margin-bottom: 0.75rem; }
+  .ctrl label { font-size: 12px; color: var(--color-text-secondary); min-width: 80px; font-family: var(--font-mono); }
+  .ctrl input[type=range] { flex: 1; }
+  .ctrl .val { font-size: 12px; color: var(--color-text-primary); min-width: 36px; text-align: right; font-family: var(--font-mono); }
+  .txt-rot { font-size: 14px; line-height: 1.9; color: var(--color-text-primary); font-family: var(--font-mono); }
+  button { font-family: var(--font-mono); font-size: 12px; }
+  .badge { font-size: 10px; padding: 2px 8px; border-radius: 99px; background: var(--color-background-danger); color: var(--color-text-danger); display: inline-block; font-family: var(--font-mono); }
+  .badge.ok { background: var(--color-background-success); color: var(--color-text-success); }
+  .glitch-wrap { position: relative; overflow: hidden; }
+  .scanline { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px); pointer-events: none; border-radius: var(--border-radius-md); }
+  #log { font-family: var(--font-mono); }
+</style>
+
+<div id="root">
+  <h2 class="sr-only">Digital rot simulator — watch images and text decay over time via bit corruption</h2>
+
+  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem;">
+    <div>
+      <div style="font-size:16px; font-weight:500; color:var(--color-text-primary); font-family:var(--font-mono);">Digital rot simulator</div>
+      <div style="font-size:12px; color:var(--color-text-tertiary); margin-top:2px; font-family:var(--font-mono);">entropy as aesthetic — all decay states are saved</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <span class="badge ok" id="status-badge">stable</span>
+      <button id="reset-btn" onclick="resetDecay()">↺ reset</button>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="panel glitch-wrap">
+      <div class="label">image decay</div>
+      <canvas id="rot-canvas" width="280" height="180" style="width:100%;border-radius:4px;"></canvas>
+      <div class="scanline"></div>
+    </div>
+    <div class="panel">
+      <div class="label">decay controls</div>
+      <div class="ctrl">
+        <label>speed</label>
+        <input type="range" min="0" max="100" value="20" id="speed-sl" oninput="updateSpeed(this.value)">
+        <span class="val" id="speed-val">20</span>
+      </div>
+      <div class="ctrl">
+        <label>pixelation</label>
+        <input type="range" min="1" max="32" value="1" id="pixel-sl" oninput="updatePixel(this.value)">
+        <span class="val" id="pixel-val">1</span>
+      </div>
+      <div class="ctrl">
+        <label>color loss</label>
+        <input type="range" min="0" max="100" value="0" id="color-sl" oninput="updateColor(this.value)">
+        <span class="val" id="color-val">0%</span>
+      </div>
+      <div class="ctrl">
+        <label>bit errors</label>
+        <input type="range" min="0" max="100" value="0" id="noise-sl" oninput="updateNoise(this.value)">
+        <span class="val" id="noise-val">0%</span>
+      </div>
+      <div style="margin-top:0.75rem; display:flex;gap:8px;">
+        <button id="auto-btn" onclick="toggleAuto()">⏵ auto-decay</button>
+        <button onclick="corruptStep()">⚡ corrupt now</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top:0;">
+    <div class="label">text corruption</div>
+    <div class="txt-rot" id="text-display"></div>
+  </div>
+
+  <div class="panel" style="margin-top:0;">
+    <div class="label">decay log</div>
+    <div id="log" style="font-size:11px; color:var(--color-text-tertiary); line-height:1.8; max-height:80px; overflow-y:auto;"></div>
+    <div style="margin-top:0.75rem; display:flex; gap:1.5rem;">
+      <div class="stat">entropy: <span id="entropy-val">0.00</span></div>
+      <div class="stat">age: <span id="age-val">0</span> cycles</div>
+      <div class="stat">integrity: <span id="integrity-val">100</span>%</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const W = 280, H = 180;
+const canvas = document.getElementById('rot-canvas');
+const ctx = canvas.getContext('2d');
+
+let state = {
+  speed: 20, pixelation: 1, colorLoss: 0, noise: 0,
+  entropy: 0, age: 0, integrity: 100, autoDecay: false,
+  pixels: null, original: null
+};
+
+const originalText = "All digital systems decay. Memory fades. Colors bleed away. Pixels drift from their intended positions. Data that seemed permanent becomes noise. This is not a bug — it is entropy, the natural tendency of information to dissolve back into chaos. What you are witnessing is time, accelerated.";
+const glitchChars = "▓▒░█▄▀■□▪▫◆◇○●◉※⚠⚡░▒▓█∴∵≈≠±∞∂∇∑∏∫";
+
+function lerp(a, b, t) { return a + (b - a) * t; }
+
+function generateImage() {
+  const imgData = ctx.createImageData(W, H);
+  const d = imgData.data;
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const i = (y * W + x) * 4;
+      const nx = x / W, ny = y / H;
+      const r = Math.sin(nx * 6.3 + 0.5) * 0.5 + 0.5;
+      const g = Math.sin(ny * 4.7 + 1.2) * 0.5 + 0.5;
+      const b = Math.sin((nx + ny) * 5.1 + 2.4) * 0.5 + 0.5;
+      d[i] = Math.floor(r * 180 + 40);
+      d[i+1] = Math.floor(g * 140 + 60);
+      d[i+2] = Math.floor(b * 200 + 20);
+      d[i+3] = 255;
+    }
+  }
+  return imgData;
+}
+
+function applyPixelation(src, block) {
+  if (block <= 1) return src;
+  const out = ctx.createImageData(W, H);
+  const s = src.data, d = out.data;
+  for (let y = 0; y < H; y += block) {
+    for (let x = 0; x < W; x += block) {
+      const si = (y * W + x) * 4;
+      const r = s[si], g = s[si+1], b = s[si+2];
+      for (let dy = 0; dy < block && y+dy < H; dy++) {
+        for (let dx = 0; dx < block && x+dx < W; dx++) {
+          const di = ((y+dy)*W+(x+dx))*4;
+          d[di] = r; d[di+1] = g; d[di+2] = b; d[di+3] = 255;
+        }
+      }
+    }
+  }
+  return out;
+}
+
+function applyColorLoss(src, amount) {
+  const out = ctx.createImageData(W, H);
+  const s = src.data, d = out.data;
+  const t = amount / 100;
+  for (let i = 0; i < s.length; i += 4) {
+    const grey = 0.299 * s[i] + 0.587 * s[i+1] + 0.114 * s[i+2];
+    d[i] = Math.round(lerp(s[i], grey, t));
+    d[i+1] = Math.round(lerp(s[i+1], grey, t));
+    d[i+2] = Math.round(lerp(s[i+2], grey, t));
+    d[i+3] = 255;
+  }
+  return out;
+}
+
+function applyNoise(src, amount) {
+  const out = ctx.createImageData(W, H);
+  const s = src.data, d = out.data;
+  const prob = amount / 100;
+  for (let i = 0; i < s.length; i += 4) {
+    if (Math.random() < prob * 0.15) {
+      d[i] = Math.floor(Math.random()*256); d[i+1] = Math.floor(Math.random()*256); d[i+2] = Math.floor(Math.random()*256);
+    } else {
+      d[i] = Math.max(0,Math.min(255, s[i]+(Math.random()-0.5)*prob*30));
+      d[i+1] = Math.max(0,Math.min(255, s[i+1]+(Math.random()-0.5)*prob*30));
+      d[i+2] = Math.max(0,Math.min(255, s[i+2]+(Math.random()-0.5)*prob*30));
+    }
+    d[i+3] = 255;
+  }
+  return out;
+}
+
+function render() {
+  let img = state.original ? new ImageData(new Uint8ClampedArray(state.original.data), W, H) : generateImage();
+  if (!state.original) { state.original = img; state.pixels = new Uint8ClampedArray(img.data); }
+  if (state.pixelation > 1) img = applyPixelation(img, state.pixelation);
+  if (state.colorLoss > 0) img = applyColorLoss(img, state.colorLoss);
+  if (state.noise > 0) img = applyNoise(img, state.noise);
+  ctx.putImageData(img, 0, 0);
+}
+
+function corruptOriginal() {
+  if (!state.original) return;
+  const d = state.original.data;
+  const n = Math.floor((state.noise/100)*800 + (state.entropy*400));
+  for (let k = 0; k < n; k++) {
+    const i = Math.floor(Math.random()*(W*H))*4;
+    d[i] = Math.max(0,Math.min(255, d[i]+(Math.random()-0.5)*40));
+    d[i+1] = Math.max(0,Math.min(255, d[i+1]+(Math.random()-0.5)*40));
+    d[i+2] = Math.max(0,Math.min(255, d[i+2]+(Math.random()-0.5)*40));
+  }
+}
+
+function corruptText(text, amount) {
+  return text.split('').map(c => {
+    if (c===' '||c==='\n') return c;
+    const r = Math.random();
+    if (r < amount*0.003) return glitchChars[Math.floor(Math.random()*glitchChars.length)];
+    if (r < amount*0.006) return c.toUpperCase()===c ? c.toLowerCase() : c.toUpperCase();
+    return c;
+  }).join('');
+}
+
+function updateTextDisplay() {
+  const el = document.getElementById('text-display');
+  const corruptionLevel = (state.entropy*0.7 + state.noise/200);
+  el.textContent = corruptText(originalText, corruptionLevel*100);
+  el.style.opacity = Math.max(0.3, 1-state.entropy*0.4);
+  el.style.filter = state.colorLoss>50 ? `grayscale(${(state.colorLoss-50)*2}%)` : '';
+}
+
+function updateStats() {
+  document.getElementById('entropy-val').textContent = state.entropy.toFixed(3);
+  document.getElementById('age-val').textContent = state.age;
+  document.getElementById('integrity-val').textContent = Math.max(0,Math.round(state.integrity));
+  const badge = document.getElementById('status-badge');
+  if (state.integrity>80) { badge.textContent='stable'; badge.className='badge ok'; badge.style=''; }
+  else if (state.integrity>40) { badge.textContent='degrading'; badge.className='badge'; badge.style='background:var(--color-background-warning);color:var(--color-text-warning)'; }
+  else { badge.textContent='corrupted'; badge.className='badge'; badge.style=''; }
+}
+
+function addLog(msg) {
+  const log = document.getElementById('log');
+  const ts = String(state.age).padStart(4,'0');
+  log.innerHTML = `<div>[${ts}] ${msg}</div>` + log.innerHTML;
+}
+
+function corruptStep() {
+  state.entropy = Math.min(1, state.entropy+0.02+(state.speed/5000));
+  state.age++;
+  state.integrity = Math.max(0, 100-state.entropy*100*0.9-state.noise*0.1);
+  if (state.entropy>0.1) corruptOriginal();
+  render(); updateTextDisplay(); updateStats();
+  if (state.age%10===0) {
+    const msgs = ["bit flip detected in sector "+Math.floor(Math.random()*512),"checksum mismatch — data unrecoverable","color channel degradation spreading","pixel drift: "+Math.floor(Math.random()*2000)+" affected","memory leak — buffer overflow","entropy threshold exceeded"];
+    addLog(msgs[Math.floor(Math.random()*msgs.length)]);
+  }
+  try { localStorage.setItem('rot_state', JSON.stringify({entropy:state.entropy,age:state.age,integrity:state.integrity})); } catch(e){}
+}
+
+let autoInterval = null;
+function toggleAuto() {
+  state.autoDecay = !state.autoDecay;
+  const btn = document.getElementById('auto-btn');
+  if (state.autoDecay) {
+    btn.textContent = '⏸ pause';
+    autoInterval = setInterval(corruptStep, Math.max(50, 1000-state.speed*9));
+  } else {
+    btn.textContent = '⏵ auto-decay';
+    clearInterval(autoInterval); autoInterval = null;
+  }
+}
+
+function updateSpeed(v) {
+  state.speed = parseInt(v);
+  document.getElementById('speed-val').textContent = v;
+  if (state.autoDecay) { clearInterval(autoInterval); autoInterval = setInterval(corruptStep, Math.max(50,1000-state.speed*9)); }
+}
+function updatePixel(v) { state.pixelation=parseInt(v); document.getElementById('pixel-val').textContent=v; render(); }
+function updateColor(v) { state.colorLoss=parseInt(v); document.getElementById('color-val').textContent=v+'%'; render(); updateTextDisplay(); }
+function updateNoise(v) { state.noise=parseInt(v); document.getElementById('noise-val').textContent=v+'%'; render(); updateTextDisplay(); }
+
+function resetDecay() {
+  clearInterval(autoInterval); autoInterval=null; state.autoDecay=false;
+  state.entropy=0; state.age=0; state.integrity=100; state.original=null; state.pixels=null;
+  document.getElementById('auto-btn').textContent='⏵ auto-decay';
+  document.getElementById('log').innerHTML='';
+  try { localStorage.removeItem('rot_state'); } catch(e){}
+  init();
+}
+
+function init() {
+  const img = generateImage();
+  state.original = img;
+  state.pixels = new Uint8ClampedArray(img.data);
+  render(); updateTextDisplay(); updateStats();
+  addLog("system initialized — entropy at zero");
+  try {
+    const saved = JSON.parse(localStorage.getItem('rot_state')||'null');
+    if (saved && saved.age>0) {
+      state.entropy=saved.entropy; state.age=saved.age; state.integrity=saved.integrity;
+      for(let i=0;i<saved.age*2;i++) corruptOriginal();
+      render(); updateTextDisplay(); updateStats();
+      addLog("session restored — decay continues from cycle "+saved.age);
+    }
+  } catch(e){}
+}
+
+init();
+</script>

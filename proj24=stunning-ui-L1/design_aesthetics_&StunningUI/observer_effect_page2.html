@@ -1,0 +1,340 @@
+
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  #p2{font-family:var(--font-mono);background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);overflow:hidden;position:relative;min-height:580px}
+  .p2-nav{display:flex;align-items:center;padding:0 20px;height:44px;border-bottom:0.5px solid var(--color-border-tertiary);background:var(--color-background-secondary);gap:16px}
+  .p2-nav-dot{width:8px;height:8px;border-radius:50%;background:var(--color-border-secondary)}
+  .p2-nav-url{flex:1;background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:4px 12px;font-size:11px;color:var(--color-text-tertiary);letter-spacing:0.04em}
+  #url-text{display:inline-block;transition:letter-spacing 0.3s}
+  .p2-canvas{display:grid;grid-template-columns:200px 1fr;height:536px}
+  .p2-sidebar{border-right:0.5px solid var(--color-border-tertiary);padding:20px 0;background:var(--color-background-secondary);transition:transform 0.5s ease,opacity 0.5s}
+  .p2-sidebar.flee{transform:translateX(-40px);opacity:0}
+  .side-item{padding:8px 20px;font-size:12px;color:var(--color-text-secondary);cursor:default;transition:all 0.2s;display:flex;align-items:center;gap:8px}
+  .side-item:hover{background:var(--color-background-primary);color:var(--color-text-primary)}
+  .side-dot{width:5px;height:5px;border-radius:50%;background:var(--color-border-secondary);flex-shrink:0;transition:background 0.3s}
+  .side-item.active .side-dot{background:#1D9E75}
+  .side-item.active{color:var(--color-text-primary)}
+  .p2-main{padding:28px;overflow:hidden;position:relative}
+  .p2-heading{font-size:20px;font-weight:500;color:var(--color-text-primary);margin-bottom:6px;transition:all 0.3s;display:inline-block}
+  .p2-sub{font-size:13px;color:var(--color-text-secondary);margin-bottom:24px;transition:opacity 0.3s}
+  .p2-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+  .p2-card{background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:14px;transition:all 0.4s;position:relative;overflow:hidden}
+  .p2-card.vanish{opacity:0;transform:scale(0.92)}
+  .p2-card.slip{transform:translate(8px,-6px) rotate(0.8deg)}
+  .p2-card-label{font-size:11px;color:var(--color-text-tertiary);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px}
+  .p2-card-val{font-size:22px;font-weight:500;color:var(--color-text-primary);transition:all 0.2s}
+  .p2-card-val.uncertain{color:var(--color-text-tertiary);letter-spacing:0.15em}
+  .p2-card-sub{font-size:11px;color:var(--color-text-tertiary);margin-top:4px}
+  .p2-redact{display:inline-block;background:var(--color-text-primary);color:transparent;border-radius:2px;transition:all 0.3s;user-select:none}
+  .p2-redact.revealed{background:transparent;color:var(--color-text-secondary)}
+  .p2-log{border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:12px;font-size:11px;line-height:1.9;color:var(--color-text-tertiary);height:120px;overflow-y:auto;background:var(--color-background-primary)}
+  .log-line{display:flex;gap:8px}
+  .log-ts{color:var(--color-text-tertiary);flex-shrink:0}
+  .log-msg{color:var(--color-text-secondary)}
+  .log-msg.warn{color:#BA7517}
+  .log-msg.err{color:#A32D2D}
+  .log-msg.ok{color:#0F6E56}
+  .p2-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+  .p2-btn{font-family:var(--font-mono);font-size:11px;padding:7px 14px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:transparent;color:var(--color-text-secondary);cursor:pointer;transition:all 0.15s;letter-spacing:0.03em}
+  .p2-btn:hover{background:var(--color-background-secondary);color:var(--color-text-primary)}
+  .p2-btn.armed{border-color:#A32D2D44;color:#A32D2D}
+  .p2-btn.armed:hover{background:#FCEBEB}
+  .scanline{position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.012) 3px,rgba(0,0,0,0.012) 4px);opacity:0;transition:opacity 0.3s;z-index:5}
+  #p2.scanning .scanline{opacity:1}
+  .cursor-trail{position:absolute;width:6px;height:6px;border-radius:50%;border:0.5px solid var(--color-border-secondary);pointer-events:none;transform:translate(-50%,-50%);transition:left 0.1s,top 0.1s;opacity:0;z-index:20}
+  #p2.tracked .cursor-trail{opacity:0.6}
+  .entropy-bar{height:2px;background:var(--color-background-secondary);border-radius:2px;overflow:hidden;margin-bottom:16px}
+  .entropy-fill{height:100%;width:0%;background:#1D9E75;transition:width 0.4s,background 0.4s;border-radius:2px}
+  .entropy-label{font-size:10px;color:var(--color-text-tertiary);display:flex;justify-content:space-between;margin-bottom:4px}
+</style>
+
+<h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">Observer Effect page 2: a dashboard UI that actively resists being observed — elements vanish, values redact, and entropy rises with every interaction.</h2>
+
+<div id="p2">
+  <div class="scanline"></div>
+  <div class="cursor-trail" id="cursor-trail"></div>
+
+  <div class="p2-nav">
+    <div class="p2-nav-dot"></div>
+    <div class="p2-nav-dot"></div>
+    <div class="p2-nav-dot"></div>
+    <div class="p2-nav-url"><span id="url-text">https://unmeasurable.io/dashboard</span></div>
+    <div style="font-size:11px;color:var(--color-text-tertiary)" id="nav-state">coherent</div>
+  </div>
+
+  <div class="p2-canvas">
+    <div class="p2-sidebar" id="sidebar">
+      <div class="side-item active"><span class="side-dot"></span>overview</div>
+      <div class="side-item"><span class="side-dot"></span>measurements</div>
+      <div class="side-item"><span class="side-dot"></span>entanglement</div>
+      <div class="side-item"><span class="side-dot"></span>collapse log</div>
+      <div style="margin-top:auto;padding:20px;font-size:10px;color:var(--color-text-tertiary);border-top:0.5px solid var(--color-border-tertiary);margin-top:280px">
+        <div>observer count</div>
+        <div style="font-size:18px;font-weight:500;color:var(--color-text-secondary);margin-top:2px" id="obs-total">0</div>
+      </div>
+    </div>
+
+    <div class="p2-main">
+      <div class="entropy-label">
+        <span>system entropy</span>
+        <span id="entropy-pct">0%</span>
+      </div>
+      <div class="entropy-bar"><div class="entropy-fill" id="entropy-fill"></div></div>
+
+      <div class="p2-heading" id="main-heading">quantum dashboard</div>
+      <div class="p2-sub" id="main-sub">state: unobserved — waveform intact — <span id="p2-clock">00:00:00</span></div>
+
+      <div class="p2-grid">
+        <div class="p2-card" id="card-pos">
+          <div class="p2-card-label">position</div>
+          <div class="p2-card-val" id="card-pos-val">± ∞</div>
+          <div class="p2-card-sub">undefined until measured</div>
+        </div>
+        <div class="p2-card" id="card-mom">
+          <div class="p2-card-label">momentum</div>
+          <div class="p2-card-val" id="card-mom-val">ℏ / 2</div>
+          <div class="p2-card-sub">complementary to position</div>
+        </div>
+        <div class="p2-card" id="card-spin">
+          <div class="p2-card-label">spin state</div>
+          <div class="p2-card-val" id="card-spin-val">↑↓</div>
+          <div class="p2-card-sub">superposed</div>
+        </div>
+        <div class="p2-card" id="card-phase">
+          <div class="p2-card-label">phase</div>
+          <div class="p2-card-val" id="card-phase-val">e^iφ</div>
+          <div class="p2-card-sub">complex amplitude</div>
+        </div>
+      </div>
+
+      <div style="font-size:11px;color:var(--color-text-tertiary);margin-bottom:8px;letter-spacing:0.06em;text-transform:uppercase">classified readout</div>
+      <div style="font-size:13px;color:var(--color-text-secondary);line-height:1.8;margin-bottom:14px">
+        system integrity: <span class="p2-redact" id="r1">████████</span> &nbsp;
+        eigenvalue: <span class="p2-redact" id="r2">███</span> &nbsp;
+        coherence time: <span class="p2-redact" id="r3">██████</span>
+      </div>
+
+      <div class="p2-log" id="p2-log"></div>
+
+      <div class="p2-actions">
+        <button class="p2-btn" id="btn-hover-trap">hover to observe</button>
+        <button class="p2-btn" id="btn-read">read values</button>
+        <button class="p2-btn" id="btn-inspect" style="position:relative">inspect element</button>
+        <button class="p2-btn armed" id="btn-collapse">force collapse</button>
+        <button class="p2-btn" id="btn-reset2">reset</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const root = document.getElementById('p2');
+const log = document.getElementById('p2-log');
+const obsTotal = document.getElementById('obs-total');
+const entropyFill = document.getElementById('entropy-fill');
+const entropyPct = document.getElementById('entropy-pct');
+const navState = document.getElementById('nav-state');
+const urlText = document.getElementById('url-text');
+const trail = document.getElementById('cursor-trail');
+const sidebar = document.getElementById('sidebar');
+const heading = document.getElementById('main-heading');
+const sub = document.getElementById('main-sub');
+const clock = document.getElementById('p2-clock');
+
+let obsCount = 0;
+let entropy = 0;
+let collapsed = false;
+let startTime = Date.now();
+
+const glyphPool = '░▒▓█▌▐▄▀■□';
+const hexChars = '0123456789ABCDEF';
+function randGlyph(n){ return Array.from({length:n},()=>glyphPool[Math.floor(Math.random()*glyphPool.length)]).join('') }
+function randHex(n){ return '0x'+Array.from({length:n},()=>hexChars[Math.floor(Math.random()*16)]).join('') }
+
+function addLog(msg, type='normal'){
+  const ts = new Date().toISOString().slice(11,19);
+  const div = document.createElement('div');
+  div.className = 'log-line';
+  div.innerHTML = `<span class="log-ts">${ts}</span><span class="log-msg ${type}">${msg}</span>`;
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+
+function tickClock(){
+  const e = Math.floor((Date.now()-startTime)/1000);
+  const h = String(Math.floor(e/3600)).padStart(2,'0');
+  const m = String(Math.floor((e%3600)/60)).padStart(2,'0');
+  const s = String(e%60).padStart(2,'0');
+  clock.textContent = `${h}:${m}:${s}`;
+}
+setInterval(tickClock, 1000);
+
+function setEntropy(n){
+  entropy = Math.min(100, Math.max(0, n));
+  entropyFill.style.width = entropy+'%';
+  entropyPct.textContent = Math.round(entropy)+'%';
+  const col = entropy < 40 ? '#1D9E75' : entropy < 70 ? '#BA7517' : '#A32D2D';
+  entropyFill.style.background = col;
+}
+
+function observe(source, delta=12){
+  obsCount++;
+  obsTotal.textContent = obsCount;
+  setEntropy(entropy + delta);
+  navState.textContent = entropy > 70 ? 'critical' : entropy > 40 ? 'disturbed' : 'observed';
+  addLog(`obs #${obsCount} — ${source}`, entropy > 70 ? 'err' : 'warn');
+
+  if(entropy > 40 && !collapsed){
+    sidebar.classList.add('flee');
+    setTimeout(()=>sidebar.classList.remove('flee'), 600);
+  }
+  if(entropy > 65){
+    urlText.style.letterSpacing = '0.12em';
+    heading.textContent = 'qu' + randGlyph(3) + 'um d' + randGlyph(4) + 'rd';
+    sub.style.opacity = '0.3';
+  }
+  if(entropy > 85){
+    collapseAll();
+  }
+}
+
+function revealRedacted(){
+  ['r1','r2','r3'].forEach((id,i)=>{
+    setTimeout(()=>{
+      const el = document.getElementById(id);
+      el.classList.add('revealed');
+      el.textContent = id==='r1' ? '94.7% stable' : id==='r2' ? '2.31' : '48ms';
+    }, i*200);
+  });
+  observe('classified data accessed', 8);
+  addLog('redacted fields exposed — observer breach', 'err');
+}
+
+function scrambleCard(id, val){
+  const el = document.getElementById(id+'-val');
+  el.classList.add('uncertain');
+  el.textContent = val;
+}
+
+function collapseAll(){
+  if(collapsed) return;
+  collapsed = true;
+  document.getElementById('card-pos').classList.add('vanish');
+  document.getElementById('card-mom').classList.add('slip');
+  document.getElementById('card-spin').classList.add('vanish');
+  document.getElementById('card-phase').classList.add('slip');
+  scrambleCard('card-pos', randHex(4));
+  scrambleCard('card-mom', randHex(3));
+  scrambleCard('card-spin', entropy>90 ? '???' : Math.random()>0.5?'↑':'↓');
+  scrambleCard('card-phase', randHex(4));
+  root.classList.add('scanning');
+  navState.textContent = 'collapsed';
+  heading.textContent = 'waveform collapsed';
+  sub.style.opacity = '0.2';
+  addLog('total decoherence — waveform destroyed', 'err');
+  addLog('Heisenberg limit exceeded', 'err');
+}
+
+let hoverTimer;
+document.getElementById('btn-hover-trap').addEventListener('mouseenter',()=>{
+  observe('hover detection', 6);
+  addLog('cursor proximity detected — boundary perturbed');
+  hoverTimer = setTimeout(()=>{
+    document.getElementById('btn-hover-trap').textContent = 'stop looking at me';
+    observe('prolonged hover', 10);
+  }, 1200);
+});
+document.getElementById('btn-hover-trap').addEventListener('mouseleave',()=>{
+  clearTimeout(hoverTimer);
+  setTimeout(()=>{ document.getElementById('btn-hover-trap').textContent = 'hover to observe' }, 2000);
+});
+
+document.getElementById('btn-read').addEventListener('click',()=>{
+  revealRedacted();
+  ['card-pos','card-mom','card-spin','card-phase'].forEach((id,i)=>{
+    setTimeout(()=>{
+      const card = document.getElementById(id);
+      card.classList.add('slip');
+      setTimeout(()=>card.classList.remove('slip'), 600);
+    }, i*150);
+  });
+  observe('direct value read', 18);
+});
+
+document.getElementById('btn-inspect').addEventListener('click',()=>{
+  const btn = document.getElementById('btn-inspect');
+  btn.textContent = '!!! detected !!!';
+  btn.classList.add('armed');
+  observe('element inspector', 22);
+  addLog('inspection attempt — layout destabilising', 'err');
+  sidebar.style.transition = 'transform 0.3s';
+  sidebar.classList.add('flee');
+  setTimeout(()=>{
+    sidebar.classList.remove('flee');
+    btn.textContent = 'inspect element';
+    btn.classList.remove('armed');
+  }, 2000);
+});
+
+document.getElementById('btn-collapse').addEventListener('click',()=>{
+  observe('forced collapse', 50);
+  collapseAll();
+});
+
+document.getElementById('btn-reset2').addEventListener('click',()=>{
+  collapsed = false;
+  obsCount = 0;
+  obsTotal.textContent = '0';
+  setEntropy(0);
+  navState.textContent = 'coherent';
+  urlText.style.letterSpacing = '';
+  heading.textContent = 'quantum dashboard';
+  sub.style.opacity = '1';
+  root.classList.remove('scanning');
+  ['card-pos','card-mom','card-spin','card-phase'].forEach(id=>{
+    document.getElementById(id).classList.remove('vanish','slip');
+    document.getElementById(id+'-val').classList.remove('uncertain');
+  });
+  document.getElementById('card-pos-val').textContent = '± ∞';
+  document.getElementById('card-mom-val').textContent = 'ℏ / 2';
+  document.getElementById('card-spin-val').textContent = '↑↓';
+  document.getElementById('card-phase-val').textContent = 'e^iφ';
+  ['r1','r2','r3'].forEach(id=>{
+    const el = document.getElementById(id);
+    el.classList.remove('revealed');
+    el.textContent = id==='r1'?'████████':id==='r2'?'███':'██████';
+  });
+  startTime = Date.now();
+  addLog('--- system reset — coherence restored ---', 'ok');
+});
+
+let moveCount = 0;
+root.addEventListener('mousemove', e=>{
+  const rect = root.getBoundingClientRect();
+  trail.style.left = (e.clientX - rect.left) + 'px';
+  trail.style.top = (e.clientY - rect.top) + 'px';
+  root.classList.add('tracked');
+  moveCount++;
+  if(moveCount % 80 === 0){
+    observe('cursor tracking', 3);
+    addLog('movement pattern logged');
+  }
+});
+root.addEventListener('mouseleave',()=>root.classList.remove('tracked'));
+
+let devOpen = false;
+setInterval(()=>{
+  const open = window.outerWidth - window.innerWidth > 140 || window.outerHeight - window.innerHeight > 140;
+  if(open && !devOpen){ devOpen=true; observe('DevTools opened', 30); addLog('external inspector detected — critical breach','err'); }
+  if(!open && devOpen){ devOpen=false; addLog('inspector closed — partial recovery attempting','warn'); }
+},900);
+
+document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden){ observe('page re-focus', 8); addLog('observer returned from absence'); }
+  else { addLog('observer absent — relaxing briefly','ok'); setEntropy(entropy - 5); }
+});
+
+addLog('system online — coherence: 100%', 'ok');
+addLog('waveform stable — awaiting observation');
+addLog('warning: all interactions are measured');
+</script>

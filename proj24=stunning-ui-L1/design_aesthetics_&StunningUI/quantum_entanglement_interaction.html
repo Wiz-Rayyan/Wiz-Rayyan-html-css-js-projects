@@ -1,0 +1,465 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font-sans); }
+
+  #stage {
+    display: grid;
+    grid-template-columns: 1fr 60px 1fr;
+    gap: 0;
+    padding: 2rem 1rem;
+    min-height: 560px;
+    position: relative;
+  }
+
+  .side {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .side-label {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-text-tertiary);
+    font-weight: 500;
+    margin-bottom: 4px;
+  }
+
+  /* Particle orb */
+  .orb-wrap {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    cursor: pointer;
+  }
+  .orb {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: 1.5px solid var(--color-border-secondary);
+    background: var(--color-background-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.15s ease, border-color 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .orb::before {
+    content: '';
+    position: absolute;
+    inset: 8px;
+    border-radius: 50%;
+    background: var(--color-background-tertiary);
+    transition: background 0.3s ease, transform 0.3s ease;
+  }
+  .orb .spin-dot {
+    position: absolute;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    top: 12px; left: 50%;
+    transform: translateX(-50%);
+    transition: background 0.3s ease;
+  }
+  .orb-wrap:hover .orb { transform: scale(1.05); }
+  .orb-wrap:active .orb { transform: scale(0.95); }
+
+  /* States: up / down */
+  .orb.spin-up .spin-dot { background: #7F77DD; top: 12px; }
+  .orb.spin-down .spin-dot { background: #D85A30; top: 58px; }
+  .orb.spin-up::before { background: #EEEDFE; }
+  .orb.spin-down::before { background: #FAECE7; }
+
+  @media (prefers-color-scheme: dark) {
+    .orb.spin-up::before { background: #26215C; }
+    .orb.spin-down::before { background: #4A1B0C; }
+  }
+
+  /* Pulse ring on click */
+  @keyframes pulse-ring {
+    0% { transform: scale(1); opacity: 0.7; }
+    100% { transform: scale(1.7); opacity: 0; }
+  }
+  .pulse-ring {
+    position: absolute; inset: 0;
+    border-radius: 50%;
+    border: 1.5px solid var(--color-border-secondary);
+    pointer-events: none;
+    animation: pulse-ring 0.55s ease-out forwards;
+  }
+
+  /* Scroll card */
+  .scroll-card {
+    width: 100%;
+    height: 160px;
+    overflow: hidden;
+    border-radius: var(--border-radius-lg);
+    border: 0.5px solid var(--color-border-tertiary);
+    background: var(--color-background-primary);
+    cursor: ns-resize;
+    position: relative;
+  }
+  .scroll-inner {
+    height: 320px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    transition: transform 0.05s linear;
+  }
+  .scroll-item {
+    height: 36px;
+    border-radius: var(--border-radius-md);
+    background: var(--color-background-secondary);
+    border: 0.5px solid var(--color-border-tertiary);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    font-size: 12px;
+    color: var(--color-text-secondary);
+  }
+  .scroll-item.active {
+    background: var(--color-background-info);
+    border-color: var(--color-border-info);
+    color: var(--color-text-info);
+  }
+  .scroll-bar {
+    position: absolute;
+    right: 4px; top: 4px; bottom: 4px;
+    width: 3px;
+    border-radius: 2px;
+    background: var(--color-border-tertiary);
+  }
+  .scroll-thumb {
+    width: 3px;
+    border-radius: 2px;
+    background: var(--color-text-tertiary);
+    position: absolute;
+    top: 0;
+    transition: top 0.05s linear, height 0.05s;
+  }
+
+  /* Color swatch */
+  .swatch-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    width: 100%;
+  }
+  .swatch {
+    height: 32px;
+    border-radius: var(--border-radius-md);
+    border: 0.5px solid var(--color-border-tertiary);
+    cursor: pointer;
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+  }
+  .swatch:hover { transform: scale(1.08); }
+  .swatch.selected {
+    outline: 2px solid var(--color-border-primary);
+    outline-offset: 2px;
+  }
+
+  /* Connector line */
+  #connector-wrap {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 72px;
+    pointer-events: none;
+    position: relative;
+  }
+  #connector-svg { overflow: visible; }
+
+  /* Status strip */
+  #status {
+    text-align: center;
+    font-size: 12px;
+    color: var(--color-text-tertiary);
+    padding: 8px 0 2px;
+    grid-column: 1 / -1;
+    letter-spacing: 0.04em;
+    min-height: 28px;
+    transition: color 0.3s;
+  }
+  #status.active { color: var(--color-text-secondary); }
+
+  .section-title {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-text-tertiary);
+    font-weight: 500;
+    align-self: flex-start;
+    margin-top: 4px;
+  }
+
+  @keyframes entangle-flash {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+  .flashing { animation: entangle-flash 0.3s ease; }
+</style>
+
+<h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">Quantum entanglement interaction: two paired elements on opposite sides of the page mirror each other instantly</h2>
+
+<div id="stage">
+
+  <!-- LEFT -->
+  <div class="side" id="left-side">
+    <div class="side-label">Particle α</div>
+
+    <div class="orb-wrap" id="orb-left" onclick="toggleSpin('left')">
+      <div class="orb spin-up" id="orb-left-inner">
+        <div class="spin-dot"></div>
+      </div>
+    </div>
+
+    <div class="section-title">Scroll field</div>
+    <div class="scroll-card" id="scroll-left">
+      <div class="scroll-inner" id="scroll-left-inner">
+        <div class="scroll-item active">Quark confinement</div>
+        <div class="scroll-item">Wave-particle duality</div>
+        <div class="scroll-item">Superposition</div>
+        <div class="scroll-item">Bell's theorem</div>
+        <div class="scroll-item">Decoherence</div>
+        <div class="scroll-item">Spin states</div>
+      </div>
+      <div class="scroll-bar"><div class="scroll-thumb" id="thumb-left" style="height:50%;top:0%"></div></div>
+    </div>
+
+    <div class="section-title">State color</div>
+    <div class="swatch-grid">
+      <div class="swatch selected" style="background:#7F77DD" data-color="#7F77DD" data-name="violet" onclick="pickColor('left', this)"></div>
+      <div class="swatch" style="background:#1D9E75" data-color="#1D9E75" data-name="teal" onclick="pickColor('left', this)"></div>
+      <div class="swatch" style="background:#D85A30" data-color="#D85A30" data-name="coral" onclick="pickColor('left', this)"></div>
+      <div class="swatch" style="background:#378ADD" data-color="#378ADD" data-name="blue" onclick="pickColor('left', this)"></div>
+      <div class="swatch" style="background:#BA7517" data-color="#BA7517" data-name="amber" onclick="pickColor('left', this)"></div>
+      <div class="swatch" style="background:#D4537E" data-color="#D4537E" data-name="pink" onclick="pickColor('left', this)"></div>
+    </div>
+  </div>
+
+  <!-- CONNECTOR -->
+  <div id="connector-wrap">
+    <svg id="connector-svg" width="60" height="320" viewBox="0 0 60 320">
+      <defs>
+        <marker id="arrow-s" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+      </defs>
+      <!-- wavy entanglement line -->
+      <path id="entangle-path" d="M30 0 C10 40 50 80 30 120 C10 160 50 200 30 240 C10 280 50 310 30 320"
+        fill="none" stroke-width="1" stroke-dasharray="4 4"
+        stroke="var(--color-border-secondary)" />
+      <circle id="quanta-dot" cx="30" cy="10" r="4" fill="#7F77DD" opacity="0.9"/>
+    </svg>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="side" id="right-side">
+    <div class="side-label">Particle β</div>
+
+    <div class="orb-wrap" id="orb-right" onclick="toggleSpin('right')">
+      <div class="orb spin-down" id="orb-right-inner">
+        <div class="spin-dot"></div>
+      </div>
+    </div>
+
+    <div class="section-title">Scroll field</div>
+    <div class="scroll-card" id="scroll-right">
+      <div class="scroll-inner" id="scroll-right-inner">
+        <div class="scroll-item active">Quark confinement</div>
+        <div class="scroll-item">Wave-particle duality</div>
+        <div class="scroll-item">Superposition</div>
+        <div class="scroll-item">Bell's theorem</div>
+        <div class="scroll-item">Decoherence</div>
+        <div class="scroll-item">Spin states</div>
+      </div>
+      <div class="scroll-bar"><div class="scroll-thumb" id="thumb-right" style="height:50%;top:0%"></div></div>
+    </div>
+
+    <div class="section-title">State color</div>
+    <div class="swatch-grid">
+      <div class="swatch" style="background:#7F77DD" data-color="#7F77DD" data-name="violet" onclick="pickColor('right', this)"></div>
+      <div class="swatch" style="background:#1D9E75" data-color="#1D9E75" data-name="teal" onclick="pickColor('right', this)"></div>
+      <div class="swatch selected" style="background:#D85A30" data-color="#D85A30" data-name="coral" onclick="pickColor('right', this)"></div>
+      <div class="swatch" style="background:#378ADD" data-color="#378ADD" data-name="blue" onclick="pickColor('right', this)"></div>
+      <div class="swatch" style="background:#BA7517" data-color="#BA7517" data-name="amber" onclick="pickColor('right', this)"></div>
+      <div class="swatch" style="background:#D4537E" data-color="#D4537E" data-name="pink" onclick="pickColor('right', this)"></div>
+    </div>
+  </div>
+
+  <div id="status">Interact with either particle — its entangled pair responds instantly</div>
+</div>
+
+<script>
+  const state = {
+    leftSpin: 'up',
+    rightSpin: 'down',
+    scrollY: 0,
+    maxScroll: 160,
+    color: { left: '#7F77DD', right: '#D85A30' },
+    dragging: null,
+    dragStartY: 0,
+    dragStartScroll: 0,
+  };
+
+  function setStatus(msg) {
+    const el = document.getElementById('status');
+    el.textContent = msg;
+    el.classList.add('active');
+    clearTimeout(el._t);
+    el._t = setTimeout(() => {
+      el.textContent = 'Interact with either particle — its entangled pair responds instantly';
+      el.classList.remove('active');
+    }, 2200);
+  }
+
+  function flash(id) {
+    const el = document.getElementById(id);
+    el.classList.remove('flashing');
+    void el.offsetWidth;
+    el.classList.add('flashing');
+    setTimeout(() => el.classList.remove('flashing'), 320);
+  }
+
+  function addPulse(orbEl) {
+    const ring = document.createElement('div');
+    ring.className = 'pulse-ring';
+    orbEl.appendChild(ring);
+    setTimeout(() => ring.remove(), 560);
+  }
+
+  function toggleSpin(side) {
+    const other = side === 'left' ? 'right' : 'left';
+    const myOrb = document.getElementById(`orb-${side}-inner`);
+    const otherOrb = document.getElementById(`orb-${other}-inner`);
+
+    // Spins are always opposite (entangled)
+    const newMySpin = state[`${side}Spin`] === 'up' ? 'down' : 'up';
+    const newOtherSpin = newMySpin === 'up' ? 'down' : 'up';
+
+    state[`${side}Spin`] = newMySpin;
+    state[`${other}Spin`] = newOtherSpin;
+
+    myOrb.className = `orb spin-${newMySpin}`;
+    otherOrb.className = `orb spin-${newOtherSpin}`;
+
+    addPulse(myOrb);
+    setTimeout(() => addPulse(otherOrb), 0);
+
+    animateDot(state.color[side]);
+    flash(`orb-${other}-inner`);
+
+    const spinNames = { up: '↑ up', down: '↓ down' };
+    setStatus(`α measured ${spinNames[newMySpin]} → β collapsed to ${spinNames[newOtherSpin]} instantly`);
+  }
+
+  function applyScroll(y) {
+    state.scrollY = Math.max(0, Math.min(state.maxScroll, y));
+    const pct = state.scrollY / state.maxScroll;
+    const offset = -pct * 160;
+
+    ['left', 'right'].forEach(side => {
+      document.getElementById(`scroll-${side}-inner`).style.transform = `translateY(${offset}px)`;
+      const thumb = document.getElementById(`thumb-${side}`);
+      thumb.style.top = (pct * 50) + '%';
+    });
+
+    const items = document.querySelectorAll('.scroll-item');
+    const idx = Math.min(5, Math.floor(pct * 6));
+    items.forEach((it, i) => it.classList.toggle('active', i % 6 === idx));
+  }
+
+  ['left', 'right'].forEach(side => {
+    const card = document.getElementById(`scroll-${side}`);
+
+    card.addEventListener('wheel', e => {
+      e.preventDefault();
+      applyScroll(state.scrollY + e.deltaY * 0.4);
+      animateDot(state.color[side]);
+      setStatus(`Scroll synced across entangled fields — no signal required`);
+    }, { passive: false });
+
+    card.addEventListener('mousedown', e => {
+      state.dragging = side;
+      state.dragStartY = e.clientY;
+      state.dragStartScroll = state.scrollY;
+      e.preventDefault();
+    });
+
+    card.addEventListener('touchstart', e => {
+      state.dragging = side;
+      state.dragStartY = e.touches[0].clientY;
+      state.dragStartScroll = state.scrollY;
+    }, { passive: true });
+  });
+
+  document.addEventListener('mousemove', e => {
+    if (!state.dragging) return;
+    const delta = e.clientY - state.dragStartY;
+    applyScroll(state.dragStartScroll + delta);
+  });
+  document.addEventListener('touchmove', e => {
+    if (!state.dragging) return;
+    const delta = e.touches[0].clientY - state.dragStartY;
+    applyScroll(state.dragStartScroll + delta);
+  }, { passive: true });
+  document.addEventListener('mouseup', () => state.dragging = null);
+  document.addEventListener('touchend', () => state.dragging = null);
+
+  function pickColor(side, el) {
+    const other = side === 'left' ? 'right' : 'left';
+    const color = el.dataset.color;
+    const name = el.dataset.name;
+    state.color[side] = color;
+    state.color[other] = color;
+
+    // Mark selected on BOTH sides
+    document.querySelectorAll(`#${side}-side .swatch`).forEach(s => s.classList.remove('selected'));
+    el.classList.add('selected');
+
+    // Mirror on the other side
+    document.querySelectorAll(`#${other}-side .swatch`).forEach(s => {
+      s.classList.toggle('selected', s.dataset.color === color);
+    });
+
+    // Update quantum dot color
+    document.getElementById('quanta-dot').setAttribute('fill', color);
+
+    animateDot(color);
+    flash(`scroll-${other}`);
+    setStatus(`State collapsed to ${name} — both particles share the same quantum number`);
+  }
+
+  // Animate dot along the connector path
+  let dotPos = 0;
+  let dotAnim = null;
+  function animateDot(color) {
+    document.getElementById('quanta-dot').setAttribute('fill', color);
+    if (dotAnim) cancelAnimationFrame(dotAnim);
+    dotPos = 0;
+    const path = document.getElementById('entangle-path');
+    const totalLen = path.getTotalLength();
+    const dot = document.getElementById('quanta-dot');
+
+    function step() {
+      dotPos += 3;
+      if (dotPos > totalLen) { dotPos = 0; dotAnim = null; return; }
+      const pt = path.getPointAtLength(dotPos);
+      dot.setAttribute('cx', pt.x);
+      dot.setAttribute('cy', pt.y);
+      dot.setAttribute('opacity', 1 - dotPos / totalLen);
+      dotAnim = requestAnimationFrame(step);
+    }
+    dot.setAttribute('opacity', '0.9');
+    dotAnim = requestAnimationFrame(step);
+  }
+
+  // Expose side IDs for query selectors with dashes
+  document.getElementById('left-side').id = 'left-side';
+  document.getElementById('right-side').id = 'right-side';
+</script>

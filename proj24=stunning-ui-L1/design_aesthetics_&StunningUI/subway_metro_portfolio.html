@@ -1,0 +1,469 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+  :root {
+    --tile-bg: #f8f8f6;
+    --tile-line: #ddddd8;
+    --grout: #c8c8c0;
+    --panel: #1a1a2e;
+    --panel-2: #16213e;
+    --neon-y: #f5c842;
+    --neon-r: #e84545;
+    --mono: 'Share Tech Mono', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: transparent; }
+
+  .station {
+    background:
+      repeating-linear-gradient(0deg, transparent, transparent 39px, var(--tile-line) 39px, var(--tile-line) 40px),
+      repeating-linear-gradient(90deg, transparent, transparent 39px, var(--tile-line) 40px, var(--tile-line) 40px),
+      var(--tile-bg);
+    min-height: 720px;
+    font-family: var(--font-sans);
+    overflow: hidden;
+    border-radius: var(--border-radius-lg);
+    position: relative;
+  }
+
+  .neon-strip {
+    height: 6px;
+    background: linear-gradient(90deg, #f5c842 0%, #fff8c0 40%, #f5c842 60%, #fff5a0 100%);
+    box-shadow: 0 0 10px 2px #f5c84288;
+    width: 100%;
+  }
+
+  .header-panel {
+    background: var(--panel);
+    padding: 16px 20px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 3px solid var(--neon-y);
+  }
+  .station-name {
+    font-family: var(--mono);
+    color: var(--neon-y);
+    font-size: 22px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+  .line-badge {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 500;
+    color: #fff;
+    margin-left: 6px;
+  }
+  .clock {
+    font-family: var(--mono);
+    color: var(--neon-y);
+    font-size: 18px;
+    letter-spacing: 2px;
+  }
+
+  .arrival-board {
+    background: #111118;
+    border: 1.5px solid #333;
+    border-radius: 6px;
+    margin: 14px 16px 0;
+    overflow: hidden;
+  }
+  .board-header {
+    background: #0a0a12;
+    padding: 6px 14px;
+    display: flex;
+    gap: 0;
+  }
+  .board-col {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: #666;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .board-col:nth-child(1) { flex: 1.4; }
+  .board-col:nth-child(2) { flex: 1.2; }
+  .board-col:nth-child(3) { flex: 0.7; }
+  .board-col:nth-child(4) { flex: 0.6; text-align: right; }
+
+  .board-row {
+    display: flex;
+    align-items: center;
+    padding: 7px 14px;
+    border-top: 0.5px solid #1e1e2a;
+    transition: background 0.2s;
+  }
+  .board-row:hover { background: #1a1a2a; }
+  .board-cell {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: #e8e8d0;
+  }
+  .board-cell:nth-child(1) { flex: 1.4; }
+  .board-cell:nth-child(2) { flex: 1.2; color: #aaa; font-size: 12px; }
+  .board-cell:nth-child(3) { flex: 0.7; }
+  .board-cell:nth-child(4) { flex: 0.6; text-align: right; }
+
+  .dot {
+    display: inline-block;
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    margin-right: 8px;
+    vertical-align: middle;
+  }
+  .status-pill {
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 3px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .on-time  { background: #0d2e1a; color: #4cde80; }
+  .delayed  { background: #2e1010; color: #e84545; }
+  .arriving { background: #2a200a; color: #f5c842; animation: pulse-text 1s infinite; }
+
+  @keyframes pulse-text { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+  .flip-char {
+    display: inline-block;
+    animation: flip 0.4s ease-in-out;
+  }
+  @keyframes flip {
+    0%  { transform: rotateX(0deg); opacity: 1; }
+    40% { transform: rotateX(90deg); opacity: 0; }
+    60% { transform: rotateX(90deg); opacity: 0; }
+    100%{ transform: rotateX(0deg); opacity: 1; }
+  }
+
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    padding: 14px 16px 16px;
+  }
+
+  .map-panel {
+    background: #fff;
+    border-radius: 8px;
+    border: 1.5px solid #ccc;
+    overflow: hidden;
+  }
+  .map-title {
+    background: var(--panel);
+    color: var(--neon-y);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 2px;
+    padding: 6px 12px;
+    text-transform: uppercase;
+  }
+
+  .portfolio-panel {
+    background: rgba(255,255,255,0.88);
+    border-radius: 8px;
+    border: 1.5px solid #ddd;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .portfolio-title {
+    background: var(--panel);
+    color: var(--neon-y);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 2px;
+    padding: 6px 12px;
+    text-transform: uppercase;
+  }
+
+  .work-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border-bottom: 0.5px solid #eee;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .work-card:last-child { border-bottom: none; }
+  .work-card:hover { background: #f5f5f0; }
+  .work-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .work-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-text-primary);
+    flex: 1;
+  }
+  .work-type {
+    font-size: 11px;
+    color: var(--color-text-secondary);
+    font-family: var(--mono);
+  }
+  .work-arrow {
+    font-size: 16px;
+    color: #bbb;
+  }
+
+  .bench-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 10px 16px 14px;
+    background: rgba(26,26,46,0.04);
+    border-top: 3px solid var(--panel);
+  }
+  .bench {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    background: #c8a96e;
+    border-radius: 4px 4px 0 0;
+    padding: 5px 8px 3px;
+    border-bottom: 4px solid #7a5c30;
+    position: relative;
+  }
+  .bench-leg {
+    width: 4px; height: 10px;
+    background: #7a5c30;
+    border-radius: 0 0 2px 2px;
+    position: absolute;
+    bottom: -14px;
+  }
+  .bench-leg.l { left: 8px; }
+  .bench-leg.r { right: 8px; }
+  .bench-slat {
+    width: 6px; height: 22px;
+    background: #d9b97e;
+    border-radius: 2px;
+    border: 0.5px solid #b89050;
+  }
+  .bench-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--panel);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-left: auto;
+  }
+  .underground-sign {
+    display: flex;
+    align-items: center;
+    gap: 0;
+  }
+  .u-bar {
+    background: #d00;
+    color: white;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 1px;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-weight: 500;
+  }
+  .section-divider {
+    width: 100%;
+    height: 4px;
+    background: repeating-linear-gradient(90deg, var(--panel) 0px, var(--panel) 12px, transparent 12px, transparent 16px);
+    opacity: 0.12;
+    margin: 2px 0;
+  }
+</style>
+
+<h2 class="sr-only" style="position:absolute;left:-9999px">Subway-themed portfolio UI with arrival board, subway map navigation, and work listings</h2>
+
+<div class="station">
+  <div class="neon-strip"></div>
+
+  <div class="header-panel">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div class="underground-sign"><span class="u-bar">UNDERGROUND</span></div>
+      <span class="station-name">Portfolio St.</span>
+      <span class="line-badge" style="background:#e84545">A</span>
+      <span class="line-badge" style="background:#2196f3">C</span>
+      <span class="line-badge" style="background:#4caf50">G</span>
+    </div>
+    <div class="clock" id="clk">--:--:--</div>
+  </div>
+
+  <div class="arrival-board">
+    <div class="board-header">
+      <span class="board-col">destination</span>
+      <span class="board-col">via</span>
+      <span class="board-col">platform</span>
+      <span class="board-col">status</span>
+    </div>
+    <div class="board-row">
+      <div class="board-cell"><span class="dot" style="background:#e84545"></span><span id="dest0">UX Design</span></div>
+      <div class="board-cell">Figma Jct.</div>
+      <div class="board-cell" style="font-family:var(--mono);font-size:12px">Plf. <b>2</b></div>
+      <div class="board-cell"><span class="status-pill arriving">Arriving</span></div>
+    </div>
+    <div class="board-row">
+      <div class="board-cell"><span class="dot" style="background:#2196f3"></span>Dev Work</div>
+      <div class="board-cell">React Ave.</div>
+      <div class="board-cell" style="font-family:var(--mono);font-size:12px">Plf. <b>5</b></div>
+      <div class="board-cell"><span class="status-pill on-time">On time</span></div>
+    </div>
+    <div class="board-row">
+      <div class="board-cell"><span class="dot" style="background:#4caf50"></span>Branding</div>
+      <div class="board-cell">Logo Lane</div>
+      <div class="board-cell" style="font-family:var(--mono);font-size:12px">Plf. <b>1</b></div>
+      <div class="board-cell"><span class="status-pill on-time">On time</span></div>
+    </div>
+    <div class="board-row">
+      <div class="board-cell"><span class="dot" style="background:#f5c842"></span>Motion</div>
+      <div class="board-cell">After Fx Rd.</div>
+      <div class="board-cell" style="font-family:var(--mono);font-size:12px">Plf. <b>3</b></div>
+      <div class="board-cell"><span class="status-pill delayed">Delayed</span></div>
+    </div>
+  </div>
+
+  <div class="section-divider" style="margin: 10px 0 0;"></div>
+
+  <div class="main-grid">
+    <div class="map-panel">
+      <div class="map-title">System map</div>
+      <svg viewBox="0 0 300 230" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block;background:#f9f9f6">
+        <rect x="0" y="0" width="300" height="230" fill="#f9f9f6"/>
+
+        <line x1="30" y1="115" x2="270" y2="115" stroke="#e84545" stroke-width="5" stroke-linecap="round"/>
+        <line x1="150" y1="20" x2="150" y2="210" stroke="#2196f3" stroke-width="5" stroke-linecap="round"/>
+        <line x1="30" y1="55" x2="270" y2="175" stroke="#4caf50" stroke-width="5" stroke-linecap="round"/>
+        <line x1="60" y1="30" x2="240" y2="200" stroke="#f5c842" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="8,4"/>
+
+        <g id="stations">
+          <circle cx="30" cy="115" r="7" fill="white" stroke="#e84545" stroke-width="2.5"/>
+          <circle cx="90" cy="115" r="7" fill="white" stroke="#e84545" stroke-width="2.5"/>
+          <circle cx="150" cy="115" r="10" fill="white" stroke="#333" stroke-width="3"/>
+          <circle cx="210" cy="115" r="7" fill="white" stroke="#e84545" stroke-width="2.5"/>
+          <circle cx="270" cy="115" r="7" fill="white" stroke="#e84545" stroke-width="2.5"/>
+
+          <circle cx="150" cy="20" r="7" fill="white" stroke="#2196f3" stroke-width="2.5"/>
+          <circle cx="150" cy="65" r="7" fill="white" stroke="#2196f3" stroke-width="2.5"/>
+          <circle cx="150" cy="165" r="7" fill="white" stroke="#2196f3" stroke-width="2.5"/>
+          <circle cx="150" cy="210" r="7" fill="white" stroke="#2196f3" stroke-width="2.5"/>
+
+          <circle cx="75" cy="73" r="7" fill="white" stroke="#4caf50" stroke-width="2.5"/>
+          <circle cx="225" cy="157" r="7" fill="white" stroke="#4caf50" stroke-width="2.5"/>
+        </g>
+
+        <text x="152" y="113" font-family="monospace" font-size="8" fill="#111" font-weight="700" text-anchor="middle" dominant-baseline="middle">YOU</text>
+
+        <text x="30" y="128" font-family="monospace" font-size="8.5" fill="#555" text-anchor="middle">Home</text>
+        <text x="90" y="128" font-family="monospace" font-size="8.5" fill="#555" text-anchor="middle">About</text>
+        <text x="210" y="128" font-family="monospace" font-size="8.5" fill="#555" text-anchor="middle">Work</text>
+        <text x="270" y="128" font-family="monospace" font-size="8.5" fill="#555" text-anchor="middle">Contact</text>
+        <text x="165" y="20" font-family="monospace" font-size="8.5" fill="#555" text-anchor="start">UX</text>
+        <text x="165" y="65" font-family="monospace" font-size="8.5" fill="#555" text-anchor="start">Dev</text>
+        <text x="165" y="165" font-family="monospace" font-size="8.5" fill="#555" text-anchor="start">Brand</text>
+        <text x="165" y="210" font-family="monospace" font-size="8.5" fill="#555" text-anchor="start">Motion</text>
+        <text x="60" y="66" font-family="monospace" font-size="8.5" fill="#555" text-anchor="middle">2021</text>
+        <text x="231" y="150" font-family="monospace" font-size="8.5" fill="#555" text-anchor="middle">2024</text>
+
+        <rect x="4" y="4" width="56" height="28" rx="3" fill="white" stroke="#ddd" stroke-width="0.5"/>
+        <line x1="8" y1="13" x2="24" y2="13" stroke="#e84545" stroke-width="3"/>
+        <line x1="8" y1="20" x2="24" y2="20" stroke="#2196f3" stroke-width="3"/>
+        <text x="28" y="14" font-family="monospace" font-size="7.5" fill="#333">Line A</text>
+        <text x="28" y="21" font-family="monospace" font-size="7.5" fill="#333">Line C</text>
+        <line x1="8" y1="27" x2="24" y2="27" stroke="#4caf50" stroke-width="3"/>
+        <text x="28" y="28" font-family="monospace" font-size="7.5" fill="#333">Line G</text>
+      </svg>
+    </div>
+
+    <div class="portfolio-panel">
+      <div class="portfolio-title">Recent projects</div>
+      <div class="work-card" onclick="sendPrompt('Tell me more about the Transit App UI project')">
+        <div class="work-dot" style="background:#e84545"></div>
+        <div>
+          <div class="work-name">Transit App UI</div>
+          <div class="work-type">UX · 2024</div>
+        </div>
+        <i class="ti ti-arrow-right work-arrow" aria-hidden="true"></i>
+      </div>
+      <div class="work-card" onclick="sendPrompt('Tell me more about the City Guide Platform project')">
+        <div class="work-dot" style="background:#2196f3"></div>
+        <div>
+          <div class="work-name">City Guide Platform</div>
+          <div class="work-type">Dev · 2024</div>
+        </div>
+        <i class="ti ti-arrow-right work-arrow" aria-hidden="true"></i>
+      </div>
+      <div class="work-card" onclick="sendPrompt('Tell me more about the Metro Brand System project')">
+        <div class="work-dot" style="background:#4caf50"></div>
+        <div>
+          <div class="work-name">Metro Brand System</div>
+          <div class="work-type">Brand · 2023</div>
+        </div>
+        <i class="ti ti-arrow-right work-arrow" aria-hidden="true"></i>
+      </div>
+      <div class="work-card" onclick="sendPrompt('Tell me more about the Wayfinding Motion project')">
+        <div class="work-dot" style="background:#f5c842"></div>
+        <div>
+          <div class="work-name">Wayfinding Motion</div>
+          <div class="work-type">Motion · 2023</div>
+        </div>
+        <i class="ti ti-arrow-right work-arrow" aria-hidden="true"></i>
+      </div>
+      <div class="work-card" onclick="sendPrompt('Tell me more about the Commuter Dashboard project')">
+        <div class="work-dot" style="background:#9c27b0"></div>
+        <div>
+          <div class="work-name">Commuter Dashboard</div>
+          <div class="work-type">Dev · 2022</div>
+        </div>
+        <i class="ti ti-arrow-right work-arrow" aria-hidden="true"></i>
+      </div>
+    </div>
+  </div>
+
+  <div class="bench-row">
+    <div class="bench" style="position:relative;padding-bottom:8px">
+      <div class="bench-slat"></div><div class="bench-slat"></div><div class="bench-slat"></div>
+      <div class="bench-slat"></div><div class="bench-slat"></div><div class="bench-slat"></div>
+      <div class="bench-slat"></div><div class="bench-slat"></div>
+      <div class="bench-leg l"></div><div class="bench-leg r"></div>
+    </div>
+    <div style="font-family:var(--mono);font-size:11px;color:var(--panel);opacity:0.5;letter-spacing:1px">
+      MIND THE GAP
+    </div>
+    <div class="bench-label" style="display:flex;align-items:center;gap:8px">
+      <i class="ti ti-map-2" style="font-size:16px" aria-hidden="true"></i>
+      <span>Platform 1 — All destinations</span>
+    </div>
+  </div>
+</div>
+
+<script>
+  function tick() {
+    const n = new Date();
+    const pad = v => String(v).padStart(2,'0');
+    document.getElementById('clk').textContent = pad(n.getHours())+':'+pad(n.getMinutes())+':'+pad(n.getSeconds());
+  }
+  tick();
+  setInterval(tick, 1000);
+
+  const destinations = ['UX Design ','Dev Work ','Branding ','Motion   ','Research ','Strategy '];
+  let idx = 0;
+  function flipDest() {
+    idx = (idx + 1) % destinations.length;
+    const el = document.getElementById('dest0');
+    el.innerHTML = '';
+    const txt = destinations[idx];
+    for (let c of txt) {
+      const span = document.createElement('span');
+      span.className = 'flip-char';
+      span.textContent = c;
+      span.style.animationDelay = Math.random() * 0.15 + 's';
+      el.appendChild(span);
+    }
+  }
+  setInterval(flipDest, 3200);
+</script>

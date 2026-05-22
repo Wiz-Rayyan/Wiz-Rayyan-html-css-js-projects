@@ -1,0 +1,380 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: transparent; }
+
+  .klein-root {
+    position: relative;
+    width: 100%;
+    min-height: 620px;
+    overflow: hidden;
+    background: #0a0a0f;
+    font-family: var(--font-sans);
+  }
+
+  /* Header/Nav — the "outside" surface */
+  .k-header {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 72px;
+    background: rgba(83, 74, 183, 0.85);
+    display: flex;
+    align-items: center;
+    padding: 0 32px;
+    gap: 32px;
+    z-index: 30;
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+  }
+
+  .k-header .brand {
+    font-size: 15px;
+    font-weight: 500;
+    color: #cbc8f6;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .k-nav a {
+    font-size: 13px;
+    color: #afa9ec;
+    text-decoration: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .k-nav a:hover { background: rgba(255,255,255,0.08); color: #fff; }
+
+  /* The passage element — nav that "goes through" itself */
+  .k-passage {
+    position: absolute;
+    top: 36px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 220px;
+    height: 300px;
+    z-index: 50;
+    pointer-events: none;
+  }
+
+  /* The "tube" passing through the header */
+  .tube-outer {
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 64px;
+    height: 180px;
+    border: 2px solid rgba(175, 169, 236, 0.6);
+    border-radius: 32px 32px 0 0;
+    background: rgba(38, 33, 92, 0.5);
+    mix-blend-mode: screen;
+    z-index: 60;
+  }
+
+  .tube-inner {
+    position: absolute;
+    top: 60px; left: 50%;
+    transform: translateX(-50%);
+    width: 36px;
+    height: 120px;
+    background: rgba(83, 74, 183, 0.4);
+    mix-blend-mode: screen;
+    border-radius: 18px;
+    border: 1px solid rgba(175, 169, 236, 0.4);
+  }
+
+  /* Self-intersection indicator */
+  .intersect-glow {
+    position: absolute;
+    top: 58px; left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    height: 20px;
+    background: rgba(175, 169, 236, 0.35);
+    mix-blend-mode: screen;
+    border-radius: 10px;
+    filter: blur(3px);
+    z-index: 70;
+  }
+
+  /* Footer — passes through header in topology */
+  .k-footer {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 64px;
+    background: rgba(38, 33, 92, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 40px;
+    z-index: 25;
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+  }
+
+  /* The footer "comes through" the top — the Klein bottle trick */
+  .footer-ghost {
+    position: absolute;
+    top: -1px; left: 0; right: 0;
+    height: 8px;
+    background: rgba(38, 33, 92, 0.7);
+    mix-blend-mode: screen;
+    z-index: 35;
+    pointer-events: none;
+  }
+
+  .k-footer span {
+    font-size: 12px;
+    color: #7f77dd;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+  .k-footer span:hover { color: #afa9ec; }
+
+  /* Main content area */
+  .k-body {
+    position: absolute;
+    top: 72px; bottom: 64px;
+    left: 0; right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 24px;
+    padding: 40px;
+  }
+
+  /* Content cards that "cross their own boundaries" */
+  .k-card {
+    position: relative;
+    width: 100%;
+    max-width: 480px;
+    padding: 24px 28px;
+    border: 1px solid rgba(127, 119, 221, 0.3);
+    background: rgba(10, 10, 20, 0.7);
+    border-radius: 8px;
+  }
+
+  /* Card edge that bleeds through its own border */
+  .k-card::before {
+    content: '';
+    position: absolute;
+    top: -12px; right: 40px;
+    width: 2px;
+    height: 28px;
+    background: rgba(127, 119, 221, 0.5);
+    mix-blend-mode: screen;
+  }
+
+  .k-card::after {
+    content: '';
+    position: absolute;
+    bottom: -12px; left: 60px;
+    width: 80px;
+    height: 2px;
+    background: rgba(127, 119, 221, 0.35);
+    mix-blend-mode: screen;
+  }
+
+  .k-card-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: #afa9ec;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .k-card-body {
+    font-size: 13px;
+    color: rgba(175, 169, 236, 0.55);
+    line-height: 1.7;
+  }
+
+  /* The "self-crossing" nav element — rotateY hint at 4D */
+  .k-float-nav {
+    position: absolute;
+    top: 140px;
+    right: 48px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 20;
+    animation: breathe 6s ease-in-out infinite;
+  }
+
+  @keyframes breathe {
+    0%, 100% { transform: rotateY(0deg) rotateX(2deg); }
+    50% { transform: rotateY(18deg) rotateX(-2deg); }
+  }
+
+  .k-float-item {
+    font-size: 11px;
+    color: rgba(127, 119, 221, 0.5);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 5px 14px;
+    border: 1px solid rgba(127, 119, 221, 0.2);
+    border-radius: 3px;
+    text-align: right;
+    cursor: pointer;
+    transition: all 0.3s;
+    background: rgba(10, 10, 20, 0.4);
+  }
+  .k-float-item:hover {
+    color: rgba(175, 169, 236, 0.9);
+    border-color: rgba(175, 169, 236, 0.5);
+    transform: translateX(-4px);
+  }
+
+  /* Klein bottle SVG diagram inset */
+  .k-diagram {
+    position: absolute;
+    bottom: 80px;
+    left: 32px;
+    opacity: 0.25;
+    mix-blend-mode: screen;
+    pointer-events: none;
+  }
+
+  /* Scroll of the topology indicator */
+  .topology-label {
+    position: absolute;
+    top: 90px;
+    left: 32px;
+    font-size: 10px;
+    color: rgba(127, 119, 221, 0.4);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    writing-mode: vertical-lr;
+    transform: rotate(180deg);
+  }
+
+  /* The intersection highlight where header meets footer */
+  .k-intersection {
+    position: absolute;
+    top: 68px;
+    left: 0; right: 0;
+    height: 8px;
+    background: linear-gradient(90deg,
+      transparent 0%,
+      rgba(175,169,236,0.08) 20%,
+      rgba(175,169,236,0.18) 50%,
+      rgba(175,169,236,0.08) 80%,
+      transparent 100%
+    );
+    mix-blend-mode: screen;
+    z-index: 31;
+    pointer-events: none;
+  }
+
+  /* Surface boundary markers */
+  .k-boundary {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 200px;
+    height: 200px;
+    border: 1px dashed rgba(127, 119, 221, 0.12);
+    border-radius: 50%;
+    pointer-events: none;
+    animation: spin 30s linear infinite;
+  }
+  .k-boundary-2 {
+    width: 340px;
+    height: 100px;
+    border-radius: 50%;
+    animation: spin 45s linear infinite reverse;
+  }
+
+  @keyframes spin {
+    from { transform: translate(-50%, -50%) rotate(0deg); }
+    to   { transform: translate(-50%, -50%) rotate(360deg); }
+  }
+</style>
+
+<h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">Klein bottle interface — an experimental UI where navigation passes through itself, footer intersects header, and elements cross their own boundaries.</h2>
+
+<div class="klein-root">
+
+  <!-- Topology markers -->
+  <div class="k-boundary"></div>
+  <div class="k-boundary k-boundary-2"></div>
+
+  <!-- Footer ghost that "comes through" the top edge -->
+  <div class="footer-ghost"></div>
+
+  <!-- Header / Nav -->
+  <div class="k-header">
+    <span class="brand">Klein</span>
+    <nav class="k-nav">
+      <a>Surface</a>
+      <a>Boundary</a>
+      <a>Manifold</a>
+      <a>Void</a>
+    </nav>
+  </div>
+
+  <!-- The self-intersection zone -->
+  <div class="k-intersection"></div>
+
+  <!-- Tube passing through itself -->
+  <div class="k-passage">
+    <div class="tube-outer"></div>
+    <div class="tube-inner"></div>
+    <div class="intersect-glow"></div>
+  </div>
+
+  <!-- 4D-hint floating nav -->
+  <div class="k-float-nav" style="perspective: 400px;">
+    <div class="k-float-item">Inside</div>
+    <div class="k-float-item">Outside</div>
+    <div class="k-float-item">Neither</div>
+    <div class="k-float-item">Both</div>
+  </div>
+
+  <!-- Vertical topology label -->
+  <div class="topology-label">Non-orientable surface</div>
+
+  <!-- Main content -->
+  <div class="k-body">
+    <div class="k-card">
+      <div class="k-card-title">Boundary condition</div>
+      <div class="k-card-body">
+        This element has no inside. Its border continues through itself,
+        exiting where it entered. The outside is the inside.
+      </div>
+    </div>
+    <div class="k-card">
+      <div class="k-card-title">Self-intersection</div>
+      <div class="k-card-body">
+        The header and footer occupy the same topological point.
+        z-index is a suggestion. <code style="font-family:var(--font-mono);font-size:11px;color:#7f77dd;">clip-path</code> shows the passage through.
+      </div>
+    </div>
+  </div>
+
+  <!-- Klein bottle SVG hint -->
+  <svg class="k-diagram" width="110" height="130" viewBox="0 0 110 130" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Simplified Klein bottle cross-section outline -->
+    <path d="M55 10 C80 10, 95 30, 90 55 C85 80, 70 88, 70 100 C70 118, 55 124, 40 118 C25 112, 20 98, 25 88 C30 78, 45 78, 50 65 C55 52, 42 38, 38 25 C34 12, 55 10, 55 10 Z"
+      stroke="rgba(127,119,221,0.9)" stroke-width="1.5" fill="none"/>
+    <!-- tube passing through -->
+    <path d="M55 78 C55 78, 60 85, 60 95 C60 105, 55 110, 55 110"
+      stroke="rgba(175,169,236,0.7)" stroke-width="1" fill="none" stroke-dasharray="3 2"/>
+    <path d="M50 65 C48 70, 47 76, 48 82"
+      stroke="rgba(175,169,236,0.4)" stroke-width="1" fill="none"/>
+    <!-- intersection point -->
+    <circle cx="52" cy="80" r="2.5" fill="rgba(175,169,236,0.6)"/>
+  </svg>
+
+  <!-- Footer — topologically connected to header -->
+  <div class="k-footer">
+    <span>No orientation</span>
+    <span>∞ sides</span>
+    <span>One surface</span>
+    <span>Euler χ = 0</span>
+  </div>
+
+</div>

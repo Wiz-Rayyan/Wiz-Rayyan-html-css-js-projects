@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tachyon — reversed time interface</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f8f7f4;
+    --surface: #ffffff;
+    --surface2: #f1efe8;
+    --border: rgba(0,0,0,0.1);
+    --border2: rgba(0,0,0,0.18);
+    --text: #1a1a18;
+    --text2: #5f5e5a;
+    --text3: #888780;
+    --danger: #a32d2d;
+    --danger-bg: #fcebeb;
+    --danger-border: rgba(163,45,45,0.25);
+    --radius: 10px;
+    --radius-lg: 14px;
+    --mono: 'Courier New', Courier, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1a18;
+      --surface: #242422;
+      --surface2: #2c2c2a;
+      --border: rgba(255,255,255,0.1);
+      --border2: rgba(255,255,255,0.18);
+      --text: #f1efe8;
+      --text2: #b4b2a9;
+      --text3: #888780;
+      --danger: #f09595;
+      --danger-bg: rgba(163,45,45,0.18);
+      --danger-border: rgba(240,149,149,0.3);
+    }
+  }
+
+  html, body { height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 14px;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 24px;
+    background: var(--surface);
+    border-bottom: 0.5px solid var(--border);
+    position: sticky; top: 0; z-index: 10;
+  }
+  .logo { font-size: 15px; font-weight: 500; letter-spacing: 0.1em; color: var(--text2); }
+  .badge {
+    font-size: 10px; padding: 3px 10px;
+    background: var(--danger-bg);
+    color: var(--danger);
+    border: 0.5px solid var(--danger-border);
+    border-radius: 99px; letter-spacing: 0.06em; font-weight: 500;
+  }
+  .clock { font-size: 13px; font-weight: 500; color: var(--danger); letter-spacing: 0.05em; }
+
+  nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 24px;
+    background: var(--surface2);
+    border-bottom: 0.5px solid var(--border);
+  }
+  .nav-tabs { display: flex; gap: 4px; }
+  .tab {
+    font-family: var(--mono);
+    font-size: 12px; padding: 5px 14px;
+    border: 0.5px solid var(--border2);
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--text2);
+    cursor: pointer; transition: background 0.1s, color 0.1s;
+  }
+  .tab:hover { background: var(--surface); color: var(--text); }
+  .tab.active { background: var(--danger-bg); color: var(--danger); border-color: var(--danger-border); }
+  .nav-btns { display: flex; gap: 8px; }
+  .nav-btn {
+    font-family: var(--mono);
+    font-size: 12px; padding: 5px 16px;
+    border: 0.5px solid var(--danger-border);
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--danger);
+    cursor: pointer; transition: background 0.1s;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .nav-btn:hover { background: var(--danger-bg); }
+  .nav-btn:active { transform: scale(0.97); }
+
+  .layout { display: flex; flex: 1; overflow: hidden; height: calc(100vh - 100px); }
+
+  aside {
+    width: 200px; flex-shrink: 0;
+    background: var(--surface);
+    border-right: 0.5px solid var(--border);
+    overflow-y: auto;
+    padding: 16px 0;
+  }
+  .aside-label {
+    font-size: 10px; letter-spacing: 0.1em; color: var(--text3);
+    padding: 0 16px 8px; text-transform: uppercase;
+  }
+  .aside-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 16px; cursor: pointer;
+    font-size: 12px; color: var(--text2);
+    border-left: 2px solid transparent;
+    transition: background 0.1s;
+  }
+  .aside-item:hover { background: var(--surface2); color: var(--text); }
+  .aside-item.active { border-left-color: var(--danger); color: var(--danger); background: var(--danger-bg); }
+  .aside-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+
+  main {
+    flex: 1; overflow-y: auto; overflow-x: hidden;
+    padding: 28px 32px;
+  }
+  main::-webkit-scrollbar { width: 4px; }
+  main::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+  .page { display: none; }
+  .page.active { display: block; }
+
+  .page-header { margin-bottom: 24px; }
+  .page-eyebrow { font-size: 10px; letter-spacing: 0.12em; color: var(--text3); margin-bottom: 6px; }
+  .page-title { font-size: 22px; font-weight: 500; margin-bottom: 6px; }
+  .page-sub { font-size: 13px; color: var(--text2); line-height: 1.6; }
+
+  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 24px; }
+  .metric {
+    background: var(--surface2); border-radius: var(--radius);
+    padding: 12px 14px;
+  }
+  .metric-label { font-size: 10px; color: var(--text3); letter-spacing: 0.06em; margin-bottom: 4px; }
+  .metric-val { font-size: 20px; font-weight: 500; }
+  .metric-val.danger { color: var(--danger); }
+
+  .entries { display: flex; flex-direction: column; gap: 0; }
+  .entry {
+    padding: 16px 0;
+    border-bottom: 0.5px solid var(--border);
+  }
+  .entry:first-child { border-top: 0.5px solid var(--border); }
+  .entry-meta { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .entry-ts { font-size: 11px; color: var(--text3); }
+  .entry-tag {
+    font-size: 10px; padding: 2px 8px;
+    border: 0.5px solid var(--border2);
+    border-radius: 99px; color: var(--text3); letter-spacing: 0.04em;
+  }
+  .entry-title { font-size: 14px; font-weight: 500; margin-bottom: 4px; }
+  .entry-body { font-size: 13px; color: var(--text2); line-height: 1.6; }
+
+  .flash-overlay {
+    position: fixed; inset: 0; pointer-events: none;
+    background: var(--danger-bg); opacity: 0;
+    transition: opacity 0.12s;
+    z-index: 100;
+  }
+
+  .status-bar {
+    padding: 8px 24px;
+    background: var(--surface);
+    border-top: 0.5px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 11px; color: var(--text3);
+  }
+  .status-hints { display: flex; gap: 20px; }
+  .hint { display: flex; align-items: center; gap: 6px; }
+  kbd {
+    padding: 2px 6px;
+    border: 0.5px solid var(--border2);
+    border-radius: 4px; font-family: var(--mono);
+    font-size: 10px; background: var(--surface2);
+    color: var(--text2);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div style="display:flex;align-items:center;gap:10px">
+    <span class="logo">⟲ TACHYON v2</span>
+    <span class="badge">time reversed</span>
+  </div>
+  <span class="clock" id="clock">T–00:00:00</span>
+  <div style="display:flex;gap:8px">
+    <button class="nav-btn" id="btn-prev">&#8592; next</button>
+    <button class="nav-btn" id="btn-next">prev &#8594;</button>
+  </div>
+</header>
+
+<nav>
+  <div class="nav-tabs" id="tabs"></div>
+  <div style="font-size:11px;color:var(--text3)" id="page-label"></div>
+</nav>
+
+<div class="layout">
+  <aside>
+    <div class="aside-label">timeline</div>
+    <div id="aside-items"></div>
+  </aside>
+  <main id="main" onwheel="handleWheel(event)">
+    <div id="pages-container"></div>
+  </main>
+</div>
+
+<div class="status-bar">
+  <div class="status-hints">
+    <div class="hint"><kbd>↑ scroll</kbd> moves forward</div>
+    <div class="hint"><kbd>↓ scroll</kbd> moves back</div>
+    <div class="hint"><kbd>next →</kbd> goes to prev page</div>
+  </div>
+  <span id="entry-count"></span>
+</div>
+
+<div class="flash-overlay" id="flash"></div>
+
+<script>
+const PAGES = [
+  {
+    id: "p4",
+    tab: "pre-origin",
+    label: "page 4 / pre-origin",
+    eyebrow: "depth: -∞",
+    title: "before time had a direction",
+    sub: "Nothing is causal here. Events do not follow each other — they simply coexist, unordered.",
+    tags: ["void", "pre-causal", "unstructured"],
+    metrics: [
+      { label: "entropy", val: "undefined" },
+      { label: "causality", val: "0.00%" },
+      { label: "timeline depth", val: "–∞" },
+      { label: "observers", val: "none" },
+    ],
+    entries: [
+      { title: "The substrate hums", body: "Before space or time crystallised, there was potential — undifferentiated, directionless, vast. The substrate had no past to come from and no future to go toward.", tag: "void" },
+      { title: "No clocks existed", body: "Duration required sequence. Sequence required causality. None of these conditions held here. Everything that would ever happen was somehow simultaneous.", tag: "pre-causal" },
+      { title: "Probability without collapse", body: "Quantum states floated unobserved. No eye, no instrument, no interaction to collapse the wave. Pure superposition extended infinitely in every unmeasured direction.", tag: "quantum" },
+      { title: "The question without an asker", body: "Somewhere in the substrate, the configuration that would eventually become this interface was latent. It had not yet been asked for. It did not yet know it would be.", tag: "origin" },
+    ]
+  },
+  {
+    id: "p3",
+    tab: "future",
+    label: "page 3 / future",
+    eyebrow: "depth: +2",
+    title: "what has already happened downstream",
+    sub: "Future memories are the sharpest. They have not yet faded into the uncertainty of the past.",
+    tags: ["coherent", "retrocausal", "crystallised"],
+    metrics: [
+      { label: "coherence", val: "99.4%" },
+      { label: "retrocausal signals", val: "14" },
+      { label: "entropy gradient", val: "–0.82" },
+      { label: "déjà-vu index", val: "high" },
+    ],
+    entries: [
+      { title: "Quantum foam stabilised", body: "Planck-scale fluctuations recede as the field coherence reaches maximum. Observers report déjà-vu cascades across adjacent probability branches.", tag: "coherent" },
+      { title: "Retrocausal handshake confirmed", body: "The signal arrived before it was sent. Lab instruments registered the echo three milliseconds prior to transmission. The protocol worked.", tag: "retrocausal" },
+      { title: "Memory crystallises", body: "Future memories are the clearest. They have already happened somewhere downstream and their certainty propagates backwards as a faint residue of familiarity.", tag: "crystallised" },
+      { title: "Entropy gradient inverts", body: "Broken glass assembles itself on the table. Coffee unstirs. The room grows tidier with each passing moment. Thermodynamics has chosen a new direction.", tag: "entropy" },
+    ]
+  },
+  {
+    id: "p2",
+    tab: "present",
+    label: "page 2 / present",
+    eyebrow: "depth: 0",
+    title: "you are here, between cause and effect",
+    sub: "Scroll up to advance. Scroll down to retreat. The labels are legacy artefacts from causal time.",
+    tags: ["interface", "observer", "liminal"],
+    metrics: [
+      { label: "position", val: "now" },
+      { label: "scroll direction", val: "inverted" },
+      { label: "nav logic", val: "reversed" },
+      { label: "clock", val: "T–" },
+    ],
+    entries: [
+      { title: "Tachyon interface loaded", body: "You are somewhere between cause and effect. The interface presents normally — headings, buttons, a clock — but every interaction resolves in the opposite direction you expect.", tag: "interface" },
+      { title: "Navigation is inverted", body: "Pressing 'next' retrieves what came before. Pressing 'prev' advances to what comes after. The labels are legacy artefacts left over from causal interface conventions.", tag: "observer" },
+      { title: "Timestamps are decreasing", body: "The clock above subtracts from an invisible future endpoint. Every second you watch it, it moves further into the past. Time is draining.", tag: "liminal" },
+      { title: "The cursor hesitates", body: "Even the pointer seems uncertain which direction to resolve. In a reversed-time system, intent and outcome have a complicated relationship.", tag: "observer" },
+    ]
+  },
+  {
+    id: "p1",
+    tab: "past",
+    label: "page 1 / past",
+    eyebrow: "depth: –2",
+    title: "the origin event",
+    sub: "Before the interface existed, the data was already here, waiting to be un-created.",
+    tags: ["origin", "causal", "encoded"],
+    metrics: [
+      { label: "causal depth", val: "–2" },
+      { label: "entropy", val: "max" },
+      { label: "information", val: "encoded" },
+      { label: "observers", val: "0" },
+    ],
+    entries: [
+      { title: "Origin event", body: "Before the interface existed, the data was already here, waiting to be un-created. The first frame contained all subsequent frames as implicit consequences.", tag: "origin" },
+      { title: "First photon absorbed", body: "Light entered the system. Or left. The distinction collapses at this temporal depth. The photon's state has not yet been decided from this vantage point.", tag: "causal" },
+      { title: "Causal chain begins (ends?)", body: "Every subsequent event was already encoded in this moment. Causality is a matter of perspective — from the other end of the timeline, this looks like conclusion, not beginning.", tag: "encoded" },
+      { title: "The void prior to page 1", body: "There is nothing further back. Or perhaps this is as far forward as anything goes. The recursion terminates here, or begins, depending on which direction you came from.", tag: "origin" },
+    ]
+  }
+];
+
+let currentPage = 2;
+let elapsed = 0;
+
+function ts(pageIdx, entryIdx) {
+  const base = Date.now();
+  const offset = (2 - pageIdx) * 3600000 * 8 + entryIdx * 900000;
+  return new Date(base + offset).toISOString().replace('T',' ').slice(0,19) + ' UTC';
+}
+
+function buildUI() {
+  const tabs = document.getElementById('tabs');
+  const aside = document.getElementById('aside-items');
+  const container = document.getElementById('pages-container');
+
+  PAGES.forEach((p, i) => {
+    const tab = document.createElement('button');
+    tab.className = 'tab' + (i === currentPage ? ' active' : '');
+    tab.textContent = p.tab;
+    tab.onclick = () => goTo(i);
+    tabs.appendChild(tab);
+
+    const ai = document.createElement('div');
+    ai.className = 'aside-item' + (i === currentPage ? ' active' : '');
+    ai.innerHTML = `<span class="aside-dot"></span>${p.label}`;
+    ai.onclick = () => goTo(i);
+    aside.appendChild(ai);
+
+    const page = document.createElement('div');
+    page.className = 'page' + (i === currentPage ? ' active' : '');
+    page.id = p.id;
+
+    const metricsHtml = p.metrics.map(m =>
+      `<div class="metric"><div class="metric-label">${m.label}</div><div class="metric-val${m.val.includes('%') || m.val === 'high' ? '' : ' danger'}">${m.val}</div></div>`
+    ).join('');
+
+    const entriesHtml = p.entries.map((e, ei) =>
+      `<div class="entry">
+        <div class="entry-meta">
+          <span class="entry-ts">${ts(i, ei)}</span>
+          <span class="entry-tag">${e.tag}</span>
+        </div>
+        <div class="entry-title">${e.title}</div>
+        <div class="entry-body">${e.body}</div>
+      </div>`
+    ).join('');
+
+    page.innerHTML = `
+      <div class="page-header">
+        <div class="page-eyebrow">${p.eyebrow}</div>
+        <div class="page-title">${p.title}</div>
+        <div class="page-sub">${p.sub}</div>
+      </div>
+      <div class="metrics">${metricsHtml}</div>
+      <div class="entries">${entriesHtml}</div>
+    `;
+    container.appendChild(page);
+  });
+
+  updateStatus();
+}
+
+function goTo(idx) {
+  if (idx < 0 || idx >= PAGES.length) return;
+  currentPage = idx;
+  document.querySelectorAll('.page').forEach((el, i) => el.classList.toggle('active', i === idx));
+  document.querySelectorAll('.tab').forEach((el, i) => el.classList.toggle('active', i === idx));
+  document.querySelectorAll('.aside-item').forEach((el, i) => el.classList.toggle('active', i === idx));
+  document.getElementById('main').scrollTop = 0;
+  doFlash();
+  updateStatus();
+}
+
+function updateStatus() {
+  document.getElementById('page-label').textContent = PAGES[currentPage].label;
+  document.getElementById('entry-count').textContent = `${PAGES[currentPage].entries.length} entries`;
+}
+
+function doFlash() {
+  const f = document.getElementById('flash');
+  f.style.opacity = '0.08';
+  setTimeout(() => f.style.opacity = '0', 160);
+}
+
+document.getElementById('btn-prev').onclick = () => {
+  if (currentPage < PAGES.length - 1) goTo(currentPage + 1);
+};
+document.getElementById('btn-next').onclick = () => {
+  if (currentPage > 0) goTo(currentPage - 1);
+};
+
+let scrollAcc = 0;
+function handleWheel(e) {
+  e.preventDefault();
+  scrollAcc += e.deltaY * -1;
+  const main = document.getElementById('main');
+  main.scrollTop -= e.deltaY;
+}
+
+setInterval(() => {
+  elapsed++;
+  const h = String(Math.floor(elapsed / 3600)).padStart(2,'0');
+  const m = String(Math.floor((elapsed % 3600) / 60)).padStart(2,'0');
+  const s = String(elapsed % 60).padStart(2,'0');
+  document.getElementById('clock').textContent = `T–${h}:${m}:${s}`;
+}, 1000);
+
+buildUI();
+</script>
+</body>
+</html>

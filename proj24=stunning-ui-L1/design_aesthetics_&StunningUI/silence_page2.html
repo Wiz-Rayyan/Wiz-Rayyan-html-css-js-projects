@@ -1,0 +1,213 @@
+
+<style>
+  .s2-wrap {
+    background: #000;
+    min-height: 560px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--border-radius-lg);
+    overflow: hidden;
+    position: relative;
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px; height: 1px;
+    clip: rect(0,0,0,0);
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .field {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    padding: 3rem 2rem;
+  }
+
+  .invisible-label {
+    color: transparent;
+    font-family: var(--font-sans);
+    font-size: 11px;
+    letter-spacing: 0.35em;
+    text-transform: lowercase;
+    margin-bottom: 2.5rem;
+    transition: color 3s ease;
+    pointer-events: none;
+  }
+
+  .s2-wrap.open .invisible-label {
+    color: rgba(255,255,255,0.05);
+  }
+
+  .invisible-input {
+    background: transparent;
+    border: none;
+    border-bottom: 0.5px solid transparent;
+    color: transparent;
+    font-family: var(--font-sans);
+    font-size: 18px;
+    font-weight: 400;
+    text-align: center;
+    width: 320px;
+    padding: 0.5rem 0;
+    outline: none;
+    caret-color: rgba(255,255,255,0.3);
+    transition: border-color 2s ease, color 2s ease;
+  }
+
+  .invisible-input::placeholder {
+    color: transparent;
+  }
+
+  .s2-wrap.open .invisible-input {
+    border-bottom-color: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.06);
+  }
+
+  .invisible-input:focus {
+    border-bottom-color: rgba(255,255,255,0.15) !important;
+    caret-color: rgba(255,255,255,0.5);
+  }
+
+  .submit-invisible {
+    margin-top: 2.5rem;
+    background: transparent;
+    border: 0.5px solid transparent;
+    color: transparent;
+    font-family: var(--font-sans);
+    font-size: 12px;
+    letter-spacing: 0.25em;
+    padding: 10px 28px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: border-color 2s ease, color 2s ease;
+  }
+
+  .s2-wrap.open .submit-invisible {
+    border-color: rgba(255,255,255,0.07);
+    color: rgba(255,255,255,0.06);
+  }
+
+  .submit-invisible:hover {
+    border-color: rgba(255,255,255,0.2) !important;
+    color: rgba(255,255,255,0.15) !important;
+  }
+
+  .submit-invisible:focus-visible {
+    outline: 1px solid rgba(255,255,255,0.3);
+    outline-offset: 3px;
+  }
+
+  .response-area {
+    margin-top: 3rem;
+    color: transparent;
+    font-family: var(--font-serif);
+    font-size: 15px;
+    line-height: 2;
+    text-align: center;
+    max-width: 380px;
+    min-height: 60px;
+    transition: color 2.5s ease;
+    pointer-events: none;
+  }
+
+  .s2-wrap.answered .response-area {
+    color: rgba(255,255,255,0.07);
+  }
+
+  .hint-bottom {
+    position: absolute;
+    bottom: 1.5rem;
+    color: transparent;
+    font-size: 11px;
+    font-family: var(--font-sans);
+    letter-spacing: 0.2em;
+    transition: color 2s ease;
+  }
+
+  .s2-wrap.open .hint-bottom {
+    color: rgba(255,255,255,0.04);
+  }
+
+  .aria-live-zone {
+    position: absolute;
+    width: 1px; height: 1px;
+    clip: rect(0,0,0,0);
+    overflow: hidden;
+  }
+</style>
+
+<div class="s2-wrap" id="wrap2" role="main" aria-label="Page two of the silence experience. This is a form you cannot see. Type anything. Or type nothing. Both are valid answers.">
+
+  <h2 class="sr-only">Page two — the invisible form. A text field is below. Type what you cannot say out loud. Submit when ready. Your answer will be held, unseen.</h2>
+
+  <div class="field">
+
+    <p class="invisible-label" aria-hidden="true">what are you carrying</p>
+
+    <label for="silent-input" class="sr-only">What are you carrying? Type your answer here. This field is invisible on screen.</label>
+    <input
+      class="invisible-input"
+      id="silent-input"
+      type="text"
+      placeholder="type here"
+      aria-label="Type what you are carrying. The text will be nearly invisible."
+      autocomplete="off"
+      spellcheck="false"
+    />
+
+    <button class="submit-invisible" id="submitBtn" aria-label="Submit your answer. It will be received in silence.">release</button>
+
+    <div class="response-area" id="responseArea" aria-hidden="true"></div>
+  </div>
+
+  <p class="hint-bottom" aria-hidden="true">no one is watching · no one is reading · only you</p>
+
+  <div class="aria-live-zone" aria-live="polite" aria-atomic="true" id="liveZone"></div>
+</div>
+
+<script>
+  const wrap2 = document.getElementById('wrap2');
+  const input = document.getElementById('silent-input');
+  const btn = document.getElementById('submitBtn');
+  const responseArea = document.getElementById('responseArea');
+  const liveZone = document.getElementById('liveZone');
+
+  const responses = [
+    "it has been received.",
+    "the silence holds it now.",
+    "you may let go.",
+    "noted. and released.",
+    "it was always safe to say.",
+    "this page will forget. you don't have to."
+  ];
+
+  setTimeout(() => wrap2.classList.add('open'), 200);
+
+  input.addEventListener('focus', () => wrap2.classList.add('open'));
+
+  btn.addEventListener('click', release);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') release();
+  });
+
+  function release() {
+    const val = input.value.trim();
+    const r = responses[Math.floor(Math.random() * responses.length)];
+    responseArea.textContent = r;
+    liveZone.textContent = '';
+    void liveZone.offsetWidth;
+    liveZone.textContent = 'Your answer has been received. ' + r;
+    wrap2.classList.add('answered');
+    input.value = '';
+    setTimeout(() => {
+      responseArea.textContent = '';
+      wrap2.classList.remove('answered');
+    }, 6000);
+  }
+</script>

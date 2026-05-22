@@ -1,0 +1,178 @@
+
+<style>
+  .silence-wrap {
+    background: #000;
+    min-height: 520px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    border-radius: var(--border-radius-lg);
+    overflow: hidden;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px; height: 1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+    white-space: nowrap;
+  }
+
+  .visible-text {
+    color: transparent;
+    font-family: var(--font-sans);
+    font-size: 22px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-align: center;
+    line-height: 2.2;
+    padding: 0 2rem;
+    transition: color 2.5s ease;
+    pointer-events: none;
+  }
+
+  .silence-wrap.revealed .visible-text {
+    color: rgba(255,255,255,0.08);
+  }
+
+  .pulse-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: transparent;
+    margin: 2rem auto 0;
+    transition: background 2s ease;
+  }
+
+  .silence-wrap.listening .pulse-dot {
+    background: rgba(255,255,255,0.25);
+    animation: breathe 4s ease-in-out infinite;
+  }
+
+  @keyframes breathe {
+    0%, 100% { transform: scale(1); opacity: 0.25; }
+    50% { transform: scale(2.4); opacity: 0.6; }
+  }
+
+  .hint {
+    position: absolute;
+    bottom: 1.5rem;
+    left: 0; right: 0;
+    text-align: center;
+    color: transparent;
+    font-size: 11px;
+    font-family: var(--font-sans);
+    letter-spacing: 0.2em;
+    transition: color 1s ease;
+  }
+
+  .silence-wrap.revealed .hint {
+    color: rgba(255,255,255,0.06);
+  }
+
+  .tts-btn {
+    position: absolute;
+    top: 1.25rem;
+    right: 1.25rem;
+    background: transparent;
+    border: 0.5px solid rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.18);
+    font-family: var(--font-sans);
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    padding: 6px 14px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: border-color 0.3s, color 0.3s;
+  }
+
+  .tts-btn:hover {
+    border-color: rgba(255,255,255,0.3);
+    color: rgba(255,255,255,0.4);
+  }
+
+  .tts-btn:focus-visible {
+    outline: 2px solid rgba(255,255,255,0.4);
+    outline-offset: 2px;
+  }
+</style>
+
+<div class="silence-wrap" id="wrap" role="main" aria-label="Silence experience. This is an audio-first space. All visual content is hidden. Close your eyes and listen.">
+
+  <h2 class="sr-only">Silence — an audio-first experience. All text on screen is invisible. Close your eyes. What follows is meant only for listening.</h2>
+
+  <button class="tts-btn" id="speakBtn" aria-label="Read aloud with screen reader. Activate to hear the hidden content.">listen</button>
+
+  <div class="visible-text" id="mainText" aria-hidden="true">
+    you are here<br>
+    you cannot see this<br>
+    but you can hear it<br>
+    close your eyes<br>
+    there is nothing to look at<br>
+    only this
+  </div>
+
+  <div class="pulse-dot" id="dot" aria-hidden="true"></div>
+
+  <p class="hint" id="hint" aria-hidden="true">tap anywhere · close your eyes · listen</p>
+
+  <div class="sr-only" id="spoken" aria-live="polite" aria-atomic="true"></div>
+</div>
+
+<script>
+  const wrap = document.getElementById('wrap');
+  const dot = document.getElementById('dot');
+  const btn = document.getElementById('speakBtn');
+  const spoken = document.getElementById('spoken');
+
+  const lines = [
+    "You are here.",
+    "You cannot see this.",
+    "But you can hear it.",
+    "Close your eyes.",
+    "There is nothing to look at.",
+    "Only this.",
+    "The silence is the work.",
+    "Rest now."
+  ];
+
+  let active = false;
+  let utterances = [];
+
+  function startExperience() {
+    if (active) return;
+    active = true;
+    wrap.classList.add('listening', 'revealed');
+
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      let delay = 0;
+      lines.forEach((line, i) => {
+        setTimeout(() => {
+          spoken.textContent = '';
+          void spoken.offsetWidth;
+          spoken.textContent = line;
+        }, delay);
+        delay += 1800 + line.length * 42;
+      });
+    } else {
+      spoken.textContent = lines.join(' ');
+    }
+  }
+
+  wrap.addEventListener('click', startExperience);
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    startExperience();
+  });
+
+  btn.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      startExperience();
+    }
+  });
+</script>
