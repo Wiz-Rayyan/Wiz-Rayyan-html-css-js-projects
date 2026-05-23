@@ -1,0 +1,484 @@
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&display=swap');
+
+*{margin:0;padding:0;box-sizing:border-box}
+
+#stage{
+  min-height:100vh;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  position:relative;
+  background:transparent;
+}
+
+canvas#bg{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  pointer-events:none;
+}
+
+.shell{
+  position:relative;
+  z-index:2;
+  width:100%;
+  max-width:560px;
+  padding:3rem 2rem;
+  text-align:center;
+}
+
+.eyebrow{
+  font-family:'EB Garamond',serif;
+  font-size:11px;
+  letter-spacing:.45em;
+  text-transform:uppercase;
+  color:var(--color-text-tertiary);
+  margin-bottom:2.5rem;
+  opacity:.6;
+}
+
+.title-wrap{
+  margin-bottom:2rem;
+  position:relative;
+}
+
+.title-wrap h1{
+  font-family:'EB Garamond',serif;
+  font-size:52px;
+  font-weight:400;
+  font-style:italic;
+  color:var(--color-text-primary);
+  line-height:1.1;
+  letter-spacing:-.02em;
+}
+
+.title-wrap h1 span{
+  display:block;
+  font-size:22px;
+  font-style:normal;
+  font-weight:400;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+  color:var(--color-text-secondary);
+  margin-bottom:.5rem;
+}
+
+.oracle-ring{
+  width:120px;
+  height:120px;
+  margin:2rem auto;
+  position:relative;
+  cursor:pointer;
+}
+
+.oracle-ring svg{
+  width:100%;
+  height:100%;
+  overflow:visible;
+}
+
+.ring-track{stroke:var(--color-border-tertiary);fill:none;stroke-width:.5}
+.ring-arc{fill:none;stroke:var(--color-text-secondary);stroke-width:.5;stroke-linecap:round;transition:stroke .6s}
+.ring-center{fill:none;stroke:var(--color-border-secondary);stroke-width:.5}
+.ring-dot{fill:var(--color-text-primary);transition:all .4s}
+
+.time-display{
+  font-family:'EB Garamond',serif;
+  font-size:42px;
+  font-weight:400;
+  color:var(--color-text-primary);
+  letter-spacing:.05em;
+  line-height:1;
+  margin-bottom:.25rem;
+}
+
+.time-sub{
+  font-family:'EB Garamond',serif;
+  font-size:13px;
+  letter-spacing:.25em;
+  color:var(--color-text-tertiary);
+  text-transform:uppercase;
+}
+
+.divider{
+  width:1px;
+  margin:2rem auto;
+  background:var(--color-border-secondary);
+  animation:breathe 5s ease-in-out infinite;
+}
+
+@keyframes breathe{
+  0%,100%{height:32px;opacity:.3}
+  50%{height:56px;opacity:.8}
+}
+
+.verse{
+  font-family:'EB Garamond',serif;
+  font-size:18px;
+  font-style:italic;
+  line-height:1.85;
+  color:var(--color-text-secondary);
+  min-height:3.5em;
+  transition:opacity .8s,transform .8s;
+}
+
+.verse.fade-out{opacity:0;transform:translateY(-6px)}
+.verse.fade-in{opacity:1;transform:translateY(0)}
+
+.status-bar{
+  margin-top:2.5rem;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:1.5rem;
+}
+
+.status-pill{
+  font-family:'EB Garamond',serif;
+  font-size:11px;
+  letter-spacing:.28em;
+  text-transform:uppercase;
+  color:var(--color-text-tertiary);
+  padding:5px 14px;
+  border:0.5px solid var(--color-border-tertiary);
+  border-radius:20px;
+  cursor:default;
+  transition:border-color .4s,color .4s;
+}
+
+.status-dot{
+  width:5px;height:5px;
+  border-radius:50%;
+  background:var(--color-text-tertiary);
+  opacity:.4;
+  animation:blink 3.7s ease-in-out infinite;
+}
+
+@keyframes blink{
+  0%,100%{opacity:.15}
+  45%,55%{opacity:.7}
+}
+
+.thought-input-wrap{
+  margin-top:2rem;
+  position:relative;
+  border:0.5px solid var(--color-border-tertiary);
+  border-radius:var(--border-radius-lg);
+  overflow:hidden;
+  transition:border-color .3s;
+}
+
+.thought-input-wrap:focus-within{
+  border-color:var(--color-border-primary);
+}
+
+.thought-input{
+  width:100%;
+  background:transparent;
+  border:none;
+  outline:none;
+  font-family:'EB Garamond',serif;
+  font-size:16px;
+  font-style:italic;
+  color:var(--color-text-primary);
+  padding:14px 18px;
+  resize:none;
+  caret-color:var(--color-text-tertiary);
+}
+
+.thought-input::placeholder{
+  color:var(--color-text-tertiary);
+  font-style:italic;
+}
+
+.thought-submit{
+  width:100%;
+  background:transparent;
+  border:none;
+  border-top:0.5px solid var(--color-border-tertiary);
+  font-family:'EB Garamond',serif;
+  font-size:13px;
+  letter-spacing:.2em;
+  text-transform:uppercase;
+  color:var(--color-text-tertiary);
+  padding:10px;
+  cursor:pointer;
+  transition:color .3s,background .3s;
+}
+
+.thought-submit:hover{
+  background:var(--color-background-secondary);
+  color:var(--color-text-secondary);
+}
+
+.thought-log{
+  margin-top:1.5rem;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  max-height:160px;
+  overflow:hidden;
+}
+
+.thought-entry{
+  font-family:'EB Garamond',serif;
+  font-size:14px;
+  font-style:italic;
+  color:var(--color-text-tertiary);
+  padding:8px 14px;
+  border-left:.5px solid var(--color-border-tertiary);
+  text-align:left;
+  opacity:0;
+  transform:translateY(8px);
+  animation:appear .6s forwards;
+}
+
+@keyframes appear{
+  to{opacity:.7;transform:translateY(0)}
+}
+
+.thought-ts{
+  font-size:11px;
+  font-style:normal;
+  letter-spacing:.15em;
+  color:var(--color-text-tertiary);
+  opacity:.5;
+  margin-right:8px;
+}
+
+.wait-counter{
+  font-family:'EB Garamond',serif;
+  font-size:11px;
+  letter-spacing:.3em;
+  text-transform:uppercase;
+  color:var(--color-text-tertiary);
+  opacity:.4;
+  margin-top:2rem;
+}
+</style>
+
+<h2 class="sr-only">Limbo — an interactive suspended waiting room between earth and heaven</h2>
+
+<div id="stage">
+  <canvas id="bg"></canvas>
+  <div class="shell">
+    <div class="eyebrow">Antechamber · No floor · No ceiling</div>
+
+    <div class="title-wrap">
+      <h1><span>Between</span>Earth &amp; Heaven</h1>
+    </div>
+
+    <div class="oracle-ring" id="oracle" title="The wheel turns but arrives nowhere">
+      <svg viewBox="0 0 120 120">
+        <circle class="ring-track" cx="60" cy="60" r="54"/>
+        <circle class="ring-track" cx="60" cy="60" r="42"/>
+        <circle class="ring-center" cx="60" cy="60" r="6"/>
+        <path class="ring-arc" id="arc-h" d=""/>
+        <path class="ring-arc" id="arc-m" d=""/>
+        <circle class="ring-dot" id="dot-h" cx="60" cy="6" r="2.5"/>
+        <circle class="ring-dot" id="dot-m" cx="60" cy="18" r="2" opacity=".5"/>
+      </svg>
+      <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+        <div class="time-display" id="clock">—:—:—</div>
+      </div>
+    </div>
+
+    <div class="time-sub" id="date-line">Somewhere in time</div>
+
+    <div class="divider"></div>
+
+    <div class="verse" id="verse">
+      You have arrived.<br>Nowhere has been notified.
+    </div>
+
+    <div class="divider" style="animation-delay:2.5s"></div>
+
+    <div class="status-bar">
+      <div class="status-pill" id="pill-state">Suspended</div>
+      <div class="status-dot"></div>
+      <div class="status-pill" id="pill-wait">Waiting: 0s</div>
+      <div class="status-dot" style="animation-delay:1.8s"></div>
+      <div class="status-pill" id="pill-pos">Position: ∞</div>
+    </div>
+
+    <div class="thought-input-wrap">
+      <textarea class="thought-input" id="thought" rows="2" placeholder="Leave a thought in the waiting room…"></textarea>
+      <button class="thought-submit" id="submit-thought">Release it into the void ↑</button>
+    </div>
+
+    <div class="thought-log" id="thought-log"></div>
+
+    <div class="wait-counter" id="wait-counter">You have been here for 0 seconds</div>
+  </div>
+</div>
+
+<script>
+const verses = [
+  "You have arrived.<br>Nowhere has been notified.",
+  "The floor is a rumour.<br>The ceiling has not confirmed.",
+  "Here, the queue is infinite<br>and alphabetically organised by soul.",
+  "Time passes.<br>Nothing receives it.",
+  "You are between the last thing<br>and the next thing that never came.",
+  "The light here is<br>neither dawn nor dusk.<br>Just light, waiting to become.",
+  "All the clocks agree.<br>They refuse to say on what.",
+  "Someone will call your name.<br>Eventually means nothing here.",
+  "The walls do not close in.<br>They simply forget to stay apart.",
+  "You are neither late<br>nor early. You are present<br>in an absent room."
+];
+
+let vi = 0, start = Date.now();
+
+function svgArc(cx,cy,r,startDeg,endDeg){
+  const s=startDeg-90, e=endDeg-90;
+  const sr=s*Math.PI/180, er=e*Math.PI/180;
+  const x1=cx+r*Math.cos(sr), y1=cy+r*Math.sin(sr);
+  const x2=cx+r*Math.cos(er), y2=cy+r*Math.sin(er);
+  const lg=((endDeg-startDeg)+360)%360>180?1:0;
+  return `M${x1},${y1} A${r},${r} 0 ${lg},1 ${x2},${y2}`;
+}
+
+function dotPos(cx,cy,r,deg){
+  const a=(deg-90)*Math.PI/180;
+  return{x:cx+r*Math.cos(a),y:cy+r*Math.sin(a)};
+}
+
+const clockEl=document.getElementById('clock');
+const dateEl=document.getElementById('date-line');
+const arcH=document.getElementById('arc-h');
+const arcM=document.getElementById('arc-m');
+const dotH=document.getElementById('dot-h');
+const dotM=document.getElementById('dot-m');
+const pillWait=document.getElementById('pill-wait');
+const pillState=document.getElementById('pill-state');
+const pillPos=document.getElementById('pill-pos');
+const waitCounter=document.getElementById('wait-counter');
+const verseEl=document.getElementById('verse');
+
+const states=['Suspended','Between','Pending','Unresolved','Hovering','Neither','Awaiting'];
+let stateIdx=0;
+
+const positions=['∞','—','?','⊘','∅','·'];
+let posIdx=0;
+
+function tick(){
+  const now=new Date();
+  const h=String(now.getHours()).padStart(2,'0');
+  const m=String(now.getMinutes()).padStart(2,'0');
+  const s=String(now.getSeconds()).padStart(2,'0');
+  clockEl.textContent=`${h}:${m}:${s}`;
+
+  const days=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const months=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  dateEl.textContent=`${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+
+  const hDeg=(now.getHours()%12)*30+(now.getMinutes()*.5);
+  const mDeg=now.getMinutes()*6+(now.getSeconds()*.1);
+
+  arcH.setAttribute('d',svgArc(60,60,54,0,hDeg));
+  arcM.setAttribute('d',svgArc(60,60,42,0,mDeg));
+
+  const hp=dotPos(60,60,54,hDeg);
+  const mp=dotPos(60,60,42,mDeg);
+  dotH.setAttribute('cx',hp.x); dotH.setAttribute('cy',hp.y);
+  dotM.setAttribute('cx',mp.x); dotM.setAttribute('cy',mp.y);
+
+  const elapsed=Math.floor((Date.now()-start)/1000);
+  pillWait.textContent=`Waiting: ${elapsed}s`;
+  waitCounter.textContent=`You have been here for ${elapsed} second${elapsed===1?'':'s'}`;
+}
+
+setInterval(tick,1000); tick();
+
+setInterval(()=>{
+  stateIdx=(stateIdx+1)%states.length;
+  pillState.textContent=states[stateIdx];
+  posIdx=(posIdx+1)%positions.length;
+  pillPos.textContent=`Position: ${positions[posIdx]}`;
+},4700);
+
+function rotateVerse(){
+  verseEl.classList.add('fade-out');
+  setTimeout(()=>{
+    vi=(vi+1)%verses.length;
+    verseEl.innerHTML=verses[vi];
+    verseEl.classList.remove('fade-out');
+    verseEl.classList.add('fade-in');
+  },800);
+}
+setInterval(rotateVerse,7000);
+
+const canvas=document.getElementById('bg');
+const ctx=canvas.getContext('2d');
+let W,H,particles=[];
+
+function resize(){
+  W=canvas.offsetWidth; H=canvas.offsetHeight;
+  canvas.width=W; canvas.height=H;
+  if(particles.length===0) spawnParticles();
+}
+
+function spawnParticles(){
+  particles=[];
+  for(let i=0;i<40;i++) particles.push(makeP());
+}
+
+function makeP(){
+  return{
+    x:Math.random()*W,
+    y:Math.random()*H,
+    vy:-(.08+Math.random()*.18),
+    vx:(Math.random()-.5)*.04,
+    r:.6+Math.random()*1.4,
+    life:Math.random(),
+    maxLife:1,
+    speed:.003+Math.random()*.004
+  };
+}
+
+function drawBg(){
+  ctx.clearRect(0,0,W,H);
+  const style=getComputedStyle(document.documentElement);
+  const textColor=style.getPropertyValue('--color-text-tertiary').trim()||'rgba(0,0,0,0.2)';
+  particles.forEach(p=>{
+    p.life+=p.speed;
+    if(p.life>=1){Object.assign(p,makeP(),{x:Math.random()*W,y:H+10,life:0});}
+    p.x+=p.vx; p.y+=p.vy*(H*.6);
+    const alpha=Math.sin(p.life*Math.PI)*0.25;
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    ctx.fillStyle=`rgba(128,128,128,${alpha})`;
+    ctx.fill();
+  });
+  requestAnimationFrame(drawBg);
+}
+
+window.addEventListener('resize',resize);
+resize();
+drawBg();
+
+const submitBtn=document.getElementById('submit-thought');
+const thoughtInput=document.getElementById('thought');
+const thoughtLog=document.getElementById('thought-log');
+
+submitBtn.addEventListener('click',()=>{
+  const val=thoughtInput.value.trim();
+  if(!val) return;
+  const now=new Date();
+  const ts=`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+  const entry=document.createElement('div');
+  entry.className='thought-entry';
+  entry.innerHTML=`<span class="thought-ts">${ts}</span>${val}`;
+  thoughtLog.prepend(entry);
+  while(thoughtLog.children.length>4) thoughtLog.removeChild(thoughtLog.lastChild);
+  thoughtInput.value='';
+});
+
+thoughtInput.addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();submitBtn.click();}
+});
+</script>

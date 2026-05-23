@@ -1,0 +1,424 @@
+
+<style>
+  * { box-sizing: border-box; }
+  
+  #stage {
+    min-height: 520px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    cursor: default;
+    user-select: none;
+  }
+
+  #warning {
+    position: absolute;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 12px;
+    color: var(--color-text-tertiary);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    transition: opacity 0.5s;
+    white-space: nowrap;
+  }
+
+  .card {
+    position: absolute;
+    background: var(--color-background-primary);
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--border-radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 6px;
+    transition: transform 0.05s ease, opacity 0.1s ease;
+    transform-origin: center center;
+    will-change: transform;
+    pointer-events: none;
+  }
+
+  .card-label {
+    font-size: 11px;
+    color: var(--color-text-tertiary);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .card-value {
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--color-text-primary);
+  }
+
+  #nav {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    gap: 0;
+    background: var(--color-background-primary);
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--border-radius-lg);
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .nav-item {
+    padding: 10px 18px;
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    border-right: 0.5px solid var(--color-border-tertiary);
+    white-space: nowrap;
+  }
+
+  .nav-item:last-child { border-right: none; }
+  .nav-item.active { color: var(--color-text-primary); font-weight: 500; }
+
+  #hero {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, calc(-50% + 90px));
+    text-align: center;
+    pointer-events: none;
+  }
+
+  #hero h1 {
+    font-size: 28px;
+    font-weight: 500;
+    color: var(--color-text-primary);
+    margin: 0 0 8px;
+    line-height: 1.2;
+  }
+
+  #hero p {
+    font-size: 14px;
+    color: var(--color-text-secondary);
+    margin: 0;
+  }
+
+  #cta {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, calc(-50% + 175px));
+    pointer-events: none;
+  }
+
+  #cta button {
+    padding: 10px 28px;
+    font-size: 14px;
+    border-radius: var(--border-radius-md);
+  }
+
+  #sidebar {
+    position: absolute;
+    left: 40px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 140px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+  }
+
+  .sidebar-item {
+    background: var(--color-background-primary);
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--border-radius-md);
+    padding: 10px 14px;
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .sidebar-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--color-text-tertiary);
+    flex-shrink: 0;
+  }
+
+  .sidebar-item.active .sidebar-dot { background: var(--color-text-primary); }
+  .sidebar-item.active { color: var(--color-text-primary); }
+
+  #stats {
+    position: absolute;
+    right: 40px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  #reset-btn {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 12px;
+    color: var(--color-text-tertiary);
+    background: none;
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--border-radius-md);
+    padding: 6px 16px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.4s;
+  }
+
+  #chaos-msg {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 13px;
+    color: var(--color-text-tertiary);
+    opacity: 0;
+    text-align: center;
+    pointer-events: none;
+    transition: opacity 0.5s;
+    white-space: nowrap;
+  }
+
+  #touch-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    cursor: crosshair;
+  }
+</style>
+
+<div id="stage">
+  <div id="warning">hover anywhere to begin</div>
+  <div id="chaos-msg">everything falls apart</div>
+
+  <div id="nav">
+    <div class="nav-item active">Overview</div>
+    <div class="nav-item">Features</div>
+    <div class="nav-item">Pricing</div>
+    <div class="nav-item">About</div>
+  </div>
+
+  <div id="sidebar">
+    <div class="sidebar-item active"><div class="sidebar-dot"></div>Dashboard</div>
+    <div class="sidebar-item"><div class="sidebar-dot"></div>Analytics</div>
+    <div class="sidebar-item"><div class="sidebar-dot"></div>Reports</div>
+    <div class="sidebar-item"><div class="sidebar-dot"></div>Settings</div>
+  </div>
+
+  <div id="hero">
+    <h1>Everything in balance.</h1>
+    <p>A perfectly composed interface, waiting.</p>
+  </div>
+
+  <div id="cta">
+    <button id="cta-btn">Get started</button>
+  </div>
+
+  <div id="stats">
+    <div class="card" style="width:120px; height:80px;">
+      <div class="card-label">Stability</div>
+      <div class="card-value">100%</div>
+    </div>
+    <div class="card" style="width:120px; height:80px;">
+      <div class="card-label">Entropy</div>
+      <div class="card-value">0.00</div>
+    </div>
+    <div class="card" style="width:120px; height:80px;">
+      <div class="card-label">Order</div>
+      <div class="card-value">∞</div>
+    </div>
+  </div>
+
+  <div id="touch-overlay"></div>
+  <button id="reset-btn">↺ restore equilibrium</button>
+</div>
+
+<script>
+(function() {
+  const stage = document.getElementById('stage');
+  const overlay = document.getElementById('touch-overlay');
+  const warning = document.getElementById('warning');
+  const chaosMsg = document.getElementById('chaos-msg');
+  const resetBtn = document.getElementById('reset-btn');
+  const allElements = [
+    document.getElementById('nav'),
+    document.getElementById('sidebar'),
+    document.getElementById('hero'),
+    document.getElementById('cta'),
+    document.getElementById('stats'),
+    ...document.querySelectorAll('.card'),
+  ];
+
+  let collapsed = false;
+  let collapseProgress = 0;
+  let animFrame = null;
+  let elementStates = [];
+
+  const chaos = [
+    { el: document.getElementById('nav'),     dx:0, dy:0, rot:0, scale:1, opacity:1 },
+    { el: document.getElementById('sidebar'), dx:0, dy:0, rot:0, scale:1, opacity:1 },
+    { el: document.getElementById('hero'),    dx:0, dy:0, rot:0, scale:1, opacity:1 },
+    { el: document.getElementById('cta'),     dx:0, dy:0, rot:0, scale:1, opacity:1 },
+    { el: document.getElementById('stats'),   dx:0, dy:0, rot:0, scale:1, opacity:1 },
+    ...Array.from(document.querySelectorAll('.card')).map(el => ({ el, dx:0, dy:0, rot:0, scale:1, opacity:1 })),
+  ];
+
+  function rand(min, max) { return min + Math.random() * (max - min); }
+  function randSign() { return Math.random() < 0.5 ? -1 : 1; }
+
+  function assignChaosTargets() {
+    chaos.forEach(c => {
+      c.dx = rand(60, 220) * randSign();
+      c.dy = rand(40, 160) * randSign();
+      c.rot = rand(12, 55) * randSign();
+      c.scale = rand(0.6, 1.15);
+      c.opacity = rand(0.15, 0.7);
+    });
+  }
+
+  function lerp(a, b, t) { return a + (b - a) * t; }
+
+  function applyProgress(p) {
+    const eased = p < 0.5 ? 2 * p * p : -1 + (4 - 2 * p) * p;
+    chaos.forEach(c => {
+      const dx = lerp(0, c.dx, eased);
+      const dy = lerp(0, c.dy, eased);
+      const rot = lerp(0, c.rot, eased);
+      const scale = lerp(1, c.scale, eased);
+      const opacity = lerp(1, c.opacity, eased);
+      c.el.style.transform = c.el.id === 'nav'
+        ? `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) rotate(${rot}deg) scale(${scale})`
+        : c.el.id === 'hero'
+        ? `translate(calc(-50% + ${dx}px), calc(-50% + 90px + ${dy}px)) rotate(${rot}deg) scale(${scale})`
+        : c.el.id === 'cta'
+        ? `translate(calc(-50% + ${dx}px), calc(-50% + 175px + ${dy}px)) rotate(${rot}deg) scale(${scale})`
+        : c.el.id === 'sidebar'
+        ? `translateY(calc(-50% + ${dy}px)) translateX(${dx}px) rotate(${rot}deg) scale(${scale})`
+        : c.el.id === 'stats'
+        ? `translateY(calc(-50% + ${dy}px)) translateX(${dx}px) rotate(${rot}deg) scale(${scale})`
+        : `${c.el.style.transform.split('translate')[0] || ''} translate(${dx}px, ${dy}px) rotate(${rot}deg) scale(${scale})`;
+      c.el.style.opacity = opacity;
+    });
+  }
+
+  function collapse() {
+    if (collapsed) return;
+    collapsed = true;
+    assignChaosTargets();
+
+    warning.style.opacity = '0';
+    resetBtn.style.opacity = '1';
+
+    let t = 0;
+    const cascadeDelay = [0, 60, 120, 200, 280, 340, 400, 460];
+    const duration = 900;
+    const startTime = performance.now();
+
+    function wave() {
+      const now = performance.now();
+      const elapsed = now - startTime;
+      const globalP = Math.min(elapsed / duration, 1);
+      
+      chaos.forEach((c, i) => {
+        const delay = cascadeDelay[i] || 0;
+        const localElapsed = Math.max(0, elapsed - delay);
+        const localP = Math.min(localElapsed / (duration * 0.75), 1);
+        const eased = 1 - Math.pow(1 - localP, 3);
+        
+        const dx = eased * c.dx;
+        const dy = eased * c.dy;
+        const rot = eased * c.rot;
+        const scale = 1 + eased * (c.scale - 1);
+        const opacity = 1 + eased * (c.opacity - 1);
+        
+        if (c.el.id === 'nav') {
+          c.el.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) rotate(${rot}deg) scale(${scale})`;
+        } else if (c.el.id === 'hero') {
+          c.el.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + 90px + ${dy}px)) rotate(${rot}deg) scale(${scale})`;
+        } else if (c.el.id === 'cta') {
+          c.el.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + 175px + ${dy}px)) rotate(${rot}deg) scale(${scale})`;
+        } else if (c.el.id === 'sidebar') {
+          c.el.style.transform = `translateY(calc(-50% + ${dy}px)) translateX(${dx}px) rotate(${rot}deg) scale(${scale})`;
+        } else if (c.el.id === 'stats') {
+          c.el.style.transform = `translateY(calc(-50% + ${dy}px)) translateX(${dx}px) rotate(${rot}deg) scale(${scale})`;
+        }
+        c.el.style.opacity = opacity;
+      });
+
+      if (globalP < 1) {
+        requestAnimationFrame(wave);
+      } else {
+        setTimeout(() => { chaosMsg.style.opacity = '1'; }, 300);
+        addJitter();
+      }
+    }
+    requestAnimationFrame(wave);
+  }
+
+  function addJitter() {
+    if (!collapsed) return;
+    chaos.forEach(c => {
+      const jitter = 3;
+      const jr = 1.5;
+      const currentTransform = c.el.style.transform;
+      const jx = rand(-jitter, jitter);
+      const jy = rand(-jitter, jitter);
+      const jrot = rand(-jr, jr);
+      c.el.style.transition = `transform ${rand(200, 400)}ms ease`;
+    });
+    setTimeout(() => { if (collapsed) addJitter(); }, rand(400, 900));
+  }
+
+  function reset() {
+    collapsed = false;
+    chaosMsg.style.opacity = '0';
+    resetBtn.style.opacity = '0';
+    warning.style.opacity = '1';
+
+    chaos.forEach(c => {
+      c.el.style.transition = 'transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.6s ease';
+      c.el.style.opacity = '1';
+      if (c.el.id === 'nav') {
+        c.el.style.transform = 'translate(-50%, -50%)';
+      } else if (c.el.id === 'hero') {
+        c.el.style.transform = 'translate(-50%, calc(-50% + 90px))';
+      } else if (c.el.id === 'cta') {
+        c.el.style.transform = 'translate(-50%, calc(-50% + 175px))';
+      } else if (c.el.id === 'sidebar') {
+        c.el.style.transform = 'translateY(-50%)';
+      } else if (c.el.id === 'stats') {
+        c.el.style.transform = 'translateY(-50%)';
+      }
+    });
+
+    setTimeout(() => {
+      chaos.forEach(c => { c.el.style.transition = ''; });
+    }, 900);
+  }
+
+  overlay.addEventListener('mousemove', collapse, { once: true });
+  overlay.addEventListener('click', collapse, { once: true });
+  overlay.addEventListener('touchstart', collapse, { once: true });
+  resetBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    reset();
+    setTimeout(() => {
+      overlay.addEventListener('mousemove', collapse, { once: true });
+      overlay.addEventListener('click', collapse, { once: true });
+    }, 900);
+  });
+})();
+</script>

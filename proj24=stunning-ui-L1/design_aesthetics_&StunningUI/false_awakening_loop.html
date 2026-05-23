@@ -1,0 +1,475 @@
+
+<style>
+  @keyframes flicker { 0%,100%{opacity:1} 92%{opacity:1} 93%{opacity:0.7} 95%{opacity:1} 97%{opacity:0.8} }
+  @keyframes glitch {
+    0%,100%{transform:translate(0)}
+    20%{transform:translate(-3px,1px)}
+    40%{transform:translate(2px,-1px)}
+    60%{transform:translate(-1px,2px)}
+    80%{transform:translate(3px,-2px)}
+  }
+  @keyframes pulse { 0%,100%{opacity:0.4} 50%{opacity:1} }
+  @keyframes scanline { 0%{top:-10%} 100%{top:110%} }
+  @keyframes fadeText { 0%{opacity:0;transform:translateY(4px)} 100%{opacity:1;transform:translateY(0)} }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-4px)} 75%{transform:translateX(4px)} }
+  @keyframes typeIn {
+    from{width:0} to{width:100%}
+  }
+
+  .horror-bg {
+    background: #0a0a0c;
+    min-height: 520px;
+    position: relative;
+    overflow: hidden;
+    font-family: 'Courier New', monospace;
+    color: #c8c8b8;
+    padding: 0;
+    animation: flicker 8s infinite;
+  }
+
+  .scanline {
+    position: absolute;
+    width: 100%;
+    height: 2px;
+    background: rgba(200,200,180,0.04);
+    animation: scanline 6s linear infinite;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  .noise {
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    opacity: 0.15;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .content {
+    position: relative;
+    z-index: 5;
+    padding: 36px 48px;
+  }
+
+  .loop-counter {
+    font-size: 11px;
+    color: #555;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 28px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .loop-counter .num {
+    color: #8b0000;
+    font-size: 13px;
+    font-weight: bold;
+  }
+
+  .blink {
+    animation: pulse 1.4s ease-in-out infinite;
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #8b0000;
+    margin-right: 4px;
+  }
+
+  .headline {
+    font-size: 22px;
+    font-weight: normal;
+    color: #e8e8d8;
+    letter-spacing: -0.01em;
+    margin: 0 0 8px;
+    line-height: 1.3;
+  }
+
+  .subhead {
+    font-size: 12px;
+    color: #444;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 32px;
+  }
+
+  .body-text {
+    font-size: 14px;
+    color: #7a7a6a;
+    line-height: 2;
+    margin-bottom: 32px;
+    max-width: 460px;
+  }
+
+  .body-text .struck {
+    text-decoration: line-through;
+    color: #3a3a2a;
+  }
+
+  .links {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 36px;
+  }
+
+  .horror-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #6a9080;
+    text-decoration: none;
+    cursor: pointer;
+    padding: 6px 0;
+    border-bottom: 0.5px solid #1a2a22;
+    transition: color 0.1s;
+    width: fit-content;
+    background: none;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+    font-family: inherit;
+  }
+
+  .horror-link:hover {
+    color: #e8e8d8;
+  }
+
+  .horror-link .arrow { color: #2a4a38; font-size: 11px; }
+
+  .glitch-text {
+    display: inline-block;
+    position: relative;
+  }
+
+  .glitch-text.active {
+    animation: glitch 0.3s ease forwards;
+    color: #8b0000 !important;
+  }
+
+  .status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 0.5px solid #1a1a1a;
+    padding-top: 20px;
+    margin-top: 8px;
+  }
+
+  .status-left {
+    font-size: 11px;
+    color: #333;
+    letter-spacing: 0.1em;
+  }
+
+  .awaken-btn {
+    font-size: 11px;
+    color: #3a3a2a;
+    border: 0.5px solid #2a2a1a;
+    background: transparent;
+    padding: 6px 16px;
+    cursor: pointer;
+    font-family: inherit;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    transition: all 0.2s;
+  }
+
+  .awaken-btn:hover {
+    color: #c8c8b8;
+    border-color: #4a4a3a;
+  }
+
+  .message-box {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%,-50%);
+    background: #0a0a0c;
+    border: 0.5px solid #1a1a1a;
+    padding: 24px 32px;
+    text-align: center;
+    min-width: 280px;
+    z-index: 20;
+    display: none;
+    animation: fadeText 0.3s ease;
+  }
+
+  .message-box p {
+    font-size: 13px;
+    color: #555;
+    margin: 0 0 16px;
+    line-height: 1.8;
+  }
+
+  .message-box .ok-btn {
+    font-size: 11px;
+    color: #c8c8b8;
+    border: 0.5px solid #3a3a2a;
+    background: transparent;
+    padding: 8px 24px;
+    cursor: pointer;
+    font-family: inherit;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .message-box .ok-btn:hover { border-color: #8b0000; color: #8b0000; }
+
+  .redacted {
+    background: #1a1a1a;
+    color: transparent;
+    user-select: none;
+    display: inline;
+    padding: 0 2px;
+  }
+
+  .url-bar {
+    background: #111113;
+    border-bottom: 0.5px solid #1a1a1a;
+    padding: 10px 48px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .url-field {
+    background: #0d0d0f;
+    border: 0.5px solid #222;
+    padding: 5px 12px;
+    font-size: 12px;
+    color: #3a5a48;
+    font-family: 'Courier New', monospace;
+    flex: 1;
+    max-width: 380px;
+    letter-spacing: 0.03em;
+  }
+
+  .nav-btn {
+    width: 22px;
+    height: 22px;
+    background: #111;
+    border: 0.5px solid #222;
+    color: #333;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 13px;
+    font-family: inherit;
+  }
+
+  .nav-btn:hover { color: #8b0000; border-color: #8b0000; }
+
+  .iteration-log {
+    position: absolute;
+    right: 48px;
+    bottom: 72px;
+    font-size: 10px;
+    color: #222;
+    text-align: right;
+    line-height: 2;
+    z-index: 5;
+    pointer-events: none;
+  }
+
+  .iteration-log .recent { color: #3a3a2a; }
+
+  .overlay {
+    position: absolute;
+    inset: 0;
+    background: #0a0a0c;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 0;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.05s;
+  }
+
+  .overlay.show {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .overlay-text {
+    font-size: 13px;
+    color: #2a2a1a;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+</style>
+
+<div class="horror-bg" id="page">
+  <div class="scanline"></div>
+  <div class="noise"></div>
+
+  <div class="overlay" id="overlay">
+    <div class="overlay-text" id="overlay-text">you cannot leave</div>
+  </div>
+
+  <div class="message-box" id="msg-box">
+    <p id="msg-text">you have already read this.<br>you have already clicked this.<br>you have already woken up.</p>
+    <button class="ok-btn" onclick="dismissMsg()">try again</button>
+  </div>
+
+  <div class="url-bar">
+    <button class="nav-btn" onclick="clickLink('back')">←</button>
+    <button class="nav-btn" onclick="clickLink('fwd')">→</button>
+    <div class="url-field" id="url-field">dream://awakening/loop/001</div>
+  </div>
+
+  <div class="content">
+    <div class="loop-counter">
+      <span class="blink"></span>
+      loop &mdash; iteration <span class="num" id="loop-num">001</span>
+      <span style="color:#222">|</span>
+      <span style="color:#2a2a1a">session_id: <span class="redacted">4f7a91bc</span></span>
+    </div>
+
+    <h1 class="headline">you wake up.<br>the room is familiar.</h1>
+    <p class="subhead">you have been here before.</p>
+
+    <div class="body-text">
+      <span class="struck">you decide to leave.</span><br>
+      the door is <span class="glitch-text" id="g1">where it always was</span>.<br>
+      you reach for the handle.<br>
+      <span class="struck">you open the door.</span><br>
+      the room is familiar.<br>
+      <span class="glitch-text" id="g2">you have been here before.</span>
+    </div>
+
+    <div class="links">
+      <button class="horror-link" onclick="clickLink('exit')">
+        <span class="arrow">→</span> exit the loop
+      </button>
+      <button class="horror-link" onclick="clickLink('wake')">
+        <span class="arrow">→</span> wake up (for real this time)
+      </button>
+      <button class="horror-link" onclick="clickLink('leave')">
+        <span class="arrow">→</span> <span class="redacted">[ classified ]</span>
+      </button>
+    </div>
+
+    <div class="status-bar">
+      <span class="status-left">page.loop — <span id="status-msg">loaded</span></span>
+      <button class="awaken-btn" onclick="clickLink('awaken')">force awaken</button>
+    </div>
+  </div>
+
+  <div class="iteration-log" id="iter-log"></div>
+</div>
+
+<script>
+let count = 1;
+const messages = [
+  "you have already read this.\nyou have already clicked this.\nyou have already woken up.",
+  "this is the only page.\nthere is no other page.\nyou knew that already.",
+  "the link looked different this time.\nit always looks different.\nyou always click it.",
+  "you thought: 'this one will work.'\nyou always think that.\nyou are always wrong.",
+  "stop clicking.\n\nyou know what happens when you click.",
+  "you are not reading this for the first time.",
+  "the nightmare is\nthat you've already woken up.",
+];
+
+const urls = [
+  "dream://awakening/loop/",
+  "somewhere-else.html",
+  "exit.php?from=loop",
+  "wake-up-now/",
+  "real-world.com",
+  "classified://redacted/",
+  "return-home.html",
+  "dream://awakening/loop/",
+];
+
+let msgIdx = 0;
+let logEntries = [];
+const logEl = document.getElementById('iter-log');
+
+function pad(n) { return String(n).padStart(3,'0'); }
+
+function addLog(action) {
+  const t = new Date();
+  const ts = `${t.getHours()}:${String(t.getMinutes()).padStart(2,'0')}:${String(t.getSeconds()).padStart(2,'0')}`;
+  logEntries.push({ts, action, loop: count});
+  if(logEntries.length > 5) logEntries.shift();
+  logEl.innerHTML = logEntries.map((e,i)=>{
+    const cls = i===logEntries.length-1 ? 'recent' : '';
+    return `<div class="${cls}">${e.ts} &mdash; [${pad(e.loop)}] ${e.action}</div>`;
+  }).join('');
+}
+
+function flashOverlay(text, duration) {
+  const ov = document.getElementById('overlay');
+  const ot = document.getElementById('overlay-text');
+  ot.textContent = text;
+  ov.classList.add('show');
+  setTimeout(()=>{ ov.classList.remove('show'); }, duration||180);
+}
+
+function doLoop(action) {
+  count++;
+  const loopEl = document.getElementById('loop-num');
+  const urlEl = document.getElementById('url-field');
+  const statusEl = document.getElementById('status-msg');
+
+  flashOverlay('loading...', 140);
+
+  setTimeout(()=>{
+    loopEl.textContent = pad(count);
+    const u = urls[Math.floor(Math.random()*urls.length)];
+    urlEl.textContent = u.includes('loop') ? `dream://awakening/loop/${pad(count)}` : `dream://awakening/loop/${pad(count)}`;
+    statusEl.textContent = 'loaded';
+
+    // glitch random text
+    ['g1','g2'].forEach(id=>{
+      const el = document.getElementById(id);
+      el.classList.add('active');
+      setTimeout(()=>el.classList.remove('active'), 320);
+    });
+
+    addLog(action);
+  }, 150);
+}
+
+function showMsg(text) {
+  const box = document.getElementById('msg-box');
+  const txt = document.getElementById('msg-text');
+  txt.innerHTML = text.replace(/\n/g,'<br>');
+  box.style.display = 'block';
+}
+
+function dismissMsg() {
+  document.getElementById('msg-box').style.display = 'none';
+  doLoop('dismissed warning');
+}
+
+function clickLink(type) {
+  addLog(`attempt: ${type}`);
+  const idx = Math.min(msgIdx, messages.length-1);
+  
+  if(type === 'awaken' && count < 3) {
+    flashOverlay('cannot force wake from within the dream', 2200);
+    msgIdx++;
+    return;
+  }
+
+  if(type === 'leave') {
+    flashOverlay('access denied', 900);
+    setTimeout(()=>doLoop('access denied'), 920);
+    return;
+  }
+
+  setTimeout(()=>{
+    showMsg(messages[idx % messages.length]);
+    msgIdx++;
+  }, count > 6 ? 60 : 200);
+}
+</script>

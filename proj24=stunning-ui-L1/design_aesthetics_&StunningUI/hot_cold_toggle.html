@@ -1,0 +1,325 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --hot: #FF4500;
+    --hot-mid: #FF6B00;
+    --hot-pale: #FFF0EB;
+    --cold: #00BFFF;
+    --cold-mid: #0099CC;
+    --cold-pale: #E8F8FF;
+  }
+
+  body { background: transparent; }
+
+  .universe {
+    width: 100%;
+    min-height: 520px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+    transition: background 1s ease-in-out;
+  }
+
+  .universe.hot { background: #FFF5F0; }
+  .universe.cold { background: #F0FAFF; }
+
+  /* Big mode label */
+  .mode-label {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+    transition: color 0.3s;
+  }
+  .hot .mode-label { color: #CC3800; }
+  .cold .mode-label { color: #007FAA; }
+
+  /* Temperature display */
+  .temp-display {
+    font-size: 72px;
+    font-weight: 500;
+    line-height: 1;
+    margin-bottom: 0.5rem;
+    transition: color 0.3s, transform 0.15s;
+    font-variant-numeric: tabular-nums;
+  }
+  .hot .temp-display { color: #FF4500; transform: scale(1.04); }
+  .cold .temp-display { color: #00BFFF; transform: scale(0.97); }
+
+  /* Animated underline bar */
+  .temp-bar {
+    height: 4px;
+    width: 120px;
+    border-radius: 2px;
+    margin: 0 auto 2rem;
+    transition: background 0.5s, width 0.3s ease-in-out, border-radius 1s ease-in-out;
+  }
+  .hot .temp-bar { background: #FF4500; width: 160px; border-radius: 0; }
+  .cold .temp-bar { background: #00BFFF; width: 100px; border-radius: 40px; }
+
+  /* Toggle switch */
+  .toggle-wrap {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 2.5rem;
+  }
+
+  .toggle-label {
+    font-size: 13px;
+    font-weight: 500;
+    transition: color 0.3s, opacity 0.3s;
+    min-width: 36px;
+  }
+
+  .toggle-label.hot-lbl { color: #FF4500; text-align: right; }
+  .toggle-label.cold-lbl { color: #00BFFF; }
+
+  .toggle-btn {
+    width: 64px;
+    height: 32px;
+    border-radius: 16px;
+    border: none;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.5s ease-in-out;
+    outline: none;
+    flex-shrink: 0;
+  }
+  .toggle-btn:focus-visible { box-shadow: 0 0 0 3px rgba(0,0,0,0.2); }
+
+  .hot .toggle-btn { background: #FF4500; }
+  .cold .toggle-btn { background: #00BFFF; }
+
+  .toggle-thumb {
+    position: absolute;
+    top: 4px;
+    width: 24px;
+    height: 24px;
+    background: white;
+    transition: left 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55), border-radius 1s ease-in-out;
+  }
+  .hot .toggle-thumb { left: 36px; border-radius: 2px; }
+  .cold .toggle-thumb { left: 4px; border-radius: 50%; }
+
+  /* Trait cards */
+  .traits {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    width: 100%;
+    max-width: 480px;
+  }
+
+  .trait {
+    padding: 12px 10px;
+    text-align: center;
+    transition: background 0.6s ease-in-out, border-color 0.6s ease-in-out, border-radius 1s ease-in-out;
+  }
+
+  .hot .trait {
+    background: rgba(255,69,0,0.08);
+    border: 0.5px solid rgba(255,69,0,0.25);
+    border-radius: 0;
+  }
+  .cold .trait {
+    background: rgba(0,191,255,0.08);
+    border: 0.5px solid rgba(0,191,255,0.3);
+    border-radius: 40px;
+  }
+
+  .trait-icon {
+    font-size: 20px;
+    display: block;
+    margin-bottom: 4px;
+    transition: color 0.3s;
+  }
+  .hot .trait-icon { color: #FF4500; }
+  .cold .trait-icon { color: #00BFFF; }
+
+  .trait-name {
+    font-size: 11px;
+    font-weight: 500;
+    display: block;
+    transition: color 0.3s;
+  }
+  .hot .trait-name { color: #CC3800; }
+  .cold .trait-name { color: #007FAA; }
+
+  /* Animated bg shape */
+  .bg-shape {
+    position: absolute;
+    pointer-events: none;
+    transition: all 1s ease-in-out;
+    z-index: 0;
+  }
+
+  .blob1 {
+    width: 200px; height: 200px;
+    top: -30px; right: -30px;
+    transition: all 1s ease-in-out;
+  }
+
+  .blob2 {
+    width: 140px; height: 140px;
+    bottom: 10px; left: 10px;
+    transition: all 1s ease-in-out;
+  }
+
+  .universe > * { position: relative; z-index: 1; }
+
+  /* Speed indicator */
+  .speed-meter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 1.5rem;
+  }
+
+  .speed-label {
+    font-size: 11px;
+    font-weight: 500;
+    transition: color 0.3s;
+  }
+  .hot .speed-label { color: #CC3800; }
+  .cold .speed-label { color: #007FAA; }
+
+  .speed-dots {
+    display: flex;
+    gap: 4px;
+  }
+
+  .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    transition: transform 0.3s, background 0.5s, border-radius 1s ease-in-out;
+  }
+
+  .hot .dot { background: #FF4500; border-radius: 1px; }
+  .cold .dot { background: #00BFFF; border-radius: 50%; }
+
+  .dot.d1 { animation: none; }
+  .dot.d2 { animation: none; }
+  .dot.d3 { animation: none; }
+  .dot.d4 { animation: none; }
+
+  @keyframes pulse-hot {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.5); }
+  }
+
+  @keyframes pulse-cold {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+  }
+
+  .hot .dot.d1 { animation: pulse-hot 0.1s infinite; }
+  .hot .dot.d2 { animation: pulse-hot 0.1s infinite 0.025s; }
+  .hot .dot.d3 { animation: pulse-hot 0.1s infinite 0.05s; }
+  .hot .dot.d4 { animation: pulse-hot 0.1s infinite 0.075s; }
+
+  .cold .dot.d1 { animation: pulse-cold 1s ease-in-out infinite; }
+  .cold .dot.d2 { animation: pulse-cold 1s ease-in-out infinite 0.25s; }
+  .cold .dot.d3 { animation: pulse-cold 1s ease-in-out infinite 0.5s; }
+  .cold .dot.d4 { animation: pulse-cold 1s ease-in-out infinite 0.75s; }
+</style>
+
+<h2 class="sr-only">Hot/cold relational aesthetics toggle — switch between hot mode (red, sharp, fast) and cold mode (blue, rounded, slow)</h2>
+
+<div class="universe hot" id="universe">
+
+  <svg class="bg-shape blob1" id="blob1" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+    <polygon id="blobShape1" points="100,0 200,100 100,200 0,100" fill="rgba(255,69,0,0.07)"/>
+  </svg>
+  <svg class="bg-shape blob2" id="blob2" viewBox="0 0 140 140" xmlns="http://www.w3.org/2000/svg">
+    <polygon id="blobShape2" points="70,0 140,70 70,140 0,70" fill="rgba(255,69,0,0.05)"/>
+  </svg>
+
+  <div class="mode-label" id="modeLabel">Hot mode</div>
+
+  <div class="temp-display" id="tempDisplay">42°</div>
+  <div class="temp-bar"></div>
+
+  <div class="toggle-wrap">
+    <span class="toggle-label hot-lbl">HOT</span>
+    <button class="toggle-btn" id="toggleBtn" aria-label="Toggle between hot and cold mode" onclick="toggle()">
+      <div class="toggle-thumb"></div>
+    </button>
+    <span class="toggle-label cold-lbl">COLD</span>
+  </div>
+
+  <div class="traits">
+    <div class="trait">
+      <i class="ti ti-bolt trait-icon" id="icon1" aria-hidden="true"></i>
+      <span class="trait-name" id="trait1">Sharp</span>
+    </div>
+    <div class="trait">
+      <i class="ti ti-arrow-right trait-icon" id="icon2" aria-hidden="true"></i>
+      <span class="trait-name" id="trait2">Aggressive</span>
+    </div>
+    <div class="trait">
+      <i class="ti ti-flame trait-icon" id="icon3" aria-hidden="true"></i>
+      <span class="trait-name" id="trait3">Urgent</span>
+    </div>
+  </div>
+
+  <div class="speed-meter">
+    <span class="speed-label" id="speedLabel">Pulse: 0.1s</span>
+    <div class="speed-dots">
+      <div class="dot d1"></div>
+      <div class="dot d2"></div>
+      <div class="dot d3"></div>
+      <div class="dot d4"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let isHot = true;
+
+  const hotTraits = [
+    { icon: 'ti-bolt', label: 'Sharp' },
+    { icon: 'ti-arrow-right', label: 'Aggressive' },
+    { icon: 'ti-flame', label: 'Urgent' },
+  ];
+  const coldTraits = [
+    { icon: 'ti-circle', label: 'Rounded' },
+    { icon: 'ti-wind', label: 'Calm' },
+    { icon: 'ti-snowflake', label: 'Serene' },
+  ];
+
+  function toggle() {
+    isHot = !isHot;
+    const universe = document.getElementById('universe');
+
+    if (isHot) {
+      universe.className = 'universe hot';
+      document.getElementById('modeLabel').textContent = 'Hot mode';
+      document.getElementById('tempDisplay').textContent = '42°';
+      document.getElementById('speedLabel').textContent = 'Pulse: 0.1s';
+      document.getElementById('blob1').querySelector('polygon').setAttribute('fill', 'rgba(255,69,0,0.07)');
+      document.getElementById('blob2').querySelector('polygon').setAttribute('fill', 'rgba(255,69,0,0.05)');
+      hotTraits.forEach((t, i) => {
+        document.getElementById('icon' + (i+1)).className = 'ti ' + t.icon + ' trait-icon';
+        document.getElementById('trait' + (i+1)).textContent = t.label;
+      });
+    } else {
+      universe.className = 'universe cold';
+      document.getElementById('modeLabel').textContent = 'Cold mode';
+      document.getElementById('tempDisplay').textContent = '−4°';
+      document.getElementById('speedLabel').textContent = 'Pulse: 1.0s';
+      document.getElementById('blob1').querySelector('polygon').setAttribute('fill', 'rgba(0,191,255,0.07)');
+      document.getElementById('blob2').querySelector('polygon').setAttribute('fill', 'rgba(0,191,255,0.05)');
+      coldTraits.forEach((t, i) => {
+        document.getElementById('icon' + (i+1)).className = 'ti ' + t.icon + ' trait-icon';
+        document.getElementById('trait' + (i+1)).textContent = t.label;
+      });
+    }
+  }
+</script>

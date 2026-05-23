@@ -1,0 +1,161 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: transparent; }
+  #stage {
+    min-height: 520px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 2rem;
+    position: relative;
+    font-family: var(--font-sans);
+  }
+  #headline {
+    font-size: 13px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-text-tertiary);
+    margin-bottom: 2.5rem;
+    font-weight: 400;
+  }
+  #statement {
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--color-text-primary);
+    text-align: center;
+    max-width: 420px;
+    line-height: 1.5;
+    margin-bottom: 3rem;
+  }
+  #ticker {
+    font-family: var(--font-mono);
+    font-size: 48px;
+    font-weight: 400;
+    color: var(--color-text-primary);
+    letter-spacing: 0.04em;
+    margin-bottom: 0.5rem;
+    transition: opacity 0.2s;
+  }
+  #ticker-label {
+    font-size: 12px;
+    color: var(--color-text-tertiary);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 3rem;
+  }
+  #pulse {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-text-tertiary);
+    margin-bottom: 2.5rem;
+    animation: breathe 2s ease-in-out infinite;
+  }
+  @keyframes breathe {
+    0%, 100% { opacity: 0.2; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.4); }
+  }
+  #subtext {
+    font-size: 14px;
+    color: var(--color-text-secondary);
+    text-align: center;
+    max-width: 340px;
+    line-height: 1.7;
+  }
+  #flash-overlay {
+    position: fixed;
+    inset: 0;
+    background: var(--color-background-primary);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 100;
+    transition: opacity 0.05s;
+  }
+  #note {
+    display: none;
+    font-size: 13px;
+    color: var(--color-text-tertiary);
+    text-align: center;
+    margin-top: 2rem;
+    font-style: italic;
+    max-width: 320px;
+    line-height: 1.6;
+  }
+  #divider {
+    width: 32px;
+    height: 0.5px;
+    background: var(--color-border-tertiary);
+    margin: 0 auto 2.5rem;
+  }
+</style>
+
+<h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">An interactive piece: something will happen on this page, but you cannot know when.</h2>
+
+<div id="flash-overlay"></div>
+
+<div id="stage">
+  <div id="headline">An exercise in anticipation</div>
+  <div id="statement">Something will happen on this page,<br>but you cannot know when.</div>
+  <div id="divider"></div>
+  <div id="ticker">0:00</div>
+  <div id="ticker-label">elapsed</div>
+  <div id="pulse"></div>
+  <div id="subtext">You are waiting.<br>The page is waiting.<br>Both of you know something is coming.</div>
+  <div id="note"></div>
+</div>
+
+<script>
+const ticker = document.getElementById('ticker');
+const note = document.getElementById('note');
+const flash = document.getElementById('flash-overlay');
+const pulse = document.getElementById('pulse');
+const subtext = document.getElementById('subtext');
+
+let elapsed = 0;
+let happened = false;
+let happenCount = 0;
+
+const happenInterval = setInterval(() => {
+  elapsed++;
+  const m = Math.floor(elapsed / 60);
+  const s = elapsed % 60;
+  ticker.textContent = m + ':' + String(s).padStart(2, '0');
+}, 1000);
+
+function doNothing() {
+  if (happened) return;
+  happened = true;
+  flash.style.opacity = '0.85';
+  setTimeout(() => { flash.style.opacity = '0'; }, 80);
+  happenCount++;
+
+  const messages = [
+    "It could have been now.",
+    "That was it. Or was it?",
+    "Did you feel that?",
+    "Now. It happened now.",
+    "The moment has passed.",
+  ];
+  const msg = messages[happenCount % messages.length];
+
+  note.style.display = 'block';
+  note.textContent = msg;
+
+  subtext.textContent = "Or did it already happen?\nAre you still waiting?";
+  pulse.style.animationDuration = '0.8s';
+
+  setTimeout(() => {
+    happened = false;
+    scheduleNext();
+  }, 4000 + Math.random() * 8000);
+}
+
+function scheduleNext() {
+  const delay = (8 + Math.random() * 52) * 1000;
+  setTimeout(doNothing, delay);
+}
+
+scheduleNext();
+</script>

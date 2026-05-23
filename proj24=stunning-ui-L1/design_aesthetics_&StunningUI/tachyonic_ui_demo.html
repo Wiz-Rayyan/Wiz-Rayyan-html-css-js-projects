@@ -1,0 +1,316 @@
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans)}
+.stage{padding:2rem 1.5rem;min-height:520px}
+.label{font-size:12px;color:var(--color-text-tertiary);letter-spacing:.06em;text-transform:uppercase;margin-bottom:.5rem}
+.section{margin-bottom:2rem}
+.desc{font-size:13px;color:var(--color-text-secondary);margin-bottom:1rem;line-height:1.6}
+
+.btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:.5rem}
+.tach-btn{
+  position:relative;padding:10px 20px;font-size:14px;font-family:var(--font-sans);
+  border:0.5px solid var(--color-border-secondary);
+  background:var(--color-background-primary);
+  color:var(--color-text-primary);
+  border-radius:var(--border-radius-md);
+  cursor:pointer;overflow:hidden;transition:color .1s;
+  white-space:nowrap;
+}
+.tach-btn .pre-hover{
+  position:absolute;inset:0;
+  background:var(--color-background-secondary);
+  border-radius:inherit;
+  transform:scaleX(0);transform-origin:left;
+  transition:none;
+  pointer-events:none;
+}
+.tach-btn.pre-active .pre-hover{transform:scaleX(1);transition:transform .18s ease-out}
+.tach-btn.actual-hover{background:var(--color-background-secondary)}
+.tach-btn span{position:relative;z-index:1}
+
+.result-panel{
+  background:var(--color-background-secondary);
+  border:0.5px solid var(--color-border-tertiary);
+  border-radius:var(--border-radius-lg);
+  padding:1rem 1.25rem;
+  min-height:60px;
+  font-size:14px;
+  color:var(--color-text-secondary);
+  transition:border-color .2s;
+}
+.result-panel.pre-shown{border-color:var(--color-border-primary)}
+.result-panel .result-content{opacity:0;transform:translateY(4px);transition:opacity .25s,transform .25s}
+.result-panel .result-content.visible{opacity:1;transform:translateY(0)}
+.result-pre-badge{
+  display:inline-block;font-size:11px;padding:2px 8px;
+  background:var(--color-background-info);color:var(--color-text-info);
+  border-radius:var(--border-radius-md);margin-bottom:8px;
+}
+
+.tracker-area{
+  position:relative;
+  background:var(--color-background-secondary);
+  border:0.5px solid var(--color-border-tertiary);
+  border-radius:var(--border-radius-lg);
+  height:120px;overflow:hidden;cursor:none;
+}
+.ghost-cursor{
+  position:absolute;width:12px;height:12px;
+  border-radius:50%;background:#7F77DD;
+  pointer-events:none;transform:translate(-50%,-50%);
+  transition:none;
+  opacity:0;
+}
+.future-cursor{
+  position:absolute;width:12px;height:12px;
+  border-radius:50%;background:#1D9E75;
+  pointer-events:none;transform:translate(-50%,-50%);
+  opacity:0;
+}
+.cursor-trail-label{
+  position:absolute;font-size:11px;color:var(--color-text-tertiary);
+  pointer-events:none;white-space:nowrap;
+}
+.tracker-hint{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:13px;color:var(--color-text-tertiary);pointer-events:none;
+  transition:opacity .3s;
+}
+.prediction-bar{
+  position:absolute;bottom:0;left:0;right:0;height:3px;
+  background:var(--color-border-tertiary);
+}
+.prediction-fill{height:100%;background:#1D9E75;width:0%;transition:width .1s linear}
+
+.stat-row{display:flex;gap:12px;margin-top:1rem}
+.stat-card{
+  flex:1;background:var(--color-background-secondary);
+  border-radius:var(--border-radius-md);
+  padding:.75rem 1rem;
+}
+.stat-card .sv{font-size:20px;font-weight:500;color:var(--color-text-primary)}
+.stat-card .sk{font-size:12px;color:var(--color-text-secondary);margin-top:2px}
+
+.timeline{display:flex;align-items:center;gap:0;margin-top:1rem;position:relative}
+.tl-step{
+  flex:1;text-align:center;font-size:12px;
+  color:var(--color-text-tertiary);position:relative;
+}
+.tl-dot{
+  width:10px;height:10px;border-radius:50%;
+  border:0.5px solid var(--color-border-secondary);
+  background:var(--color-background-primary);
+  margin:0 auto 6px;transition:background .3s,border-color .3s;
+}
+.tl-dot.done{background:#7F77DD;border-color:#7F77DD}
+.tl-dot.pre{background:#1D9E75;border-color:#1D9E75}
+.tl-line{position:absolute;top:4px;left:50%;right:-50%;height:0.5px;background:var(--color-border-tertiary);z-index:0}
+.tl-step:last-child .tl-line{display:none}
+
+.chip{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:11px;padding:2px 8px;border-radius:20px;
+  border:0.5px solid var(--color-border-tertiary);
+  color:var(--color-text-secondary);
+}
+.chip.purple{background:#EEEDFE;color:#3C3489;border-color:#AFA9EC}
+.chip.teal{background:#E1F5EE;color:#085041;border-color:#5DCAA5}
+@media(prefers-color-scheme:dark){
+  .chip.purple{background:#26215C;color:#CECBF6;border-color:#534AB7}
+  .chip.teal{background:#04342C;color:#9FE1CB;border-color:#0F6E56}
+}
+</style>
+
+<div class="stage">
+<h2 class="sr-only">Tachyonic UI demo — interactive faster-than-light interface effects</h2>
+
+<div class="section">
+  <div class="label">Predictive hover · buttons activate before cursor arrives</div>
+  <div class="desc">Move your mouse toward a button slowly. The hover state fires ~120ms early based on velocity + trajectory.</div>
+  <div class="btn-row" id="btnRow">
+    <button class="tach-btn" data-result="Quantum entanglement measured: Δt = −0.12s"><div class="pre-hover"></div><span>Run experiment</span></button>
+    <button class="tach-btn" data-result="Wavefunction collapsed before observation logged."><div class="pre-hover"></div><span>Measure state</span></button>
+    <button class="tach-btn" data-result="Tachyon burst confirmed. Signal arrived 0.3c before source."><div class="pre-hover"></div><span>Fire tachyon burst</span></button>
+    <button class="tach-btn" data-result="Retrocausal link established. Effect registered T−80ms."><div class="pre-hover"></div><span>Establish link</span></button>
+  </div>
+</div>
+
+<div class="section">
+  <div class="label">Pre-emptive result · appears before you click</div>
+  <div id="resultPanel" class="result-panel">
+    <div class="result-content" id="resultContent">
+      <span style="color:var(--color-text-tertiary);font-size:13px">Hover a button to see the result before clicking...</span>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="label">Cursor trajectory · predicting future position</div>
+  <div class="desc">The green dot shows where your cursor <em>will be</em> in 120ms. Purple is where you are now.</div>
+  <div class="tracker-area" id="trackerArea">
+    <div class="tracker-hint" id="trackerHint">Move your mouse here</div>
+    <div class="ghost-cursor" id="ghostCursor"></div>
+    <div class="future-cursor" id="futureCursor"></div>
+    <div class="cursor-trail-label" id="nowLabel" style="color:#534AB7">now</div>
+    <div class="cursor-trail-label" id="futureLabel" style="color:#0F6E56">+120ms</div>
+    <div class="prediction-bar"><div class="prediction-fill" id="predFill"></div></div>
+  </div>
+  <div class="stat-row">
+    <div class="stat-card"><div class="sv" id="velStat">0</div><div class="sk">px/s velocity</div></div>
+    <div class="stat-card"><div class="sv" id="angleStat">—</div><div class="sk">direction</div></div>
+    <div class="stat-card"><div class="sv" id="advanceStat">0ms</div><div class="sk">time advantage</div></div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="label">Causality timeline</div>
+  <div class="timeline" id="timeline">
+    <div class="tl-step"><div class="tl-dot" id="tl0"></div><div class="tl-line"></div>Cursor moves</div>
+    <div class="tl-step"><div class="tl-dot" id="tl1"></div><div class="tl-line"></div>Result shown</div>
+    <div class="tl-step"><div class="tl-dot" id="tl2"></div><div class="tl-line"></div>Hover fires</div>
+    <div class="tl-step"><div class="tl-dot" id="tl3"></div><div class="tl-line"></div>Click lands</div>
+  </div>
+  <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+    <span class="chip teal"><i class="ti ti-bolt" aria-hidden="true" style="font-size:13px"></i> pre-effect</span>
+    <span class="chip purple"><i class="ti ti-clock" aria-hidden="true" style="font-size:13px"></i> actual event</span>
+  </div>
+</div>
+
+</div>
+
+<script>
+const LEAD_MS = 120;
+let positions = [];
+let activeBtn = null;
+let preTimer = null;
+
+const btns = document.querySelectorAll('.tach-btn');
+const resultPanel = document.getElementById('resultPanel');
+const resultContent = document.getElementById('resultContent');
+
+function showResult(text, pre) {
+  resultPanel.classList.toggle('pre-shown', pre);
+  resultContent.innerHTML = (pre ? '<span class="result-pre-badge"><i class="ti ti-bolt" style="font-size:11px;vertical-align:-1px"></i> pre-effect</span><br>' : '') + `<span style="color:var(--color-text-primary)">${text}</span>`;
+  resultContent.classList.add('visible');
+  advanceDots(pre ? 1 : 2);
+}
+
+function hideResult() {
+  resultContent.classList.remove('visible');
+  resultPanel.classList.remove('pre-shown');
+  resetDots();
+}
+
+function advanceDots(upTo) {
+  for(let i=0;i<=3;i++){
+    const d=document.getElementById('tl'+i);
+    d.classList.remove('done','pre');
+    if(i===0) d.classList.add('done');
+    else if(i<=upTo) d.classList.add(upTo===1&&i===1?'pre':'done');
+  }
+}
+function resetDots(){document.querySelectorAll('.tl-dot').forEach(d=>d.classList.remove('done','pre'))}
+
+document.addEventListener('mousemove', (e) => {
+  const now = performance.now();
+  positions.push({x: e.clientX, y: e.clientY, t: now});
+  if(positions.length > 12) positions.shift();
+  if(positions.length < 3) return;
+
+  const recent = positions.slice(-6);
+  const dt = (recent[recent.length-1].t - recent[0].t)/1000;
+  if(dt===0) return;
+  const dx = recent[recent.length-1].x - recent[0].x;
+  const dy = recent[recent.length-1].y - recent[0].y;
+  const vel = Math.sqrt(dx*dx+dy*dy)/dt;
+
+  document.getElementById('velStat').textContent = Math.round(vel);
+  const angle = Math.round(Math.atan2(dy,dx) * 180/Math.PI);
+  const dir = angle > -45 && angle < 45 ? '→' : angle >= 45 && angle < 135 ? '↓' : angle >= 135 || angle < -135 ? '←' : '↑';
+  document.getElementById('angleStat').textContent = dir + ' ' + angle + '°';
+
+  const leadFrac = Math.min(vel / 800, 1);
+  const advMs = Math.round(leadFrac * LEAD_MS);
+  document.getElementById('advanceStat').textContent = advMs + 'ms';
+  document.getElementById('predFill').style.width = (leadFrac*100) + '%';
+
+  btns.forEach(btn => {
+    const rect = btn.getBoundingClientRect();
+    const cx = rect.left + rect.width/2;
+    const cy = rect.top + rect.height/2;
+    const px = e.clientX + (dx/recent.length)*8;
+    const py = e.clientY + (dy/recent.length)*8;
+    const dist = Math.sqrt((px-cx)**2+(py-cy)**2);
+    const threshold = 90 + vel*0.08;
+
+    if(dist < threshold && vel > 80) {
+      if(!btn.classList.contains('pre-active')) {
+        btn.classList.add('pre-active');
+        if(preTimer) clearTimeout(preTimer);
+        activeBtn = btn;
+        showResult(btn.dataset.result, true);
+        preTimer = setTimeout(() => {
+          btn.classList.remove('pre-active');
+        }, 600);
+      }
+    }
+  });
+});
+
+btns.forEach(btn => {
+  btn.addEventListener('mouseenter', () => {
+    btn.classList.add('actual-hover');
+    showResult(btn.dataset.result, false);
+  });
+  btn.addEventListener('mouseleave', () => {
+    btn.classList.remove('actual-hover','pre-active');
+    if(activeBtn===btn) activeBtn=null;
+    hideResult();
+  });
+  btn.addEventListener('click', () => {
+    advanceDots(3);
+    setTimeout(()=>resetDots(), 1200);
+  });
+});
+
+const trackerArea = document.getElementById('trackerArea');
+const ghostCursor = document.getElementById('ghostCursor');
+const futureCursor = document.getElementById('futureCursor');
+const nowLabel = document.getElementById('nowLabel');
+const futureLabel = document.getElementById('futureLabel');
+const trackerHint = document.getElementById('trackerHint');
+
+let prevTracker = null;
+trackerArea.addEventListener('mousemove', (e) => {
+  const rect = trackerArea.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  trackerHint.style.opacity = '0';
+  ghostCursor.style.opacity = '1';
+  ghostCursor.style.left = x+'px';
+  ghostCursor.style.top = y+'px';
+  nowLabel.style.left = (x+8)+'px';
+  nowLabel.style.top = (y-16)+'px';
+
+  if(prevTracker) {
+    const vx = x - prevTracker.x;
+    const vy = y - prevTracker.y;
+    const fx = Math.min(Math.max(x + vx*4, 0), rect.width);
+    const fy = Math.min(Math.max(y + vy*4, 0), rect.height);
+    futureCursor.style.opacity = '0.8';
+    futureCursor.style.left = fx+'px';
+    futureCursor.style.top = fy+'px';
+    futureLabel.style.left = (fx+8)+'px';
+    futureLabel.style.top = (fy-16)+'px';
+  }
+  prevTracker = {x,y};
+});
+trackerArea.addEventListener('mouseleave', () => {
+  ghostCursor.style.opacity='0';
+  futureCursor.style.opacity='0';
+  nowLabel.style.left='-100px';
+  futureLabel.style.left='-100px';
+  trackerHint.style.opacity='1';
+  prevTracker=null;
+});
+</script>

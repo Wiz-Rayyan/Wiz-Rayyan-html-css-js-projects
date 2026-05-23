@@ -1,0 +1,422 @@
+
+<style>
+  #world {
+    position: relative;
+    width: 100%;
+    height: 580px;
+    overflow: hidden;
+    cursor: none;
+  }
+
+  #cursor-dot {
+    position: absolute;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--color-text-primary);
+    pointer-events: none;
+    z-index: 100;
+    transform: translate(-50%, -50%);
+    transition: transform 0.05s, opacity 0.3s;
+    opacity: 0;
+  }
+
+  #cursor-ring {
+    position: absolute;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    border: 0.5px solid var(--color-border-secondary);
+    pointer-events: none;
+    z-index: 100;
+    transform: translate(-50%, -50%);
+    transition: transform 0.12s ease, width 0.2s, height 0.2s, opacity 0.3s;
+    opacity: 0;
+  }
+
+  .piece {
+    position: absolute;
+    background: var(--color-background-primary);
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    pointer-events: none;
+    transform-origin: center center;
+    will-change: transform, opacity;
+  }
+
+  .piece-label {
+    font-size: 11px;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--color-text-tertiary);
+    margin-bottom: 4px;
+  }
+
+  .piece-value {
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--color-text-primary);
+  }
+
+  .piece-sub {
+    font-size: 11px;
+    color: var(--color-text-tertiary);
+    margin-top: 2px;
+  }
+
+  #overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 50;
+    cursor: none;
+  }
+
+  #hint {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-text-tertiary);
+    pointer-events: none;
+    transition: opacity 0.6s;
+    white-space: nowrap;
+  }
+
+  #entropy-bar-wrap {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 200px;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    z-index: 10;
+  }
+
+  #entropy-label {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-text-tertiary);
+  }
+
+  #entropy-track {
+    width: 100%;
+    height: 2px;
+    background: var(--color-border-tertiary);
+    border-radius: 1px;
+    overflow: hidden;
+  }
+
+  #entropy-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--color-text-primary);
+    border-radius: 1px;
+    transition: width 0.1s linear;
+  }
+
+  #reset-area {
+    position: absolute;
+    bottom: 20px;
+    right: 24px;
+    z-index: 60;
+    opacity: 0;
+    transition: opacity 0.5s;
+  }
+
+  #reset-area button {
+    font-size: 11px;
+    padding: 6px 14px;
+    letter-spacing: 0.06em;
+  }
+
+  #chaos-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    z-index: 5;
+    opacity: 0;
+    transition: opacity 0.8s;
+  }
+
+  #chaos-text {
+    font-size: 13px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--color-text-tertiary);
+  }
+</style>
+
+<div id="world">
+  <div id="cursor-dot"></div>
+  <div id="cursor-ring"></div>
+
+  <div id="entropy-bar-wrap">
+    <div id="entropy-label">entropy</div>
+    <div id="entropy-track"><div id="entropy-fill"></div></div>
+  </div>
+
+  <div id="chaos-overlay"><span id="chaos-text">irreversible</span></div>
+  <div id="hint">move cursor to disturb the equilibrium</div>
+  <div id="reset-area"><button id="reset-btn">↺ restore</button></div>
+  <div id="overlay"></div>
+</div>
+
+<script>
+(function() {
+  const world = document.getElementById('world');
+  const overlay = document.getElementById('overlay');
+  const hint = document.getElementById('hint');
+  const entropyFill = document.getElementById('entropy-fill');
+  const resetArea = document.getElementById('reset-area');
+  const chaosOverlay = document.getElementById('chaos-overlay');
+  const dot = document.getElementById('cursor-dot');
+  const ring = document.getElementById('cursor-ring');
+
+  const W = 680, H = 580;
+  const CX = W / 2, CY = H / 2;
+
+  const PIECES = [
+    { id:'nav',   w:480, h:44,  cx:CX,     cy:72,       label:null,        rows:[{tag:'nav', items:['Overview','Features','Pricing','About']}] },
+    { id:'hero',  w:320, h:90,  cx:CX,     cy:200,      label:'hero',      rows:[{tag:'h', text:'Perfect equilibrium.'},{tag:'p', text:'Every element in its place, for now.'}] },
+    { id:'stat1', w:130, h:78,  cx:CX-190, cy:330,      label:'Stability', value:'100%',  sub:'+0.00 drift' },
+    { id:'stat2', w:130, h:78,  cx:CX,     cy:330,      label:'Entropy',   value:'0.000', sub:'absolute zero' },
+    { id:'stat3', w:130, h:78,  cx:CX+190, cy:330,      label:'Order',     value:'∞',     sub:'max coherence' },
+    { id:'cta',   w:200, h:44,  cx:CX,     cy:430,      label:null,        rows:[{tag:'btn', text:'Begin interaction'}] },
+    { id:'tag1',  w:90,  h:30,  cx:CX-260, cy:200,      label:null,        rows:[{tag:'pill', text:'v2.0.0'}] },
+    { id:'tag2',  w:90,  h:30,  cx:CX+260, cy:200,      label:null,        rows:[{tag:'pill', text:'stable'}] },
+    { id:'footer',w:400, h:32,  cx:CX,     cy:510,      label:null,        rows:[{tag:'footer', text:'© 2025 · system nominal · all services operational'}] },
+  ];
+
+  let entropy = 0;
+  let collapsed = false;
+  let jitterAF = null;
+  let pieceEls = {};
+  let targets = {};
+  let currents = {};
+  let animAF = null;
+
+  function makePieceEl(p) {
+    const el = document.createElement('div');
+    el.className = 'piece';
+    el.id = 'piece-' + p.id;
+    el.style.width = p.w + 'px';
+    el.style.height = p.h + 'px';
+    el.style.left = (p.cx - p.w/2) + 'px';
+    el.style.top = (p.cy - p.h/2) + 'px';
+
+    if (p.id === 'nav') {
+      el.style.flexDirection = 'row';
+      el.style.gap = '0';
+      el.style.padding = '0';
+      el.style.overflow = 'hidden';
+      const items = ['Overview','Features','Pricing','About'];
+      items.forEach((item, i) => {
+        const d = document.createElement('div');
+        d.style.cssText = `flex:1;height:100%;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--color-text-${i===0?'primary':'secondary'});font-weight:${i===0?'500':'400'};border-right:${i<items.length-1?'0.5px solid var(--color-border-tertiary)':'none'};`;
+        d.textContent = item;
+        el.appendChild(d);
+      });
+    } else if (p.id === 'hero') {
+      const h = document.createElement('div');
+      h.style.cssText = 'font-size:20px;font-weight:500;color:var(--color-text-primary);margin-bottom:6px;text-align:center;';
+      h.textContent = 'Perfect equilibrium.';
+      const sub = document.createElement('div');
+      sub.style.cssText = 'font-size:13px;color:var(--color-text-secondary);text-align:center;';
+      sub.textContent = 'Every element in its place, for now.';
+      el.appendChild(h); el.appendChild(sub);
+    } else if (p.label && p.value !== undefined) {
+      const lbl = document.createElement('div'); lbl.className = 'piece-label'; lbl.textContent = p.label;
+      const val = document.createElement('div'); val.className = 'piece-value'; val.id = 'val-'+p.id; val.textContent = p.value;
+      const sub = document.createElement('div'); sub.className = 'piece-sub'; sub.textContent = p.sub;
+      el.appendChild(lbl); el.appendChild(val); el.appendChild(sub);
+    } else if (p.id === 'cta') {
+      const btn = document.createElement('div');
+      btn.style.cssText = 'font-size:13px;color:var(--color-text-primary);font-weight:500;';
+      btn.textContent = 'Begin interaction';
+      el.appendChild(btn);
+    } else if (p.id === 'tag1' || p.id === 'tag2') {
+      el.style.borderRadius = '999px';
+      const t = document.createElement('div');
+      t.style.cssText = 'font-size:11px;color:var(--color-text-secondary);letter-spacing:0.05em;';
+      t.textContent = p.id === 'tag1' ? 'v2.0.0' : 'stable';
+      el.appendChild(t);
+    } else if (p.id === 'footer') {
+      const t = document.createElement('div');
+      t.style.cssText = 'font-size:11px;color:var(--color-text-tertiary);letter-spacing:0.04em;';
+      t.textContent = '© 2025 · system nominal · all services operational';
+      el.appendChild(t);
+    }
+
+    world.insertBefore(el, overlay);
+    return el;
+  }
+
+  PIECES.forEach(p => {
+    pieceEls[p.id] = makePieceEl(p);
+    currents[p.id] = { dx:0, dy:0, rot:0, scale:1, opacity:1 };
+    targets[p.id]  = { dx:0, dy:0, rot:0, scale:1, opacity:1 };
+  });
+
+  function rand(a, b) { return a + Math.random()*(b-a); }
+  function sign() { return Math.random()<0.5?-1:1; }
+
+  function assignTargets(e) {
+    const eased = Math.min(e, 1);
+    PIECES.forEach((p, i) => {
+      const delay = i * 0.08;
+      const localE = Math.max(0, (eased - delay) / (1 - delay));
+      const t = targets[p.id];
+      const maxDrift = 80 + i * 20;
+      t.dx = localE * rand(40, maxDrift) * sign();
+      t.dy = localE * rand(30, maxDrift * 0.8) * sign();
+      t.rot = localE * rand(8, 35) * sign();
+      t.scale = 1 + localE * (rand(0.7, 1.1) - 1);
+      t.opacity = 1 - localE * rand(0.3, 0.75);
+    });
+  }
+
+  function applyTransforms() {
+    PIECES.forEach(p => {
+      const c = currents[p.id];
+      const el = pieceEls[p.id];
+      el.style.transform = `translate(${c.dx.toFixed(2)}px, ${c.dy.toFixed(2)}px) rotate(${c.rot.toFixed(2)}deg) scale(${c.scale.toFixed(3)})`;
+      el.style.opacity = c.opacity.toFixed(3);
+    });
+  }
+
+  function lerp(a, b, t) { return a + (b - a) * t; }
+
+  function animLoop() {
+    const speed = collapsed ? 0.06 : 0.1;
+    let allClose = true;
+    PIECES.forEach(p => {
+      const c = currents[p.id];
+      const t = targets[p.id];
+      c.dx  = lerp(c.dx,  t.dx,  speed);
+      c.dy  = lerp(c.dy,  t.dy,  speed);
+      c.rot = lerp(c.rot, t.rot, speed);
+      c.scale   = lerp(c.scale,   t.scale,   speed);
+      c.opacity = lerp(c.opacity, t.opacity, speed);
+      if (Math.abs(c.dx - t.dx) > 0.5 || Math.abs(c.dy - t.dy) > 0.5) allClose = false;
+    });
+    applyTransforms();
+    updateLiveStats();
+    animAF = requestAnimationFrame(animLoop);
+  }
+
+  function updateLiveStats() {
+    const e2 = Math.min(entropy, 1);
+    const stab = document.getElementById('val-stat1');
+    const ent  = document.getElementById('val-stat2');
+    const ord  = document.getElementById('val-stat3');
+    if (stab) stab.textContent = Math.round((1 - e2) * 100) + '%';
+    if (ent)  ent.textContent  = (e2 * 9.81).toFixed(2);
+    if (ord) {
+      if (e2 < 0.05) ord.textContent = '∞';
+      else if (e2 > 0.95) ord.textContent = '0.00';
+      else ord.textContent = ((1 - e2) * 847).toFixed(0);
+    }
+    entropyFill.style.width = (e2 * 100).toFixed(1) + '%';
+  }
+
+  let mx = CX, my = CY;
+  let hasMoved = false;
+
+  function onMouseMove(e) {
+    const rect = world.getBoundingClientRect();
+    mx = e.clientX - rect.left;
+    my = e.clientY - rect.top;
+
+    dot.style.left = mx + 'px'; dot.style.top = my + 'px';
+    ring.style.left = mx + 'px'; ring.style.top = my + 'px';
+
+    if (!hasMoved) {
+      hasMoved = true;
+      dot.style.opacity = '1';
+      ring.style.opacity = '1';
+      hint.style.opacity = '0';
+    }
+
+    if (collapsed) return;
+
+    const dx = mx - CX, dy = my - CY;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    const maxDist = Math.sqrt(CX*CX + CY*CY);
+    const raw = dist / maxDist;
+    entropy = Math.pow(raw, 0.7);
+
+    assignTargets(entropy);
+
+    if (entropy > 0.92 && !collapsed) {
+      triggerCollapse();
+    }
+  }
+
+  function triggerCollapse() {
+    collapsed = true;
+    entropy = 1;
+    assignTargets(1);
+    hint.style.opacity = '0';
+    resetArea.style.opacity = '1';
+    setTimeout(() => { chaosOverlay.style.opacity = '1'; }, 600);
+    ring.style.width = '60px';
+    ring.style.height = '60px';
+    startJitter();
+  }
+
+  function startJitter() {
+    if (!collapsed) return;
+    PIECES.forEach(p => {
+      const t = targets[p.id];
+      t.dx += rand(-6, 6);
+      t.dy += rand(-5, 5);
+      t.rot += rand(-3, 3);
+    });
+    jitterAF = setTimeout(startJitter, rand(300, 700));
+  }
+
+  function reset() {
+    collapsed = false;
+    entropy = 0;
+    chaosOverlay.style.opacity = '0';
+    resetArea.style.opacity = '0';
+    hint.style.opacity = '1';
+    ring.style.width = '28px';
+    ring.style.height = '28px';
+    clearTimeout(jitterAF);
+    PIECES.forEach(p => {
+      targets[p.id] = { dx:0, dy:0, rot:0, scale:1, opacity:1 };
+    });
+  }
+
+  world.addEventListener('mousemove', onMouseMove);
+  world.addEventListener('mouseleave', () => {
+    if (!collapsed) {
+      entropy = 0;
+      assignTargets(0);
+    }
+    dot.style.opacity = '0';
+    ring.style.opacity = '0';
+  });
+  world.addEventListener('mouseenter', () => {
+    if (hasMoved) { dot.style.opacity = '1'; ring.style.opacity = '1'; }
+  });
+
+  document.getElementById('reset-btn').addEventListener('click', reset);
+
+  animLoop();
+})();
+</script>

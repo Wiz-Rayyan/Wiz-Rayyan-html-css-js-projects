@@ -1,0 +1,555 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+  :root {
+    --beige: #C8BFA0;
+    --beige-dark: #A09078;
+    --beige-light: #DDD4B8;
+    --phosphor: #33FF33;
+    --phosphor-dim: #1A8C1A;
+    --phosphor-bright: #88FF88;
+    --amber: #FF9900;
+    --red-warn: #FF3300;
+    --plastic: #B8AF96;
+    --bg-screen: #050F05;
+    --bg-panel: #C0B79A;
+    --btn-face: #C8BF9F;
+    --btn-shadow: #7A7260;
+    --btn-highlight: #E8DFC0;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: transparent; }
+
+  .terminal-wrap {
+    font-family: 'Share Tech Mono', 'Courier New', monospace;
+    background: var(--bg-panel);
+    border: 3px outset var(--beige-light);
+    border-radius: 4px;
+    padding: 16px;
+    position: relative;
+    max-width: 680px;
+  }
+
+  .scanlines-overlay {
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      to bottom,
+      transparent 0px,
+      transparent 3px,
+      rgba(0,0,0,0.08) 3px,
+      rgba(0,0,0,0.08) 4px
+    );
+    border-radius: 4px;
+    z-index: 100;
+  }
+
+  .top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    padding: 6px 10px;
+    background: var(--plastic);
+    border: 2px inset var(--btn-shadow);
+    border-radius: 2px;
+  }
+
+  .logo-text {
+    font-size: 11px;
+    color: #3A3228;
+    letter-spacing: 3px;
+    font-weight: bold;
+  }
+
+  .status-lights {
+    display: flex;
+    gap: 6px;
+  }
+  .light {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    border: 1px solid #6A6050;
+  }
+  .light.green { background: #33FF33; box-shadow: 0 0 4px #33FF33; }
+  .light.amber { background: #FF9900; box-shadow: 0 0 4px #FF9900; }
+  .light.red   { background: #FF3300; box-shadow: 0 0 4px #FF3300; }
+
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 220px;
+    gap: 10px;
+  }
+
+  .crt-screen {
+    background: var(--bg-screen);
+    border: 4px inset #555;
+    border-radius: 6px;
+    padding: 14px 16px;
+    position: relative;
+    overflow: hidden;
+    min-height: 280px;
+    box-shadow: inset 0 0 30px rgba(0,255,0,0.04);
+  }
+
+  .crt-screen::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% 40%, rgba(0,255,0,0.04) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .screen-header {
+    color: var(--phosphor-bright);
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-shadow: 0 0 6px #33FF33, 0 0 2px #33FF33;
+    border-bottom: 1px solid var(--phosphor-dim);
+    padding-bottom: 6px;
+    margin-bottom: 10px;
+  }
+
+  .screen-line {
+    color: var(--phosphor);
+    font-size: 11px;
+    line-height: 1.7;
+    text-shadow: 0 0 4px #33FF33, 0 0 1px #33FF33;
+    white-space: pre;
+  }
+
+  .screen-line.dim {
+    color: var(--phosphor-dim);
+    text-shadow: 0 0 2px #1A8C1A;
+  }
+
+  .screen-line.bright {
+    color: var(--phosphor-bright);
+    text-shadow: 0 0 8px #33FF33, 0 0 3px #88FF88;
+  }
+
+  .screen-line.warn {
+    color: var(--amber);
+    text-shadow: 0 0 5px #FF9900;
+  }
+
+  .cursor {
+    display: inline-block;
+    width: 8px;
+    height: 12px;
+    background: var(--phosphor);
+    box-shadow: 0 0 4px #33FF33;
+    animation: blink 1s step-end infinite;
+    vertical-align: text-bottom;
+  }
+
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+  .input-line {
+    display: flex;
+    align-items: center;
+    margin-top: 8px;
+    gap: 6px;
+  }
+
+  .prompt-sym {
+    color: var(--phosphor-bright);
+    text-shadow: 0 0 6px #33FF33;
+    font-size: 11px;
+  }
+
+  .crt-input {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--phosphor-bright);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    text-shadow: 0 0 4px #33FF33;
+    caret-color: var(--phosphor);
+    flex: 1;
+    letter-spacing: 1px;
+  }
+
+  .right-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .mini-screen {
+    background: #080808;
+    border: 3px inset #555;
+    border-radius: 4px;
+    padding: 10px;
+    flex: 1;
+  }
+
+  .mini-label {
+    font-size: 9px;
+    color: var(--amber);
+    text-shadow: 0 0 4px #FF9900;
+    letter-spacing: 2px;
+    margin-bottom: 6px;
+  }
+
+  .bar-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+  }
+
+  .bar-label {
+    font-size: 9px;
+    color: var(--phosphor-dim);
+    text-shadow: 0 0 2px #1A8C1A;
+    width: 28px;
+    letter-spacing: 1px;
+  }
+
+  .bar-track {
+    flex: 1;
+    height: 8px;
+    background: #111;
+    border: 1px inset #333;
+    border-radius: 0;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .bar-fill {
+    height: 100%;
+    background: var(--phosphor);
+    box-shadow: 0 0 4px #33FF33;
+    transition: width 0.5s;
+  }
+
+  .bar-fill.amber { background: var(--amber); box-shadow: 0 0 4px #FF9900; }
+  .bar-fill.red { background: var(--red-warn); box-shadow: 0 0 4px #FF3300; }
+
+  .bar-val {
+    font-size: 9px;
+    color: var(--phosphor-dim);
+    text-shadow: 0 0 2px #1A8C1A;
+    width: 24px;
+    text-align: right;
+  }
+
+  .button-bank {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px;
+    margin-top: 10px;
+  }
+
+  .chunky-btn {
+    background: var(--btn-face);
+    border: 3px outset var(--btn-highlight);
+    border-radius: 2px;
+    padding: 6px 4px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1px;
+    color: #2A2218;
+    cursor: pointer;
+    text-align: center;
+    transition: none;
+    line-height: 1.3;
+  }
+
+  .chunky-btn:active, .chunky-btn.pressed {
+    border-style: inset;
+    border-color: var(--btn-shadow);
+    background: #AFA69A;
+    transform: none;
+  }
+
+  .chunky-btn.red-btn {
+    background: #CC3300;
+    color: #FFB090;
+    border-color: #FF5533;
+    text-shadow: 0 0 2px #FF3300;
+  }
+
+  .chunky-btn.red-btn:active {
+    background: #991100;
+  }
+
+  .tape-deck {
+    background: var(--plastic);
+    border: 2px inset var(--btn-shadow);
+    border-radius: 2px;
+    padding: 8px 10px;
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .tape-reel {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    border: 3px outset #D0C7A8;
+    background: #1A1610;
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+  }
+
+  .tape-hub {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: #888070;
+    border: 1px solid #555;
+  }
+
+  .tape-transport {
+    display: flex;
+    gap: 4px;
+    flex: 1;
+    justify-content: center;
+  }
+
+  .transport-btn {
+    background: var(--btn-face);
+    border: 2px outset var(--btn-highlight);
+    border-radius: 2px;
+    width: 22px; height: 20px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    font-size: 10px;
+    color: #3A3228;
+  }
+
+  .transport-btn:active { border-style: inset; }
+
+  .rec-btn {
+    background: #CC2200;
+    border-color: #FF4422;
+  }
+
+  .counter-display {
+    background: #0A0804;
+    border: 2px inset #333;
+    padding: 2px 6px;
+    font-size: 12px;
+    color: var(--amber);
+    text-shadow: 0 0 4px #FF9900;
+    letter-spacing: 2px;
+    border-radius: 2px;
+  }
+
+  .alert-banner {
+    background: #0A0200;
+    border: 2px solid #FF3300;
+    padding: 6px 10px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .alert-text {
+    color: #FF3300;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-shadow: 0 0 4px #FF3300;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+  .panel-label {
+    font-size: 9px;
+    color: #5A5040;
+    letter-spacing: 2px;
+    text-align: center;
+    margin-bottom: 4px;
+  }
+
+  .reel-spin { animation: spin 3s linear infinite; }
+  @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+</style>
+
+<div class="terminal-wrap">
+  <div class="scanlines-overlay"></div>
+
+  <div class="top-bar">
+    <span class="logo-text">USCSS NOSTROMO · MU/TH/UR 6000</span>
+    <div class="status-lights">
+      <div class="light green"></div>
+      <div class="light amber"></div>
+      <div class="light red"></div>
+    </div>
+  </div>
+
+  <div class="alert-banner">
+    <div class="status-lights"><div class="light red"></div></div>
+    <span class="alert-text">⚠ COMMERCIAL TOWING VEHICLE — CREW IN HYPERSLEEP — PRIORITY OVERRIDE ACTIVE ⚠</span>
+  </div>
+
+  <div class="main-grid">
+
+    <div>
+      <div class="crt-screen" id="mainScreen">
+        <div class="screen-header">MUTHR 6000 // INTERFACE TERMINAL // RESTRICTED ACCESS</div>
+        <div class="screen-line dim">VESSEL: USCSS NOSTROMO · NCC-79-446A     </div>
+        <div class="screen-line dim">CARGO:  TOWING · 20,000,000 T · PETROLEUM</div>
+        <div class="screen-line dim">CREW:   7 HUMANS · STATUS: HYPERSLEEP     </div>
+        <div class="screen-line"> </div>
+        <div class="screen-line bright">INCOMING TRANSMISSION: LV-426 SECTOR    </div>
+        <div class="screen-line bright">SIGNAL TYPE: NON-HUMAN ORIGIN            </div>
+        <div class="screen-line"> </div>
+        <div class="screen-line warn">** SPECIAL ORDER 937 INITIATED **        </div>
+        <div class="screen-line warn">** SCIENCE OFFICER: EYES ONLY **         </div>
+        <div class="screen-line"> </div>
+        <div class="screen-line">CREW EXPENDABLE. PRIORITY: SPECIMEN         </div>
+        <div class="screen-line dim">WEYLAND-YUTANI CORP — BUILDING BETTER     </div>
+        <div class="screen-line dim">WORLDS — ™ 2122                           </div>
+        <div class="screen-line"> </div>
+        <div id="outputLines"></div>
+        <div class="input-line">
+          <span class="prompt-sym">▶</span>
+          <input class="crt-input" id="termInput" type="text" placeholder="ENTER COMMAND..." maxlength="40" autocomplete="off" spellcheck="false" />
+        </div>
+      </div>
+
+      <div class="tape-deck">
+        <div class="panel-label" style="white-space:nowrap; margin:0;">DATA RECORDER</div>
+        <div class="tape-reel" id="reel1"><div class="tape-hub"></div></div>
+        <div class="tape-transport">
+          <div class="transport-btn" onclick="tapePrev()">◀◀</div>
+          <div class="transport-btn" onclick="tapeStop()">■</div>
+          <div class="transport-btn" onclick="tapePlay()" id="playBtn">▶</div>
+          <div class="transport-btn rec-btn" onclick="tapeRec()">●</div>
+          <div class="transport-btn" onclick="tapeFwd()">▶▶</div>
+        </div>
+        <div class="tape-reel" id="reel2"><div class="tape-hub"></div></div>
+        <div class="counter-display" id="counter">000</div>
+      </div>
+    </div>
+
+    <div class="right-panel">
+      <div class="mini-screen">
+        <div class="mini-label">SHIP SYSTEMS</div>
+        <div class="bar-row">
+          <span class="bar-label">HULL</span>
+          <div class="bar-track"><div class="bar-fill" style="width:92%"></div></div>
+          <span class="bar-val" style="color:#33FF33;text-shadow:0 0 3px #33FF33">92%</span>
+        </div>
+        <div class="bar-row">
+          <span class="bar-label">O2</span>
+          <div class="bar-track"><div class="bar-fill" style="width:78%"></div></div>
+          <span class="bar-val" style="color:#33FF33;text-shadow:0 0 3px #33FF33">78%</span>
+        </div>
+        <div class="bar-row">
+          <span class="bar-label">PWR</span>
+          <div class="bar-track"><div class="bar-fill amber" style="width:61%"></div></div>
+          <span class="bar-val" style="color:#FF9900;text-shadow:0 0 3px #FF9900">61%</span>
+        </div>
+        <div class="bar-row">
+          <span class="bar-label">TEMP</span>
+          <div class="bar-track"><div class="bar-fill amber" style="width:55%"></div></div>
+          <span class="bar-val" style="color:#FF9900;text-shadow:0 0 3px #FF9900">55%</span>
+        </div>
+        <div class="bar-row">
+          <span class="bar-label">BIO</span>
+          <div class="bar-track"><div class="bar-fill red" style="width:12%" id="bioBar"></div></div>
+          <span class="bar-val" id="bioVal" style="color:#FF3300;text-shadow:0 0 3px #FF3300">12%</span>
+        </div>
+      </div>
+
+      <div style="padding: 6px 0 2px;">
+        <div class="panel-label">COMMAND INTERFACE</div>
+        <div class="button-bank">
+          <button class="chunky-btn" onclick="runCmd('STATUS')">STATUS<br>RPT</button>
+          <button class="chunky-btn" onclick="runCmd('SCAN')">MOTION<br>SCAN</button>
+          <button class="chunky-btn" onclick="runCmd('AIRLOCK')">AIRLOCK<br>CTRL</button>
+          <button class="chunky-btn" onclick="runCmd('CRYO')">CRYO<br>WAKE</button>
+          <button class="chunky-btn" onclick="runCmd('NAV')">NAV<br>COMP</button>
+          <button class="chunky-btn" onclick="runCmd('SELFDEST')">SELF-<br>DEST</button>
+          <button class="chunky-btn red-btn" onclick="runCmd('EMERGENCY')" style="grid-column:span 2">!! EMERGENCY OVERRIDE !!</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const responses = {
+  STATUS: ["SYSTEM STATUS: NOMINAL","REACTOR CORE: STABLE","ETA EARTH: 10 MONTHS 4 DAYS","CREW: 7 ACTIVE BIOSIGNS DETECTED"],
+  SCAN: ["MOTION TRACKER ONLINE","GRID REF 7-G: CONTACT DETECTED","SIGNAL: INTERMITTENT — ORGANIC","RECOMMEND: DO NOT PURSUE"],
+  AIRLOCK: ["AIRLOCK ALPHA: SEALED","AIRLOCK BETA: SEALED","OVERRIDE LOCKED — SPECIAL ORDER 937","WEYLAND-YUTANI AUTH REQUIRED"],
+  CRYO: ["INITIATING REVIVAL SEQUENCE","CAUTION: EARLY REVIVAL RISK","PROCEED? Y/N: AUTHORIZATION REQUIRED","MUTHR OVERRIDE: COMMAND DENIED"],
+  NAV: ["CURRENT COURSE: LV-426 INTERCEPT","DESTINATION LOCKED","AUTOPILOT: ENGAGED","CREW INPUT: SUSPENDED"],
+  SELFDEST: ["ATTENTION: DESTRUCT SEQUENCE REQUIRES","TWO OFFICER AUTHORIZATION CODES","CODE 1: [ ] CODE 2: [ ]","SEQUENCE: PENDING"],
+  EMERGENCY: ["** EMERGENCY PROTOCOL ACTIVE **","ALL PERSONNEL: REPORT TO STATIONS","HULL BREACH: NEGATIVE","ALIEN BIOSIGN: CONFIRMED ABOARD"],
+};
+
+const customResponses = [
+  "PROCESSING... QUERY LOGGED.",
+  "MUTHR INTERFACE: RESTRICTED ACCESS.",
+  "DATA INSUFFICIENT — REPHRASE.",
+  "SPECIAL ORDER 937: LIMITS RESPONSE.",
+  "WEYLAND-YUTANI PROPRIETARY DATA.",
+  "TRANSMISSION CORRUPTED — RETRY.",
+];
+
+function addLine(text, cls='') {
+  const div = document.createElement('div');
+  div.className = 'screen-line ' + cls;
+  div.textContent = text.padEnd(42);
+  document.getElementById('outputLines').appendChild(div);
+  document.getElementById('mainScreen').scrollTop = 9999;
+}
+
+function runCmd(cmd) {
+  addLine('▶ ' + cmd, 'bright');
+  const lines = responses[cmd] || [customResponses[Math.floor(Math.random()*customResponses.length)]];
+  lines.forEach((l,i) => setTimeout(() => addLine(l, i===0?'warn':'dim'), (i+1)*160));
+}
+
+document.getElementById('termInput').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') {
+    const val = this.value.trim().toUpperCase();
+    if (!val) return;
+    if (responses[val]) { runCmd(val); }
+    else { addLine('▶ ' + val, 'bright'); setTimeout(()=>addLine(customResponses[Math.floor(Math.random()*customResponses.length)],'dim'),200); }
+    this.value = '';
+  }
+});
+
+let counter = 0;
+let playing = false;
+let counterInterval = null;
+
+function updateCounter() {
+  document.getElementById('counter').textContent = String(counter).padStart(3,'0');
+}
+
+function tapePlay() {
+  if (playing) return;
+  playing = true;
+  document.getElementById('reel1').classList.add('reel-spin');
+  counterInterval = setInterval(() => { counter = (counter+1)%1000; updateCounter(); }, 80);
+  addLine('TAPE: PLAYBACK ACTIVE', 'dim');
+}
+
+function tapeStop() {
+  playing = false;
+  document.getElementById('reel1').classList.remove('reel-spin');
+  clearInterval(counterInterval);
+  addLine('TAPE: STOPPED', 'dim');
+}
+
+function tapePrev() { counter = Math.max(0,counter-10); updateCounter(); }
+function tapeFwd()  { counter = Math.min(999,counter+10); updateCounter(); }
+function tapeRec()  { addLine('TAPE: RECORDING — DATA LOG ACTIVE','warn'); }
+
+setInterval(() => {
+  const b = document.getElementById('bioBar');
+  const v = document.getElementById('bioVal');
+  if (b) { const pct = 8 + Math.round(Math.random()*8); b.style.width=pct+'%'; v.textContent=pct+'%'; }
+}, 2000);
+</script>

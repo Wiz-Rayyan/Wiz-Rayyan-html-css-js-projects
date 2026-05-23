@@ -1,0 +1,501 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+.stage {
+  background: #080705;
+  min-height: 680px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  font-family: Georgia, 'Times New Roman', serif;
+  cursor: default;
+  user-select: none;
+}
+
+canvas#bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.stage-content {
+  position: relative;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.door-outer {
+  position: relative;
+  width: 240px;
+  height: 380px;
+}
+
+.beyond-room {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #0b110a;
+}
+
+.beyond-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.frame-piece {
+  position: absolute;
+  background: #1a1208;
+}
+
+.frame-left   { left: 0; top: 0; bottom: 0; width: 18px; }
+.frame-right  { right: 0; top: 0; bottom: 0; width: 18px; }
+.frame-top    { left: 0; right: 0; top: 0; height: 18px; }
+
+.frame-bevel-left  { position: absolute; left: 18px; top: 18px; bottom: 0; width: 3px; background: #2e1f0e; }
+.frame-bevel-right { position: absolute; right: 18px; top: 18px; bottom: 0; width: 3px; background: #2e1f0e; }
+.frame-bevel-top   { position: absolute; left: 18px; right: 18px; top: 18px; height: 3px; background: #2e1f0e; }
+
+.threshold-wrap {
+  position: absolute;
+  bottom: -2px;
+  left: -32px;
+  right: -32px;
+}
+
+.threshold-bar {
+  height: 3px;
+  background: #3a2a0e;
+  position: relative;
+  overflow: visible;
+}
+
+.threshold-shine {
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(to right, transparent, rgba(200,160,80,0.6) 20%, rgba(230,190,100,0.9) 50%, rgba(200,160,80,0.6) 80%, transparent);
+  transition: opacity 0.8s ease;
+  opacity: 0.4;
+}
+
+.stage.hovering .threshold-shine { opacity: 1; }
+
+.threshold-word {
+  position: absolute;
+  bottom: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  color: rgba(180,140,70,0.3);
+  font-style: italic;
+  white-space: nowrap;
+  transition: color 0.8s;
+}
+
+.stage.hovering .threshold-word { color: rgba(200,160,80,0.6); }
+
+.light-cone {
+  position: absolute;
+  bottom: -1px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 60px solid transparent;
+  border-right: 60px solid transparent;
+  border-bottom: 0px solid transparent;
+  transition: none;
+  pointer-events: none;
+}
+
+.ask {
+  margin-top: 54px;
+  text-align: center;
+}
+
+.ask-text {
+  font-size: 28px;
+  font-style: italic;
+  color: rgba(210,185,120,0.35);
+  letter-spacing: 0.06em;
+  transition: color 1s ease;
+  line-height: 1;
+}
+
+.stage.hovering .ask-text { color: rgba(220,195,130,0.7); }
+
+.ask-mark {
+  display: inline-block;
+  animation: pulse 4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.25; transform: translateY(0); }
+  50% { opacity: 0.85; transform: translateY(-2px); }
+}
+
+.instruction {
+  margin-top: 14px;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  color: rgba(140,120,70,0.22);
+  font-style: italic;
+  text-align: center;
+  transition: color 1s ease;
+}
+
+.stage.hovering .instruction { color: rgba(160,130,70,0.4); }
+
+.step-indicator {
+  display: flex;
+  gap: 8px;
+  margin-top: 22px;
+  align-items: center;
+}
+
+.step-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(180,150,80,0.2);
+  transition: background 0.5s ease, transform 0.5s ease;
+}
+
+.step-dot.active {
+  background: rgba(200,170,90,0.7);
+  transform: scale(1.4);
+}
+
+.floor-perspective {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 500px;
+  height: 60px;
+  pointer-events: none;
+  z-index: 3;
+  overflow: hidden;
+}
+
+.floor-line {
+  position: absolute;
+  height: 1px;
+  left: 0; right: 0;
+  background: linear-gradient(to right, transparent, rgba(100,80,40,0.15) 30%, rgba(130,100,50,0.3) 50%, rgba(100,80,40,0.15) 70%, transparent);
+}
+
+.side-text {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: rgba(130,110,60,0.15);
+  font-style: italic;
+  transition: color 1s ease;
+  z-index: 4;
+}
+
+.side-text.left { left: 18px; text-align: left; }
+.side-text.right { right: 18px; text-align: right; }
+
+.stage.hovering .side-text { color: rgba(150,120,60,0.3); }
+</style>
+
+<div class="stage" id="stage">
+  <canvas id="bg"></canvas>
+
+  <div class="side-text left">here</div>
+  <div class="side-text right">there</div>
+
+  <div class="floor-perspective" id="floorPersp">
+    <div class="floor-line" style="bottom: 0;"></div>
+    <div class="floor-line" style="bottom: 15px; left: 30px; right: 30px; opacity: 0.6;"></div>
+    <div class="floor-line" style="bottom: 28px; left: 70px; right: 70px; opacity: 0.35;"></div>
+    <div class="floor-line" style="bottom: 38px; left: 120px; right: 120px; opacity: 0.18;"></div>
+  </div>
+
+  <div class="stage-content">
+    <div class="door-outer" id="doorOuter">
+      <div class="beyond-room">
+        <canvas class="beyond-canvas" id="beyondCanvas"></canvas>
+      </div>
+
+      <div class="frame-piece frame-left"></div>
+      <div class="frame-piece frame-right"></div>
+      <div class="frame-piece frame-top"></div>
+      <div class="frame-bevel-left"></div>
+      <div class="frame-bevel-right"></div>
+      <div class="frame-bevel-top"></div>
+
+      <div class="threshold-wrap">
+        <div class="threshold-bar">
+          <div class="threshold-shine"></div>
+        </div>
+        <div class="threshold-word">threshold</div>
+      </div>
+    </div>
+
+    <div class="ask">
+      <div class="ask-text">Enter<span class="ask-mark">?</span></div>
+    </div>
+
+    <div class="instruction">hover — move — approach</div>
+
+    <div class="step-indicator">
+      <div class="step-dot" id="dot0"></div>
+      <div class="step-dot" id="dot1"></div>
+      <div class="step-dot" id="dot2"></div>
+      <div class="step-dot" id="dot3"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const stage = document.getElementById('stage');
+  const bgCanvas = document.getElementById('bg');
+  const bgCtx = bgCanvas.getContext('2d');
+  const beyondCanvas = document.getElementById('beyondCanvas');
+  const beyondCtx = beyondCanvas.getContext('2d');
+  const dots = [0,1,2,3].map(i => document.getElementById('dot'+i));
+
+  let W = 0, H = 0;
+  let mouseX = 0.5, mouseY = 0.5;
+  let targetX = 0.5, targetY = 0.5;
+  let proximity = 0, targetProximity = 0;
+  let isHovering = false;
+  let t = 0;
+  let particles = [];
+
+  function resize() {
+    W = stage.offsetWidth;
+    H = stage.offsetHeight;
+    bgCanvas.width = W;
+    bgCanvas.height = H;
+    beyondCanvas.width = beyondCanvas.offsetWidth || 204;
+    beyondCanvas.height = beyondCanvas.offsetHeight || 380;
+  }
+
+  resize();
+  window.addEventListener('resize', resize);
+
+  stage.addEventListener('mousemove', e => {
+    const r = stage.getBoundingClientRect();
+    mouseX = (e.clientX - r.left) / r.width;
+    mouseY = (e.clientY - r.top) / r.height;
+    isHovering = true;
+    stage.classList.add('hovering');
+  });
+
+  stage.addEventListener('mouseleave', () => {
+    isHovering = false;
+    stage.classList.remove('hovering');
+    targetX = 0.5;
+    targetY = 0.5;
+  });
+
+  function getProximityToDoor() {
+    const doorCX = 0.5, doorCY = 0.45;
+    const dx = mouseX - doorCX;
+    const dy = mouseY - doorCY;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    return Math.max(0, 1 - dist / 0.4);
+  }
+
+  function spawnParticle() {
+    const bw = beyondCanvas.width, bh = beyondCanvas.height;
+    particles.push({
+      x: Math.random() * bw,
+      y: bh * (0.3 + Math.random() * 0.5),
+      vx: (Math.random() - 0.5) * 0.3,
+      vy: -0.2 - Math.random() * 0.4,
+      life: 1,
+      decay: 0.005 + Math.random() * 0.008,
+      size: 1 + Math.random() * 2
+    });
+  }
+
+  function drawBg() {
+    bgCtx.clearRect(0, 0, W, H);
+    bgCtx.fillStyle = '#080705';
+    bgCtx.fillRect(0, 0, W, H);
+
+    const cx = mouseX * W;
+    const cy = mouseY * H;
+
+    if (isHovering && proximity > 0.05) {
+      const grad = bgCtx.createRadialGradient(cx, cy, 0, cx, cy, 300 * proximity);
+      grad.addColorStop(0, `rgba(60,45,15,${0.12 * proximity})`);
+      grad.addColorStop(1, 'transparent');
+      bgCtx.fillStyle = grad;
+      bgCtx.fillRect(0, 0, W, H);
+    }
+
+    const vgrad = bgCtx.createRadialGradient(W/2, H/2, 0, W/2, H/2, Math.max(W,H)*0.7);
+    vgrad.addColorStop(0, 'transparent');
+    vgrad.addColorStop(1, 'rgba(0,0,0,0.8)');
+    bgCtx.fillStyle = vgrad;
+    bgCtx.fillRect(0, 0, W, H);
+
+    for (let i = 0; i < 3; i++) {
+      const yy = H * (0.62 + i * 0.08);
+      const w2 = (1 - i * 0.25) * W * 0.4;
+      const alpha = 0.04 - i * 0.01;
+      bgCtx.strokeStyle = `rgba(110,85,40,${alpha})`;
+      bgCtx.lineWidth = 0.5;
+      bgCtx.beginPath();
+      bgCtx.moveTo(W/2 - w2, yy);
+      bgCtx.lineTo(W/2 + w2, yy);
+      bgCtx.stroke();
+    }
+  }
+
+  function drawBeyond() {
+    const bw = beyondCanvas.width;
+    const bh = beyondCanvas.height;
+    beyondCtx.clearRect(0, 0, bw, bh);
+
+    const revealAmt = proximity;
+
+    beyondCtx.fillStyle = '#0b110a';
+    beyondCtx.fillRect(0, 0, bw, bh);
+
+    if (revealAmt > 0.05) {
+      const roomGrad = beyondCtx.createRadialGradient(bw/2, bh * 0.25, 0, bw/2, bh * 0.25, bh * 0.8);
+      roomGrad.addColorStop(0, `rgba(30,55,20,${revealAmt * 0.8})`);
+      roomGrad.addColorStop(0.5, `rgba(15,28,10,${revealAmt * 0.5})`);
+      roomGrad.addColorStop(1, `rgba(8,14,6,${revealAmt * 0.3})`);
+      beyondCtx.fillStyle = roomGrad;
+      beyondCtx.fillRect(0, 0, bw, bh);
+
+      const lightGrad = beyondCtx.createRadialGradient(bw/2, -20, 0, bw/2, -20, bh * 0.8);
+      lightGrad.addColorStop(0, `rgba(160,210,80,${revealAmt * 0.12})`);
+      lightGrad.addColorStop(0.4, `rgba(100,160,50,${revealAmt * 0.06})`);
+      lightGrad.addColorStop(1, 'transparent');
+      beyondCtx.fillStyle = lightGrad;
+      beyondCtx.fillRect(0, 0, bw, bh);
+
+      if (revealAmt > 0.3) {
+        const fade = (revealAmt - 0.3) / 0.7;
+        beyondCtx.strokeStyle = `rgba(60,90,40,${fade * 0.15})`;
+        beyondCtx.lineWidth = 0.5;
+        for (let i = 1; i < 5; i++) {
+          const yy = bh * (0.4 + i * 0.1);
+          const xOff = bw * 0.08 * i;
+          beyondCtx.beginPath();
+          beyondCtx.moveTo(xOff, yy);
+          beyondCtx.lineTo(bw - xOff, yy);
+          beyondCtx.stroke();
+        }
+
+        const vl = (i) => {
+          const xx = bw * (0.2 + i * 0.3);
+          beyondCtx.beginPath();
+          beyondCtx.moveTo(xx, bh * 0.3);
+          beyondCtx.lineTo(xx, bh * 0.85);
+          beyondCtx.stroke();
+        };
+        beyondCtx.strokeStyle = `rgba(60,90,40,${fade * 0.1})`;
+        vl(0); vl(1); vl(2);
+      }
+
+      if (revealAmt > 0.5) {
+        const fade = (revealAmt - 0.5) / 0.5;
+        const chairW = 30 * fade, chairH = 45 * fade;
+        const chairX = bw/2 - chairW/2, chairY = bh * 0.55;
+        beyondCtx.strokeStyle = `rgba(80,120,50,${fade * 0.25})`;
+        beyondCtx.lineWidth = 1;
+        beyondCtx.strokeRect(chairX, chairY, chairW, chairH * 0.5);
+        beyondCtx.beginPath();
+        beyondCtx.moveTo(chairX, chairY);
+        beyondCtx.lineTo(chairX, chairY + chairH);
+        beyondCtx.moveTo(chairX + chairW, chairY);
+        beyondCtx.lineTo(chairX + chairW, chairY + chairH);
+        beyondCtx.stroke();
+        beyondCtx.strokeRect(chairX + 5, chairY - chairH * 0.45, chairW - 10, chairH * 0.45);
+
+        const lampX = bw * 0.25, lampY = bh * 0.35;
+        const lampR = 8 * fade;
+        beyondCtx.strokeStyle = `rgba(100,160,60,${fade * 0.2})`;
+        beyondCtx.beginPath();
+        beyondCtx.arc(lampX, lampY, lampR, 0, Math.PI * 2);
+        beyondCtx.stroke();
+
+        const glowGrad = beyondCtx.createRadialGradient(lampX, lampY, 0, lampX, lampY, lampR * 4);
+        glowGrad.addColorStop(0, `rgba(150,220,80,${fade * 0.15})`);
+        glowGrad.addColorStop(1, 'transparent');
+        beyondCtx.fillStyle = glowGrad;
+        beyondCtx.beginPath();
+        beyondCtx.arc(lampX, lampY, lampR * 4, 0, Math.PI * 2);
+        beyondCtx.fill();
+      }
+
+      for (const p of particles) {
+        const alpha = p.life * revealAmt * 0.4;
+        beyondCtx.fillStyle = `rgba(160,220,80,${alpha})`;
+        beyondCtx.beginPath();
+        beyondCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        beyondCtx.fill();
+      }
+
+      const scanlineAlpha = (1 - revealAmt) * 0.25;
+      if (scanlineAlpha > 0.01) {
+        beyondCtx.fillStyle = `rgba(0,0,0,${scanlineAlpha})`;
+        for (let y = 0; y < bh; y += 3) {
+          beyondCtx.fillRect(0, y, bw, 1.5);
+        }
+      }
+
+      const blurAmount = Math.max(0, (1 - revealAmt) * 8);
+      beyondCanvas.style.filter = `blur(${blurAmount.toFixed(1)}px) brightness(${(0.4 + revealAmt * 0.7).toFixed(2)})`;
+    } else {
+      beyondCanvas.style.filter = 'blur(8px) brightness(0.3)';
+    }
+  }
+
+  function updateDots() {
+    const level = Math.floor(proximity * 4);
+    dots.forEach((d, i) => {
+      d.classList.toggle('active', i < level);
+    });
+  }
+
+  function loop(timestamp) {
+    t = timestamp * 0.001;
+
+    targetX = isHovering ? mouseX : 0.5 + Math.sin(t * 0.3) * 0.02;
+    targetY = isHovering ? mouseY : 0.5 + Math.cos(t * 0.2) * 0.015;
+
+    targetProximity = isHovering ? getProximityToDoor() : 0;
+    proximity += (targetProximity - proximity) * 0.04;
+
+    if (proximity > 0.3 && Math.random() < 0.04) spawnParticle();
+
+    particles = particles.filter(p => p.life > 0);
+    for (const p of particles) {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.life -= p.decay;
+    }
+
+    drawBg();
+    drawBeyond();
+    updateDots();
+
+    requestAnimationFrame(loop);
+  }
+
+  requestAnimationFrame(loop);
+})();
+</script>

@@ -1,0 +1,273 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  #scene {
+    width: 100%;
+    min-height: 520px;
+    background: #0a0a0a;
+    overflow-y: scroll;
+    overflow-x: hidden;
+    position: relative;
+    font-family: var(--font-sans);
+    cursor: ns-resize;
+  }
+
+  #scroll-track {
+    height: 3200px;
+    width: 100%;
+    position: relative;
+  }
+
+  #page {
+    position: sticky;
+    top: 0;
+    height: 520px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  #content-box {
+    background: #f5f0e8;
+    transition: none;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+  }
+
+  #vignette {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  #crack-svg {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .text-block {
+    color: #1a1208;
+    line-height: 1.65;
+    transition: none;
+  }
+
+  .text-block h2 {
+    font-weight: 500;
+    margin-bottom: 0.5em;
+  }
+
+  .text-block p {
+    margin-bottom: 0.8em;
+  }
+
+  .text-block p:last-child {
+    margin-bottom: 0;
+  }
+
+  #scroll-hint {
+    position: absolute;
+    bottom: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #555;
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    z-index: 20;
+    transition: opacity 0.5s;
+    font-family: var(--font-sans);
+  }
+
+  #scroll-hint .arrow {
+    animation: bounce 1.2s ease-in-out infinite;
+    display: inline-block;
+  }
+
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(4px); }
+  }
+
+  #breath-ring {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 8;
+    opacity: 0;
+  }
+
+  #progress-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 2px;
+    background: #8b0000;
+    z-index: 30;
+    width: 0%;
+    transition: none;
+  }
+</style>
+
+<div id="scene" role="region" aria-label="Claustrophobia scroll experience">
+  <div id="scroll-track">
+    <div id="page">
+      <div id="progress-bar"></div>
+      <div id="content-box">
+        <div id="breath-ring"></div>
+        <svg id="crack-svg" viewBox="0 0 400 300" preserveAspectRatio="none">
+          <path d="M0 80 L40 95 L20 120 L55 140 L30 180" stroke="#1a0a00" stroke-width="1.5" fill="none" opacity="0.6"/>
+          <path d="M400 40 L360 70 L380 100 L345 130 L370 170 L350 210" stroke="#1a0a00" stroke-width="1.2" fill="none" opacity="0.5"/>
+          <path d="M180 0 L195 35 L175 55 L200 90" stroke="#1a0a00" stroke-width="1" fill="none" opacity="0.4"/>
+          <path d="M0 260 L50 250 L35 285 L80 280" stroke="#1a0a00" stroke-width="1" fill="none" opacity="0.3"/>
+          <path d="M350 290 L380 265 L400 280" stroke="#1a0a00" stroke-width="0.8" fill="none" opacity="0.35"/>
+        </svg>
+        <svg id="vignette" viewBox="0 0 100 100" preserveAspectRatio="none">
+          <defs>
+            <radialGradient id="vg" cx="50%" cy="50%" r="60%">
+              <stop offset="0%" stop-color="transparent" stop-opacity="0"/>
+              <stop offset="70%" stop-color="#000" stop-opacity="0" id="vg-mid"/>
+              <stop offset="100%" stop-color="#000" stop-opacity="0" id="vg-edge"/>
+            </radialGradient>
+          </defs>
+          <rect width="100" height="100" fill="url(#vg)"/>
+        </svg>
+        <div class="text-block" id="text-block">
+          <h2 id="heading">The Room</h2>
+          <p id="p1">The walls have always been there. You just never noticed how close they were.</p>
+          <p id="p2">Every room has edges. Corners. Places where the air runs out.</p>
+          <p id="p3">Keep going.</p>
+        </div>
+      </div>
+      <div id="scroll-hint"><span class="arrow">↓</span> scroll</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const scene = document.getElementById('scene');
+const box = document.getElementById('content-box');
+const textBlock = document.getElementById('text-block');
+const heading = document.getElementById('heading');
+const p1 = document.getElementById('p1');
+const p2 = document.getElementById('p2');
+const p3 = document.getElementById('p3');
+const hint = document.getElementById('scroll-hint');
+const vgMid = document.getElementById('vg-mid');
+const vgEdge = document.getElementById('vg-edge');
+const crackSvg = document.getElementById('crack-svg');
+const progressBar = document.getElementById('progress-bar');
+const breathRing = document.getElementById('breath-ring');
+
+const stages = [
+  { heading: "The Room", p1: "The walls have always been there. You just never noticed how close they were.", p2: "Every room has edges. Corners. Places where the air runs out.", p3: "Keep going." },
+  { heading: "Closer.", p1: "The margins are tightening. You feel it now. The space between you and the edge.", p2: "Breathe. There's still room. Isn't there?", p3: "Keep going." },
+  { heading: "No exit.", p1: "The text is getting larger. The walls are getting closer. The padding is gone.", p2: "You can't scroll back. You can only go deeper.", p3: "Keep going." },
+  { heading: "TOO CLOSE.", p1: "THERE IS NO ROOM LEFT. THE LETTERS ARE EVERYTHING. THE WALLS ARE THE LETTERS.", p2: "you cannot leave.", p3: "..." },
+];
+
+let lastStageIndex = -1;
+
+function lerp(a, b, t) { return a + (b - a) * t; }
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+function easeIn(t) { return t * t * t; }
+
+function updateStage(t) {
+  const idx = Math.floor(t * 3.99);
+  const si = clamp(idx, 0, 3);
+  if (si !== lastStageIndex) {
+    lastStageIndex = si;
+    const s = stages[si];
+    heading.textContent = s.heading;
+    p1.textContent = s.p1;
+    p2.textContent = s.p2;
+    p3.textContent = s.p3;
+  }
+}
+
+scene.addEventListener('scroll', () => {
+  const maxScroll = 3200 - 520;
+  const scrollY = scene.scrollTop;
+  const t = clamp(scrollY / maxScroll, 0, 1);
+  const et = easeIn(t);
+
+  progressBar.style.width = (t * 100) + '%';
+
+  if (t > 0.02) {
+    hint.style.opacity = '0';
+  } else {
+    hint.style.opacity = '1';
+  }
+
+  const boxW = lerp(560, 200, et);
+  const boxH = lerp(340, 220, et);
+  box.style.width = boxW + 'px';
+  box.style.height = boxH + 'px';
+  box.style.borderRadius = lerp(12, 0, et) + 'px';
+
+  const padH = lerp(40, 4, et);
+  const padV = lerp(36, 4, et);
+  box.style.padding = padV + 'px ' + padH + 'px';
+
+  const fontSize = lerp(14, 22, et);
+  textBlock.style.fontSize = fontSize + 'px';
+
+  const letterSpacing = lerp(0, -1.5, et);
+  textBlock.style.letterSpacing = letterSpacing + 'px';
+
+  const lineHeight = lerp(1.65, 1.1, et);
+  textBlock.style.lineHeight = lineHeight;
+
+  const headingSize = lerp(18, 32, et);
+  heading.style.fontSize = headingSize + 'px';
+
+  const vigMidOp = lerp(0, 0.75, et);
+  const vigEdgeOp = lerp(0, 0.97, et);
+  vgMid.setAttribute('stop-opacity', vigMidOp);
+  vgEdge.setAttribute('stop-opacity', vigEdgeOp);
+
+  crackSvg.style.opacity = lerp(0, 0.85, Math.max(0, (et - 0.4) / 0.6));
+  crackSvg.style.width = boxW + 'px';
+  crackSvg.style.height = boxH + 'px';
+
+  const bgR = Math.round(lerp(245, 20, et));
+  const bgG = Math.round(lerp(240, 10, et));
+  const bgB = Math.round(lerp(232, 8, et));
+  box.style.background = `rgb(${bgR},${bgG},${bgB})`;
+
+  const textR = Math.round(lerp(26, 220, et));
+  const textG = Math.round(lerp(18, 60, et));
+  const textB = Math.round(lerp(8, 40, et));
+  textBlock.style.color = `rgb(${textR},${textG},${textB})`;
+
+  const shake = et > 0.7 ? (et - 0.7) * 8 : 0;
+  const sx = (Math.random() - 0.5) * shake;
+  const sy = (Math.random() - 0.5) * shake;
+  if (shake > 0) {
+    box.style.transform = `translate(${sx}px, ${sy}px)`;
+  } else {
+    box.style.transform = 'none';
+  }
+
+  const borderW = lerp(0, 3, et);
+  const borderR = Math.round(lerp(0, 139, et));
+  box.style.boxShadow = et > 0.3
+    ? `0 0 0 ${borderW}px rgb(${borderR},0,0), inset 0 0 ${lerp(0, 40, et)}px rgba(0,0,0,${lerp(0, 0.6, et)})`
+    : 'none';
+
+  updateStage(t);
+}, { passive: true });
+</script>

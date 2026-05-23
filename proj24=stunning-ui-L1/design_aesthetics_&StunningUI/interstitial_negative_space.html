@@ -1,0 +1,435 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  .stage {
+    width: 100%;
+    min-height: 520px;
+    background: var(--color-background-primary);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .interstitial-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: auto auto auto;
+    gap: 32px;
+    padding: 48px;
+  }
+
+  .cell {
+    padding: 28px;
+    position: relative;
+  }
+
+  .cell-inner {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .text-line {
+    height: 14px;
+    width: 100%;
+    border-radius: 2px;
+  }
+  .text-line.short { width: 60%; }
+  .text-line.medium { width: 80%; }
+
+  .image-placeholder {
+    width: 100%;
+    height: 80px;
+    border-radius: 4px;
+  }
+
+  .wide-cell {
+    grid-column: 1 / 3;
+    padding: 28px;
+  }
+
+  .tall-cell {
+    grid-row: 1 / 3;
+    padding: 28px;
+  }
+
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 48px 32px;
+  }
+
+  .sidebar-item {
+    padding: 16px 20px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .sidebar-text {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+  }
+
+  .main-layout {
+    display: flex;
+    gap: 0;
+  }
+
+  .main-content {
+    flex: 1;
+  }
+
+  .sidebar-col {
+    width: 200px;
+    border-left: 1px solid transparent;
+  }
+
+  .header-bar {
+    padding: 20px 48px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    border-bottom: 1px solid transparent;
+  }
+
+  .nav-item {
+    padding: 8px 16px;
+  }
+
+  .logo-area {
+    width: 120px;
+    height: 32px;
+    border-radius: 3px;
+    margin-right: 16px;
+  }
+
+  .footer-bar {
+    padding: 24px 48px;
+    display: flex;
+    gap: 32px;
+    border-top: 1px solid transparent;
+  }
+
+  .footer-col {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex: 1;
+  }
+
+  .footer-line {
+    height: 12px;
+    border-radius: 2px;
+  }
+
+  .hero-section {
+    padding: 64px 48px 48px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .hero-title {
+    height: 40px;
+    width: 70%;
+    border-radius: 4px;
+  }
+
+  .hero-sub {
+    height: 16px;
+    width: 50%;
+    border-radius: 2px;
+  }
+
+  .cta-row {
+    display: flex;
+    gap: 16px;
+    margin-top: 8px;
+  }
+
+  .btn {
+    width: 120px;
+    height: 40px;
+    border-radius: 6px;
+  }
+
+  .btn-ghost {
+    width: 100px;
+    height: 40px;
+    border-radius: 6px;
+  }
+
+  .cards-row {
+    padding: 0 48px 48px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 24px;
+  }
+
+  .card {
+    padding: 24px;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .card-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+  }
+
+  .card-title {
+    height: 18px;
+    width: 70%;
+    border-radius: 3px;
+  }
+
+  .card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .label-strip {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    font-family: var(--font-mono);
+    position: absolute;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  .toggle-btn {
+    position: absolute;
+    bottom: 16px;
+    right: 16px;
+    font-size: 12px;
+    font-family: var(--font-mono);
+    letter-spacing: 0.05em;
+    padding: 6px 14px;
+    border: 0.5px solid var(--color-border-secondary);
+    border-radius: 4px;
+    background: var(--color-background-secondary);
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    z-index: 100;
+  }
+
+  .toggle-btn:hover {
+    background: var(--color-background-primary);
+    color: var(--color-text-primary);
+  }
+
+  .mode-label {
+    position: absolute;
+    top: 16px;
+    left: 20px;
+    font-size: 11px;
+    font-family: var(--font-mono);
+    letter-spacing: 0.08em;
+    color: var(--color-text-tertiary);
+    z-index: 100;
+  }
+</style>
+
+<h2 class="sr-only">Interstitial aesthetic: a webpage layout rendered with all content hidden, revealing only the structural negative space — margins, padding, gutters — as colored regions.</h2>
+
+<div class="stage" id="stage">
+  <span class="mode-label" id="mode-label">INTERSTITIAL MODE</span>
+  <button class="toggle-btn" id="toggle">reveal content</button>
+
+  <div id="page">
+    <div class="header-bar" style="position:relative;">
+      <div class="logo-area item"></div>
+      <div class="nav-item item" style="height:20px; width:60px; border-radius:2px;"></div>
+      <div class="nav-item item" style="height:20px; width:60px; border-radius:2px;"></div>
+      <div class="nav-item item" style="height:20px; width:70px; border-radius:2px;"></div>
+      <div style="flex:1;"></div>
+      <div class="item" style="width:36px; height:36px; border-radius:50%;"></div>
+    </div>
+
+    <div class="main-layout">
+      <div class="main-content">
+        <div class="hero-section">
+          <div class="hero-title item"></div>
+          <div class="hero-sub item"></div>
+          <div class="hero-sub item" style="width:40%;"></div>
+          <div class="cta-row">
+            <div class="btn item"></div>
+            <div class="btn-ghost item"></div>
+          </div>
+        </div>
+
+        <div class="cards-row">
+          <div class="card" style="position:relative;">
+            <div class="card-icon item"></div>
+            <div class="card-title item"></div>
+            <div class="card-body">
+              <div class="text-line item"></div>
+              <div class="text-line medium item"></div>
+              <div class="text-line short item"></div>
+            </div>
+          </div>
+          <div class="card" style="position:relative;">
+            <div class="card-icon item"></div>
+            <div class="card-title item"></div>
+            <div class="card-body">
+              <div class="text-line item"></div>
+              <div class="text-line medium item"></div>
+              <div class="text-line short item"></div>
+            </div>
+          </div>
+          <div class="card" style="position:relative;">
+            <div class="card-icon item"></div>
+            <div class="card-title item"></div>
+            <div class="card-body">
+              <div class="text-line item"></div>
+              <div class="text-line medium item"></div>
+              <div class="text-line short item"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="footer-bar">
+          <div class="footer-col">
+            <div class="footer-line item" style="width:80px; height:14px;"></div>
+            <div class="footer-line item"></div>
+            <div class="footer-line item" style="width:70%;"></div>
+            <div class="footer-line item" style="width:55%;"></div>
+          </div>
+          <div class="footer-col">
+            <div class="footer-line item" style="width:90px; height:14px;"></div>
+            <div class="footer-line item"></div>
+            <div class="footer-line item" style="width:60%;"></div>
+            <div class="footer-line item" style="width:80%;"></div>
+          </div>
+          <div class="footer-col">
+            <div class="footer-line item" style="width:70px; height:14px;"></div>
+            <div class="footer-line item"></div>
+            <div class="footer-line item" style="width:50%;"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-col">
+        <div class="sidebar">
+          <div class="sidebar-item" style="position:relative;">
+            <div class="avatar item"></div>
+            <div class="sidebar-text">
+              <div style="height:13px; border-radius:2px;" class="item"></div>
+              <div style="height:11px; width:70%; border-radius:2px;" class="item"></div>
+            </div>
+          </div>
+          <div class="sidebar-item">
+            <div class="avatar item"></div>
+            <div class="sidebar-text">
+              <div style="height:13px; border-radius:2px;" class="item"></div>
+              <div style="height:11px; width:60%; border-radius:2px;" class="item"></div>
+            </div>
+          </div>
+          <div class="sidebar-item">
+            <div class="avatar item"></div>
+            <div class="sidebar-text">
+              <div style="height:13px; border-radius:2px;" class="item"></div>
+              <div style="height:11px; width:80%; border-radius:2px;" class="item"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SPACE_COLOR = 'rgba(106, 160, 255, 0.18)';
+const CONTENT_BG = 'var(--color-background-secondary)';
+const items = document.querySelectorAll('.item');
+const toggle = document.getElementById('toggle');
+const label = document.getElementById('mode-label');
+const stage = document.getElementById('stage');
+
+let interstitial = true;
+
+function applyMode() {
+  if (interstitial) {
+    stage.style.background = 'var(--color-background-primary)';
+    items.forEach(el => {
+      el.style.background = 'transparent';
+      el.style.opacity = '0';
+    });
+    paintSpaces();
+    toggle.textContent = 'reveal content';
+    label.textContent = 'INTERSTITIAL MODE';
+  } else {
+    clearCanvas();
+    stage.style.background = 'var(--color-background-primary)';
+    items.forEach(el => {
+      el.style.background = CONTENT_BG;
+      el.style.opacity = '1';
+    });
+    toggle.textContent = 'hide content';
+    label.textContent = 'CONTENT MODE';
+  }
+}
+
+let canvas;
+function paintSpaces() {
+  if (canvas) canvas.remove();
+  canvas = document.createElement('canvas');
+  canvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10;';
+  canvas.width = stage.offsetWidth;
+  canvas.height = stage.scrollHeight;
+  stage.appendChild(canvas);
+
+  const ctx = canvas.getContext('2d');
+  const pageRect = document.getElementById('page').getBoundingClientRect();
+  const stageRect = stage.getBoundingClientRect();
+
+  ctx.fillStyle = SPACE_COLOR;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.clearRect(
+    pageRect.left - stageRect.left,
+    pageRect.top - stageRect.top,
+    pageRect.width,
+    pageRect.height
+  );
+
+  items.forEach(el => {
+    const r = el.getBoundingClientRect();
+    const x = r.left - stageRect.left;
+    const y = r.top - stageRect.top + window.scrollY;
+    ctx.clearRect(x, y, r.width, r.height);
+    ctx.fillStyle = 'rgba(255,255,255,0.04)';
+    ctx.fillRect(x, y, r.width, r.height);
+    ctx.fillStyle = SPACE_COLOR;
+  });
+}
+
+function clearCanvas() {
+  if (canvas) { canvas.remove(); canvas = null; }
+}
+
+toggle.addEventListener('click', () => {
+  interstitial = !interstitial;
+  applyMode();
+});
+
+window.addEventListener('resize', () => { if (interstitial) paintSpaces(); });
+
+applyMode();
+</script>

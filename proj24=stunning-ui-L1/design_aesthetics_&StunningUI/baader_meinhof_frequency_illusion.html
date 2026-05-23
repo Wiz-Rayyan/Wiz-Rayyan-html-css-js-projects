@@ -1,0 +1,360 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: transparent; }
+  #bm-root { font-family: var(--font-sans); color: var(--color-text-primary); min-height: 100vh; padding: 0; position: relative; overflow: hidden; }
+  
+  .scene { padding: 2.5rem 2rem; position: relative; }
+  
+  .header-zone { margin-bottom: 2rem; position: relative; }
+  .eyebrow { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 0.5rem; }
+  .headline { font-size: 28px; font-weight: 500; line-height: 1.25; color: var(--color-text-primary); max-width: 520px; }
+  .subhead { font-size: 15px; color: var(--color-text-secondary); margin-top: 0.75rem; max-width: 460px; line-height: 1.6; }
+  
+  .counter-bar { display: flex; align-items: center; gap: 16px; margin: 1.5rem 0; padding: 1rem 1.25rem; background: var(--color-background-secondary); border-radius: var(--border-radius-lg); border: 0.5px solid var(--color-border-tertiary); }
+  .counter-label { font-size: 13px; color: var(--color-text-secondary); }
+  .counter-dots { display: flex; gap: 6px; flex: 1; }
+  .dot-slot { width: 18px; height: 18px; border-radius: 50%; background: var(--color-border-tertiary); border: 0.5px solid var(--color-border-secondary); transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); position: relative; }
+  .dot-slot.found { transform: scale(1.15); }
+  .counter-num { font-size: 22px; font-weight: 500; min-width: 36px; text-align: right; transition: color 0.3s; }
+  
+  .content-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
+  
+  .text-block { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1rem 1.25rem; font-size: 13px; line-height: 1.7; color: var(--color-text-secondary); position: relative; cursor: default; }
+  .text-block .block-title { font-size: 12px; font-weight: 500; color: var(--color-text-tertiary); margin-bottom: 6px; }
+  
+  .wide-block { grid-column: span 2; }
+  .tall-block { grid-row: span 2; }
+  
+  .icon-row { display: flex; gap: 12px; align-items: center; margin-bottom: 1rem; }
+  .icon-chip { display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); font-size: 12px; color: var(--color-text-secondary); }
+  
+  .stat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1rem; }
+  .stat-card { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 0.875rem 1rem; }
+  .stat-val { font-size: 22px; font-weight: 500; margin-bottom: 2px; }
+  .stat-lbl { font-size: 11px; color: var(--color-text-secondary); }
+  
+  .bar-viz { display: flex; flex-direction: column; gap: 8px; }
+  .bar-row { display: flex; align-items: center; gap: 8px; }
+  .bar-label { font-size: 11px; color: var(--color-text-secondary); width: 60px; text-align: right; }
+  .bar-track { flex: 1; height: 8px; background: var(--color-border-tertiary); border-radius: 4px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; background: var(--color-border-secondary); transition: width 0.3s; }
+  .bar-pct { font-size: 11px; color: var(--color-text-tertiary); width: 30px; }
+  
+  .tag-cloud { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag { padding: 4px 10px; border-radius: 999px; border: 0.5px solid var(--color-border-tertiary); font-size: 12px; color: var(--color-text-secondary); background: var(--color-background-primary); }
+  
+  .timeline { display: flex; flex-direction: column; gap: 0; }
+  .tl-item { display: flex; gap: 10px; position: relative; }
+  .tl-line { display: flex; flex-direction: column; align-items: center; }
+  .tl-dot-wrap { width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; }
+  .tl-dot-inner { width: 8px; height: 8px; border-radius: 50%; background: var(--color-border-secondary); }
+  .tl-connector { flex: 1; width: 1px; background: var(--color-border-tertiary); margin: 0 auto; }
+  .tl-text { padding-bottom: 14px; }
+  .tl-date { font-size: 10px; color: var(--color-text-tertiary); margin-bottom: 2px; }
+  .tl-entry { font-size: 12px; color: var(--color-text-secondary); line-height: 1.5; }
+  
+  .footer-zone { padding: 1rem 2rem 1.5rem; border-top: 0.5px solid var(--color-border-tertiary); display: flex; align-items: center; justify-content: space-between; }
+  .reveal-msg { font-size: 13px; color: var(--color-text-secondary); max-width: 400px; line-height: 1.5; opacity: 0; transition: opacity 0.8s; }
+  .reveal-msg.visible { opacity: 1; }
+  .reset-btn { font-size: 12px; padding: 6px 14px; border-radius: 999px; border: 0.5px solid var(--color-border-secondary); background: transparent; color: var(--color-text-secondary); cursor: pointer; transition: background 0.15s; }
+  .reset-btn:hover { background: var(--color-background-secondary); }
+  
+  .float-shape { position: absolute; pointer-events: none; transition: opacity 0.5s; }
+  
+  .clickable { cursor: pointer; transition: opacity 0.15s; user-select: none; }
+  .clickable:hover { opacity: 0.75; }
+  .clickable.clicked { pointer-events: none; }
+  
+  .pulse { animation: pulse-anim 0.5s ease-out; }
+  @keyframes pulse-anim {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.4); }
+    100% { transform: scale(1); }
+  }
+  
+  .toast { position: fixed; top: 20px; right: 20px; background: var(--color-background-primary); border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-lg); padding: 10px 16px; font-size: 13px; color: var(--color-text-primary); opacity: 0; transform: translateY(-8px); transition: all 0.3s; pointer-events: none; z-index: 100; max-width: 240px; }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  
+  .discovered-banner { display: none; background: var(--color-background-secondary); border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-lg); padding: 1rem 1.25rem; margin: 0 2rem 1rem; font-size: 14px; color: var(--color-text-secondary); line-height: 1.6; text-align: center; }
+  .discovered-banner.show { display: block; }
+  .discovered-banner strong { color: var(--color-text-primary); font-weight: 500; }
+</style>
+
+<div id="bm-root">
+  <div class="scene">
+    <div class="header-zone">
+      <div class="eyebrow">cognitive bias — frequency illusion</div>
+      <div class="headline" id="headline">Something is hiding on this page.</div>
+      <div class="subhead">Click it each time you spot it. It's already appeared once. Keep reading.</div>
+    </div>
+
+    <div class="counter-bar">
+      <span class="counter-label">found</span>
+      <div class="counter-dots" id="dots"></div>
+      <span class="counter-num" id="count-num">0</span>
+      <span class="counter-label">/ 10</span>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-card">
+        <div class="stat-val" id="stat1">2,847</div>
+        <div class="stat-lbl">pattern recognitions</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val">64%</div>
+        <div class="stat-lbl">selective attention bias</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="stat3">—</div>
+        <div class="stat-lbl">your streak</div>
+      </div>
+    </div>
+
+    <div class="content-grid">
+      <div class="text-block wide-block">
+        <div class="block-title">about this phenomenon</div>
+        Once you acquire a new piece of information, your brain continuously scans the environment for it. The frequency hasn't changed — only your attention has shifted. Named for the German militant group because a man learned of them, then saw them mentioned everywhere within days.
+        <span id="inline-shape-1" class="clickable" style="display:inline-block; margin-left:4px; vertical-align:middle;"></span>
+      </div>
+
+      <div class="text-block">
+        <div class="block-title">also known as</div>
+        <div class="tag-cloud" id="tagcloud">
+          <div class="tag">frequency illusion</div>
+          <div class="tag" id="tag-shape">—</div>
+          <div class="tag">selective attention</div>
+          <div class="tag">recency bias</div>
+          <div class="tag">priming</div>
+        </div>
+      </div>
+
+      <div class="text-block tall-block">
+        <div class="block-title">timeline</div>
+        <div class="timeline">
+          <div class="tl-item">
+            <div class="tl-line"><div class="tl-dot-wrap"><div class="tl-dot-inner" id="tl-dot-1"></div></div><div class="tl-connector"></div></div>
+            <div class="tl-text"><div class="tl-date">1994</div><div class="tl-entry">Arnold Zwicky first describes the frequency illusion formally in linguistics research</div></div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-line"><div class="tl-dot-wrap"><div class="tl-dot-inner" id="tl-dot-2"></div></div><div class="tl-connector"></div></div>
+            <div class="tl-text"><div class="tl-date">2006</div><div class="tl-entry">Renamed "Baader-Meinhof phenomenon" after a forum post goes viral on the internet <span id="inline-shape-2" class="clickable" style="display:inline-block; vertical-align:middle;"></span></div></div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-line"><div class="tl-dot-wrap"><div class="tl-dot-inner" id="tl-dot-3"></div></div></div>
+            <div class="tl-text"><div class="tl-date">today</div><div class="tl-entry">Your brain does this constantly, without you knowing. You only notice when you catch it in the act.</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="text-block">
+        <div class="block-title">frequency in the wild</div>
+        <div class="bar-viz">
+          <div class="bar-row"><span class="bar-label">words</span><div class="bar-track"><div class="bar-fill" style="width:82%"></div></div><span class="bar-pct">82%</span></div>
+          <div class="bar-row"><span class="bar-label">cars</span><div class="bar-track"><div class="bar-fill" style="width:67%"></div></div><span class="bar-pct">67%</span></div>
+          <div class="bar-row"><span class="bar-label">names</span><div class="bar-track"><div class="bar-fill" style="width:58%"></div></div><span class="bar-pct">58%</span></div>
+          <div class="bar-row" id="shape-bar-row"><span class="bar-label" id="shape-bar-label">—</span><div class="bar-track"><div class="bar-fill" id="shape-bar-fill" style="width:0%"></div></div><span class="bar-pct" id="shape-bar-pct">0%</span></div>
+        </div>
+      </div>
+
+      <div class="text-block">
+        <div class="block-title">icon panel</div>
+        <div class="icon-row" id="icon-row">
+          <div class="icon-chip"><i class="ti ti-brain" aria-hidden="true"></i> cognition</div>
+          <div class="icon-chip"><i class="ti ti-eye" aria-hidden="true"></i> attention</div>
+          <div class="icon-chip" id="shape-chip">—</div>
+        </div>
+        <div style="font-size: 12px; color: var(--color-text-tertiary); line-height: 1.6;">
+          Cognitive priming works by activating related memory nodes, making them more accessible and thus more likely to be noticed in subsequent encounters.
+        </div>
+      </div>
+    </div>
+
+    <div id="float-container" style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none;"></div>
+  </div>
+
+  <div class="discovered-banner" id="discovery-banner">
+    <strong>You've found all 10.</strong> Now you can't stop seeing it, can you? That's exactly the point — your brain has been primed. The element didn't appear more often. You just <em>started noticing</em>.
+  </div>
+
+  <div class="footer-zone">
+    <div class="reveal-msg" id="reveal-msg"></div>
+    <button class="reset-btn" onclick="initGame()">reset ↺</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SHAPES = [
+  { id: 'triangle', name: 'purple triangle', color: '#7F77DD', darkColor: '#AFA9EC', draw: (size) => `<svg width="${size}" height="${size}" viewBox="0 0 24 24"><polygon points="12,3 22,20 2,20" fill="#7F77DD" opacity="0.85"/></svg>` },
+  { id: 'circle', name: 'teal circle', color: '#1D9E75', darkColor: '#5DCAA5', draw: (size) => `<svg width="${size}" height="${size}" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="#1D9E75" opacity="0.85"/></svg>` },
+  { id: 'diamond', name: 'coral diamond', color: '#D85A30', darkColor: '#F0997B', draw: (size) => `<svg width="${size}" height="${size}" viewBox="0 0 24 24"><polygon points="12,2 22,12 12,22 2,12" fill="#D85A30" opacity="0.85"/></svg>` },
+  { id: 'square', name: 'amber square', color: '#BA7517', darkColor: '#EF9F27', draw: (size) => `<svg width="${size}" height="${size}" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" fill="#BA7517" opacity="0.85"/></svg>` },
+  { id: 'pentagon', name: 'pink pentagon', color: '#D4537E', darkColor: '#ED93B1', draw: (size) => `<svg width="${size}" height="${size}" viewBox="0 0 24 24"><polygon points="12,2 22,9 18,21 6,21 2,9" fill="#D4537E" opacity="0.85"/></svg>` },
+];
+
+let chosen, found, total, instances, floatCount;
+
+const messages = [
+  "There it is.",
+  "And again.",
+  "You're starting to see it.",
+  "Everywhere now.",
+  "Hard to ignore.",
+  "Your brain is primed.",
+  "Pattern activated.",
+  "You can't unsee it.",
+  "It was always there.",
+  "Frequency illusion complete."
+];
+
+function isDark() {
+  return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
+
+function initGame() {
+  chosen = SHAPES[Math.floor(Math.random() * SHAPES.length)];
+  found = 0;
+  total = 10;
+  instances = [];
+  floatCount = 0;
+
+  document.getElementById('count-num').textContent = '0';
+  document.getElementById('count-num').style.color = 'var(--color-text-primary)';
+  document.getElementById('discovery-banner').classList.remove('show');
+  document.getElementById('reveal-msg').textContent = '';
+  document.getElementById('reveal-msg').classList.remove('visible');
+  document.getElementById('headline').textContent = 'Something is hiding on this page.';
+  document.querySelector('.subhead').textContent = "Click it each time you spot it. It's already appeared once. Keep reading.";
+
+  const dots = document.getElementById('dots');
+  dots.innerHTML = '';
+  for (let i = 0; i < 10; i++) {
+    const d = document.createElement('div');
+    d.className = 'dot-slot';
+    d.id = `dot-${i}`;
+    dots.appendChild(d);
+  }
+
+  const col = isDark() ? chosen.darkColor : chosen.color;
+
+  document.getElementById('tag-shape').innerHTML = `<span style="display:inline-flex;align-items:center;gap:4px;">${chosen.draw(12)} ${chosen.id}</span>`;
+  
+  document.getElementById('shape-bar-label').innerHTML = `<span style="display:inline-flex;align-items:center;gap:3px;">${chosen.draw(10)}</span>`;
+  document.getElementById('shape-bar-fill').style.width = '0%';
+  document.getElementById('shape-bar-pct').textContent = '—';
+  
+  document.getElementById('shape-chip').innerHTML = chosen.draw(14) + ' ' + chosen.id;
+
+  const i1 = document.getElementById('inline-shape-1');
+  i1.innerHTML = chosen.draw(16);
+  i1.onclick = () => handleClick(i1);
+  i1.classList.remove('clicked');
+
+  const i2 = document.getElementById('inline-shape-2');
+  i2.innerHTML = chosen.draw(14);
+  i2.onclick = () => handleClick(i2);
+  i2.classList.remove('clicked');
+
+  document.getElementById('tl-dot-1').style.background = 'var(--color-border-secondary)';
+  document.getElementById('tl-dot-2').style.background = 'var(--color-border-secondary)';
+  document.getElementById('tl-dot-3').style.background = 'var(--color-border-secondary)';
+
+  document.getElementById('float-container').innerHTML = '';
+
+  setTimeout(() => plantFloaters(), 600);
+}
+
+function plantFloaters() {
+  const container = document.getElementById('float-container');
+  const positions = [
+    {top: '15%', left: '72%', size: 20, opacity: 0.18},
+    {top: '38%', left: '5%', size: 15, opacity: 0.12},
+    {top: '55%', left: '88%', size: 22, opacity: 0.14},
+    {top: '70%', left: '48%', size: 13, opacity: 0.10},
+    {top: '82%', left: '18%', size: 18, opacity: 0.15},
+    {top: '25%', left: '60%', size: 16, opacity: 0.11},
+    {top: '90%', left: '75%', size: 14, opacity: 0.09},
+    {top: '45%', left: '33%', size: 19, opacity: 0.13},
+  ];
+
+  positions.forEach((pos, i) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'float-shape clickable';
+    wrap.style.top = pos.top;
+    wrap.style.left = pos.left;
+    wrap.style.opacity = pos.opacity;
+    wrap.style.transition = 'opacity 0.4s, transform 0.4s';
+    wrap.innerHTML = chosen.draw(pos.size);
+    wrap.onclick = () => handleClick(wrap);
+    container.appendChild(wrap);
+    floatCount++;
+  });
+}
+
+function handleClick(el) {
+  if (found >= total) return;
+  el.classList.add('clicked', 'pulse');
+  el.style.pointerEvents = 'none';
+
+  const prevFound = found;
+  found++;
+
+  const dotEl = document.getElementById(`dot-${prevFound}`);
+  if (dotEl) {
+    dotEl.style.background = chosen.color;
+    dotEl.style.borderColor = chosen.color;
+    dotEl.classList.add('found');
+  }
+
+  const numEl = document.getElementById('count-num');
+  numEl.textContent = found;
+
+  const pct = Math.round((found / total) * 100);
+  document.getElementById('shape-bar-fill').style.width = pct + '%';
+  document.getElementById('shape-bar-pct').textContent = pct + '%';
+
+  const msgEl = document.getElementById('reveal-msg');
+
+  if (found === 1) {
+    showToast("There it is — " + chosen.name + ".");
+    msgEl.textContent = "There it is. Now you know what to look for.";
+    msgEl.classList.add('visible');
+    document.getElementById('headline').textContent = "You found it. Can you find it again?";
+    document.getElementById('tl-dot-1').style.background = chosen.color;
+  } else if (found === 3) {
+    showToast("It keeps appearing...");
+    document.getElementById('tl-dot-2').style.background = chosen.color;
+    msgEl.textContent = "Three times already. Your attention has locked on.";
+  } else if (found === 6) {
+    showToast("You can't stop seeing it.");
+    document.getElementById('tl-dot-3').style.background = chosen.color;
+    msgEl.textContent = "Six. The pattern is fully active now.";
+    document.getElementById('stat3').textContent = '6 ↑';
+  } else if (found === 10) {
+    showToast("Frequency illusion complete.");
+    msgEl.textContent = "All 10 found. You've been primed — you'll notice this shape for the rest of the day.";
+    document.getElementById('count-num').style.color = chosen.color;
+    document.getElementById('stat3').textContent = '10 ✓';
+    document.getElementById('discovery-banner').classList.add('show');
+    document.getElementById('headline').textContent = "You can't unsee it now.";
+    document.querySelector('.subhead').textContent = "The element didn't appear more. Your brain just learned to find it.";
+  } else {
+    showToast(messages[found - 1] || "Keep going.");
+  }
+
+  setTimeout(() => el.classList.remove('pulse'), 500);
+}
+
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+initGame();
+</script>

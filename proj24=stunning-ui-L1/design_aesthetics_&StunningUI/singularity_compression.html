@@ -1,0 +1,305 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: transparent; }
+
+  #universe {
+    width: 100%;
+    min-height: 520px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 32px 16px 40px;
+    overflow: hidden;
+    cursor: ns-resize;
+    user-select: none;
+    position: relative;
+  }
+
+  #scroll-hint {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 12px;
+    color: var(--color-text-tertiary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: opacity 0.4s;
+    pointer-events: none;
+  }
+
+  #scroll-hint i { font-size: 14px; }
+
+  #void-msg {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 13px;
+    color: var(--color-text-tertiary);
+    opacity: 0;
+    transition: opacity 0.6s;
+    pointer-events: none;
+    text-align: center;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+  }
+
+  #pixel {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 1px;
+    height: 1px;
+    background: var(--color-text-primary);
+    transform: translate(-50%, -50%);
+    opacity: 0;
+    border-radius: 0;
+  }
+
+  .content-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    gap: 28px;
+    transform-origin: center top;
+    transition: none;
+  }
+
+  .content-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    gap: 24px;
+  }
+
+  .block {
+    background: var(--color-background-secondary);
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--border-radius-md);
+    padding: 14px 18px;
+    text-align: center;
+    transform-origin: center;
+    min-width: 80px;
+  }
+
+  .block-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-text-primary);
+    margin-bottom: 4px;
+    white-space: nowrap;
+  }
+
+  .block-sub {
+    font-size: 11px;
+    color: var(--color-text-tertiary);
+    white-space: nowrap;
+  }
+
+  .circle-block {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: var(--color-background-secondary);
+    border: 0.5px solid var(--color-border-tertiary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    color: var(--color-text-secondary);
+    flex-shrink: 0;
+    transform-origin: center;
+  }
+
+  .big-block {
+    background: var(--color-background-secondary);
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--border-radius-lg);
+    padding: 18px 24px;
+    text-align: center;
+    transform-origin: center;
+  }
+
+  .big-title {
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--color-text-primary);
+    margin-bottom: 6px;
+  }
+
+  .big-sub {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+  }
+
+  #slider-wrap {
+    position: absolute;
+    right: 14px;
+    top: 32px;
+    bottom: 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  #collapse-slider {
+    writing-mode: vertical-lr;
+    direction: rtl;
+    appearance: none;
+    width: 4px;
+    flex: 1;
+    background: var(--color-border-tertiary);
+    outline: none;
+    border-radius: 2px;
+    cursor: pointer;
+  }
+
+  #collapse-slider::-webkit-slider-thumb {
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--color-text-primary);
+    cursor: grab;
+    border: none;
+  }
+
+  #collapse-slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--color-text-primary);
+    cursor: grab;
+    border: none;
+  }
+
+  #slider-label-top { font-size: 10px; color: var(--color-text-tertiary); }
+  #slider-label-bot { font-size: 10px; color: var(--color-text-tertiary); }
+
+  #reset-btn {
+    position: absolute;
+    top: 10px;
+    left: 14px;
+    font-size: 11px;
+    background: transparent;
+    border: 0.5px solid var(--color-border-secondary);
+    color: var(--color-text-secondary);
+    padding: 4px 10px;
+    border-radius: var(--border-radius-md);
+    cursor: pointer;
+    opacity: 1;
+    transition: opacity 0.3s;
+  }
+</style>
+
+<h2 class="sr-only">Singularity compression: drag the slider to compress all content into a single point</h2>
+
+<div id="universe">
+  <button id="reset-btn" onclick="resetAll()">↺ reset</button>
+
+  <div class="content-wrap" id="content-wrap">
+    <div class="big-block" id="header-block">
+      <div class="big-title">Everything</div>
+      <div class="big-sub">All matter, energy, information</div>
+    </div>
+
+    <div class="content-row" id="row1">
+      <div class="block"><div class="block-title">Space</div><div class="block-sub">3 dimensions</div></div>
+      <div class="block"><div class="block-title">Time</div><div class="block-sub">1 dimension</div></div>
+      <div class="block"><div class="block-title">Mass</div><div class="block-sub">10⁸⁰ atoms</div></div>
+    </div>
+
+    <div class="content-row" id="row2">
+      <div class="circle-block">Light</div>
+      <div class="circle-block">Gravity</div>
+      <div class="circle-block">Force</div>
+      <div class="circle-block">Heat</div>
+    </div>
+
+    <div class="content-row" id="row3">
+      <div class="block"><div class="block-title">Memory</div><div class="block-sub">10²³ bits</div></div>
+      <div class="block"><div class="block-title">Motion</div><div class="block-sub">∞ vectors</div></div>
+    </div>
+
+    <div class="block" id="footer-block" style="width:160px;">
+      <div class="block-title">Observable universe</div>
+      <div class="block-sub">93 billion light-years</div>
+    </div>
+  </div>
+
+  <div id="pixel"></div>
+  <div id="void-msg">· · ·</div>
+
+  <div id="scroll-hint">
+    <i class="ti ti-arrows-vertical" aria-hidden="true"></i>
+    drag to collapse
+  </div>
+
+  <div id="slider-wrap">
+    <span id="slider-label-top">expand</span>
+    <input type="range" id="collapse-slider" min="0" max="100" value="0" step="1" aria-label="Compression level" />
+    <span id="slider-label-bot">collapse</span>
+  </div>
+</div>
+
+<script>
+const wrap = document.getElementById('content-wrap');
+const pixel = document.getElementById('pixel');
+const voidMsg = document.getElementById('void-msg');
+const hint = document.getElementById('scroll-hint');
+const slider = document.getElementById('collapse-slider');
+const resetBtn = document.getElementById('reset-btn');
+
+const allBlocks = wrap.querySelectorAll('.block, .circle-block, .big-block');
+const rows = wrap.querySelectorAll('.content-row');
+
+function applyCompression(t) {
+  const eased = t < 0.001 ? 0 : t;
+  const scale = Math.max(0, 1 - eased * 0.98);
+  const gapT = Math.max(0, 1 - eased * 1.5);
+  const gap = Math.round(28 * gapT);
+  const opacity = eased > 0.85 ? Math.max(0, 1 - (eased - 0.85) / 0.12) : 1;
+  const rowGap = Math.round(24 * gapT);
+
+  wrap.style.transform = `scale(${scale})`;
+  wrap.style.gap = gap + 'px';
+  wrap.style.opacity = opacity;
+
+  rows.forEach(r => { r.style.gap = rowGap + 'px'; });
+
+  if (eased > 0.85) {
+    const pixelO = Math.min(1, (eased - 0.85) / 0.1);
+    pixel.style.opacity = pixelO;
+  } else {
+    pixel.style.opacity = 0;
+  }
+
+  if (eased > 0.95) {
+    const voidO = Math.min(1, (eased - 0.95) / 0.05);
+    voidMsg.style.opacity = voidO;
+  } else {
+    voidMsg.style.opacity = 0;
+  }
+
+  hint.style.opacity = eased > 0.1 ? 0 : 1;
+  resetBtn.style.opacity = eased > 0.05 ? 1 : 0.4;
+}
+
+slider.addEventListener('input', () => {
+  applyCompression(slider.value / 100);
+});
+
+function resetAll() {
+  slider.value = 0;
+  applyCompression(0);
+}
+
+applyCompression(0);
+</script>

@@ -1,0 +1,157 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0a0f}
+#canvas{width:100%;min-height:620px;background:#0a0a0f;position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;padding:48px 52px;cursor:crosshair}
+.word-large{font-family:var(--font-serif);font-size:72px;font-weight:400;color:#e8e4dc;opacity:0.07;letter-spacing:-0.03em;line-height:1;user-select:none;transition:opacity 1.4s ease}
+.word-large:hover{opacity:0.13}
+.divider{width:1px;height:60px;background:#e8e4dc;opacity:0.12;align-self:center}
+.haiku-block{display:flex;flex-direction:column;gap:10px;align-items:flex-end}
+.haiku-line{font-family:var(--font-serif);font-size:13px;font-style:italic;color:#e8e4dc;opacity:0;letter-spacing:0.04em;transition:opacity 0.8s ease;text-align:right}
+.haiku-line.visible{opacity:0.38}
+.mid-section{display:flex;align-items:center;justify-content:center;gap:40px;flex:1;padding:24px 0}
+.dot-grid{display:grid;grid-template-columns:repeat(9,1fr);gap:10px;opacity:0.09}
+.dot{width:3px;height:3px;border-radius:50%;background:#e8e4dc;transition:opacity 0.4s}
+.controls{display:flex;gap:12px;align-items:center;justify-content:flex-end;padding-top:12px}
+.ctrl-btn{background:transparent;border:0.5px solid rgba(232,228,220,0.18);color:rgba(232,228,220,0.45);font-family:var(--font-sans);font-size:11px;padding:6px 14px;border-radius:20px;cursor:pointer;letter-spacing:0.06em;transition:all 0.3s}
+.ctrl-btn:hover{border-color:rgba(232,228,220,0.38);color:rgba(232,228,220,0.7)}
+.ctrl-btn.active{border-color:rgba(232,228,220,0.5);color:rgba(232,228,220,0.9);background:rgba(232,228,220,0.06)}
+.thought-input{background:transparent;border:none;border-bottom:0.5px solid rgba(232,228,220,0.15);color:rgba(232,228,220,0.5);font-family:var(--font-serif);font-size:13px;font-style:italic;padding:6px 0;width:220px;outline:none;letter-spacing:0.03em;transition:border-color 0.4s}
+.thought-input::placeholder{color:rgba(232,228,220,0.2)}
+.thought-input:focus{border-color:rgba(232,228,220,0.32);color:rgba(232,228,220,0.75)}
+.echo{font-family:var(--font-serif);font-size:11px;font-style:italic;color:rgba(232,228,220,0.22);text-align:center;min-height:18px;letter-spacing:0.05em;transition:opacity 1s}
+.corner-sig{font-family:var(--font-serif);font-size:11px;font-style:italic;color:rgba(232,228,220,0.22);letter-spacing:0.04em;align-self:flex-end}
+.mood-strip{display:flex;gap:6px}
+.mood{width:8px;height:8px;border-radius:50%;cursor:pointer;opacity:0.4;transition:all 0.3s;background:#e8e4dc}
+.mood:hover{opacity:0.7;transform:scale(1.3)}
+.mood.on{opacity:1}
+</style>
+
+<h2 class="sr-only">Interactive empty space manifesto — a dark ambient canvas with minimal text, dot grid, and mood controls</h2>
+
+<div id="canvas">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start">
+    <div class="word-large" id="bigword">void</div>
+    <div class="haiku-block" id="haiku">
+      <div class="haiku-line" data-delay="0">the page holds its breath</div>
+      <div class="haiku-line" data-delay="600">one word lands like rainfall</div>
+      <div class="haiku-line" data-delay="1200">then the dark returns</div>
+    </div>
+  </div>
+
+  <div class="mid-section">
+    <div class="dot-grid" id="dotgrid">
+    </div>
+    <div style="display:flex;flex-direction:column;gap:20px;align-items:center">
+      <div class="divider"></div>
+      <div class="echo" id="echo"></div>
+      <div class="divider"></div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-end">
+      <input class="thought-input" id="thought" type="text" placeholder="leave a thought…" maxlength="48"/>
+      <div class="mood-strip" id="moods">
+        <div class="mood on" data-word="void" data-color="#e8e4dc" title="void"></div>
+        <div class="mood" data-word="hush" data-color="#9fc8e0" title="hush" style="background:#9fc8e0"></div>
+        <div class="mood" data-word="dusk" data-color="#c4a882" title="dusk" style="background:#c4a882"></div>
+        <div class="mood" data-word="ache" data-color="#c48fa0" title="ache" style="background:#c48fa0"></div>
+        <div class="mood" data-word="still" data-color="#a0c4a0" title="still" style="background:#a0c4a0"></div>
+      </div>
+    </div>
+    <div class="controls">
+      <button class="ctrl-btn active" id="btn-haiku">haiku</button>
+      <button class="ctrl-btn" id="btn-dots">dots</button>
+      <button class="ctrl-btn" id="btn-breathe">breathe</button>
+      <span class="corner-sig">the absence is the design.</span>
+    </div>
+  </div>
+</div>
+
+<script>
+const grid = document.getElementById('dotgrid');
+for(let i=0;i<63;i++){
+  const d=document.createElement('div');
+  d.className='dot';
+  grid.appendChild(d);
+}
+
+const lines = document.querySelectorAll('.haiku-line');
+let haikusVisible = true;
+let breatheInterval = null;
+let dotsInterval = null;
+
+function showHaiku(){
+  lines.forEach((l,i)=>{
+    setTimeout(()=>l.classList.add('visible'), parseInt(l.dataset.delay));
+  });
+}
+function hideHaiku(){
+  lines.forEach(l=>l.classList.remove('visible'));
+}
+showHaiku();
+
+document.getElementById('btn-haiku').addEventListener('click', function(){
+  haikusVisible = !haikusVisible;
+  this.classList.toggle('active', haikusVisible);
+  haikusVisible ? showHaiku() : hideHaiku();
+});
+
+document.getElementById('btn-dots').addEventListener('click', function(){
+  const dots = document.querySelectorAll('.dot');
+  const active = this.classList.toggle('active');
+  if(active){
+    dotsInterval = setInterval(()=>{
+      const idx = Math.floor(Math.random()*dots.length);
+      dots[idx].style.opacity = (Math.random()*0.6+0.05).toFixed(2);
+      setTimeout(()=>{dots[idx].style.opacity=''}, 700);
+    }, 180);
+  } else {
+    clearInterval(dotsInterval);
+    dots.forEach(d=>d.style.opacity='');
+  }
+});
+
+document.getElementById('btn-breathe').addEventListener('click', function(){
+  const word = document.getElementById('bigword');
+  const active = this.classList.toggle('active');
+  if(active){
+    let phase = 0;
+    breatheInterval = setInterval(()=>{
+      phase += 0.04;
+      const o = (Math.sin(phase)*0.05+0.09).toFixed(3);
+      word.style.opacity = o;
+    }, 50);
+  } else {
+    clearInterval(breatheInterval);
+    word.style.opacity = '';
+  }
+});
+
+const echo = document.getElementById('echo');
+const thought = document.getElementById('thought');
+thought.addEventListener('input', function(){
+  const val = this.value.trim();
+  echo.style.opacity = val ? '1' : '0';
+  echo.textContent = val ? val : '';
+});
+thought.addEventListener('keydown', function(e){
+  if(e.key==='Enter'){
+    const val = this.value.trim();
+    if(val){
+      document.getElementById('bigword').textContent = val.split(' ')[0].toLowerCase();
+      setTimeout(()=>{ this.value=''; echo.textContent=''; echo.style.opacity='0'; },400);
+    }
+  }
+});
+
+document.querySelectorAll('.mood').forEach(m=>{
+  m.addEventListener('click',function(){
+    document.querySelectorAll('.mood').forEach(x=>x.classList.remove('on'));
+    this.classList.add('on');
+    document.getElementById('bigword').textContent = this.dataset.word;
+    document.getElementById('canvas').style.transition='background 1.2s ease';
+  });
+});
+</script>

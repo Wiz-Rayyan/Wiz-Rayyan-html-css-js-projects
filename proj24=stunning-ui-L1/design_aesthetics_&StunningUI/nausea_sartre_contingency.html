@@ -1,0 +1,256 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Courier+Prime&family=Playfair+Display&family=Space+Mono&family=Libre+Baskerville&family=Bebas+Neue&family=DM+Serif+Display&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  #nausea-stage {
+    width: 100%;
+    min-height: 560px;
+    position: relative;
+    background: var(--color-background-primary);
+    overflow: hidden;
+    cursor: default;
+    user-select: none;
+  }
+
+  .thing {
+    position: absolute;
+    transition: opacity 0.4s;
+  }
+
+  .thing::before {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--color-background-secondary);
+    border: 0.5px solid var(--color-border-secondary);
+    color: var(--color-text-secondary);
+    font-size: 11px;
+    font-family: 'Courier Prime', monospace;
+    padding: 4px 8px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+    z-index: 100;
+    border-radius: 2px;
+  }
+
+  .thing:hover::before { opacity: 1; }
+
+  .btn-reload {
+    position: absolute;
+    bottom: 16px;
+    right: 16px;
+    background: transparent;
+    border: 0.5px solid var(--color-border-secondary);
+    color: var(--color-text-tertiary);
+    font-size: 11px;
+    font-family: 'Courier Prime', monospace;
+    padding: 6px 12px;
+    cursor: pointer;
+    border-radius: 2px;
+    z-index: 200;
+  }
+  .btn-reload:hover { color: var(--color-text-primary); }
+
+  .existential-counter {
+    position: absolute;
+    bottom: 16px;
+    left: 16px;
+    font-size: 11px;
+    font-family: 'Courier Prime', monospace;
+    color: var(--color-text-tertiary);
+    z-index: 200;
+  }
+</style>
+
+<div id="nausea-stage" aria-label="Nausea: a contingency aesthetic after Sartre">
+  <button class="btn-reload" onclick="render()">contingency again →</button>
+  <div class="existential-counter" id="counter">hovering over 0 arbitrary things</div>
+</div>
+
+<script>
+const stage = document.getElementById('nausea-stage');
+const counter = document.getElementById('counter');
+
+const fonts = [
+  "'Courier Prime', monospace",
+  "'Playfair Display', serif",
+  "'Space Mono', monospace",
+  "'Libre Baskerville', serif",
+  "'Bebas Neue', cursive",
+  "'DM Serif Display', serif",
+  "sans-serif",
+  "Georgia, serif",
+  "monospace"
+];
+
+const tooltips = [
+  "There is no reason for this.",
+  "It simply is.",
+  "Why here? No reason.",
+  "Contingent.",
+  "It could have been elsewhere. Or not at all.",
+  "Existence precedes essence — but there is no essence here either.",
+  "Being-in-itself: brute, full, without justification.",
+  "De trop — too much, yet here.",
+  "The root of the chestnut tree had no raison d'être.",
+  "No necessity. Just is.",
+  "It nauseates me.",
+  "I am here. That is all.",
+  "Why this color? No reason.",
+  "Why this size? None.",
+  "Absurd.",
+  "It exists without cause.",
+  "Facticity without project.",
+  "Thrownness.",
+  "Superfluous.",
+  "There is no place for this.",
+];
+
+const words = [
+  "existence", "nausea", "facticity", "contingency", "de trop",
+  "being", "void", "root", "flesh", "superfluous",
+  "anguish", "thrownness", "absurd", "here", "I exist",
+  "reason?", "no reason", "it is", "the thing", "nauseates",
+  "inert", "opaque", "brute", "formless", "persists",
+  "without cause", "unjustified", "just is", "gratuitous", "excess"
+];
+
+const shapes = ["rect", "circle", "line"];
+
+let hoverCount = 0;
+
+function r(min, max) { return Math.random() * (max - min) + min; }
+function ri(min, max) { return Math.floor(r(min, max)); }
+function pick(arr) { return arr[ri(0, arr.length)]; }
+
+function randColor() {
+  const palettes = [
+    ['#1a1a1a','#2c2c2a','#5f5e5a','#888780'],
+    ['#3c3489','#534ab7','#7f77dd','#afa9ec'],
+    ['#185fa5','#378add','#85b7eb','#b5d4f4'],
+    ['#0f6e56','#1d9e75','#5dcaa5','#9fe1cb'],
+    ['#993c1d','#d85a30','#f0997b','#f5c4b3'],
+    ['#a32d2d','#e24b4a','#f09595','#f7c1c1'],
+  ];
+  return pick(pick(palettes));
+}
+
+function makeText() {
+  const el = document.createElement('div');
+  el.className = 'thing';
+  el.dataset.tooltip = pick(tooltips);
+
+  const w = ri(80, 260);
+  const h = ri(20, 60);
+  const x = r(2, 78);
+  const y = r(2, 88);
+  const fs = ri(10, 36);
+  const font = pick(fonts);
+  const color = randColor();
+  const opacity = r(0.25, 0.95);
+  const rotation = r(-25, 25);
+  const letterSpacing = r(-1, 6);
+
+  el.style.cssText = `
+    left: ${x}%;
+    top: ${y}%;
+    width: ${w}px;
+    font-family: ${font};
+    font-size: ${fs}px;
+    color: ${color};
+    opacity: ${opacity};
+    transform: rotate(${rotation}deg);
+    letter-spacing: ${letterSpacing}px;
+    line-height: 1.2;
+  `;
+  el.textContent = pick(words);
+  return el;
+}
+
+function makeSvgShape() {
+  const el = document.createElement('div');
+  el.className = 'thing';
+  el.dataset.tooltip = pick(tooltips);
+
+  const x = r(0, 85);
+  const y = r(0, 85);
+  const size = ri(12, 90);
+  const color = randColor();
+  const opacity = r(0.1, 0.5);
+  const rotation = r(0, 360);
+  const shape = pick(['square','circle','bar','dot']);
+
+  let inner = '';
+  if (shape === 'square') {
+    inner = `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><rect x="0.5" y="0.5" width="${size-1}" height="${size-1}" fill="none" stroke="${color}" stroke-width="${r(0.5,2).toFixed(1)}"/></svg>`;
+  } else if (shape === 'circle') {
+    const r2 = size/2;
+    inner = `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><circle cx="${r2}" cy="${r2}" r="${r2-1}" fill="none" stroke="${color}" stroke-width="${r(0.5,2).toFixed(1)}"/></svg>`;
+  } else if (shape === 'bar') {
+    const w2 = ri(30, 120);
+    inner = `<svg width="${w2}" height="2" viewBox="0 0 ${w2} 2"><line x1="0" y1="1" x2="${w2}" y2="1" stroke="${color}" stroke-width="${r(0.5,3).toFixed(1)}"/></svg>`;
+  } else {
+    inner = `<svg width="${size/4}" height="${size/4}" viewBox="0 0 ${size/4} ${size/4}"><circle cx="${size/8}" cy="${size/8}" r="${size/8}" fill="${color}"/></svg>`;
+  }
+
+  el.style.cssText = `left: ${x}%; top: ${y}%; opacity: ${opacity}; transform: rotate(${rotation}deg);`;
+  el.innerHTML = inner;
+  return el;
+}
+
+function makePunctuation() {
+  const el = document.createElement('div');
+  el.className = 'thing';
+  el.dataset.tooltip = pick(tooltips);
+
+  const x = r(0, 95);
+  const y = r(0, 95);
+  const fs = ri(16, 72);
+  const color = randColor();
+  const opacity = r(0.08, 0.45);
+  const rotation = r(-180, 180);
+  const chars = ['—', '…', '?', '∅', '∴', '§', '¿', '※', '◦', '·', '¬', '⊘', '~', '/', '\\', '_'];
+
+  el.style.cssText = `
+    left: ${x}%;
+    top: ${y}%;
+    font-size: ${fs}px;
+    color: ${color};
+    opacity: ${opacity};
+    transform: rotate(${rotation}deg);
+    font-family: ${pick(fonts)};
+  `;
+  el.textContent = pick(chars);
+  return el;
+}
+
+function render() {
+  Array.from(stage.querySelectorAll('.thing')).forEach(e => e.remove());
+  hoverCount = 0;
+  counter.textContent = `hovering over 0 arbitrary things`;
+
+  const n = ri(18, 30);
+  for (let i = 0; i < n; i++) {
+    const type = r(0,1);
+    let el;
+    if (type < 0.45) el = makeText();
+    else if (type < 0.75) el = makeSvgShape();
+    else el = makePunctuation();
+
+    el.addEventListener('mouseenter', () => {
+      hoverCount++;
+      counter.textContent = `hovering over ${hoverCount} arbitrary thing${hoverCount !== 1 ? 's' : ''}`;
+    });
+
+    stage.appendChild(el);
+  }
+}
+
+render();
+</script>

@@ -1,0 +1,364 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  .stage {
+    position: relative;
+    width: 100%;
+    min-height: 520px;
+    background: #0a0a0a;
+    overflow: hidden;
+    cursor: crosshair;
+    font-family: monospace;
+  }
+
+  canvas#noise {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0.85;
+    filter: contrast(1.8) brightness(0.7);
+    mix-blend-mode: screen;
+  }
+
+  .static-layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .ghost-text {
+    position: absolute;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    color: rgba(200,200,200,0.07);
+    white-space: nowrap;
+    user-select: none;
+    pointer-events: none;
+    mix-blend-mode: screen;
+    transition: opacity 0.4s;
+  }
+
+  .ghost-text.flicker {
+    animation: flicker 3.2s infinite;
+  }
+
+  @keyframes flicker {
+    0%,100% { opacity: 0.06; }
+    14% { opacity: 0.22; }
+    16% { opacity: 0.03; }
+    50% { opacity: 0.14; }
+    52% { opacity: 0.04; }
+    80% { opacity: 0.18; }
+  }
+
+  .face-zone {
+    position: absolute;
+    border: 1px solid rgba(255,255,255,0.04);
+    border-radius: 50%;
+    pointer-events: none;
+    animation: breathe 6s ease-in-out infinite;
+  }
+
+  @keyframes breathe {
+    0%,100% { opacity: 0; transform: scale(0.97); }
+    50% { opacity: 1; transform: scale(1.02); }
+  }
+
+  .face-zone::before {
+    content: '';
+    position: absolute;
+    width: 18%;
+    height: 9%;
+    top: 32%;
+    left: 22%;
+    background: radial-gradient(ellipse, rgba(255,255,255,0.06) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+
+  .face-zone::after {
+    content: '';
+    position: absolute;
+    width: 18%;
+    height: 9%;
+    top: 32%;
+    right: 22%;
+    background: radial-gradient(ellipse, rgba(255,255,255,0.06) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+
+  .scan-line {
+    position: absolute;
+    left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.03), transparent);
+    animation: scan 8s linear infinite;
+    pointer-events: none;
+  }
+
+  @keyframes scan {
+    from { top: -2px; }
+    to { top: 100%; }
+  }
+
+  .rorschach {
+    position: absolute;
+    pointer-events: none;
+    opacity: 0;
+    mix-blend-mode: overlay;
+    animation: inkblot 12s ease-in-out infinite;
+  }
+
+  @keyframes inkblot {
+    0%,100% { opacity: 0; }
+    20%,80% { opacity: 0.12; }
+    50% { opacity: 0.18; }
+  }
+
+  .label {
+    position: absolute;
+    bottom: 18px;
+    left: 0; right: 0;
+    text-align: center;
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    color: rgba(255,255,255,0.18);
+    text-transform: uppercase;
+    user-select: none;
+    pointer-events: none;
+    mix-blend-mode: screen;
+  }
+
+  .almost-word {
+    position: absolute;
+    font-size: 13px;
+    letter-spacing: 0.05em;
+    color: rgba(230,230,210,0.09);
+    font-family: monospace;
+    pointer-events: none;
+    mix-blend-mode: screen;
+    animation: wordpulse 7s ease-in-out infinite;
+  }
+
+  @keyframes wordpulse {
+    0%,100% { opacity: 0; filter: blur(1.5px); }
+    30% { opacity: 0.55; filter: blur(0px); }
+    35% { opacity: 0.08; filter: blur(2px); }
+    60% { opacity: 0.4; filter: blur(0.5px); }
+    65% { opacity: 0.06; filter: blur(2px); }
+  }
+
+  .vignette {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% 50%, transparent 40%, rgba(0,0,0,0.7) 100%);
+    pointer-events: none;
+  }
+
+  .tooltip {
+    position: absolute;
+    bottom: 38px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    color: rgba(255,255,255,0.1);
+    user-select: none;
+    pointer-events: none;
+  }
+</style>
+
+<h2 class="sr-only">Pareidolia and hallucination: an interactive noise field where your brain invents patterns, faces, and words that aren't there.</h2>
+
+<div class="stage" id="stage">
+  <canvas id="noise"></canvas>
+  <div class="static-layer" id="static"></div>
+  <div class="scan-line"></div>
+  <div class="vignette"></div>
+  <span class="label">your brain is constructing this</span>
+  <span class="tooltip">move cursor — the pattern follows</span>
+</div>
+
+<script>
+(function(){
+  const stage = document.getElementById('stage');
+  const canvas = document.getElementById('noise');
+  const ctx = canvas.getContext('2d');
+  const staticLayer = document.getElementById('static');
+
+  const W = stage.offsetWidth || 680;
+  const H = 520;
+  stage.style.minHeight = H + 'px';
+  canvas.width = W;
+  canvas.height = H;
+
+  const almostWords = [
+    'rememb__','f_rg_t','y__r n_me','l__k','no_','___','h_lp','wh_','c_me','_t_ll','se_','s__n','bel__ve','cr_','the re','—','an___r'
+  ];
+  const ghostLines = [
+    'the signal is','almost a face','you saw','pattern detected','______ there','not what you','behind the noise','was it','looking back','three seconds','before you noticed','do you','the shape moved','it always does','don\'t','stop','you\'re'
+  ];
+
+  function mkGhostText(){
+    ghostLines.forEach((t, i) => {
+      const el = document.createElement('span');
+      el.className = 'ghost-text flicker';
+      el.textContent = t;
+      el.style.top = (Math.random() * 88 + 2) + '%';
+      el.style.left = (Math.random() * 70 + 2) + '%';
+      el.style.animationDelay = (Math.random() * 4) + 's';
+      el.style.animationDuration = (2.5 + Math.random() * 3) + 's';
+      el.style.fontSize = (9 + Math.floor(Math.random()*5)) + 'px';
+      staticLayer.appendChild(el);
+    });
+  }
+
+  function mkAlmostWords(){
+    almostWords.forEach((w, i) => {
+      const el = document.createElement('span');
+      el.className = 'almost-word';
+      el.textContent = w;
+      el.style.top = (8 + Math.random() * 80) + '%';
+      el.style.left = (5 + Math.random() * 80) + '%';
+      el.style.animationDelay = (i * 1.1 + Math.random() * 2) + 's';
+      el.style.animationDuration = (5 + Math.random() * 5) + 's';
+      staticLayer.appendChild(el);
+    });
+  }
+
+  function mkFaceZone(x, y, rx, ry, delay){
+    const el = document.createElement('div');
+    el.className = 'face-zone';
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+    el.style.width = (rx*2) + 'px';
+    el.style.height = (ry*2) + 'px';
+    el.style.animationDelay = delay + 's';
+    el.style.animationDuration = (5 + Math.random() * 4) + 's';
+    staticLayer.appendChild(el);
+  }
+
+  function mkRorschach(cx, cy, size){
+    const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+    svg.setAttribute('width', size*2);
+    svg.setAttribute('height', size*2);
+    svg.style.position = 'absolute';
+    svg.style.left = (cx - size) + 'px';
+    svg.style.top = (cy - size) + 'px';
+    svg.classList.add('rorschach');
+    svg.style.animationDelay = (Math.random() * 8) + 's';
+
+    const defs = document.createElementNS('http://www.w3.org/2000/svg','defs');
+    const clip = document.createElementNS('http://www.w3.org/2000/svg','clipPath');
+    clip.setAttribute('id','rclip'+cy);
+    const cr = document.createElementNS('http://www.w3.org/2000/svg','rect');
+    cr.setAttribute('x', size); cr.setAttribute('y',0);
+    cr.setAttribute('width', size); cr.setAttribute('height', size*2);
+    clip.appendChild(cr); defs.appendChild(clip); svg.appendChild(defs);
+
+    function blobPath(s){
+      const pts = [];
+      const n = 7 + Math.floor(Math.random()*5);
+      for(let i=0;i<n;i++){
+        const a = (i/n)*Math.PI;
+        const r = s*(0.35 + Math.random()*0.55);
+        pts.push([s + Math.cos(a)*r, s + Math.sin(a)*r*(0.6+Math.random()*0.8)]);
+      }
+      let d = `M${pts[0][0]},${pts[0][1]}`;
+      for(let i=1;i<pts.length;i++){
+        const p = pts[(i-1)], q = pts[i];
+        const cx2 = (p[0]+q[0])/2, cy2 = (p[1]+q[1])/2;
+        d += ` Q${p[0]},${p[1]} ${cx2},${cy2}`;
+      }
+      d += 'Z';
+      return d;
+    }
+
+    const d = blobPath(size);
+    const right = document.createElementNS('http://www.w3.org/2000/svg','path');
+    right.setAttribute('d', d);
+    right.setAttribute('fill','rgba(255,255,255,0.15)');
+    right.setAttribute('clip-path','url(#rclip'+cy+')');
+    svg.appendChild(right);
+
+    const left = document.createElementNS('http://www.w3.org/2000/svg','path');
+    left.setAttribute('d', d);
+    left.setAttribute('fill','rgba(255,255,255,0.15)');
+    left.setAttribute('transform',`scale(-1,1) translate(${-size*2},0)`);
+    svg.appendChild(left);
+
+    staticLayer.appendChild(svg);
+  }
+
+  mkGhostText();
+  mkAlmostWords();
+  mkFaceZone(W*0.18 - 60, H*0.22 - 50, 60, 72, 0.8);
+  mkFaceZone(W*0.72 - 55, H*0.55 - 60, 55, 68, 2.4);
+  mkFaceZone(W*0.45 - 45, H*0.72 - 45, 45, 55, 5.1);
+  mkRorschach(W*0.5, H*0.38, 70);
+  mkRorschach(W*0.25, H*0.65, 50);
+  mkRorschach(W*0.75, H*0.2, 42);
+
+  let mouseX = W/2, mouseY = H/2;
+  let frame = 0;
+  let seed = Math.random() * 10000;
+
+  stage.addEventListener('mousemove', e => {
+    const r = stage.getBoundingClientRect();
+    mouseX = e.clientX - r.left;
+    mouseY = e.clientY - r.top;
+  });
+
+  function noise2d(x, y, t){
+    const s = Math.sin(x * 0.07 + t) * Math.cos(y * 0.05 - t * 0.7);
+    const s2 = Math.sin((x+y) * 0.04 + t * 1.3) * 0.5;
+    const s3 = Math.sin(x * 0.12 - t * 0.4) * Math.cos(y * 0.11 + t * 0.6) * 0.3;
+    return (s + s2 + s3) / 1.8;
+  }
+
+  function drawNoise(t){
+    const id = ctx.createImageData(W, H);
+    const d = id.data;
+    const mx = mouseX / W;
+    const my = mouseY / H;
+
+    for(let y=0;y<H;y+=2){
+      for(let x=0;x<W;x+=2){
+        const nx = x/W, ny = y/H;
+        const distMouse = Math.sqrt((nx-mx)**2+(ny-my)**2);
+        const pull = Math.max(0, 1 - distMouse * 3.5);
+
+        const n1 = noise2d(x, y, t * 0.012 + seed);
+        const n2 = noise2d(x*0.5, y*0.5, t * 0.018 - seed * 0.3);
+        const n3 = Math.random() * 0.25;
+        const combined = (n1 * 0.5 + n2 * 0.35 + n3) * (1 + pull * 0.6);
+
+        const v = Math.max(0, Math.min(255, Math.floor((combined * 0.5 + 0.5) * 255)));
+        const glow = Math.floor(pull * 18);
+
+        const i = (y * W + x) * 4;
+        const i1 = ((y+1) * W + x) * 4;
+        const i2 = (y * W + (x+1)) * 4;
+        const i3 = ((y+1) * W + (x+1)) * 4;
+
+        [i, i1, i2, i3].forEach(idx => {
+          d[idx]   = v + glow;
+          d[idx+1] = v + Math.floor(glow * 0.5);
+          d[idx+2] = v;
+          d[idx+3] = 255;
+        });
+      }
+    }
+    ctx.putImageData(id, 0, 0);
+  }
+
+  function loop(){
+    frame++;
+    drawNoise(frame);
+    requestAnimationFrame(loop);
+  }
+
+  loop();
+})();
+</script>

@@ -1,0 +1,291 @@
+
+<style>
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+  @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  @keyframes counterRotate { from { transform: rotate(0deg); } to { transform: rotate(-360deg); } }
+  @keyframes ripple { 0% { transform: scale(0.95); opacity: 1; } 100% { transform: scale(1.8); opacity: 0; } }
+  @keyframes glitch {
+    0%, 90%, 100% { transform: translate(0); clip-path: none; }
+    91% { transform: translate(-3px, 1px); }
+    93% { transform: translate(3px, -1px); }
+    95% { transform: translate(-2px, 0); }
+    97% { transform: translate(2px, 1px); }
+  }
+  @keyframes countDown { from { opacity: 1; } to { opacity: 0.2; } }
+  @keyframes scrollText { from { transform: translateY(0); } to { transform: translateY(-50%); } }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  #er-root {
+    font-family: var(--font-mono, monospace);
+    color: var(--color-text-primary);
+    min-height: 520px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    padding: 2rem;
+    user-select: none;
+  }
+
+  #er-bg {
+    position: absolute; inset: 0;
+    background: var(--color-background-primary);
+    z-index: 0;
+  }
+
+  .ring {
+    position: absolute;
+    border-radius: 50%;
+    border: 0.5px solid var(--color-border-tertiary);
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+  }
+  .ring-1 { width: 440px; height: 440px; }
+  .ring-2 { width: 320px; height: 320px; border-style: dashed; }
+  .ring-3 { width: 200px; height: 200px; }
+
+  #er-ouroboros {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    animation: rotate 40s linear infinite;
+    z-index: 1;
+  }
+
+  #er-inner {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    animation: counterRotate 25s linear infinite;
+    z-index: 1;
+  }
+
+  #er-ripple {
+    position: absolute;
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    border: 1px solid var(--color-border-secondary);
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    animation: ripple 3s ease-out infinite;
+    z-index: 1;
+  }
+
+  #er-content {
+    position: relative;
+    z-index: 10;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+
+  #er-title {
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    color: var(--color-text-tertiary);
+    text-transform: uppercase;
+    animation: fadeIn 2s ease;
+  }
+
+  #er-demon {
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    max-width: 320px;
+    line-height: 1.7;
+    animation: fadeIn 3s ease;
+    border: 0.5px solid var(--color-border-tertiary);
+    padding: 1rem 1.25rem;
+    border-radius: var(--border-radius-md);
+    background: var(--color-background-secondary);
+  }
+
+  #er-demon em {
+    color: var(--color-text-primary);
+    font-style: normal;
+    font-weight: 500;
+  }
+
+  #er-glitch {
+    font-size: 28px;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    color: var(--color-text-primary);
+    animation: glitch 8s ease-in-out infinite;
+    line-height: 1.2;
+  }
+
+  #er-counter-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 11px;
+    color: var(--color-text-tertiary);
+    letter-spacing: 0.1em;
+  }
+
+  #er-ticker {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-text-primary);
+    min-width: 2ch;
+    text-align: right;
+  }
+
+  #er-progress-track {
+    width: 200px;
+    height: 2px;
+    background: var(--color-border-tertiary);
+    border-radius: 1px;
+    overflow: hidden;
+  }
+
+  #er-progress-bar {
+    height: 100%;
+    background: var(--color-text-tertiary);
+    width: 0%;
+    transition: width 1s linear;
+    border-radius: 1px;
+  }
+
+  #er-scroll-hint {
+    font-size: 11px;
+    color: var(--color-text-tertiary);
+    letter-spacing: 0.15em;
+    animation: pulse 3s ease-in-out infinite;
+    cursor: pointer;
+    padding: 8px 16px;
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--border-radius-md);
+    transition: all 0.2s;
+  }
+
+  #er-scroll-hint:hover {
+    background: var(--color-background-secondary);
+    color: var(--color-text-secondary);
+  }
+
+  #er-iterations {
+    font-size: 11px;
+    color: var(--color-text-tertiary);
+    letter-spacing: 0.1em;
+  }
+
+  .dot-ring {
+    position: absolute;
+  }
+</style>
+
+<div id="er-root">
+  <div id="er-bg"></div>
+
+  <div class="ring ring-1"></div>
+  <div class="ring ring-2"></div>
+  <div class="ring ring-3"></div>
+  <div id="er-ripple"></div>
+
+  <svg id="er-ouroboros" width="420" height="420" viewBox="0 0 420 420">
+    <circle cx="210" cy="210" r="204" fill="none" stroke="var(--color-border-tertiary)" stroke-width="0.5" stroke-dasharray="4 8"/>
+    <g id="dot-orbit"></g>
+  </svg>
+
+  <svg id="er-inner" width="180" height="180" viewBox="0 0 180 180">
+    <circle cx="90" cy="90" r="84" fill="none" stroke="var(--color-border-tertiary)" stroke-width="0.5" stroke-dasharray="2 12"/>
+    <g id="dot-orbit-inner"></g>
+  </svg>
+
+  <div id="er-content">
+    <div id="er-title">Nietzsche's eternal return</div>
+    <div id="er-glitch">Die ewige Wiederkunft</div>
+    <div id="er-demon">
+      What if a demon told you that <em>this moment</em> — exactly this — would recur infinitely? Every click. Every scroll. Every second of boredom or joy, repeated without end.
+    </div>
+
+    <div id="er-counter-wrap">
+      <span>recurrence in</span>
+      <span id="er-ticker">60</span>
+      <span>seconds</span>
+    </div>
+
+    <div id="er-progress-track">
+      <div id="er-progress-bar"></div>
+    </div>
+
+    <div id="er-scroll-hint" onclick="triggerReturn()">↺ attempt escape</div>
+    <div id="er-iterations">this moment has recurred <span id="er-count">0</span> times</div>
+  </div>
+</div>
+
+<script>
+(function() {
+  let seconds = 60;
+  let iterations = parseInt(sessionStorage.getItem('er_iterations') || '0');
+  const ticker = document.getElementById('er-ticker');
+  const bar = document.getElementById('er-progress-bar');
+  const countEl = document.getElementById('er-count');
+  const glitch = document.getElementById('er-glitch');
+
+  countEl.textContent = iterations;
+
+  const phrases = [
+    'Die ewige Wiederkunft',
+    'l\'eterno ritorno',
+    'the eternal return',
+    'вечное возвращение',
+    '永劫回帰',
+    'Die ewige Wiederkunft',
+  ];
+  let phraseIdx = 0;
+
+  function triggerReturn() {
+    iterations++;
+    sessionStorage.setItem('er_iterations', iterations);
+    countEl.textContent = iterations;
+    phraseIdx = (phraseIdx + 1) % phrases.length;
+    glitch.textContent = phrases[phraseIdx];
+    seconds = 60;
+    bar.style.width = '0%';
+    bar.style.transition = 'none';
+    setTimeout(() => { bar.style.transition = 'width 1s linear'; }, 50);
+    const hint = document.getElementById('er-scroll-hint');
+    hint.textContent = '↺ you cannot escape';
+    setTimeout(() => { hint.textContent = '↺ attempt escape'; }, 2000);
+  }
+
+  window.triggerReturn = triggerReturn;
+
+  const interval = setInterval(() => {
+    seconds--;
+    ticker.textContent = seconds;
+    bar.style.width = ((60 - seconds) / 60 * 100) + '%';
+    if (seconds <= 0) {
+      triggerReturn();
+      seconds = 60;
+    }
+  }, 1000);
+
+  function placeDots(svgId, groupId, r, count, dotR) {
+    const g = document.getElementById(groupId);
+    for (let i = 0; i < count; i++) {
+      const angle = (i / count) * Math.PI * 2;
+      const x = r + Math.cos(angle) * r;
+      const y = r + Math.sin(angle) * r;
+      const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      c.setAttribute('cx', x);
+      c.setAttribute('cy', y);
+      c.setAttribute('r', dotR);
+      c.setAttribute('fill', 'var(--color-border-secondary)');
+      c.style.opacity = (0.2 + (i / count) * 0.8).toString();
+      g.appendChild(c);
+    }
+  }
+
+  placeDots('er-ouroboros', 'dot-orbit', 204, 60, 1.5);
+  placeDots('er-inner', 'dot-orbit-inner', 84, 24, 1.5);
+})();
+</script>

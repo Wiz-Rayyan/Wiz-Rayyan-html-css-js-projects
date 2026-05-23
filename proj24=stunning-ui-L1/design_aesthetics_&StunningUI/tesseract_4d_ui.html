@@ -1,0 +1,477 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: transparent; }
+
+  .scene {
+    padding: 2rem 1rem 1rem;
+    font-family: var(--font-mono);
+    color: var(--color-text-primary);
+    min-height: 600px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .dimension-label {
+    font-size: 11px;
+    color: var(--color-text-tertiary);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+
+  .title-block {
+    margin-bottom: 2.5rem;
+  }
+
+  .title-block h2 {
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--color-text-primary);
+    line-height: 1.2;
+  }
+
+  .title-block p {
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    margin-top: 0.5rem;
+    font-family: var(--font-sans);
+    max-width: 420px;
+  }
+
+  .tesseract-stage {
+    display: flex;
+    gap: 2rem;
+    align-items: flex-start;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+  }
+
+  .projection-wrap {
+    flex: 0 0 auto;
+    position: relative;
+    width: 260px;
+    height: 260px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .projection-label {
+    position: absolute;
+    bottom: -22px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 11px;
+    color: var(--color-text-tertiary);
+    letter-spacing: 0.1em;
+    white-space: nowrap;
+  }
+
+  canvas#tesseract {
+    display: block;
+  }
+
+  .info-panel {
+    flex: 1 1 260px;
+    min-width: 220px;
+  }
+
+  .info-row {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .stat-card {
+    background: var(--color-background-secondary);
+    border-radius: var(--border-radius-md);
+    padding: 0.75rem 1rem;
+  }
+
+  .stat-label {
+    font-size: 11px;
+    color: var(--color-text-secondary);
+    letter-spacing: 0.08em;
+    margin-bottom: 4px;
+  }
+
+  .stat-value {
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--color-text-primary);
+  }
+
+  .stat-sub {
+    font-size: 11px;
+    color: var(--color-text-tertiary);
+    margin-top: 2px;
+    font-family: var(--font-sans);
+  }
+
+  .controls {
+    margin-top: 1.5rem;
+  }
+
+  .ctrl-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 0.75rem;
+  }
+
+  .ctrl-row label {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    width: 28px;
+  }
+
+  .ctrl-row input[type=range] {
+    flex: 1;
+  }
+
+  .ctrl-row span {
+    font-size: 12px;
+    color: var(--color-text-tertiary);
+    width: 28px;
+    text-align: right;
+  }
+
+  .shadow-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 1.5rem;
+  }
+
+  .shadow-cell {
+    background: var(--color-background-secondary);
+    border-radius: var(--border-radius-md);
+    border: 0.5px solid var(--color-border-tertiary);
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    color: var(--color-text-tertiary);
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+
+  .shadow-cell:hover {
+    border-color: var(--color-border-secondary);
+  }
+
+  .shadow-cell canvas {
+    position: absolute;
+    inset: 0;
+  }
+
+  .shadow-cell .cell-label {
+    position: absolute;
+    bottom: 4px;
+    left: 0; right: 0;
+    text-align: center;
+    font-size: 9px;
+    color: var(--color-text-tertiary);
+    letter-spacing: 0.05em;
+    z-index: 2;
+  }
+
+  .axis-badge {
+    display: inline-block;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 0.5px solid var(--color-border-tertiary);
+    color: var(--color-text-secondary);
+    margin-right: 4px;
+    margin-bottom: 4px;
+  }
+
+  .section-heading {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-text-tertiary);
+    margin-bottom: 0.75rem;
+  }
+
+  .blend-note {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    font-family: var(--font-sans);
+    line-height: 1.6;
+    border-left: 2px solid var(--color-border-secondary);
+    padding-left: 0.75rem;
+    margin-top: 1rem;
+  }
+</style>
+
+<h2 class="sr-only">Fourth Dimension / Tesseract UI: An interactive visualization of a 4D hypercube projected into 3D and 2D space, showing rotating shadows of a tesseract across different dimensional planes.</h2>
+
+<div class="scene">
+  <div class="title-block">
+    <div class="dimension-label">dimensional projection / w-axis enabled</div>
+    <h2>Tesseract</h2>
+    <p>What you see is a 3D shadow of a 4D object. The full structure exists in a space you cannot perceive. Rotate across XY, ZW, and XW planes simultaneously.</p>
+  </div>
+
+  <div class="tesseract-stage">
+    <div>
+      <div class="projection-wrap">
+        <canvas id="tesseract" width="260" height="260"></canvas>
+        <span class="projection-label">3D projection → screen</span>
+      </div>
+      <div class="controls" style="margin-top: 2.5rem; width: 260px;">
+        <div class="section-heading">rotation planes</div>
+        <div class="ctrl-row">
+          <label>XY</label>
+          <input type="range" id="sXY" min="0" max="360" value="0">
+          <span id="vXY">0°</span>
+        </div>
+        <div class="ctrl-row">
+          <label>ZW</label>
+          <input type="range" id="sZW" min="0" max="360" value="0">
+          <span id="vZW">0°</span>
+        </div>
+        <div class="ctrl-row">
+          <label>XW</label>
+          <input type="range" id="sXW" min="0" max="360" value="0">
+          <span id="vXW">0°</span>
+        </div>
+        <div class="ctrl-row" style="margin-top: 1rem;">
+          <label style="width:auto; margin-right: 8px; font-size:12px; color: var(--color-text-secondary);">auto</label>
+          <input type="checkbox" id="autoSpin" checked style="width:auto; height:auto;">
+        </div>
+      </div>
+    </div>
+
+    <div class="info-panel">
+      <div class="info-row">
+        <div class="stat-card">
+          <div class="stat-label">VERTICES</div>
+          <div class="stat-value">16</div>
+          <div class="stat-sub">2⁴ corners in 4D space</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">EDGES</div>
+          <div class="stat-value">32</div>
+          <div class="stat-sub">each vertex connects to 4 others</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">CELLS</div>
+          <div class="stat-value">8</div>
+          <div class="stat-sub">cubic faces (3D faces of a 4D solid)</div>
+        </div>
+      </div>
+
+      <div class="section-heading">axis coordinates</div>
+      <div>
+        <span class="axis-badge">X</span>
+        <span class="axis-badge">Y</span>
+        <span class="axis-badge">Z</span>
+        <span class="axis-badge" style="border-color: #7F77DD; color: #7F77DD;">W ← imperceptible</span>
+      </div>
+
+      <div class="blend-note">
+        The W axis exists perpendicular to all three spatial axes. What renders here is its shadow — the same way a 3D sphere casts a 2D circle. Rotation in the ZW plane causes the inner cube to pass through the outer.
+      </div>
+    </div>
+  </div>
+
+  <div class="section-heading">cross-dimensional shadows</div>
+  <div class="shadow-grid">
+    <div class="shadow-cell"><canvas id="sXY2" width="100" height="100"></canvas><span class="cell-label">XY plane</span></div>
+    <div class="shadow-cell"><canvas id="sXZ" width="100" height="100"></canvas><span class="cell-label">XZ plane</span></div>
+    <div class="shadow-cell"><canvas id="sXW2" width="100" height="100"></canvas><span class="cell-label">XW plane</span></div>
+    <div class="shadow-cell"><canvas id="sYZ" width="100" height="100"></canvas><span class="cell-label">YZ plane</span></div>
+    <div class="shadow-cell"><canvas id="sYW" width="100" height="100"></canvas><span class="cell-label">YW plane</span></div>
+    <div class="shadow-cell"><canvas id="sZW2" width="100" height="100"></canvas><span class="cell-label">ZW plane</span></div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const verts4D = [];
+  for (let i = 0; i < 16; i++) {
+    verts4D.push([
+      (i & 1) ? 1 : -1,
+      (i & 2) ? 1 : -1,
+      (i & 4) ? 1 : -1,
+      (i & 8) ? 1 : -1
+    ]);
+  }
+
+  const edges = [];
+  for (let a = 0; a < 16; a++) {
+    for (let b = a + 1; b < 16; b++) {
+      let diff = 0;
+      for (let k = 0; k < 4; k++) if (verts4D[a][k] !== verts4D[b][k]) diff++;
+      if (diff === 1) edges.push([a, b]);
+    }
+  }
+
+  let aXY = 0, aZW = 0, aXW = 0;
+  let manualXY = 0, manualZW = 0, manualXW = 0;
+
+  function rot4D(v, plane, angle) {
+    const c = Math.cos(angle), s = Math.sin(angle);
+    const r = [...v];
+    const [i, j] = plane;
+    r[i] = c * v[i] - s * v[j];
+    r[j] = s * v[i] + c * v[j];
+    return r;
+  }
+
+  function project3D(v) {
+    const w = v[3] + 2.5;
+    const scale = 1.6 / w;
+    return [v[0] * scale, v[1] * scale, v[2] * scale];
+  }
+
+  function projectScreen(v3, width, height, fov) {
+    const z = v3[2] + 3;
+    const scale = fov / z;
+    return [
+      width / 2 + v3[0] * scale,
+      height / 2 - v3[1] * scale
+    ];
+  }
+
+  function getIsDark() {
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  }
+
+  function getColors() {
+    const dark = getIsDark();
+    return {
+      outer: dark ? 'rgba(206,203,246,0.35)' : 'rgba(83,74,183,0.25)',
+      outerStrong: dark ? 'rgba(206,203,246,0.7)' : 'rgba(83,74,183,0.8)',
+      inner: dark ? 'rgba(29,158,117,0.35)' : 'rgba(15,110,86,0.2)',
+      innerStrong: dark ? 'rgba(29,158,117,0.75)' : 'rgba(15,110,86,0.75)',
+      cross: dark ? 'rgba(215,90,48,0.5)' : 'rgba(153,60,29,0.4)',
+    };
+  }
+
+  function drawTesseract(canvas, angXY, angZW, angXW, fov) {
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    ctx.clearRect(0, 0, W, H);
+    const cols = getColors();
+
+    const projected = verts4D.map(v => {
+      let r = rot4D(v, [0,1], angXY);
+      r = rot4D(r, [2,3], angZW);
+      r = rot4D(r, [0,3], angXW);
+      return projectScreen(project3D(r), W, H, fov || W * 0.9);
+    });
+
+    const isOuter = i => (verts4D[i][3] === -1);
+    const isInner = i => (verts4D[i][3] === 1);
+
+    edges.forEach(([a, b]) => {
+      const outer = isOuter(a) && isOuter(b);
+      const inner = isInner(a) && isInner(b);
+      ctx.beginPath();
+      ctx.moveTo(projected[a][0], projected[a][1]);
+      ctx.lineTo(projected[b][0], projected[b][1]);
+      if (outer) {
+        ctx.strokeStyle = cols.outerStrong;
+        ctx.lineWidth = W > 200 ? 1.2 : 0.7;
+      } else if (inner) {
+        ctx.strokeStyle = cols.innerStrong;
+        ctx.lineWidth = W > 200 ? 1.2 : 0.7;
+      } else {
+        ctx.strokeStyle = cols.cross;
+        ctx.lineWidth = W > 200 ? 0.6 : 0.4;
+        ctx.setLineDash([3, 4]);
+      }
+      ctx.stroke();
+      ctx.setLineDash([]);
+    });
+
+    projected.forEach(([x, y], i) => {
+      ctx.beginPath();
+      ctx.arc(x, y, W > 200 ? 2.5 : 1.5, 0, Math.PI * 2);
+      ctx.fillStyle = isOuter(i) ? cols.outerStrong : cols.innerStrong;
+      ctx.fill();
+    });
+  }
+
+  function drawShadow(canvas, ax, ay, angXY, angZW, angXW) {
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    ctx.clearRect(0, 0, W, H);
+    const cols = getColors();
+
+    const proj2D = verts4D.map(v => {
+      let r = rot4D(v, [0,1], angXY);
+      r = rot4D(r, [2,3], angZW);
+      r = rot4D(r, [0,3], angXW);
+      const s = 28;
+      return [W/2 + r[ax] * s, H/2 - r[ay] * s];
+    });
+
+    edges.forEach(([a, b]) => {
+      ctx.beginPath();
+      ctx.moveTo(proj2D[a][0], proj2D[a][1]);
+      ctx.lineTo(proj2D[b][0], proj2D[b][1]);
+      ctx.strokeStyle = cols.outerStrong;
+      ctx.lineWidth = 0.5;
+      ctx.stroke();
+    });
+  }
+
+  let last = 0;
+  const slXY = document.getElementById('sXY');
+  const slZW = document.getElementById('sZW');
+  const slXW = document.getElementById('sXW');
+  const vXY = document.getElementById('vXY');
+  const vZW = document.getElementById('vZW');
+  const vXW = document.getElementById('vXW');
+  const autoSpin = document.getElementById('autoSpin');
+
+  slXY.addEventListener('input', () => { manualXY = +slXY.value * Math.PI / 180; vXY.textContent = slXY.value + '°'; });
+  slZW.addEventListener('input', () => { manualZW = +slZW.value * Math.PI / 180; vZW.textContent = slZW.value + '°'; });
+  slXW.addEventListener('input', () => { manualXW = +slXW.value * Math.PI / 180; vXW.textContent = slXW.value + '°'; });
+
+  const mainCanvas = document.getElementById('tesseract');
+  const shadowCanvases = [
+    { id: 'sXY2', ax: 0, ay: 1 },
+    { id: 'sXZ', ax: 0, ay: 2 },
+    { id: 'sXW2', ax: 0, ay: 3 },
+    { id: 'sYZ', ax: 1, ay: 2 },
+    { id: 'sYW', ax: 1, ay: 3 },
+    { id: 'sZW2', ax: 2, ay: 3 },
+  ];
+
+  function loop(ts) {
+    const dt = Math.min((ts - last) / 1000, 0.05);
+    last = ts;
+
+    if (autoSpin.checked) {
+      aXY += dt * 0.38;
+      aZW += dt * 0.23;
+      aXW += dt * 0.17;
+    }
+
+    const angXY = autoSpin.checked ? aXY : manualXY;
+    const angZW = autoSpin.checked ? aZW : manualZW;
+    const angXW = autoSpin.checked ? aXW : manualXW;
+
+    drawTesseract(mainCanvas, angXY, angZW, angXW);
+    shadowCanvases.forEach(({ id, ax, ay }) => {
+      const c = document.getElementById(id);
+      if (c) drawShadow(c, ax, ay, angXY, angZW, angXW);
+    });
+
+    requestAnimationFrame(loop);
+  }
+
+  requestAnimationFrame(ts => { last = ts; requestAnimationFrame(loop); });
+})();
+</script>

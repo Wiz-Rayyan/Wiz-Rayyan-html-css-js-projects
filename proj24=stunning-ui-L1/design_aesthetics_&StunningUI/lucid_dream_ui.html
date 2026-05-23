@@ -1,0 +1,540 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  .dream-root {
+    min-height: 100vh;
+    background: #0d0c10;
+    color: #e8e0d4;
+    font-family: 'IM Fell English', Georgia, serif;
+    padding: 2rem 1.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .grain {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.06;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 200px 200px;
+    z-index: 999;
+  }
+
+  .journal-header {
+    text-align: center;
+    margin-bottom: 3rem;
+    position: relative;
+  }
+
+  .journal-date {
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    color: #6b5e4e;
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+    font-family: monospace;
+  }
+
+  .journal-title {
+    font-size: 28px;
+    font-weight: 400;
+    font-style: italic;
+    color: #e8e0d4;
+    line-height: 1.3;
+    transition: opacity 0.6s ease;
+  }
+
+  .divider {
+    width: 80px;
+    height: 0.5px;
+    background: linear-gradient(to right, transparent, #6b5e4e, transparent);
+    margin: 1.25rem auto;
+  }
+
+  .entry {
+    max-width: 560px;
+    margin: 0 auto 3rem;
+    position: relative;
+  }
+
+  .entry-num {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: #4a3f33;
+    text-transform: uppercase;
+    font-family: monospace;
+    margin-bottom: 0.75rem;
+  }
+
+  .entry-text {
+    font-size: 18px;
+    line-height: 1.9;
+    color: #c8bfb2;
+    font-style: italic;
+    transition: opacity 0.5s ease, filter 0.5s ease;
+  }
+
+  .entry-text.shifting {
+    opacity: 0;
+    filter: blur(4px);
+  }
+
+  .glitch-word {
+    display: inline;
+    position: relative;
+    cursor: default;
+    transition: color 0.3s ease;
+  }
+
+  .glitch-word:hover {
+    color: #d4a574;
+  }
+
+  .glitch-word.active-glitch {
+    animation: wordFlicker 0.15s steps(1) 3;
+  }
+
+  @keyframes wordFlicker {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.1; }
+  }
+
+  .image-frame {
+    max-width: 560px;
+    margin: 0 auto 3rem;
+    position: relative;
+  }
+
+  .dream-canvas {
+    width: 100%;
+    height: 220px;
+    border: 0.5px solid #2a2420;
+    position: relative;
+    overflow: hidden;
+    background: #0a0910;
+  }
+
+  .dream-canvas svg {
+    width: 100%;
+    height: 100%;
+    transition: opacity 0.8s ease;
+  }
+
+  .dream-canvas svg.fading {
+    opacity: 0;
+  }
+
+  .canvas-caption {
+    font-size: 11px;
+    color: #4a3f33;
+    font-style: italic;
+    margin-top: 0.5rem;
+    text-align: right;
+    font-family: monospace;
+    transition: opacity 0.5s ease;
+  }
+
+  .layout-block {
+    max-width: 560px;
+    margin: 0 auto 3rem;
+  }
+
+  .cards-row {
+    display: grid;
+    gap: 1px;
+    background: #2a2420;
+    border: 0.5px solid #2a2420;
+    transition: all 0.7s ease;
+  }
+
+  .cards-row.layout-2 { grid-template-columns: 1fr 1fr; }
+  .cards-row.layout-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .cards-row.layout-1 { grid-template-columns: 1fr; }
+
+  .card-cell {
+    background: #0d0c10;
+    padding: 1.25rem;
+    transition: background 0.4s ease;
+  }
+
+  .card-cell-label {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: #4a3f33;
+    text-transform: uppercase;
+    font-family: monospace;
+    margin-bottom: 0.5rem;
+  }
+
+  .card-cell-value {
+    font-size: 22px;
+    font-style: italic;
+    color: #c8bfb2;
+    transition: color 0.3s ease, opacity 0.3s ease;
+  }
+
+  .status-bar {
+    max-width: 560px;
+    margin: 0 auto;
+    padding-top: 2rem;
+    border-top: 0.5px solid #1e1c19;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .blink-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #4a3f33;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 1; background: #8a6a4a; }
+  }
+
+  .status-text {
+    font-size: 11px;
+    color: #4a3f33;
+    font-family: monospace;
+    letter-spacing: 0.05em;
+  }
+
+  .veil {
+    position: fixed;
+    inset: 0;
+    background: #0d0c10;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    z-index: 900;
+  }
+
+  .veil.active { opacity: 1; }
+
+  .float-orb {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(60px);
+    pointer-events: none;
+    opacity: 0.04;
+    transition: all 4s ease;
+  }
+</style>
+
+<div class="dream-root" id="dreamRoot">
+  <div class="grain"></div>
+  <div class="veil" id="veil"></div>
+
+  <div class="float-orb" id="orb1" style="width:300px;height:300px;background:#8b6a3e;top:-50px;left:-100px;"></div>
+  <div class="float-orb" id="orb2" style="width:200px;height:200px;background:#3e5a8b;bottom:100px;right:-50px;"></div>
+
+  <div class="journal-header">
+    <div class="journal-date" id="dreamDate">Dream journal — unknown night</div>
+    <div class="journal-title" id="journalTitle">I knew I was dreaming, but I couldn't wake up</div>
+    <div class="divider"></div>
+  </div>
+
+  <div class="entry" id="entry1">
+    <div class="entry-num">Fragment I</div>
+    <div class="entry-text" id="text1">
+      The <span class="glitch-word" data-variants='["hallway","corridor","passage","throat"]'>hallway</span> stretched further than it should have. My
+      <span class="glitch-word" data-variants='["hands","feet","shadow","name"]'>hands</span> looked <span class="glitch-word" data-variants='["wrong","borrowed","transparent","familiar"]'>wrong</span> — like they belonged to someone I used to be. The <span class="glitch-word" data-variants='["clock","mirror","window","door"]'>clock</span> on the wall
+      showed a time that <span class="glitch-word" data-variants='["doesn\'t exist","repeats","unravels","forgets itself"]'>doesn't exist</span>.
+    </div>
+  </div>
+
+  <div class="image-frame">
+    <div class="dream-canvas" id="dreamCanvas">
+      <svg id="sceneA" viewBox="0 0 560 220" xmlns="http://www.w3.org/2000/svg"></svg>
+    </div>
+    <div class="canvas-caption" id="canvasCaption">the room keeps changing shape</div>
+  </div>
+
+  <div class="entry" id="entry2">
+    <div class="entry-num">Fragment II</div>
+    <div class="entry-text" id="text2">
+      She was <span class="glitch-word" data-variants='["standing","dissolving","speaking","waiting"]'>standing</span> at the end of the
+      <span class="glitch-word" data-variants='["garden","staircase","shore","sentence"]'>garden</span>, her face
+      <span class="glitch-word" data-variants='["shifting","forgetting itself","not yet decided","loading"]'>shifting</span> every time I blinked. I tried to
+      <span class="glitch-word" data-variants='["call out","remember","leave","stay"]'>call out</span> but the
+      <span class="glitch-word" data-variants='["sound","dream","morning","distance"]'>sound</span> arrived before I made it.
+    </div>
+  </div>
+
+  <div class="layout-block">
+    <div class="cards-row layout-2" id="cardsRow">
+      <div class="card-cell">
+        <div class="card-cell-label">Location</div>
+        <div class="card-cell-value" id="cardVal1">childhood home</div>
+      </div>
+      <div class="card-cell">
+        <div class="card-cell-label">Feeling</div>
+        <div class="card-cell-value" id="cardVal2">lucid dread</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="entry" id="entry3">
+    <div class="entry-num">Fragment III</div>
+    <div class="entry-text" id="text3">
+      The <span class="glitch-word" data-variants='["water","light","gravity","music"]'>water</span> in the glass was
+      <span class="glitch-word" data-variants='["rising","still","yesterday","someone else\'s"]'>rising</span> even though I wasn't
+      <span class="glitch-word" data-variants='["touching it","in the room","awake","born yet"]'>touching it</span>. I understood then that the
+      <span class="glitch-word" data-variants='["rules","walls","pronouns","memories"]'>rules</span> only applied if you believed in them.
+    </div>
+  </div>
+
+  <div class="status-bar">
+    <div class="blink-dot"></div>
+    <div class="status-text" id="statusText">reality stability: 62%</div>
+  </div>
+</div>
+
+<script>
+const scenes = [
+  () => {
+    const s = document.createElementNS('http://www.w3.org/2000/svg','svg');
+    s.setAttribute('viewBox','0 0 560 220');
+    s.setAttribute('xmlns','http://www.w3.org/2000/svg');
+    const bg = `<rect width="560" height="220" fill="#060509"/>
+      <rect x="80" y="60" width="200" height="140" fill="#0e0c12" stroke="#1a1620" stroke-width="0.5"/>
+      <rect x="300" y="40" width="180" height="160" fill="#0a090e" stroke="#1a1620" stroke-width="0.5"/>
+      <rect x="120" y="80" width="50" height="80" fill="#0a0910" stroke="#221e28" stroke-width="0.5"/>
+      <rect x="320" y="60" width="60" height="90" fill="#0a0910" stroke="#221e28" stroke-width="0.5"/>
+      <line x1="0" y1="200" x2="560" y2="200" stroke="#1a1620" stroke-width="0.5"/>
+      <line x1="80" y1="200" x2="140" y2="60" stroke="#1a1620" stroke-width="0.3"/>
+      <line x1="280" y1="200" x2="220" y2="60" stroke="#1a1620" stroke-width="0.3"/>
+      <line x1="300" y1="200" x2="340" y2="40" stroke="#1a1620" stroke-width="0.3"/>
+      <line x1="480" y1="200" x2="440" y2="40" stroke="#1a1620" stroke-width="0.3"/>
+      <rect x="200" y="155" width="40" height="45" fill="#0c0a10" stroke="#221e28" stroke-width="0.5"/>
+      <circle cx="220" cy="170" r="3" fill="none" stroke="#3a3040" stroke-width="0.5"/>
+      <text x="40" y="215" font-size="9" fill="#2a2430" font-family="monospace">a hallway with no end</text>`;
+    s.innerHTML = bg;
+    return s;
+  },
+  () => {
+    const s = document.createElementNS('http://www.w3.org/2000/svg','svg');
+    s.setAttribute('viewBox','0 0 560 220');
+    s.setAttribute('xmlns','http://www.w3.org/2000/svg');
+    s.innerHTML = `<rect width="560" height="220" fill="#04070d"/>
+      <ellipse cx="280" cy="110" rx="180" ry="80" fill="none" stroke="#0e1a2a" stroke-width="40"/>
+      <ellipse cx="280" cy="110" rx="120" ry="55" fill="none" stroke="#081220" stroke-width="20"/>
+      <ellipse cx="280" cy="110" rx="60" ry="28" fill="#060d17" stroke="#0e1a2a" stroke-width="0.5"/>
+      <circle cx="280" cy="110" r="8" fill="#0a1525"/>
+      ${Array.from({length:12},(_,i)=>{
+        const a=(i/12)*Math.PI*2;
+        const x1=280+Math.cos(a)*65,y1=110+Math.sin(a)*30;
+        const x2=280+Math.cos(a)*185,y2=110+Math.sin(a)*83;
+        return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#0e1a2a" stroke-width="0.5"/>`;
+      }).join('')}
+      <text x="40" y="215" font-size="9" fill="#1a2a3a" font-family="monospace">concentric — looking inward</text>`;
+    return s;
+  },
+  () => {
+    const s = document.createElementNS('http://www.w3.org/2000/svg','svg');
+    s.setAttribute('viewBox','0 0 560 220');
+    s.setAttribute('xmlns','http://www.w3.org/2000/svg');
+    const trees = [60,130,200,280,340,410,470,520].map((x,i)=>{
+      const h = 60+Math.sin(i*1.3)*30;
+      const w = 20+Math.cos(i*0.8)*8;
+      return `<polygon points="${x},${200-h} ${x-w},200 ${x+w},200" fill="#080b08" stroke="#141a12" stroke-width="0.5"/>`;
+    }).join('');
+    s.innerHTML = `<rect width="560" height="220" fill="#04060a"/>
+      <rect x="0" y="140" width="560" height="80" fill="#06080c"/>
+      ${trees}
+      <ellipse cx="280" cy="80" rx="50" ry="50" fill="none" stroke="#1a1a2a" stroke-width="0.5"/>
+      <ellipse cx="280" cy="80" rx="30" ry="30" fill="#0a0a14" stroke="#1a1a2a" stroke-width="0.5"/>
+      <ellipse cx="280" cy="80" rx="12" ry="12" fill="#0e0e1a"/>
+      <line x1="0" y1="140" x2="560" y2="140" stroke="#0e1208" stroke-width="0.5"/>
+      <text x="40" y="215" font-size="9" fill="#1a2018" font-family="monospace">the forest beyond the window</text>`;
+    return s;
+  },
+  () => {
+    const s = document.createElementNS('http://www.w3.org/2000/svg','svg');
+    s.setAttribute('viewBox','0 0 560 220');
+    s.setAttribute('xmlns','http://www.w3.org/2000/svg');
+    const lines = Array.from({length:20},(_,i)=>{
+      const y = 10+i*10;
+      const w = 30+Math.random()*400;
+      const x = Math.random()*100;
+      return `<line x1="${x}" y1="${y}" x2="${x+w}" y2="${y}" stroke="#1a1620" stroke-width="${0.3+Math.random()*0.5}"/>`;
+    }).join('');
+    s.innerHTML = `<rect width="560" height="220" fill="#050409"/>
+      ${lines}
+      <rect x="180" y="60" width="200" height="100" fill="#07060c" stroke="#1a1620" stroke-width="0.5"/>
+      <line x1="180" y1="60" x2="380" y2="160" stroke="#1a1620" stroke-width="0.3"/>
+      <line x1="380" y1="60" x2="180" y2="160" stroke="#1a1620" stroke-width="0.3"/>
+      <circle cx="280" cy="110" r="15" fill="#090810" stroke="#2a2035" stroke-width="0.5"/>
+      <circle cx="280" cy="110" r="5" fill="#0d0c18"/>
+      <text x="40" y="215" font-size="9" fill="#1a1628" font-family="monospace">a room with no corners</text>`;
+    return s;
+  }
+];
+
+const captions = [
+  "the room keeps changing shape",
+  "something orbits at the center",
+  "the forest beyond the window",
+  "no corners — no way out"
+];
+
+const journalTitles = [
+  "I knew I was dreaming, but I couldn't wake up",
+  "the house had rooms I'd never seen before",
+  "time moved sideways, not forward",
+  "I was someone else who remembered being me",
+  "everything familiar felt slightly wrong"
+];
+
+const cardLocations = ["childhood home","somewhere underwater","a city that doesn't exist","the space between seconds","the back of a taxi, going nowhere"];
+const cardFeelings = ["lucid dread","warm vertigo","borrowed calm","the ache of almost-knowing","controlled freefall"];
+const cardLayouts = ["layout-2","layout-3","layout-1"];
+const cardLabels3 = [
+  {l:"Location",v:()=>pick(cardLocations)},
+  {l:"Feeling",v:()=>pick(cardFeelings)},
+  {l:"Time",v:()=>pick(["3:something am","when you weren't looking","before it happened","not yet"])}
+];
+
+const stabilityMessages = [
+  "reality stability: 62%",
+  "reality stability: 34%",
+  "reality stability: 81%",
+  "reality stability: 17%",
+  "reality stability: ???%",
+  "reality stability: loading...",
+];
+
+function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+
+let currentScene = 0;
+
+function swapScene(){
+  const canvas = document.getElementById('dreamCanvas');
+  const oldSvg = canvas.querySelector('svg');
+  if(oldSvg) oldSvg.classList.add('fading');
+  setTimeout(()=>{
+    currentScene = (currentScene+1)%scenes.length;
+    const newSvg = scenes[currentScene]();
+    newSvg.style.opacity = '0';
+    newSvg.style.transition = 'opacity 0.8s ease';
+    if(oldSvg) oldSvg.remove();
+    canvas.appendChild(newSvg);
+    requestAnimationFrame(()=>{
+      requestAnimationFrame(()=>{ newSvg.style.opacity='1'; });
+    });
+    document.getElementById('canvasCaption').style.opacity='0';
+    setTimeout(()=>{
+      document.getElementById('canvasCaption').textContent=captions[currentScene];
+      document.getElementById('canvasCaption').style.opacity='1';
+    },400);
+  },600);
+}
+
+function glitchRandomWord(){
+  const words = document.querySelectorAll('.glitch-word');
+  if(!words.length) return;
+  const w = words[Math.floor(Math.random()*words.length)];
+  const variants = JSON.parse(w.dataset.variants||'[]');
+  if(!variants.length) return;
+  w.classList.add('active-glitch');
+  setTimeout(()=>{
+    w.textContent = pick(variants);
+    w.classList.remove('active-glitch');
+  },200);
+}
+
+function shiftTitle(){
+  const el = document.getElementById('journalTitle');
+  el.style.opacity='0';
+  setTimeout(()=>{
+    el.textContent = pick(journalTitles);
+    el.style.opacity='1';
+  },400);
+}
+
+function shiftCards(){
+  const row = document.getElementById('cardsRow');
+  const layoutPick = pick(cardLayouts);
+  row.className = 'cards-row ' + layoutPick;
+  if(layoutPick==='layout-3'){
+    row.innerHTML = cardLabels3.map(c=>`
+      <div class="card-cell">
+        <div class="card-cell-label">${c.l}</div>
+        <div class="card-cell-value">${c.v()}</div>
+      </div>`).join('');
+  } else if(layoutPick==='layout-1'){
+    row.innerHTML = `<div class="card-cell">
+      <div class="card-cell-label">the dream</div>
+      <div class="card-cell-value">${pick(cardLocations)} / ${pick(cardFeelings)}</div>
+    </div>`;
+  } else {
+    document.getElementById('cardVal1').style.opacity='0';
+    document.getElementById('cardVal2').style.opacity='0';
+    setTimeout(()=>{
+      const v1 = document.getElementById('cardVal1');
+      const v2 = document.getElementById('cardVal2');
+      if(v1){ v1.textContent=pick(cardLocations); v1.style.opacity='1'; }
+      if(v2){ v2.textContent=pick(cardFeelings); v2.style.opacity='1'; }
+    },300);
+  }
+}
+
+function shiftStatus(){
+  document.getElementById('statusText').textContent = pick(stabilityMessages);
+}
+
+function randomInterval(fn, minMs, maxMs){
+  function loop(){
+    fn();
+    setTimeout(loop, minMs + Math.random()*(maxMs-minMs));
+  }
+  setTimeout(loop, minMs + Math.random()*(maxMs-minMs));
+}
+
+const veil = document.getElementById('veil');
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){
+    veil.classList.add('active');
+    swapScene();
+    glitchRandomWord();
+    glitchRandomWord();
+    if(Math.random()>0.5) shiftTitle();
+    shiftStatus();
+  } else {
+    setTimeout(()=>veil.classList.remove('active'),200);
+    shiftCards();
+  }
+});
+
+const orb1=document.getElementById('orb1');
+const orb2=document.getElementById('orb2');
+function driftOrbs(){
+  orb1.style.left=(Math.random()*200-100)+'px';
+  orb1.style.top=(Math.random()*200-100)+'px';
+  orb2.style.right=(Math.random()*200-100)+'px';
+  orb2.style.bottom=(Math.random()*200-100)+'px';
+}
+
+randomInterval(glitchRandomWord, 1800, 3500);
+randomInterval(glitchRandomWord, 2500, 5000);
+randomInterval(swapScene, 4000, 7000);
+randomInterval(shiftTitle, 6000, 12000);
+randomInterval(shiftCards, 5000, 9000);
+randomInterval(shiftStatus, 3000, 6000);
+randomInterval(driftOrbs, 3000, 6000);
+
+const initSvg = scenes[0]();
+const canvas = document.getElementById('dreamCanvas');
+canvas.innerHTML='';
+canvas.appendChild(initSvg);
+
+document.getElementById('dreamDate').textContent = 'Dream journal — ' + new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'}).toLowerCase();
+</script>

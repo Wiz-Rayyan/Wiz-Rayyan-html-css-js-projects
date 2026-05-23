@@ -1,0 +1,390 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: transparent; }
+#scene {
+  width: 100%;
+  height: 520px;
+  position: relative;
+  overflow: hidden;
+  cursor: crosshair;
+}
+canvas#sky { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+#ui {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  padding: 20px 28px 22px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+}
+#time-control { flex: 1; max-width: 340px; }
+#time-label {
+  font-family: Georgia, serif;
+  font-size: 11px;
+  letter-spacing: 4px;
+  color: rgba(255,255,255,0.55);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+}
+#time-slider {
+  width: 100%;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 2px;
+  border-radius: 1px;
+  background: rgba(255,255,255,0.2);
+  outline: none;
+  border: none;
+}
+#time-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.9);
+  cursor: pointer;
+}
+#time-slider::-moz-range-thumb {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.9);
+  cursor: pointer;
+  border: none;
+}
+#moment-display {
+  font-family: Georgia, serif;
+  text-align: right;
+}
+#moment-name {
+  font-size: 22px;
+  font-weight: 400;
+  letter-spacing: 2px;
+  color: rgba(255,255,255,0.9);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+#moment-desc {
+  font-size: 11px;
+  letter-spacing: 3px;
+  color: rgba(255,255,255,0.45);
+}
+#phrase-bar {
+  position: absolute;
+  top: 28px; left: 0; right: 0;
+  text-align: center;
+  pointer-events: none;
+}
+#phrase {
+  font-family: Georgia, serif;
+  font-size: 13px;
+  letter-spacing: 5px;
+  color: rgba(255,255,255,0.38);
+  font-style: italic;
+}
+</style>
+
+<h2 class="sr-only">Twilight liminal aesthetic — an interactive sky that transitions between deep night, dawn, golden hour, and dusk as you drag the time slider</h2>
+
+<div id="scene">
+  <canvas id="sky"></canvas>
+  <div id="phrase-bar"><span id="phrase">indeterminate</span></div>
+  <div id="ui">
+    <div id="time-control">
+      <div id="time-label">time of threshold</div>
+      <input type="range" id="time-slider" min="0" max="100" value="50" step="1">
+    </div>
+    <div id="moment-display">
+      <div id="moment-name">twilight</div>
+      <div id="moment-desc">between states</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('sky');
+const ctx = canvas.getContext('2d');
+const slider = document.getElementById('time-slider');
+const momentName = document.getElementById('moment-name');
+const momentDesc = document.getElementById('moment-desc');
+const phraseEl = document.getElementById('phrase');
+
+let W, H, t = 0.5, animFrame, stars = [], birds = [];
+
+function resize() {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  W = canvas.width = rect.width;
+  H = canvas.height = 520;
+}
+
+function makeStars() {
+  stars = [];
+  for (let i = 0; i < 160; i++) {
+    stars.push({
+      x: Math.random() * W,
+      y: Math.random() * H * 0.65,
+      r: Math.random() * 1.4 + 0.3,
+      twinkle: Math.random() * Math.PI * 2
+    });
+  }
+}
+
+function makeBirds() {
+  birds = [];
+  for (let i = 0; i < 7; i++) {
+    birds.push({
+      x: W * (0.3 + Math.random() * 0.5),
+      y: H * (0.25 + Math.random() * 0.2),
+      size: 3 + Math.random() * 3,
+      offset: Math.random() * Math.PI * 2
+    });
+  }
+}
+
+function lerp(a, b, t) { return a + (b - a) * t; }
+function lerpC(c1, c2, t) {
+  return [
+    Math.round(lerp(c1[0], c2[0], t)),
+    Math.round(lerp(c1[1], c2[1], t)),
+    Math.round(lerp(c1[2], c2[2], t))
+  ];
+}
+function rgb(c, a = 1) {
+  return a < 1 ? `rgba(${c[0]},${c[1]},${c[2]},${a})` : `rgb(${c[0]},${c[1]},${c[2]})`;
+}
+
+const PALETTES = [
+  { name: 'deep night',     desc: 'before the world wakes',    phrase: 'the dark before knowing',
+    skyTop: [8,12,40],     skyMid: [12,18,58],     skyBot: [20,25,70],
+    horizA: [15,20,60],    horizB: [30,30,80],
+    waterT: [6,10,30],     waterB: [4,8,25],
+    sunVis: 0, moonVis: 1, starVis: 1, sunX: 0.92, sunY: 0.82,
+    groundL: [10,8,25],   groundR: [12,10,30]
+  },
+  { name: 'civil dawn',     desc: 'light not yet arrived',      phrase: 'not yet light, not dark',
+    skyTop: [18,20,70],    skyMid: [50,40,110],    skyBot: [120,80,150],
+    horizA: [160,90,140],  horizB: [220,140,100],
+    waterT: [30,25,75],    waterB: [15,15,50],
+    sunVis: 0.15, moonVis: 0.7, starVis: 0.6, sunX: 0.88, sunY: 0.72,
+    groundL: [20,15,45],   groundR: [30,20,55]
+  },
+  { name: 'twilight',       desc: 'indeterminate',               phrase: 'neither arriving nor departing',
+    skyTop: [30,28,90],    skyMid: [120,70,160],   skyBot: [220,110,100],
+    horizA: [200,100,120], horizB: [250,180,80],
+    waterT: [50,35,95],    waterB: [25,20,70],
+    sunVis: 0.5, moonVis: 0.4, starVis: 0.25, sunX: 0.84, sunY: 0.62,
+    groundL: [30,20,60],   groundR: [50,30,40]
+  },
+  { name: 'golden hour',    desc: 'the sun at the threshold',    phrase: 'color without a name',
+    skyTop: [60,40,120],   skyMid: [200,120,80],   skyBot: [240,175,70],
+    horizA: [230,140,60],  horizB: [252,200,80],
+    waterT: [100,65,40],   waterB: [60,40,30],
+    sunVis: 0.85, moonVis: 0.05, starVis: 0.04, sunX: 0.78, sunY: 0.52,
+    groundL: [55,35,20],   groundR: [80,50,20]
+  },
+  { name: 'dusk',           desc: 'the last warmth',             phrase: 'memory of daylight',
+    skyTop: [40,30,80],    skyMid: [160,90,100],   skyBot: [200,120,70],
+    horizA: [190,110,80],  horizB: [230,160,70],
+    waterT: [70,45,55],    waterB: [40,28,50],
+    sunVis: 0.6, moonVis: 0.2, starVis: 0.1, sunX: 0.74, sunY: 0.58,
+    groundL: [40,25,40],   groundR: [60,35,25]
+  }
+];
+
+function getPalette(t) {
+  const scaled = t * (PALETTES.length - 1);
+  const i = Math.min(Math.floor(scaled), PALETTES.length - 2);
+  const f = scaled - i;
+  const a = PALETTES[i], b = PALETTES[i + 1];
+  const mix = (k) => lerpC(a[k], b[k], f);
+  return {
+    name: f < 0.5 ? a.name : b.name,
+    desc: f < 0.5 ? a.desc : b.desc,
+    phrase: f < 0.5 ? a.phrase : b.phrase,
+    skyTop: mix('skyTop'), skyMid: mix('skyMid'), skyBot: mix('skyBot'),
+    horizA: mix('horizA'), horizB: mix('horizB'),
+    waterT: mix('waterT'), waterB: mix('waterB'),
+    sunVis: lerp(a.sunVis, b.sunVis, f),
+    moonVis: lerp(a.moonVis, b.moonVis, f),
+    starVis: lerp(a.starVis, b.starVis, f),
+    sunX: lerp(a.sunX, b.sunX, f),
+    sunY: lerp(a.sunY, b.sunY, f),
+    groundL: mix('groundL'), groundR: mix('groundR')
+  };
+}
+
+let tick = 0;
+function draw() {
+  tick++;
+  const p = getPalette(t);
+  const horizon = H * 0.62;
+
+  ctx.clearRect(0, 0, W, H);
+
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, horizon);
+  skyGrad.addColorStop(0,    rgb(p.skyTop));
+  skyGrad.addColorStop(0.55, rgb(p.skyMid));
+  skyGrad.addColorStop(1,    rgb(p.skyBot));
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(0, 0, W, horizon + 2);
+
+  if (p.starVis > 0.01) {
+    for (const s of stars) {
+      const tw = 0.7 + 0.3 * Math.sin(tick * 0.03 + s.twinkle);
+      const alpha = p.starVis * tw;
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(220,230,255,${alpha})`;
+      ctx.fill();
+    }
+  }
+
+  if (p.moonVis > 0.05) {
+    const mx = W * 0.14, my = H * 0.18, mr = 20;
+    ctx.beginPath();
+    ctx.arc(mx, my, mr, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(235,242,255,${p.moonVis * 0.92})`;
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(mx + mr * 0.55, my - mr * 0.2, mr * 0.82, 0, Math.PI * 2);
+    const bg = p.skyTop;
+    ctx.fillStyle = `rgba(${bg[0]},${bg[1]},${bg[2]},${p.moonVis})`;
+    ctx.fill();
+  }
+
+  if (p.sunVis > 0.05) {
+    const sx = W * p.sunX, sy = H * p.sunY, sr = 36;
+    const halfSubmerged = sy > horizon;
+    const clipY = halfSubmerged ? horizon : H;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 0, W, clipY);
+    ctx.clip();
+
+    const glowR = sr * 3.5;
+    const glowGrad = ctx.createRadialGradient(sx, sy, sr * 0.5, sx, sy, glowR);
+    glowGrad.addColorStop(0, `rgba(252,211,77,${p.sunVis * 0.35})`);
+    glowGrad.addColorStop(1, `rgba(252,211,77,0)`);
+    ctx.fillStyle = glowGrad;
+    ctx.fillRect(sx - glowR, sy - glowR, glowR * 2, glowR * 2);
+
+    ctx.beginPath();
+    ctx.arc(sx, sy, sr, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(253,224,100,${p.sunVis})`;
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(sx, sy, sr * 0.75, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255,240,150,${p.sunVis * 0.8})`;
+    ctx.fill();
+    ctx.restore();
+  }
+
+  const horizGrad = ctx.createLinearGradient(0, horizon - 40, 0, horizon + 20);
+  horizGrad.addColorStop(0, `rgba(${p.horizA[0]},${p.horizA[1]},${p.horizA[2]},0)`);
+  horizGrad.addColorStop(0.6, `rgba(${p.horizA[0]},${p.horizA[1]},${p.horizA[2]},0.55)`);
+  horizGrad.addColorStop(1, `rgba(${p.horizB[0]},${p.horizB[1]},${p.horizB[2]},0.3)`);
+  ctx.fillStyle = horizGrad;
+  ctx.fillRect(0, horizon - 40, W, 60);
+
+  const waterGrad = ctx.createLinearGradient(0, horizon, 0, H);
+  waterGrad.addColorStop(0, rgb(p.waterT));
+  waterGrad.addColorStop(1, rgb(p.waterB));
+  ctx.fillStyle = waterGrad;
+  ctx.fillRect(0, horizon, W, H - horizon);
+
+  if (p.sunVis > 0.1) {
+    const sx = W * p.sunX, sy = H * p.sunY;
+    const ry = Math.max(0, Math.min(H - horizon, (H - horizon) * 0.7));
+    for (let i = 0; i < 5; i++) {
+      const rw = (5 - i) * 12 * p.sunVis;
+      const rx2 = sx + (Math.random() - 0.5) * 10 * i * 0.3;
+      const rh = (i + 1) * 8 + ry;
+      ctx.beginPath();
+      ctx.ellipse(rx2, horizon + rh * 0.3, rw, 3 + i * 1.5, 0, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(252,211,77,${p.sunVis * (0.25 - i * 0.04)})`;
+      ctx.fill();
+    }
+  }
+
+  const waveAlpha = 0.06 + p.starVis * 0.04;
+  for (let row = 0; row < 10; row++) {
+    const wy = horizon + row * 18 + 6;
+    ctx.beginPath();
+    for (let x = 0; x <= W; x += 4) {
+      const wave = Math.sin(x * 0.025 + tick * 0.015 + row * 0.8) * (2 + row * 0.4);
+      if (x === 0) ctx.moveTo(x, wy + wave);
+      else ctx.lineTo(x, wy + wave);
+    }
+    ctx.strokeStyle = `rgba(255,255,255,${waveAlpha - row * 0.004})`;
+    ctx.lineWidth = 0.6;
+    ctx.stroke();
+  }
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, 0, W * 0.18, horizon + 2);
+  ctx.clip();
+  for (let i = 0; i < 5; i++) {
+    const tx = W * (0.03 + i * 0.03);
+    const th2 = 40 + i * 15;
+    const base = horizon + 2;
+    ctx.fillStyle = `rgba(${p.groundL[0]},${p.groundL[1]},${p.groundL[2]},0.88)`;
+    ctx.beginPath();
+    ctx.moveTo(tx - 8, base);
+    ctx.lineTo(tx, base - th2);
+    ctx.lineTo(tx + 8, base - th2 * 0.7);
+    ctx.lineTo(tx + 16, base);
+    ctx.fill();
+  }
+  ctx.restore();
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(W * 0.78, 0, W * 0.22, horizon + 2);
+  ctx.clip();
+  for (let i = 0; i < 5; i++) {
+    const tx = W * (0.8 + i * 0.04);
+    const th2 = 35 + i * 12;
+    const base = horizon + 2;
+    ctx.fillStyle = `rgba(${p.groundR[0]},${p.groundR[1]},${p.groundR[2]},0.75)`;
+    ctx.beginPath();
+    ctx.moveTo(tx - 8, base);
+    ctx.lineTo(tx, base - th2);
+    ctx.lineTo(tx + 10, base - th2 * 0.65);
+    ctx.lineTo(tx + 18, base);
+    ctx.fill();
+  }
+  ctx.restore();
+
+  if (p.sunVis > 0.3 && p.starVis < 0.4) {
+    for (const b of birds) {
+      const bx = b.x + Math.sin(tick * 0.008 + b.offset) * 18;
+      const by = b.y + Math.sin(tick * 0.013 + b.offset) * 6;
+      const wing = Math.sin(tick * 0.12 + b.offset) * b.size * 0.6;
+      ctx.beginPath();
+      ctx.moveTo(bx - b.size, by + wing);
+      ctx.quadraticCurveTo(bx, by - wing * 0.5, bx + b.size, by + wing);
+      ctx.strokeStyle = `rgba(20,10,30,${p.sunVis * 0.6})`;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+  }
+
+  animFrame = requestAnimationFrame(draw);
+}
+
+slider.addEventListener('input', () => {
+  t = slider.value / 100;
+  const p = getPalette(t);
+  momentName.textContent = p.name;
+  momentDesc.textContent = p.desc;
+  phraseEl.textContent = p.phrase;
+});
+
+window.addEventListener('resize', () => { resize(); makeStars(); makeBirds(); });
+resize();
+makeStars();
+makeBirds();
+draw();
+</script>
