@@ -1,0 +1,419 @@
+
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --navy:#0A2540;--navy-mid:#1a3a5c;--slate:#4a5568;--muted:#718096;
+    --border:#e2e8f0;--bg:#f7f8fa;--white:#ffffff;
+    --accent:#1a56db;--accent-bg:#ebf1fd;--accent-dark:#1240a0;
+    --success:#0f766e;--success-bg:#f0fdf9;--success-border:#99f6e4;
+    --warn:#b45309;--warn-bg:#fffbeb;
+    --danger:#b91c1c;--danger-bg:#fef2f2;
+    --gray-bg:#f1f5f9;
+  }
+  body{font-family:'Helvetica Neue',Arial,sans-serif;background:var(--bg);color:var(--navy)}
+  .shell{display:grid;grid-template-columns:220px 1fr;min-height:720px}
+  .sidebar{background:var(--navy);border-radius:var(--border-radius-lg,12px) 0 0 var(--border-radius-lg,12px);display:flex;flex-direction:column}
+  .sidebar-header{padding:20px 18px 16px;border-bottom:1px solid rgba(255,255,255,0.08)}
+  .firm-name{font-size:13px;font-weight:700;color:#fff;letter-spacing:0.08em;text-transform:uppercase;font-family:Georgia,serif}
+  .firm-sub{font-size:11px;color:rgba(255,255,255,0.4);margin-top:2px}
+  .nav{padding:12px 0;flex:1}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:9px 18px;font-size:13px;cursor:pointer;color:rgba(255,255,255,0.55);border-left:2px solid transparent}
+  .nav-item:hover{color:#fff;background:rgba(255,255,255,0.05)}
+  .nav-item.active{color:#fff;border-left-color:#4a9eff;background:rgba(74,158,255,0.1)}
+  .nav-item i{font-size:15px}
+  .nav-section{font-size:10px;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:0.1em;padding:14px 18px 4px}
+  .atty-row{display:flex;align-items:center;gap:8px;padding:8px 18px;cursor:pointer}
+  .atty-row:hover{background:rgba(255,255,255,0.05)}
+  .atty-avatar{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
+  .av-blue{background:#1a56db;color:#fff}
+  .av-teal{background:#0f766e;color:#fff}
+  .av-slate{background:#4a5568;color:#fff}
+  .av-purple{background:#534AB7;color:#fff}
+  .atty-info{flex:1}
+  .atty-name{font-size:12px;color:rgba(255,255,255,0.75)}
+  .atty-hours{font-size:10px;color:rgba(255,255,255,0.4);margin-top:1px}
+  .atty-bar-wrap{width:100%;height:2px;background:rgba(255,255,255,0.1);border-radius:1px;margin-top:3px}
+  .atty-bar{height:2px;border-radius:1px;background:#4a9eff}
+
+  .main{background:var(--bg);border-radius:0 var(--border-radius-lg,12px) var(--border-radius-lg,12px) 0;overflow:hidden}
+  .topbar{background:var(--white);border-bottom:1px solid var(--border);padding:0 24px;height:52px;display:flex;align-items:center;justify-content:space-between}
+  .page-title{font-size:14px;font-weight:600;color:var(--navy)}
+  .topbar-actions{display:flex;gap:8px;align-items:center}
+  .btn-primary{background:var(--navy);color:#fff;border:none;border-radius:4px;padding:6px 14px;font-size:12px;cursor:pointer;font-family:'Helvetica Neue',sans-serif}
+  .btn-ghost{background:none;color:var(--slate);border:1px solid var(--border);border-radius:4px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:'Helvetica Neue',sans-serif}
+
+  .content{padding:20px 24px;display:flex;flex-direction:column;gap:16px}
+
+  .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  .stat-card{background:var(--white);border:1px solid var(--border);border-radius:6px;padding:14px 16px}
+  .stat-label{font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:6px}
+  .stat-val{font-size:22px;font-weight:600;color:var(--navy)}
+  .stat-sub{font-size:11px;color:var(--muted);margin-top:3px}
+  .stat-up{color:var(--success)}
+  .stat-down{color:var(--danger)}
+
+  .two-col{display:grid;grid-template-columns:1fr 320px;gap:16px}
+  .card{background:var(--white);border:1px solid var(--border);border-radius:6px;overflow:hidden}
+  .card-header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+  .card-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--navy)}
+  .card-action{font-size:11px;color:var(--accent);cursor:pointer}
+
+  .filter-bar{display:flex;gap:8px;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--gray-bg)}
+  .filter-btn{font-size:11px;padding:3px 10px;border-radius:3px;cursor:pointer;border:1px solid var(--border);background:var(--white);color:var(--slate)}
+  .filter-btn.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+  select.filter-select{font-size:11px;padding:3px 8px;border-radius:3px;border:1px solid var(--border);background:var(--white);color:var(--slate);cursor:pointer}
+
+  .time-table{width:100%;border-collapse:collapse}
+  .time-table th{font-size:10px;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);padding:8px 16px;text-align:left;border-bottom:1px solid var(--border);background:var(--gray-bg)}
+  .time-table td{font-size:12px;padding:9px 16px;border-bottom:1px solid var(--border);color:var(--navy);vertical-align:middle}
+  .time-table tr:last-child td{border-bottom:none}
+  .time-table tr:hover td{background:#fafbfc}
+  .case-pill{display:inline-block;background:var(--accent-bg);color:var(--accent-dark);font-size:10px;padding:2px 8px;border-radius:3px;font-weight:600;letter-spacing:0.04em}
+  .status-pill{display:inline-block;font-size:10px;padding:2px 8px;border-radius:3px;font-weight:600;letter-spacing:0.04em}
+  .sp-billed{background:#dcfce7;color:#14532d}
+  .sp-unbilled{background:#fef3c7;color:#78350f}
+  .sp-draft{background:var(--border);color:var(--slate)}
+  .hours-cell{font-weight:600;font-variant-numeric:tabular-nums}
+  .rate-cell{color:var(--slate)}
+  .amount-cell{font-weight:600;font-variant-numeric:tabular-nums;text-align:right}
+
+  .invoice-list{}
+  .inv-row{display:flex;align-items:center;gap:12px;padding:11px 16px;border-bottom:1px solid var(--border);cursor:pointer}
+  .inv-row:last-child{border-bottom:none}
+  .inv-row:hover{background:#fafbfc}
+  .inv-num{font-size:12px;font-weight:600;color:var(--navy);min-width:72px}
+  .inv-meta{flex:1}
+  .inv-client{font-size:12px;color:var(--navy)}
+  .inv-date{font-size:11px;color:var(--muted);margin-top:1px}
+  .inv-amount{font-size:13px;font-weight:600;color:var(--navy);text-align:right;min-width:60px}
+  .inv-status{min-width:60px;text-align:right}
+
+  .trust-section{padding:14px 16px}
+  .trust-client-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)}
+  .trust-client-row:last-child{border-bottom:none}
+  .trust-name{font-size:12px;color:var(--navy)}
+  .trust-case{font-size:11px;color:var(--muted);margin-top:1px}
+  .trust-amount{font-size:13px;font-weight:600;color:var(--success)}
+  .trust-bar-wrap{width:100%;height:3px;background:var(--border);border-radius:2px;margin-top:5px}
+  .trust-bar{height:3px;border-radius:2px;background:var(--success)}
+
+  .expense-row{display:flex;align-items:center;gap:10px;padding:8px 16px;border-bottom:1px solid var(--border)}
+  .expense-row:last-child{border-bottom:none}
+  .exp-icon{width:28px;height:28px;border-radius:3px;display:flex;align-items:center;justify-content:center;background:var(--gray-bg);flex-shrink:0}
+  .exp-icon i{font-size:14px;color:var(--slate)}
+  .exp-desc{flex:1}
+  .exp-name{font-size:12px;color:var(--navy);font-weight:500}
+  .exp-detail{font-size:11px;color:var(--muted);margin-top:1px}
+  .exp-amt{font-size:12px;font-weight:600;color:var(--navy)}
+
+  .progress-wrap{padding:14px 16px}
+  .prog-row{margin-bottom:14px}
+  .prog-row:last-child{margin-bottom:0}
+  .prog-header{display:flex;justify-content:space-between;margin-bottom:5px}
+  .prog-label{font-size:12px;color:var(--navy)}
+  .prog-val{font-size:12px;font-weight:600;color:var(--navy)}
+  .prog-track{width:100%;height:5px;background:var(--border);border-radius:3px}
+  .prog-fill{height:5px;border-radius:3px;background:var(--navy)}
+  .prog-fill.warn{background:var(--warn)}
+  .prog-fill.good{background:var(--success)}
+</style>
+
+<h2 class="sr-only">Legal billing and time tracking page — time entries, invoices, trust accounts, and monthly targets</h2>
+
+<div class="shell">
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div class="firm-name" style="font-family:Georgia,serif">Hartwell & Associates</div>
+      <div class="firm-sub">Attorneys at Law · Est. 1987</div>
+    </div>
+    <div class="nav">
+      <div class="nav-item"><i class="ti ti-briefcase" aria-hidden="true"></i> My Cases</div>
+      <div class="nav-item"><i class="ti ti-calendar" aria-hidden="true"></i> Calendar</div>
+      <div class="nav-item"><i class="ti ti-file-text" aria-hidden="true"></i> Documents</div>
+      <div class="nav-item"><i class="ti ti-users" aria-hidden="true"></i> Clients</div>
+      <div class="nav-item active"><i class="ti ti-clock" aria-hidden="true"></i> Billing</div>
+      <div class="nav-section">Attorney Hours — May</div>
+      <div style="padding:8px 0">
+        <div class="atty-row">
+          <div class="atty-avatar av-blue">RH</div>
+          <div class="atty-info">
+            <div class="atty-name">R. Hartwell</div>
+            <div class="atty-hours">142 / 160 hrs</div>
+            <div class="atty-bar-wrap"><div class="atty-bar" style="width:89%"></div></div>
+          </div>
+        </div>
+        <div class="atty-row">
+          <div class="atty-avatar av-teal">SC</div>
+          <div class="atty-info">
+            <div class="atty-name">S. Chen</div>
+            <div class="atty-hours">118 / 160 hrs</div>
+            <div class="atty-bar-wrap"><div class="atty-bar" style="width:74%"></div></div>
+          </div>
+        </div>
+        <div class="atty-row">
+          <div class="atty-avatar av-purple">MP</div>
+          <div class="atty-info">
+            <div class="atty-name">M. Patel</div>
+            <div class="atty-hours">97 / 160 hrs</div>
+            <div class="atty-bar-wrap"><div class="atty-bar" style="width:61%"></div></div>
+          </div>
+        </div>
+        <div class="atty-row">
+          <div class="atty-avatar av-slate">JO</div>
+          <div class="atty-info">
+            <div class="atty-name">J. O'Brien</div>
+            <div class="atty-hours">131 / 160 hrs</div>
+            <div class="atty-bar-wrap"><div class="atty-bar" style="width:82%"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="page-title">Billing & Time Tracking</div>
+      <div class="topbar-actions">
+        <button class="btn-ghost"><i class="ti ti-download" aria-hidden="true" style="font-size:13px;margin-right:4px"></i>Export</button>
+        <button class="btn-ghost">New expense</button>
+        <button class="btn-primary"><i class="ti ti-plus" aria-hidden="true" style="font-size:13px;margin-right:4px"></i>Log time</button>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-label">Unbilled hours</div>
+          <div class="stat-val">48.5</div>
+          <div class="stat-sub"><span class="stat-down">$14,220 at risk</span></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Invoiced — May</div>
+          <div class="stat-val">$62,400</div>
+          <div class="stat-sub"><span class="stat-up">↑ 12% vs Apr</span></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Collected — May</div>
+          <div class="stat-val">$51,800</div>
+          <div class="stat-sub">83% collection rate</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Trust balance</div>
+          <div class="stat-val">$127k</div>
+          <div class="stat-sub">3 active accounts</div>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Time entries</div>
+              <div class="card-action">+ New entry</div>
+            </div>
+            <div class="filter-bar">
+              <button class="filter-btn on">All</button>
+              <button class="filter-btn">Unbilled</button>
+              <button class="filter-btn">Billed</button>
+              <select class="filter-select">
+                <option>All attorneys</option>
+                <option>R. Hartwell</option>
+                <option>S. Chen</option>
+              </select>
+              <select class="filter-select" style="margin-left:auto">
+                <option>May 2024</option>
+                <option>Apr 2024</option>
+              </select>
+            </div>
+            <table class="time-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Attorney</th>
+                  <th>Matter</th>
+                  <th>Description</th>
+                  <th style="text-align:center">Hrs</th>
+                  <th>Rate</th>
+                  <th style="text-align:right">Amount</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>May 22</td>
+                  <td><div style="display:flex;align-items:center;gap:6px"><div class="atty-avatar av-blue" style="width:20px;height:20px;font-size:9px">RH</div>Hartwell</div></td>
+                  <td><span class="case-pill">2024-CV-1847</span></td>
+                  <td style="max-width:140px;font-size:11px;color:var(--slate)">Pre-trial hearing prep; exhibit review</td>
+                  <td class="hours-cell" style="text-align:center">3.5</td>
+                  <td class="rate-cell">$650</td>
+                  <td class="amount-cell">$2,275</td>
+                  <td><span class="status-pill sp-unbilled">Unbilled</span></td>
+                </tr>
+                <tr>
+                  <td>May 21</td>
+                  <td><div style="display:flex;align-items:center;gap:6px"><div class="atty-avatar av-teal" style="width:20px;height:20px;font-size:9px">SC</div>Chen</div></td>
+                  <td><span class="case-pill">2023-CR-0892</span></td>
+                  <td style="max-width:140px;font-size:11px;color:var(--slate)">Client conference; motion drafting</td>
+                  <td class="hours-cell" style="text-align:center">2.0</td>
+                  <td class="rate-cell">$495</td>
+                  <td class="amount-cell">$990</td>
+                  <td><span class="status-pill sp-unbilled">Unbilled</span></td>
+                </tr>
+                <tr>
+                  <td>May 20</td>
+                  <td><div style="display:flex;align-items:center;gap:6px"><div class="atty-avatar av-blue" style="width:20px;height:20px;font-size:9px">RH</div>Hartwell</div></td>
+                  <td><span class="case-pill">2024-CV-1847</span></td>
+                  <td style="max-width:140px;font-size:11px;color:var(--slate)">Deposition review; witness prep</td>
+                  <td class="hours-cell" style="text-align:center">4.0</td>
+                  <td class="rate-cell">$650</td>
+                  <td class="amount-cell">$2,600</td>
+                  <td><span class="status-pill sp-draft">Draft</span></td>
+                </tr>
+                <tr>
+                  <td>May 17</td>
+                  <td><div style="display:flex;align-items:center;gap:6px"><div class="atty-avatar av-purple" style="width:20px;height:20px;font-size:9px">MP</div>Patel</div></td>
+                  <td><span class="case-pill">2024-CV-1701</span></td>
+                  <td style="max-width:140px;font-size:11px;color:var(--slate)">Estate inventory; probate filing</td>
+                  <td class="hours-cell" style="text-align:center">5.5</td>
+                  <td class="rate-cell">$425</td>
+                  <td class="amount-cell">$2,337</td>
+                  <td><span class="status-pill sp-billed">Billed</span></td>
+                </tr>
+                <tr>
+                  <td>May 15</td>
+                  <td><div style="display:flex;align-items:center;gap:6px"><div class="atty-avatar av-slate" style="width:20px;height:20px;font-size:9px">JO</div>O'Brien</div></td>
+                  <td><span class="case-pill">2024-FA-0311</span></td>
+                  <td style="max-width:140px;font-size:11px;color:var(--slate)">Settlement agreement review; final sign-off</td>
+                  <td class="hours-cell" style="text-align:center">1.5</td>
+                  <td class="rate-cell">$395</td>
+                  <td class="amount-cell">$593</td>
+                  <td><span class="status-pill sp-billed">Billed</span></td>
+                </tr>
+                <tr>
+                  <td>May 13</td>
+                  <td><div style="display:flex;align-items:center;gap:6px"><div class="atty-avatar av-blue" style="width:20px;height:20px;font-size:9px">RH</div>Hartwell</div></td>
+                  <td><span class="case-pill">2024-CV-1847</span></td>
+                  <td style="max-width:140px;font-size:11px;color:var(--slate)">Exhibit list preparation; court filing</td>
+                  <td class="hours-cell" style="text-align:center">2.5</td>
+                  <td class="rate-cell">$650</td>
+                  <td class="amount-cell">$1,625</td>
+                  <td><span class="status-pill sp-billed">Billed</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="card" style="margin-top:16px">
+            <div class="card-header">
+              <div class="card-title">Expenses</div>
+              <div class="card-action">+ Add expense</div>
+            </div>
+            <div class="expense-row">
+              <div class="exp-icon"><i class="ti ti-car" aria-hidden="true"></i></div>
+              <div class="exp-desc"><div class="exp-name">Court filing fee</div><div class="exp-detail">2024-CV-1847 · May 13</div></div>
+              <div class="exp-amt">$450.00</div>
+            </div>
+            <div class="expense-row">
+              <div class="exp-icon"><i class="ti ti-printer" aria-hidden="true"></i></div>
+              <div class="exp-desc"><div class="exp-name">Document reproduction</div><div class="exp-detail">2024-CV-1847 · May 10 · 840 pages</div></div>
+              <div class="exp-amt">$168.00</div>
+            </div>
+            <div class="expense-row">
+              <div class="exp-icon"><i class="ti ti-plane" aria-hidden="true"></i></div>
+              <div class="exp-desc"><div class="exp-name">Travel — deposition</div><div class="exp-detail">2023-CR-0892 · May 8 · Hartwell</div></div>
+              <div class="exp-amt">$612.50</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div class="card">
+            <div class="card-header"><div class="card-title">Outstanding invoices</div></div>
+            <div class="invoice-list">
+              <div class="inv-row">
+                <div class="inv-num">INV-0248</div>
+                <div class="inv-meta"><div class="inv-client">Mercer — 2024-CV-1847</div><div class="inv-date">Issued May 1 · Due May 31</div></div>
+                <div>
+                  <div class="inv-amount">$18,400</div>
+                  <div class="inv-status"><span class="status-pill sp-unbilled">Pending</span></div>
+                </div>
+              </div>
+              <div class="inv-row">
+                <div class="inv-num">INV-0247</div>
+                <div class="inv-meta"><div class="inv-client">Whitfield Estate</div><div class="inv-date">Issued Apr 15 · Due May 15</div></div>
+                <div>
+                  <div class="inv-amount">$9,750</div>
+                  <div class="inv-status"><span class="status-pill sp-unbilled" style="background:#fee2e2;color:#991b1b">Overdue</span></div>
+                </div>
+              </div>
+              <div class="inv-row">
+                <div class="inv-num">INV-0246</div>
+                <div class="inv-meta"><div class="inv-client">Commonwealth v. Reyes</div><div class="inv-date">Issued Apr 1 · Paid May 8</div></div>
+                <div>
+                  <div class="inv-amount">$7,200</div>
+                  <div class="inv-status"><span class="status-pill sp-billed">Paid</span></div>
+                </div>
+              </div>
+              <div class="inv-row">
+                <div class="inv-num">INV-0245</div>
+                <div class="inv-meta"><div class="inv-client">Nakamura — FA-0311</div><div class="inv-date">Issued Mar 20 · Paid Apr 12</div></div>
+                <div>
+                  <div class="inv-amount">$4,850</div>
+                  <div class="inv-status"><span class="status-pill sp-billed">Paid</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><div class="card-title">Trust accounts (IOLTA)</div></div>
+            <div class="trust-section">
+              <div class="trust-client-row">
+                <div>
+                  <div class="trust-name">Eleanor Mercer</div>
+                  <div class="trust-case">2024-CV-1847 · Litigation retainer</div>
+                  <div class="trust-bar-wrap"><div class="trust-bar" style="width:72%"></div></div>
+                </div>
+                <div class="trust-amount">$72,000</div>
+              </div>
+              <div class="trust-client-row">
+                <div>
+                  <div class="trust-name">Whitfield Estate</div>
+                  <div class="trust-case">2024-CV-1701 · Probate escrow</div>
+                  <div class="trust-bar-wrap"><div class="trust-bar" style="width:40%"></div></div>
+                </div>
+                <div class="trust-amount">$40,000</div>
+              </div>
+              <div class="trust-client-row">
+                <div>
+                  <div class="trust-name">D. Nakamura</div>
+                  <div class="trust-case">2024-FA-0311 · Settlement funds</div>
+                  <div class="trust-bar-wrap"><div class="trust-bar" style="width:15%"></div></div>
+                </div>
+                <div class="trust-amount">$15,000</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><div class="card-title">Monthly targets — May</div></div>
+            <div class="progress-wrap">
+              <div class="prog-row">
+                <div class="prog-header"><span class="prog-label">Billable hours (firm)</span><span class="prog-val">488 / 640</span></div>
+                <div class="prog-track"><div class="prog-fill" style="width:76%"></div></div>
+              </div>
+              <div class="prog-row">
+                <div class="prog-header"><span class="prog-label">Revenue collected</span><span class="prog-val">$51.8k / $75k</span></div>
+                <div class="prog-track"><div class="prog-fill warn" style="width:69%"></div></div>
+              </div>
+              <div class="prog-row">
+                <div class="prog-header"><span class="prog-label">Invoices issued</span><span class="prog-val">$62.4k / $70k</span></div>
+                <div class="prog-track"><div class="prog-fill good" style="width:89%"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,267 @@
+<h2 class="sr-only">CRM pipeline Kanban board with four stages: Lead, Contact, Proposal, and Closed. Each column contains deal cards showing value, owner, and company. An activity timeline is shown below the board.</h2>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans)}
+.kb-wrap{padding:1rem 0 1.5rem;overflow-x:auto}
+.kb-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding:0 2px}
+.kb-header-left{display:flex;align-items:center;gap:10px}
+.kb-title{font-size:15px;font-weight:500;color:var(--color-text-primary)}
+.kb-meta{font-size:12px;color:var(--color-text-secondary)}
+.kb-actions{display:flex;gap:6px}
+.kb-btn{font-size:12px;padding:5px 10px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:var(--color-background-primary);color:var(--color-text-secondary);cursor:pointer}
+.kb-btn:hover{background:var(--color-background-secondary)}
+.kb-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}
+.stat{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 12px}
+.stat-label{font-size:11px;color:var(--color-text-tertiary);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px}
+.stat-val{font-size:18px;font-weight:500;color:var(--color-text-primary)}
+.stat-sub{font-size:11px;color:var(--color-text-secondary);margin-top:1px}
+.board{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-items:start}
+.col{background:var(--color-background-secondary);border-radius:var(--border-radius-lg);padding:10px;border:0.5px solid var(--color-border-tertiary)}
+.col-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding-bottom:8px;border-bottom:0.5px solid var(--color-border-tertiary)}
+.col-title{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:500;color:var(--color-text-primary)}
+.stage-dot{width:8px;height:8px;border-radius:50%}
+.col-count{font-size:11px;background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:10px;padding:1px 7px;color:var(--color-text-secondary)}
+.card{background:var(--color-background-primary);border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-tertiary);padding:10px 11px;margin-bottom:7px;cursor:pointer;border-top-width:2.5px;border-top-style:solid;transition:border-color .15s}
+.card:last-child{margin-bottom:0}
+.card:hover{border-color:var(--color-border-primary);border-top-color:inherit}
+.card-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:5px}
+.card-company{font-size:13px;font-weight:500;color:var(--color-text-primary);line-height:1.3}
+.card-value{font-size:12px;font-weight:500;color:var(--color-text-primary);white-space:nowrap;padding-left:8px}
+.card-desc{font-size:11px;color:var(--color-text-secondary);margin-bottom:7px;line-height:1.4}
+.card-footer{display:flex;align-items:center;justify-content:space-between}
+.card-tags{display:flex;gap:4px;flex-wrap:wrap}
+.tag{font-size:10px;padding:2px 6px;border-radius:4px;font-weight:500}
+.tag-blue{background:#E6F1FB;color:#185FA5}
+.tag-green{background:#EAF3DE;color:#3B6D11}
+.tag-amber{background:#FAEEDA;color:#854F0B}
+.tag-red{background:#FCEBEB;color:#A32D2D}
+.tag-gray{background:var(--color-background-secondary);color:var(--color-text-secondary);border:0.5px solid var(--color-border-tertiary)}
+.owner{display:flex;align-items:center;gap:5px}
+.avatar{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:500;flex-shrink:0}
+.owner-name{font-size:11px;color:var(--color-text-secondary)}
+.card-date{font-size:10px;color:var(--color-text-tertiary)}
+.add-deal{display:flex;align-items:center;gap:5px;width:100%;padding:7px 8px;border:0.5px dashed var(--color-border-secondary);border-radius:var(--border-radius-md);background:none;color:var(--color-text-tertiary);font-size:12px;cursor:pointer;margin-top:7px}
+.add-deal:hover{background:var(--color-background-primary);color:var(--color-text-secondary)}
+.section-label{font-size:11px;font-weight:500;color:var(--color-text-tertiary);text-transform:uppercase;letter-spacing:.05em;margin:20px 0 10px}
+.activity{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);overflow:hidden}
+.activity-row{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:0.5px solid var(--color-border-tertiary);font-size:12px}
+.activity-row:last-child{border-bottom:none}
+.act-icon{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.act-text{flex:1;color:var(--color-text-primary);line-height:1.4}
+.act-text span{color:var(--color-text-secondary)}
+.act-time{font-size:11px;color:var(--color-text-tertiary);white-space:nowrap}
+.progress-bar{height:3px;border-radius:2px;background:var(--color-background-secondary);overflow:hidden;margin-top:5px}
+.progress-fill{height:100%;border-radius:2px}
+</style>
+
+<div class="kb-wrap">
+  <div class="kb-header">
+    <div class="kb-header-left">
+      <span class="kb-title">Pipeline</span>
+      <span class="kb-meta">Q2 2026 · 14 deals · $284,500</span>
+    </div>
+    <div class="kb-actions">
+      <button class="kb-btn" onclick="sendPrompt('Filter the pipeline by owner')"><i class="ti ti-filter" aria-hidden="true"></i> Filter</button>
+      <button class="kb-btn" onclick="sendPrompt('Give me a pipeline summary and forecast')">Forecast ↗</button>
+    </div>
+  </div>
+
+  <div class="kb-stats">
+    <div class="stat"><div class="stat-label">Total pipeline</div><div class="stat-val">$284.5k</div><div class="stat-sub">↑ 12% vs last quarter</div></div>
+    <div class="stat"><div class="stat-label">Weighted value</div><div class="stat-val">$131.2k</div><div class="stat-sub">46% avg probability</div></div>
+    <div class="stat"><div class="stat-label">Deals closing soon</div><div class="stat-val">3</div><div class="stat-sub">Within 14 days</div></div>
+    <div class="stat"><div class="stat-label">Avg deal size</div><div class="stat-val">$20.3k</div><div class="stat-sub">↑ $2.1k vs last qtr</div></div>
+  </div>
+
+  <div class="board">
+
+    <div class="col">
+      <div class="col-head">
+        <div class="col-title"><span class="stage-dot" style="background:#378ADD"></span>Lead<span class="col-count">4</span></div>
+        <span style="font-size:11px;color:var(--color-text-tertiary)">$62k</span>
+      </div>
+      <div class="card" style="border-top-color:#378ADD">
+        <div class="card-top"><span class="card-company">Nexus Dynamics</span><span class="card-value">$18,000</span></div>
+        <div class="card-desc">Enterprise SaaS — annual contract</div>
+        <div class="progress-bar"><div class="progress-fill" style="width:15%;background:#378ADD"></div></div>
+        <div style="margin-top:7px" class="card-footer">
+          <div class="card-tags"><span class="tag tag-blue">Inbound</span><span class="tag tag-gray">SaaS</span></div>
+          <div class="owner"><div class="avatar" style="background:#E6F1FB;color:#185FA5">JM</div><span class="owner-name">J. Moore</span></div>
+        </div>
+      </div>
+      <div class="card" style="border-top-color:#378ADD">
+        <div class="card-top"><span class="card-company">Orbital Labs</span><span class="card-value">$9,500</span></div>
+        <div class="card-desc">Consulting retainer — Q3 start</div>
+        <div class="progress-bar"><div class="progress-fill" style="width:10%;background:#378ADD"></div></div>
+        <div style="margin-top:7px" class="card-footer">
+          <div class="card-tags"><span class="tag tag-gray">Outbound</span></div>
+          <div class="owner"><div class="avatar" style="background:#FAEEDA;color:#854F0B">SR</div><span class="owner-name">S. Rajan</span></div>
+        </div>
+      </div>
+      <div class="card" style="border-top-color:#378ADD">
+        <div class="card-top"><span class="card-company">Clearfield Co.</span><span class="card-value">$22,000</span></div>
+        <div class="card-desc">Platform migration project</div>
+        <div class="progress-bar"><div class="progress-fill" style="width:20%;background:#378ADD"></div></div>
+        <div style="margin-top:7px" class="card-footer">
+          <div class="card-tags"><span class="tag tag-blue">Referral</span></div>
+          <div class="owner"><div class="avatar" style="background:#E1F5EE;color:#0F6E56">AL</div><span class="owner-name">A. Liu</span></div>
+        </div>
+      </div>
+      <div class="card" style="border-top-color:#378ADD">
+        <div class="card-top"><span class="card-company">Brightside Media</span><span class="card-value">$12,500</span></div>
+        <div class="card-desc">Analytics dashboard — media</div>
+        <div class="progress-bar"><div class="progress-fill" style="width:12%;background:#378ADD"></div></div>
+        <div style="margin-top:7px" class="card-footer">
+          <div class="card-tags"><span class="tag tag-gray">Inbound</span></div>
+          <div class="owner"><div class="avatar" style="background:#E6F1FB;color:#185FA5">JM</div><span class="owner-name">J. Moore</span></div>
+        </div>
+      </div>
+      <button class="add-deal" onclick="sendPrompt('Add a new lead to the pipeline')"><i class="ti ti-plus" aria-hidden="true"></i> Add deal</button>
+    </div>
+
+    <div class="col">
+      <div class="col-head">
+        <div class="col-title"><span class="stage-dot" style="background:#BA7517"></span>Contact<span class="col-count">4</span></div>
+        <span style="font-size:11px;color:var(--color-text-tertiary)">$78k</span>
+      </div>
+      <div class="card" style="border-top-color:#BA7517">
+        <div class="card-top"><span class="card-company">Vantage Systems</span><span class="card-value">$31,000</span></div>
+        <div class="card-desc">Security audit + ongoing support</div>
+        <div class="progress-bar"><div class="progress-fill" style="width:30%;background:#BA7517"></div></div>
+        <div style="margin-top:7px" class="card-footer">
+          <div class="card-tags"><span class="tag tag-amber">Hot</span><span class="tag tag-gray">Enterprise</span></div>
+          <div class="owner"><div class="avatar" style="background:#FAEEDA;color:#854F0B">SR</div><span class="owner-name">S. Rajan</span></div>
+        </div>
+      </div>
+      <div class="card" style="border-top-color:#BA7517">
+        <div class="card-top"><span class="card-company">Strata Finance</span><span class="card-value">$15,500</span></div>
+        <div class="card-desc">Compliance reporting tool</div>
+        <div class="progress-bar"><div class="progress-fill" style="width:28%;background:#BA7517"></div></div>
+        <div style="margin-top:7px" class="card-footer">
+          <div class="card-tags"><span class="tag tag-gray">SMB</span></div>
+          <div class="owner"><div class="avatar" style="background:#E1F5EE;color:#0F6E56">AL</div><span class="owner-name">A. Liu</span></div>
+        </div>
+      </div>
+      <div class="card" style="border-top-color:#BA7517">
+        <div class="card-top"><span class="card-company">Mosaic Health</span><span class="card-value">$19,000</span></div>
+        <div class="card-desc">Patient data dashboard — pilot</div>
+        <div class="progress-bar"><div class="progress-fill" style="width:25%;background:#BA7517"></div></div>
+        <div style="margin-top:7px" class="card-footer">
+          <div class="card-tags"><span class="tag tag-blue">Pilot</span></div>
+          <div class="owner"><div class="avatar" style="background:#E6F1FB;color:#185FA5">JM</div><span class="owner-name">J. Moore</span></div>
+        </div>
+      </div>
+      <div class="card" style="border-top-color:#BA7517">
+        <div class="card-top"><span class="card-company">Pinnacle Retail</span><span class="card-value">$12,000</span></div>
+        <div class="card-desc">Inventory sync integration</div>
+        <div class="progress-bar"><div class="progress-fill" style="width:22%;background:#BA7517"></div></div>
+        <div style="margin-top:7px" class="card-footer">
+          <div class="card-tags"><span class="tag tag-gray">Mid-market</span></div>
+          <div class="owner"><div class="avatar" style="background:#FAEEDA;color:#854F0B">SR</div><span class="owner-name">S. Rajan</span></div>
+        </div>
+      </div>
+      <button class="add-deal" onclick="sendPrompt('Add a new contact-stage deal')"><i class="ti ti-plus" aria-hidden="true"></i> Add deal</button>
+    </div>
+
+    <div class="col">
+      <div class="col-head">
+        <div class="col-title"><span class="stage-dot" style="background:#639922"></span>Proposal<span class="col-count">4</span></div>
+        <span style="font-size:11px;color:var(--color-text-tertiary)">$104k</span>
+      </div>
+      <div class="card" style="border-top-color:#639922">
+        <div class="card-top"><span class="card-company">Axiom Cloud</span><span class="card-value">$44,000</span></div>
+        <div class="card-desc">Multi-tenant SaaS infra — 3yr</div>
+        <div class="progress-bar"><div class="progress-fill" style="width:65%;background:#639922"></div></div>
+        <div style="margin-top:7px" class="card-footer">
+          <div class="card-tags"><span class="tag tag-green">Proposal sent</span></div>
+          <div class="owner"><div class="avatar" style="background:#E1F5EE;color:#0F6E56">AL</div><span class="owner-name">A. Liu</span></div>
+        </div>
+      </div>
+      <div class="card" style="border-top-color:#639922">
+        <div class="card-top"><span class="card-company">Redwood Partners</span><span class="card-value">$28,000</span></div>
+        <div class="card-desc">Data warehouse migration</div>
+        <div class="progress-bar"><div class="progress-fill" style="width:55%;background:#639922"></div></div>
+        <div style="margin-top:7px" class="card-footer">
+          <div class="card-tags"><span class="tag tag-amber">Negotiating</span></div>
+          <div class="owner"><div class="avatar" style="background:#E6F1FB;color:#185FA5">JM</div><span class="owner-name">J. Moore</span></div>
+        </div>
+      </div>
+      <div class="card" style="border-top-color:#639922">
+        <div class="card-top"><span class="card-company">Ember Logistics</span><span class="card-value">$17,500</span></div>
+        <div class="card-desc">Route optimization — fleet of 80</div>
+        <div class="progress-bar"><div class="progress-fill" style="width:60%;background:#639922"></div></div>
+        <div style="margin-top:7px" class="card-footer">
+          <div class="card-tags"><span class="tag tag-green">Proposal sent</span></div>
+          <div class="owner"><div class="avatar" style="background:#FAEEDA;color:#854F0B">SR</div><span class="owner-name">S. Rajan</span></div>
+        </div>
+      </div>
+      <div class="card" style="border-top-color:#639922">
+        <div class="card-top"><span class="card-company">TrueNorth Corp.</span><span class="card-value">$14,500</span></div>
+        <div class="card-desc">BI tooling — 20-seat license</div>
+        <div class="progress-bar"><div class="progress-fill" style="width:50%;background:#639922"></div></div>
+        <div style="margin-top:7px" class="card-footer">
+          <div class="card-tags"><span class="tag tag-gray">Review</span></div>
+          <div class="owner"><div class="avatar" style="background:#E1F5EE;color:#0F6E56">AL</div><span class="owner-name">A. Liu</span></div>
+        </div>
+      </div>
+      <button class="add-deal" onclick="sendPrompt('Add a new deal at proposal stage')"><i class="ti ti-plus" aria-hidden="true"></i> Add deal</button>
+    </div>
+
+    <div class="col">
+      <div class="col-head">
+        <div class="col-title"><span class="stage-dot" style="background:#0F6E56"></span>Closed<span class="col-count">2</span></div>
+        <span style="font-size:11px;color:var(--color-text-tertiary)">$40.5k</span>
+      </div>
+      <div class="card" style="border-top-color:#0F6E56">
+        <div class="card-top"><span class="card-company">Kestrel Systems</span><span class="card-value">$26,500</span></div>
+        <div class="card-desc">Cloud migration — signed May 14</div>
+        <div class="progress-bar"><div class="progress-fill" style="width:100%;background:#0F6E56"></div></div>
+        <div style="margin-top:7px" class="card-footer">
+          <div class="card-tags"><span class="tag tag-green">Won ✓</span></div>
+          <div class="owner"><div class="avatar" style="background:#FAEEDA;color:#854F0B">SR</div><span class="owner-name">S. Rajan</span></div>
+        </div>
+      </div>
+      <div class="card" style="border-top-color:#A32D2D">
+        <div class="card-top"><span class="card-company">Hollow Creek Co.</span><span class="card-value">$14,000</span></div>
+        <div class="card-desc">Went with competitor — Apr 30</div>
+        <div class="progress-bar"><div class="progress-fill" style="width:100%;background:#A32D2D"></div></div>
+        <div style="margin-top:7px" class="card-footer">
+          <div class="card-tags"><span class="tag tag-red">Lost</span></div>
+          <div class="owner"><div class="avatar" style="background:#E6F1FB;color:#185FA5">JM</div><span class="owner-name">J. Moore</span></div>
+        </div>
+      </div>
+      <button class="add-deal" onclick="sendPrompt('Log a closed deal')"><i class="ti ti-plus" aria-hidden="true"></i> Log deal</button>
+    </div>
+
+  </div>
+
+  <div class="section-label">Recent activity</div>
+  <div class="activity">
+    <div class="activity-row">
+      <div class="act-icon" style="background:#E6F1FB"><i class="ti ti-mail" style="font-size:14px;color:#185FA5" aria-hidden="true"></i></div>
+      <div class="act-text"><strong>Axiom Cloud</strong> — proposal email opened <span>(3 times)</span></div>
+      <div style="display:flex;align-items:center;gap:6px"><div class="avatar" style="background:#E1F5EE;color:#0F6E56;width:18px;height:18px;font-size:8px">AL</div><span class="act-time">2 min ago</span></div>
+    </div>
+    <div class="activity-row">
+      <div class="act-icon" style="background:#EAF3DE"><i class="ti ti-circle-check" style="font-size:14px;color:#3B6D11" aria-hidden="true"></i></div>
+      <div class="act-text"><strong>Kestrel Systems</strong> — contract signed and deal marked won</div>
+      <div style="display:flex;align-items:center;gap:6px"><div class="avatar" style="background:#FAEEDA;color:#854F0B;width:18px;height:18px;font-size:8px">SR</div><span class="act-time">1h ago</span></div>
+    </div>
+    <div class="activity-row">
+      <div class="act-icon" style="background:#FAEEDA"><i class="ti ti-phone" style="font-size:14px;color:#854F0B" aria-hidden="true"></i></div>
+      <div class="act-text"><strong>Vantage Systems</strong> — discovery call completed, follow-up scheduled</div>
+      <div style="display:flex;align-items:center;gap:6px"><div class="avatar" style="background:#FAEEDA;color:#854F0B;width:18px;height:18px;font-size:8px">SR</div><span class="act-time">3h ago</span></div>
+    </div>
+    <div class="activity-row">
+      <div class="act-icon" style="background:#E6F1FB"><i class="ti ti-notes" style="font-size:14px;color:#185FA5" aria-hidden="true"></i></div>
+      <div class="act-text"><strong>Redwood Partners</strong> — note added: <span>"Pushed back on pricing, need to revise"</span></div>
+      <div style="display:flex;align-items:center;gap:6px"><div class="avatar" style="background:#E6F1FB;color:#185FA5;width:18px;height:18px;font-size:8px">JM</div><span class="act-time">5h ago</span></div>
+    </div>
+    <div class="activity-row">
+      <div class="act-icon" style="background:#FCEBEB"><i class="ti ti-x" style="font-size:14px;color:#A32D2D" aria-hidden="true"></i></div>
+      <div class="act-text"><strong>Hollow Creek Co.</strong> — deal lost to competitor, reason logged</div>
+      <div style="display:flex;align-items:center;gap:6px"><div class="avatar" style="background:#E6F1FB;color:#185FA5;width:18px;height:18px;font-size:8px">JM</div><span class="act-time">Yesterday</span></div>
+    </div>
+  </div>
+</div>

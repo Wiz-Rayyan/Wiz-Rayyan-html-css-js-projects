@@ -1,0 +1,217 @@
+<h2 class="sr-only">Interactive shopping cart with item list, promo code, free shipping progress, and suggested products</h2>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-sans); }
+.cart-wrap { max-width: 520px; margin: 1.5rem auto; background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); overflow: hidden; }
+.cart-header { padding: 16px 20px; border-bottom: 0.5px solid var(--color-border-tertiary); display: flex; align-items: center; justify-content: space-between; }
+.cart-header h1 { font-size: 16px; font-weight: 500; color: var(--color-text-primary); }
+.badge { background: #533AB7; color: #fff; font-size: 11px; font-weight: 500; border-radius: 999px; padding: 2px 8px; }
+.item-row { display: flex; gap: 12px; align-items: flex-start; padding: 16px 20px; border-bottom: 0.5px solid var(--color-border-tertiary); }
+.item-img { width: 58px; height: 58px; border-radius: var(--border-radius-md); object-fit: cover; flex-shrink: 0; background: var(--color-background-secondary); display: flex; align-items: center; justify-content: center; font-size: 24px; }
+.item-info { flex: 1; min-width: 0; }
+.item-title { font-size: 13px; font-weight: 500; color: var(--color-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.item-variant { font-size: 12px; color: var(--color-text-secondary); margin-top: 2px; }
+.item-row-bottom { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; }
+.qty-stepper { display: flex; align-items: center; gap: 0; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); overflow: hidden; height: 28px; }
+.qty-btn { background: none; border: none; cursor: pointer; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; color: var(--color-text-secondary); font-size: 15px; transition: background 0.15s; }
+.qty-btn:hover { background: var(--color-background-secondary); }
+.qty-val { font-size: 13px; font-weight: 500; color: var(--color-text-primary); min-width: 20px; text-align: center; padding: 0 4px; }
+.item-price { font-size: 13px; font-weight: 500; color: var(--color-text-primary); }
+.remove-btn { background: none; border: none; cursor: pointer; color: var(--color-text-tertiary); font-size: 15px; padding: 2px; transition: color 0.15s; }
+.remove-btn:hover { color: #E24B4A; }
+.shipping-section { padding: 14px 20px; border-bottom: 0.5px solid var(--color-border-tertiary); }
+.shipping-label { font-size: 12px; color: var(--color-text-secondary); margin-bottom: 8px; }
+.shipping-label span { font-weight: 500; color: var(--color-text-primary); }
+.progress-track { height: 4px; background: var(--color-background-secondary); border-radius: 99px; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 99px; background: #1D9E75; transition: width 0.4s ease; }
+.promo-section { padding: 14px 20px; border-bottom: 0.5px solid var(--color-border-tertiary); display: flex; gap: 8px; }
+.promo-section input { flex: 1; height: 36px; font-size: 13px; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); padding: 0 10px; background: var(--color-background-primary); color: var(--color-text-primary); outline: none; }
+.promo-section input:focus { border-color: #7F77DD; box-shadow: 0 0 0 2px rgba(127,119,221,0.2); }
+.promo-apply { height: 36px; padding: 0 14px; font-size: 13px; font-weight: 500; border-radius: var(--border-radius-md); background: none; border: 0.5px solid var(--color-border-secondary); color: var(--color-text-primary); cursor: pointer; white-space: nowrap; transition: background 0.15s; }
+.promo-apply:hover { background: var(--color-background-secondary); }
+.promo-msg { font-size: 12px; padding: 6px 20px 0; }
+.promo-msg.ok { color: #0F6E56; }
+.promo-msg.err { color: #A32D2D; }
+.subtotal-section { padding: 14px 20px; border-bottom: 0.5px solid var(--color-border-tertiary); }
+.subtotal-row { display: flex; justify-content: space-between; font-size: 13px; color: var(--color-text-secondary); margin-bottom: 6px; }
+.subtotal-total { display: flex; justify-content: space-between; font-size: 15px; font-weight: 500; color: var(--color-text-primary); padding-top: 6px; border-top: 0.5px solid var(--color-border-tertiary); margin-top: 4px; }
+.discount-val { color: #0F6E56; }
+.checkout-section { padding: 16px 20px; border-bottom: 0.5px solid var(--color-border-tertiary); }
+.checkout-btn { width: 100%; height: 44px; background: #533AB7; color: #fff; border: none; border-radius: var(--border-radius-md); font-size: 15px; font-weight: 500; cursor: pointer; transition: opacity 0.15s; }
+.checkout-btn:hover { opacity: 0.88; }
+.checkout-btn:active { transform: scale(0.99); }
+.or-divider { text-align: center; font-size: 12px; color: var(--color-text-tertiary); margin: 10px 0 0; }
+.suggested { padding: 14px 20px 20px; }
+.suggested-label { font-size: 12px; font-weight: 500; color: var(--color-text-secondary); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.04em; }
+.sugg-grid { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; }
+.sugg-card { min-width: 110px; max-width: 110px; border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); padding: 10px 8px; cursor: pointer; transition: border-color 0.15s; flex-shrink: 0; }
+.sugg-card:hover { border-color: var(--color-border-primary); }
+.sugg-emoji { font-size: 26px; text-align: center; margin-bottom: 6px; }
+.sugg-name { font-size: 11px; color: var(--color-text-primary); font-weight: 500; line-height: 1.3; }
+.sugg-price { font-size: 11px; color: var(--color-text-secondary); margin-top: 2px; }
+.sugg-add { display: flex; align-items: center; justify-content: center; gap: 4px; margin-top: 6px; font-size: 11px; color: #533AB7; font-weight: 500; }
+</style>
+
+<div class="cart-wrap">
+  <div class="cart-header">
+    <h1>Your cart <span class="badge" id="item-count">3</span></h1>
+    <span style="font-size:12px; color: var(--color-text-secondary);">Free shipping on orders over ₹2,000</span>
+  </div>
+
+  <div id="cart-items"></div>
+
+  <div class="shipping-section">
+    <div class="shipping-label" id="ship-label">Add <span id="ship-remaining">₹0</span> more for free shipping!</div>
+    <div class="progress-track"><div class="progress-fill" id="ship-bar" style="width:0%"></div></div>
+  </div>
+
+  <div class="promo-section">
+    <input type="text" placeholder="Promo code" id="promo-input" aria-label="Promo code" />
+    <button class="promo-apply" onclick="applyPromo()" aria-label="Apply promo code">Apply</button>
+  </div>
+  <div class="promo-msg" id="promo-msg" style="display:none"></div>
+
+  <div class="subtotal-section">
+    <div class="subtotal-row"><span>Subtotal</span><span id="subtotal-val">₹0</span></div>
+    <div class="subtotal-row" id="discount-row" style="display:none"><span>Discount</span><span class="discount-val" id="discount-val">-₹0</span></div>
+    <div class="subtotal-row"><span>Shipping</span><span id="ship-cost">₹199</span></div>
+    <div class="subtotal-total"><span>Total</span><span id="total-val">₹0</span></div>
+  </div>
+
+  <div class="checkout-section">
+    <button class="checkout-btn" onclick="sendPrompt('I\'m ready to checkout — help me review my order details.')">Proceed to checkout →</button>
+    <div class="or-divider">Secure checkout · 30-day returns · COD available</div>
+  </div>
+
+  <div class="suggested">
+    <div class="suggested-label">You might also like</div>
+    <div class="sugg-grid" id="sugg-grid"></div>
+  </div>
+</div>
+
+<script>
+const FREE_SHIP = 2000;
+const SHIP_FEE = 199;
+const PROMOS = { SAVE10: 0.10, WELCOME20: 0.20 };
+
+let items = [
+  { id: 1, emoji: "👟", title: "Air Cushion Sneakers", variant: "White / Size 9", price: 899, qty: 1 },
+  { id: 2, emoji: "🎒", title: "Urban Backpack 28L", variant: "Charcoal Grey", price: 649, qty: 2 },
+  { id: 3, emoji: "🕶️", title: "Polarised Wayfarers", variant: "Matte Black", price: 349, qty: 1 }
+];
+
+const suggested = [
+  { emoji: "🧢", name: "Snapback Cap", price: 299 },
+  { emoji: "🧦", name: "No-show Socks 3pk", price: 149 },
+  { emoji: "💼", name: "Passport Sleeve", price: 199 },
+  { emoji: "🔑", name: "Key Clip Carabiner", price: 99 }
+];
+
+let discount = 0;
+
+function fmt(n) { return "₹" + n.toLocaleString("en-IN"); }
+
+function getSubtotal() { return items.reduce((s, i) => s + i.price * i.qty, 0); }
+
+function render() {
+  const sub = getSubtotal();
+  const discAmt = Math.round(sub * discount);
+  const afterDisc = sub - discAmt;
+  const shipCost = afterDisc >= FREE_SHIP ? 0 : SHIP_FEE;
+  const total = afterDisc + shipCost;
+  const pct = Math.min(100, Math.round((afterDisc / FREE_SHIP) * 100));
+  const remaining = FREE_SHIP - afterDisc;
+
+  document.getElementById("item-count").textContent = items.reduce((s, i) => s + i.qty, 0);
+  document.getElementById("subtotal-val").textContent = fmt(sub);
+  document.getElementById("ship-bar").style.width = pct + "%";
+  document.getElementById("total-val").textContent = fmt(total);
+  document.getElementById("ship-cost").textContent = shipCost === 0 ? "Free 🎉" : fmt(SHIP_FEE);
+
+  if (afterDisc >= FREE_SHIP) {
+    document.getElementById("ship-label").innerHTML = "You've unlocked <span>free shipping!</span> 🎉";
+    document.getElementById("ship-bar").style.background = "#1D9E75";
+  } else {
+    document.getElementById("ship-label").innerHTML = "Add <span>" + fmt(remaining) + "</span> more for free shipping";
+  }
+
+  if (discAmt > 0) {
+    document.getElementById("discount-row").style.display = "flex";
+    document.getElementById("discount-val").textContent = "-" + fmt(discAmt);
+  } else {
+    document.getElementById("discount-row").style.display = "none";
+  }
+
+  const container = document.getElementById("cart-items");
+  container.innerHTML = "";
+  if (items.length === 0) {
+    container.innerHTML = "<div style='padding:32px 20px; text-align:center; color:var(--color-text-secondary); font-size:14px;'>Your cart is empty.</div>";
+    return;
+  }
+  items.forEach(item => {
+    const row = document.createElement("div");
+    row.className = "item-row";
+    row.innerHTML = `
+      <div class="item-img" aria-hidden="true">${item.emoji}</div>
+      <div class="item-info">
+        <div class="item-title">${item.title}</div>
+        <div class="item-variant">${item.variant}</div>
+        <div class="item-row-bottom">
+          <div class="qty-stepper" role="group" aria-label="Quantity for ${item.title}">
+            <button class="qty-btn" aria-label="Decrease quantity" onclick="changeQty(${item.id}, -1)"><i class="ti ti-minus" aria-hidden="true"></i></button>
+            <span class="qty-val">${item.qty}</span>
+            <button class="qty-btn" aria-label="Increase quantity" onclick="changeQty(${item.id}, 1)"><i class="ti ti-plus" aria-hidden="true"></i></button>
+          </div>
+          <span class="item-price">${fmt(item.price * item.qty)}</span>
+        </div>
+      </div>
+      <button class="remove-btn" aria-label="Remove ${item.title}" onclick="removeItem(${item.id})"><i class="ti ti-x" aria-hidden="true"></i></button>`;
+    container.appendChild(row);
+  });
+}
+
+function changeQty(id, delta) {
+  const item = items.find(i => i.id === id);
+  if (!item) return;
+  item.qty = Math.max(1, item.qty + delta);
+  render();
+}
+
+function removeItem(id) {
+  items = items.filter(i => i.id !== id);
+  render();
+}
+
+function applyPromo() {
+  const code = document.getElementById("promo-input").value.trim().toUpperCase();
+  const msg = document.getElementById("promo-msg");
+  msg.style.display = "block";
+  if (PROMOS[code] !== undefined) {
+    discount = PROMOS[code];
+    msg.className = "promo-msg ok";
+    msg.textContent = "✓ Code applied — " + (discount * 100) + "% off your order!";
+  } else {
+    discount = 0;
+    msg.className = "promo-msg err";
+    msg.textContent = "✗ Invalid code. Try SAVE10 or WELCOME20.";
+  }
+  render();
+}
+
+const grid = document.getElementById("sugg-grid");
+suggested.forEach(s => {
+  const card = document.createElement("div");
+  card.className = "sugg-card";
+  card.innerHTML = `<div class="sugg-emoji" aria-hidden="true">${s.emoji}</div><div class="sugg-name">${s.name}</div><div class="sugg-price">${fmt(s.price)}</div><div class="sugg-add"><i class="ti ti-plus" style="font-size:11px" aria-hidden="true"></i> Add</div>`;
+  card.onclick = () => {
+    const existing = items.find(i => i.title === s.name);
+    if (existing) { existing.qty++; }
+    else { items.push({ id: Date.now(), emoji: s.emoji, title: s.name, variant: "One size", price: s.price, qty: 1 }); }
+    render();
+  };
+  grid.appendChild(card);
+});
+
+render();
+</script>

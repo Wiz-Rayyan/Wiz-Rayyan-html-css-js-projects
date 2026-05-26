@@ -1,0 +1,507 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: transparent; }
+  #app {
+    font-family: 'Inter', var(--font-sans);
+    background: var(--color-background-primary);
+    color: var(--color-text-primary);
+    min-height: 600px;
+    display: flex;
+    flex-direction: column;
+  }
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 16px;
+    border-bottom: 0.5px solid var(--color-border-tertiary);
+    font-size: 13px; color: var(--color-text-secondary);
+  }
+  .topbar-left { display: flex; align-items: center; gap: 6px; }
+  .topbar-breadcrumb { display: flex; align-items: center; gap: 4px; font-size: 13px; }
+  .breadcrumb-item { color: var(--color-text-secondary); cursor: pointer; }
+  .breadcrumb-item:hover { color: var(--color-text-primary); }
+  .breadcrumb-sep { color: var(--color-text-tertiary); }
+  .topbar-actions { display: flex; align-items: center; gap: 8px; }
+  .tb-btn {
+    background: none; border: none; cursor: pointer;
+    color: var(--color-text-secondary); padding: 4px 8px;
+    border-radius: 4px; font-size: 13px; font-family: inherit;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .tb-btn:hover { background: var(--color-background-secondary); color: var(--color-text-primary); }
+  .share-btn {
+    background: var(--color-text-primary); color: var(--color-background-primary);
+    border: none; border-radius: 4px; padding: 4px 12px;
+    font-size: 12px; font-family: inherit; cursor: pointer; font-weight: 500;
+  }
+
+  .main { display: flex; flex: 1; overflow: hidden; }
+  .sidebar {
+    width: 220px; border-right: 0.5px solid var(--color-border-tertiary);
+    padding: 8px 0; flex-shrink: 0; overflow-y: auto;
+    background: var(--color-background-secondary);
+  }
+  .sidebar-section { margin-bottom: 4px; }
+  .sidebar-header {
+    font-size: 11px; font-weight: 500; text-transform: uppercase;
+    letter-spacing: 0.06em; color: var(--color-text-tertiary);
+    padding: 4px 12px; margin-top: 8px;
+  }
+  .sidebar-item {
+    display: flex; align-items: center; gap: 6px;
+    padding: 4px 12px; font-size: 13px; cursor: pointer;
+    color: var(--color-text-secondary); border-radius: 4px; margin: 1px 4px;
+  }
+  .sidebar-item:hover { background: var(--color-background-primary); color: var(--color-text-primary); }
+  .sidebar-item.active { background: var(--color-background-primary); color: var(--color-text-primary); font-weight: 500; }
+  .sidebar-item i { font-size: 15px; flex-shrink: 0; }
+  .sidebar-indent { padding-left: 28px; }
+  .sidebar-indent2 { padding-left: 44px; }
+
+  .editor { flex: 1; overflow-y: auto; padding: 48px 96px 80px; max-width: 900px; }
+  .page-icon { font-size: 42px; margin-bottom: 8px; line-height: 1; }
+  .page-title {
+    font-size: 32px; font-weight: 600; line-height: 1.2;
+    color: var(--color-text-primary); margin-bottom: 4px;
+    outline: none; cursor: text;
+  }
+  .page-meta { display: flex; align-items: center; gap: 12px; margin: 8px 0 24px; }
+  .prop-row { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  .prop-label { color: var(--color-text-tertiary); width: 80px; display: flex; align-items: center; gap: 4px; }
+  .prop-val { color: var(--color-text-secondary); }
+  .tag {
+    display: inline-flex; align-items: center;
+    padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 500;
+  }
+  .tag-yellow { background: #fdf3c0; color: #946c00; }
+  .tag-pink { background: #fde8ef; color: #b9365b; }
+  .tag-blue { background: #dbeafe; color: #1d4ed8; }
+  .tag-green { background: #dcfce7; color: #166534; }
+
+  .block-group { margin: 2px 0; }
+  .block {
+    display: flex; align-items: flex-start; gap: 4px;
+    padding: 2px 0; border-radius: 4px; position: relative;
+  }
+  .block:hover .drag-handle { opacity: 1; }
+  .block:hover .block-add { opacity: 1; }
+  .drag-handle {
+    opacity: 0; cursor: grab; color: var(--color-text-tertiary);
+    padding: 4px 2px; font-size: 14px; flex-shrink: 0; margin-top: 1px;
+    transition: opacity 0.1s;
+  }
+  .block-add {
+    opacity: 0; cursor: pointer; color: var(--color-text-tertiary);
+    padding: 4px 2px; font-size: 14px; flex-shrink: 0; margin-top: 1px;
+    transition: opacity 0.1s;
+  }
+  .block-content { flex: 1; min-width: 0; }
+
+  .h1 { font-size: 22px; font-weight: 600; padding: 4px 0; line-height: 1.3; }
+  .h2 { font-size: 18px; font-weight: 600; padding: 4px 0; line-height: 1.3; }
+  .h3 { font-size: 15px; font-weight: 600; padding: 4px 0; line-height: 1.3; }
+  .para { font-size: 15px; line-height: 1.65; padding: 4px 0; color: var(--color-text-primary); }
+  .muted { color: var(--color-text-secondary); }
+
+  .hl-yellow { background: #fef08a; color: #713f12; padding: 1px 2px; border-radius: 2px; }
+  .hl-pink { background: #fecdd3; color: #9f1239; padding: 1px 2px; border-radius: 2px; }
+  .hl-blue { background: #bfdbfe; color: #1e3a8a; padding: 1px 2px; border-radius: 2px; }
+  code { background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); border-radius: 3px; padding: 1px 5px; font-family: var(--font-mono); font-size: 13px; }
+
+  .callout {
+    display: flex; gap: 10px; align-items: flex-start;
+    background: var(--color-background-secondary);
+    border-radius: 4px; padding: 10px 12px; margin: 4px 0;
+    border: 0.5px solid var(--color-border-tertiary);
+  }
+  .callout-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+  .callout-text { font-size: 14px; line-height: 1.6; color: var(--color-text-secondary); }
+
+  .todo { display: flex; align-items: flex-start; gap: 8px; padding: 2px 0; }
+  .todo-check {
+    width: 16px; height: 16px; border: 1.5px solid var(--color-border-secondary);
+    border-radius: 3px; flex-shrink: 0; margin-top: 3px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--color-background-primary);
+  }
+  .todo-check.done { background: var(--color-text-primary); border-color: var(--color-text-primary); }
+  .todo-check.done i { color: var(--color-background-primary); font-size: 11px; }
+  .todo-text { font-size: 15px; line-height: 1.6; }
+  .todo-text.done { color: var(--color-text-tertiary); text-decoration: line-through; }
+
+  .bulleted { display: flex; gap: 8px; padding: 2px 0; font-size: 15px; line-height: 1.6; }
+  .bullet-dot { flex-shrink: 0; margin-top: 8px; width: 4px; height: 4px; border-radius: 50%; background: var(--color-text-primary); }
+
+  .numbered { display: flex; gap: 8px; padding: 2px 0; font-size: 15px; line-height: 1.6; }
+  .num-idx { flex-shrink: 0; color: var(--color-text-secondary); min-width: 18px; }
+
+  .divider { border: none; border-top: 0.5px solid var(--color-border-tertiary); margin: 12px 0; }
+
+  .page-link {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: var(--color-background-secondary);
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: 4px; padding: 3px 8px; font-size: 14px;
+    cursor: pointer; color: var(--color-text-primary); text-decoration: none;
+    margin: 2px 0;
+  }
+  .page-link:hover { background: var(--color-background-tertiary); }
+
+  .db-wrap { margin: 12px 0; border: 0.5px solid var(--color-border-tertiary); border-radius: 4px; overflow: hidden; }
+  .db-toolbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 12px; border-bottom: 0.5px solid var(--color-border-tertiary);
+    background: var(--color-background-secondary);
+  }
+  .db-title { font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px; }
+  .db-views { display: flex; align-items: center; gap: 2px; }
+  .db-view-btn {
+    font-size: 12px; padding: 3px 8px; border-radius: 4px; cursor: pointer;
+    background: none; border: none; font-family: inherit;
+    color: var(--color-text-secondary); display: flex; align-items: center; gap: 4px;
+  }
+  .db-view-btn.active { background: var(--color-background-primary); color: var(--color-text-primary); font-weight: 500; border: 0.5px solid var(--color-border-tertiary); }
+  .db-view-btn:hover:not(.active) { background: var(--color-background-primary); color: var(--color-text-primary); }
+  .db-actions { display: flex; align-items: center; gap: 4px; }
+
+  table.db-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.db-table th {
+    text-align: left; padding: 6px 12px; font-size: 12px; font-weight: 500;
+    color: var(--color-text-secondary); border-bottom: 0.5px solid var(--color-border-tertiary);
+    background: var(--color-background-secondary);
+  }
+  table.db-table td { padding: 7px 12px; border-bottom: 0.5px solid var(--color-border-tertiary); color: var(--color-text-primary); }
+  table.db-table tr:last-child td { border-bottom: none; }
+  table.db-table tr:hover td { background: var(--color-background-secondary); }
+  .db-add-row { padding: 6px 12px; font-size: 13px; color: var(--color-text-tertiary); cursor: pointer; display: flex; align-items: center; gap: 4px; }
+  .db-add-row:hover { background: var(--color-background-secondary); color: var(--color-text-secondary); }
+
+  .board-wrap { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 12px; }
+  .board-col { background: var(--color-background-secondary); border-radius: 4px; padding: 8px; min-height: 120px; }
+  .board-col-hd { font-size: 12px; font-weight: 500; color: var(--color-text-secondary); margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between; }
+  .board-card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: 4px; padding: 8px 10px; margin-bottom: 4px; font-size: 13px; cursor: pointer; }
+  .board-card:hover { border-color: var(--color-border-secondary); }
+  .board-card-title { font-weight: 500; margin-bottom: 4px; }
+  .board-card-meta { color: var(--color-text-tertiary); font-size: 12px; }
+
+  .view-hidden { display: none; }
+
+  .block-toggle { display: flex; align-items: flex-start; gap: 4px; padding: 2px 0; }
+  .toggle-arrow { cursor: pointer; font-size: 14px; color: var(--color-text-secondary); padding: 3px 2px; flex-shrink: 0; transition: transform 0.15s; }
+  .toggle-arrow.open { transform: rotate(90deg); }
+  .toggle-children { margin-left: 20px; overflow: hidden; max-height: 0; transition: max-height 0.2s; }
+  .toggle-children.open { max-height: 500px; }
+
+  .quote { border-left: 2.5px solid var(--color-text-primary); padding: 2px 12px; margin: 4px 0; font-size: 15px; line-height: 1.65; color: var(--color-text-secondary); }
+</style>
+
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-breadcrumb">
+        <span class="breadcrumb-item">🏠 Workspace</span>
+        <span class="breadcrumb-sep">/</span>
+        <span class="breadcrumb-item">📂 Projects</span>
+        <span class="breadcrumb-sep">/</span>
+        <span class="breadcrumb-item" style="color:var(--color-text-primary); font-weight:500;">📋 Q3 Roadmap</span>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <button class="tb-btn"><i class="ti ti-clock" aria-hidden="true"></i> Updated 3m ago</button>
+      <button class="tb-btn"><i class="ti ti-users" aria-hidden="true"></i> 4</button>
+      <button class="tb-btn"><i class="ti ti-dots" aria-hidden="true"></i></button>
+      <button class="share-btn">Share</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="sidebar">
+      <div style="padding: 8px 12px; margin-bottom: 4px;">
+        <div style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500;color:var(--color-text-primary);">
+          <i class="ti ti-layout-sidebar" aria-hidden="true" style="font-size:15px"></i>
+          My Workspace
+        </div>
+      </div>
+      <div class="sidebar-item"><i class="ti ti-search" aria-hidden="true"></i> Search</div>
+      <div class="sidebar-item"><i class="ti ti-home" aria-hidden="true"></i> Home</div>
+      <div class="sidebar-item"><i class="ti ti-bell" aria-hidden="true"></i> Inbox</div>
+
+      <div class="sidebar-header">Favorites</div>
+      <div class="sidebar-item"><i class="ti ti-star" aria-hidden="true"></i> Weekly Notes</div>
+
+      <div class="sidebar-header">Pages</div>
+      <div class="sidebar-item"><i class="ti ti-file-text" aria-hidden="true"></i> Getting Started</div>
+      <div class="sidebar-item"><i class="ti ti-folder" aria-hidden="true"></i> Projects</div>
+      <div class="sidebar-item sidebar-indent active"><i class="ti ti-layout-list" aria-hidden="true"></i> Q3 Roadmap</div>
+      <div class="sidebar-item sidebar-indent2"><i class="ti ti-file" aria-hidden="true"></i> Design Sprint</div>
+      <div class="sidebar-item sidebar-indent2"><i class="ti ti-file" aria-hidden="true"></i> API Docs</div>
+      <div class="sidebar-item sidebar-indent"><i class="ti ti-layout-list" aria-hidden="true"></i> Q4 Planning</div>
+      <div class="sidebar-item"><i class="ti ti-database" aria-hidden="true"></i> Task Database</div>
+      <div class="sidebar-item"><i class="ti ti-file-text" aria-hidden="true"></i> Meeting Notes</div>
+
+      <div style="padding: 16px 12px 8px; border-top: 0.5px solid var(--color-border-tertiary); margin-top: 8px;">
+        <button class="tb-btn" style="width:100%; justify-content:flex-start; font-size:13px; gap:6px;">
+          <i class="ti ti-plus" aria-hidden="true"></i> New page
+        </button>
+      </div>
+    </div>
+
+    <div class="editor">
+      <h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);">Notion-style block editor demo: Q3 Roadmap page with inline database, toggle blocks, and highlighted text</h2>
+
+      <div class="page-icon">📋</div>
+      <div class="page-title">Q3 Roadmap</div>
+
+      <div class="page-meta">
+        <div class="prop-row">
+          <span class="prop-label"><i class="ti ti-user" style="font-size:12px" aria-hidden="true"></i> Owner</span>
+          <span class="prop-val" style="display:flex;align-items:center;gap:5px;">
+            <span style="width:20px;height:20px;border-radius:50%;background:var(--color-background-info);display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:var(--color-text-info);">AR</span>
+            Arjun Rao
+          </span>
+        </div>
+        <div class="prop-row">
+          <span class="prop-label"><i class="ti ti-tag" style="font-size:12px" aria-hidden="true"></i> Status</span>
+          <span class="tag tag-blue">In progress</span>
+        </div>
+        <div class="prop-row">
+          <span class="prop-label"><i class="ti ti-calendar" style="font-size:12px" aria-hidden="true"></i> Due</span>
+          <span class="prop-val">Sep 30, 2026</span>
+        </div>
+      </div>
+
+      <div class="block block-group">
+        <span class="block-add"><i class="ti ti-plus" aria-hidden="true" style="font-size:13px"></i></span>
+        <span class="drag-handle"><i class="ti ti-grid-dots" aria-hidden="true" style="font-size:13px"></i></span>
+        <div class="block-content">
+          <div class="callout">
+            <span class="callout-icon">💡</span>
+            <div class="callout-text">This page tracks all <span class="hl-yellow">engineering deliverables</span> for Q3. Link sub-pages using <code>[[page name]]</code>. Last reviewed with the team on May 20.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="block">
+        <span class="block-add"><i class="ti ti-plus" aria-hidden="true" style="font-size:13px"></i></span>
+        <span class="drag-handle"><i class="ti ti-grid-dots" aria-hidden="true" style="font-size:13px"></i></span>
+        <div class="block-content h1">Overview</div>
+      </div>
+
+      <div class="block">
+        <span class="block-add"><i class="ti ti-plus" aria-hidden="true" style="font-size:13px"></i></span>
+        <span class="drag-handle"><i class="ti ti-grid-dots" aria-hidden="true" style="font-size:13px"></i></span>
+        <div class="block-content para">
+          Our goal this quarter is to ship the <span class="hl-blue">new dashboard redesign</span>, migrate the auth layer, and close out <span class="hl-pink">at least 40 backlog items</span>. Each initiative has a dedicated sub-page.
+        </div>
+      </div>
+
+      <div class="block">
+        <span class="block-add"><i class="ti ti-plus" aria-hidden="true" style="font-size:13px"></i></span>
+        <span class="drag-handle"><i class="ti ti-grid-dots" aria-hidden="true" style="font-size:13px"></i></span>
+        <div class="block-content">
+          <div class="block-toggle">
+            <span class="toggle-arrow open" id="tog1" onclick="toggleBlock('tog1','tc1')"><i class="ti ti-chevron-right" aria-hidden="true"></i></span>
+            <div style="flex:1;">
+              <div class="h3" style="display:inline;">Sub-pages</div>
+              <div class="toggle-children open" id="tc1">
+                <a class="page-link"><i class="ti ti-file-text" aria-hidden="true" style="font-size:14px"></i> Design Sprint — June</a><br>
+                <a class="page-link" style="margin-top:4px"><i class="ti ti-code" aria-hidden="true" style="font-size:14px"></i> API Docs v2</a><br>
+                <a class="page-link" style="margin-top:4px"><i class="ti ti-bug" aria-hidden="true" style="font-size:14px"></i> Bug Bash Notes</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="block">
+        <span class="block-add"><i class="ti ti-plus" aria-hidden="true" style="font-size:13px"></i></span>
+        <span class="drag-handle"><i class="ti ti-grid-dots" aria-hidden="true" style="font-size:13px"></i></span>
+        <div class="block-content h2">Task tracker</div>
+      </div>
+
+      <div class="block">
+        <span class="block-add"><i class="ti ti-plus" aria-hidden="true" style="font-size:13px"></i></span>
+        <span class="drag-handle"><i class="ti ti-grid-dots" aria-hidden="true" style="font-size:13px"></i></span>
+        <div class="block-content">
+          <div class="db-wrap">
+            <div class="db-toolbar">
+              <div class="db-title"><i class="ti ti-database" aria-hidden="true" style="font-size:14px"></i> Q3 Tasks</div>
+              <div class="db-views">
+                <button class="db-view-btn active" id="vt" onclick="switchView('table')"><i class="ti ti-table" aria-hidden="true"></i> Table</button>
+                <button class="db-view-btn" id="vb" onclick="switchView('board')"><i class="ti ti-layout-columns" aria-hidden="true"></i> Board</button>
+              </div>
+              <div class="db-actions">
+                <button class="tb-btn" style="font-size:12px;padding:3px 8px;"><i class="ti ti-filter" aria-hidden="true"></i> Filter</button>
+                <button class="tb-btn" style="font-size:12px;padding:3px 8px;"><i class="ti ti-arrows-sort" aria-hidden="true"></i> Sort</button>
+                <button class="tb-btn" style="font-size:12px;padding:3px 8px;"><i class="ti ti-plus" aria-hidden="true"></i> New</button>
+              </div>
+            </div>
+            <div id="table-view">
+              <table class="db-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Status</th>
+                    <th>Assignee</th>
+                    <th>Priority</th>
+                    <th>Due</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Dashboard redesign</td>
+                    <td><span class="tag tag-blue">In progress</span></td>
+                    <td>Arjun R.</td>
+                    <td><span class="tag tag-pink">High</span></td>
+                    <td style="color:var(--color-text-secondary)">Jul 15</td>
+                  </tr>
+                  <tr>
+                    <td>Auth migration</td>
+                    <td><span class="tag tag-yellow">Not started</span></td>
+                    <td>Priya K.</td>
+                    <td><span class="tag tag-pink">High</span></td>
+                    <td style="color:var(--color-text-secondary)">Aug 1</td>
+                  </tr>
+                  <tr>
+                    <td>API rate limiting</td>
+                    <td><span class="tag tag-green">Done</span></td>
+                    <td>Sam T.</td>
+                    <td><span class="tag" style="background:var(--color-background-secondary);color:var(--color-text-secondary)">Low</span></td>
+                    <td style="color:var(--color-text-secondary)">Jun 30</td>
+                  </tr>
+                  <tr>
+                    <td>Onboarding flow v2</td>
+                    <td><span class="tag tag-blue">In progress</span></td>
+                    <td>Meera S.</td>
+                    <td><span class="tag tag-yellow">Medium</span></td>
+                    <td style="color:var(--color-text-secondary)">Aug 20</td>
+                  </tr>
+                  <tr>
+                    <td>Performance audit</td>
+                    <td><span class="tag tag-yellow">Not started</span></td>
+                    <td>Arjun R.</td>
+                    <td><span class="tag" style="background:var(--color-background-secondary);color:var(--color-text-secondary)">Low</span></td>
+                    <td style="color:var(--color-text-secondary)">Sep 10</td>
+                  </tr>
+                </tbody>
+              </table>
+              <div class="db-add-row"><i class="ti ti-plus" aria-hidden="true" style="font-size:13px"></i> New row</div>
+            </div>
+            <div id="board-view" class="view-hidden">
+              <div class="board-wrap">
+                <div class="board-col">
+                  <div class="board-col-hd"><span>Not started <span style="color:var(--color-text-tertiary);font-weight:400;">2</span></span><i class="ti ti-plus" aria-hidden="true" style="font-size:13px;cursor:pointer"></i></div>
+                  <div class="board-card"><div class="board-card-title">Auth migration</div><div class="board-card-meta"><span class="tag tag-pink" style="font-size:11px">High</span></div></div>
+                  <div class="board-card"><div class="board-card-title">Performance audit</div><div class="board-card-meta"><span class="tag" style="font-size:11px;background:var(--color-background-secondary);color:var(--color-text-secondary)">Low</span></div></div>
+                </div>
+                <div class="board-col">
+                  <div class="board-col-hd"><span>In progress <span style="color:var(--color-text-tertiary);font-weight:400;">2</span></span><i class="ti ti-plus" aria-hidden="true" style="font-size:13px;cursor:pointer"></i></div>
+                  <div class="board-card"><div class="board-card-title">Dashboard redesign</div><div class="board-card-meta"><span class="tag tag-pink" style="font-size:11px">High</span></div></div>
+                  <div class="board-card"><div class="board-card-title">Onboarding flow v2</div><div class="board-card-meta"><span class="tag tag-yellow" style="font-size:11px">Medium</span></div></div>
+                </div>
+                <div class="board-col">
+                  <div class="board-col-hd"><span>Done <span style="color:var(--color-text-tertiary);font-weight:400;">1</span></span><i class="ti ti-plus" aria-hidden="true" style="font-size:13px;cursor:pointer"></i></div>
+                  <div class="board-card"><div class="board-card-title">API rate limiting</div><div class="board-card-meta"><span class="tag tag-green" style="font-size:11px">Done</span></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="block">
+        <span class="block-add"><i class="ti ti-plus" aria-hidden="true" style="font-size:13px"></i></span>
+        <span class="drag-handle"><i class="ti ti-grid-dots" aria-hidden="true" style="font-size:13px"></i></span>
+        <div class="block-content h2">Weekly checklist</div>
+      </div>
+
+      <div class="block">
+        <span class="block-add"><i class="ti ti-plus" aria-hidden="true" style="font-size:13px"></i></span>
+        <span class="drag-handle"><i class="ti ti-grid-dots" aria-hidden="true" style="font-size:13px"></i></span>
+        <div class="block-content">
+          <div class="todo" onclick="toggleTodo(this)">
+            <div class="todo-check done"><i class="ti ti-check"></i></div>
+            <div class="todo-text done">Sync with design team on component specs</div>
+          </div>
+        </div>
+      </div>
+      <div class="block">
+        <span class="block-add"><i class="ti ti-plus" aria-hidden="true" style="font-size:13px"></i></span>
+        <span class="drag-handle"><i class="ti ti-grid-dots" aria-hidden="true" style="font-size:13px"></i></span>
+        <div class="block-content">
+          <div class="todo" onclick="toggleTodo(this)">
+            <div class="todo-check done"><i class="ti ti-check"></i></div>
+            <div class="todo-text done">Review PR #204 — rate limiter patch</div>
+          </div>
+        </div>
+      </div>
+      <div class="block">
+        <span class="block-add"><i class="ti ti-plus" aria-hidden="true" style="font-size:13px"></i></span>
+        <span class="drag-handle"><i class="ti ti-grid-dots" aria-hidden="true" style="font-size:13px"></i></span>
+        <div class="block-content">
+          <div class="todo" onclick="toggleTodo(this)">
+            <div class="todo-check"><i class="ti ti-check"></i></div>
+            <div class="todo-text">Write Q3 mid-quarter update for stakeholders</div>
+          </div>
+        </div>
+      </div>
+      <div class="block">
+        <span class="block-add"><i class="ti ti-plus" aria-hidden="true" style="font-size:13px"></i></span>
+        <span class="drag-handle"><i class="ti ti-grid-dots" aria-hidden="true" style="font-size:13px"></i></span>
+        <div class="block-content">
+          <div class="todo" onclick="toggleTodo(this)">
+            <div class="todo-check"><i class="ti ti-check"></i></div>
+            <div class="todo-text">Finalize auth migration kickoff date</div>
+          </div>
+        </div>
+      </div>
+
+      <hr class="divider">
+
+      <div class="block">
+        <span class="block-add"><i class="ti ti-plus" aria-hidden="true" style="font-size:13px"></i></span>
+        <span class="drag-handle"><i class="ti ti-grid-dots" aria-hidden="true" style="font-size:13px"></i></span>
+        <div class="block-content">
+          <div class="quote">Ship incrementally. A quiet release beats a noisy delay.</div>
+        </div>
+      </div>
+
+      <div style="margin-top:32px; display:flex; gap:8px;">
+        <button class="tb-btn" style="font-size:13px; border:0.5px solid var(--color-border-tertiary); border-radius:4px;" onclick="sendPrompt('Add a new section to this Notion roadmap page')"><i class="ti ti-plus" aria-hidden="true"></i> Add block ↗</button>
+        <button class="tb-btn" style="font-size:13px; border:0.5px solid var(--color-border-tertiary); border-radius:4px;" onclick="sendPrompt('Build a Notion-style personal wiki with the same aesthetic')">Build my own ↗</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleTodo(row) {
+  const check = row.querySelector('.todo-check');
+  const text = row.querySelector('.todo-text');
+  check.classList.toggle('done');
+  text.classList.toggle('done');
+}
+function toggleBlock(arrowId, childrenId) {
+  const arrow = document.getElementById(arrowId);
+  const children = document.getElementById(childrenId);
+  arrow.classList.toggle('open');
+  children.classList.toggle('open');
+}
+function switchView(view) {
+  const tv = document.getElementById('table-view');
+  const bv = document.getElementById('board-view');
+  const vt = document.getElementById('vt');
+  const vb = document.getElementById('vb');
+  if (view === 'table') {
+    tv.classList.remove('view-hidden');
+    bv.classList.add('view-hidden');
+    vt.classList.add('active');
+    vb.classList.remove('active');
+  } else {
+    tv.classList.add('view-hidden');
+    bv.classList.remove('view-hidden');
+    vb.classList.add('active');
+    vt.classList.remove('active');
+  }
+}
+</script>

@@ -1,0 +1,353 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:transparent}
+.feed-wrap{max-width:520px;margin:0 auto;padding:12px 0;font-family:var(--font-sans)}
+.stories-bar{display:flex;gap:14px;padding:8px 16px 16px;overflow-x:auto;scrollbar-width:none}
+.stories-bar::-webkit-scrollbar{display:none}
+.story-item{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;flex-shrink:0}
+.story-ring{width:60px;height:60px;border-radius:50%;padding:2.5px;background:linear-gradient(135deg,#f09819,#e056ab,#833ab4)}
+.story-ring.seen{background:var(--color-border-secondary)}
+.story-avatar{width:100%;height:100%;border-radius:50%;border:2.5px solid var(--color-background-primary);object-fit:cover;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:500;background:var(--color-background-secondary)}
+.story-avatar.initials{font-size:16px;color:var(--color-text-secondary)}
+.story-label{font-size:11px;color:var(--color-text-secondary);text-align:center;max-width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.add-story .story-ring{background:var(--color-border-tertiary)}
+.add-story .story-avatar{background:var(--color-background-info);color:var(--color-text-info);font-size:22px}
+.stories-divider{height:0.5px;background:var(--color-border-tertiary);margin:0 16px 12px}
+.post-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);margin:0 12px 14px;overflow:hidden}
+.post-header{display:flex;align-items:center;gap:10px;padding:12px 14px 8px}
+.post-avatar{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:500;font-size:14px;flex-shrink:0}
+.post-meta{flex:1}
+.post-name{font-size:14px;font-weight:500;color:var(--color-text-primary);line-height:1.2}
+.post-time{font-size:12px;color:var(--color-text-tertiary);display:flex;align-items:center;gap:4px;margin-top:1px}
+.post-more{background:none;border:none;color:var(--color-text-secondary);cursor:pointer;padding:4px;border-radius:var(--border-radius-md);line-height:1}
+.post-more:hover{background:var(--color-background-secondary)}
+.post-text{padding:0 14px 10px;font-size:14px;color:var(--color-text-primary);line-height:1.6}
+.post-text span.hashtag{color:var(--color-text-info);cursor:pointer}
+.post-image{width:100%;aspect-ratio:4/3;object-fit:cover;background:var(--color-background-secondary);display:flex;align-items:center;justify-content:center;font-size:48px}
+.post-image.tall{aspect-ratio:3/4}
+.post-image.wide{aspect-ratio:16/9}
+.post-image-placeholder{width:100%;display:flex;align-items:center;justify-content:center;font-size:52px;background:var(--color-background-secondary)}
+.post-image-placeholder.ratio-4-3{aspect-ratio:4/3}
+.post-image-placeholder.ratio-16-9{aspect-ratio:16/9}
+.reaction-summary{display:flex;align-items:center;gap:6px;padding:8px 14px;border-bottom:0.5px solid var(--color-border-tertiary)}
+.reaction-pills{display:flex;align-items:center}
+.reaction-pill{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--color-background-primary);display:flex;align-items:center;justify-content:center;font-size:12px;margin-right:-5px;background:var(--color-background-secondary)}
+.reaction-count{font-size:13px;color:var(--color-text-secondary);margin-left:10px}
+.post-stats{font-size:13px;color:var(--color-text-secondary);margin-left:auto;cursor:pointer}
+.post-stats:hover{text-decoration:underline}
+.action-bar{display:flex;align-items:center;gap:0;padding:4px 8px;border-bottom:0.5px solid var(--color-border-tertiary)}
+.action-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 4px;font-size:13px;color:var(--color-text-secondary);background:none;border:none;border-radius:var(--border-radius-md);cursor:pointer;transition:background 0.15s}
+.action-btn:hover{background:var(--color-background-secondary)}
+.action-btn.liked{color:#e056ab}
+.action-btn i{font-size:19px}
+.action-btn span{font-weight:400}
+.comments-section{padding:10px 14px 12px}
+.comment-row{display:flex;gap:8px;margin-bottom:10px;align-items:flex-start}
+.comment-avatar{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;flex-shrink:0;margin-top:1px}
+.comment-bubble{background:var(--color-background-secondary);border-radius:0 var(--border-radius-lg) var(--border-radius-lg) var(--border-radius-lg);padding:8px 11px;flex:1}
+.comment-bubble .cname{font-size:12px;font-weight:500;color:var(--color-text-primary)}
+.comment-bubble .ctext{font-size:13px;color:var(--color-text-primary);margin-top:1px;line-height:1.4}
+.comment-actions{display:flex;gap:10px;margin-top:4px;padding-left:38px}
+.comment-action{font-size:11px;color:var(--color-text-tertiary);cursor:pointer;background:none;border:none;padding:0}
+.comment-action:hover{color:var(--color-text-secondary)}
+.view-more-comments{font-size:13px;color:var(--color-text-secondary);padding:0 14px 8px;cursor:pointer;display:block;background:none;border:none;text-align:left}
+.view-more-comments:hover{color:var(--color-text-primary)}
+.comment-compose{display:flex;gap:8px;padding:8px 14px 12px;border-top:0.5px solid var(--color-border-tertiary);align-items:center}
+.compose-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;flex-shrink:0}
+.compose-input{flex:1;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:20px;padding:8px 14px;font-size:13px;color:var(--color-text-primary);font-family:var(--font-sans);resize:none;outline:none;min-height:36px;height:36px;overflow:hidden;line-height:1.4}
+.compose-input:focus{border-color:var(--color-border-primary)}
+.compose-input::placeholder{color:var(--color-text-tertiary)}
+.compose-post{background:none;border:none;color:var(--color-text-info);font-size:13px;font-weight:500;cursor:pointer;padding:4px 6px;border-radius:var(--border-radius-md);font-family:var(--font-sans);opacity:0.5;transition:opacity 0.15s}
+.compose-post.active{opacity:1}
+.compose-post:hover.active{background:var(--color-background-info)}
+.load-more{display:block;width:calc(100% - 24px);margin:4px 12px 8px;padding:10px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);color:var(--color-text-secondary);font-size:13px;cursor:pointer;text-align:center;font-family:var(--font-sans)}
+.load-more:hover{background:var(--color-background-primary)}
+.globe-icon{font-size:11px}
+</style>
+
+<h2 class="sr-only">Social feed with stories, posts, likes, and comments</h2>
+
+<div class="feed-wrap">
+
+<div class="stories-bar" role="list">
+  <div class="story-item add-story" role="listitem">
+    <div class="story-ring seen"><div class="story-avatar initials"><i class="ti ti-plus" aria-hidden="true"></i></div></div>
+    <span class="story-label">Your story</span>
+  </div>
+  <div class="story-item" role="listitem">
+    <div class="story-ring"><div class="story-avatar initials" style="background:#EEEDFE;color:#534AB7">AK</div></div>
+    <span class="story-label">anika_k</span>
+  </div>
+  <div class="story-item" role="listitem">
+    <div class="story-ring"><div class="story-avatar initials" style="background:#E1F5EE;color:#0F6E56">JR</div></div>
+    <span class="story-label">jrose</span>
+  </div>
+  <div class="story-item" role="listitem">
+    <div class="story-ring"><div class="story-avatar initials" style="background:#FBEAF0;color:#993556">MV</div></div>
+    <span class="story-label">mia.v</span>
+  </div>
+  <div class="story-item" role="listitem">
+    <div class="story-ring seen"><div class="story-avatar initials" style="background:#FAEEDA;color:#854F0B">DL</div></div>
+    <span class="story-label">dev_lu</span>
+  </div>
+  <div class="story-item" role="listitem">
+    <div class="story-ring"><div class="story-avatar initials" style="background:#E6F1FB;color:#185FA5">PW</div></div>
+    <span class="story-label">priya.w</span>
+  </div>
+  <div class="story-item" role="listitem">
+    <div class="story-ring seen"><div class="story-avatar initials" style="background:#FAECE7;color:#993C1D">KO</div></div>
+    <span class="story-label">k.osei</span>
+  </div>
+</div>
+
+<div class="stories-divider"></div>
+
+<!-- POST 1 -->
+<article class="post-card" aria-label="Post by Anika Kapoor">
+  <div class="post-header">
+    <div class="post-avatar" style="background:#EEEDFE;color:#534AB7">AK</div>
+    <div class="post-meta">
+      <div class="post-name">Anika Kapoor</div>
+      <div class="post-time"><i class="ti ti-globe globe-icon" aria-hidden="true"></i> 2 hours ago</div>
+    </div>
+    <button class="post-more" aria-label="Post options"><i class="ti ti-dots" aria-hidden="true"></i></button>
+  </div>
+  <div class="post-text">Just wrapped an incredible weekend in the mountains ⛰️ There's something about altitude that makes the coffee taste better, the silence feel louder, and the sunsets hit different. <span class="hashtag">#travel</span> <span class="hashtag">#mountains</span> <span class="hashtag">#weekendvibes</span></div>
+  <div class="post-image-placeholder ratio-4-3" style="font-size:64px;gap:0">🏔️</div>
+  <div class="reaction-summary">
+    <div class="reaction-pills" aria-hidden="true">
+      <div class="reaction-pill">❤️</div>
+      <div class="reaction-pill">😮</div>
+      <div class="reaction-pill">😂</div>
+    </div>
+    <span class="reaction-count">214 reactions</span>
+    <button class="post-stats">32 comments</button>
+  </div>
+  <div class="action-bar" role="group" aria-label="Post actions">
+    <button class="action-btn" id="like-btn-1" onclick="toggleLike(1)" aria-label="Like post"><i class="ti ti-heart" aria-hidden="true"></i><span>Like</span></button>
+    <button class="action-btn" aria-label="Comment on post" onclick="focusComment('compose-1')"><i class="ti ti-message-circle" aria-hidden="true"></i><span>Comment</span></button>
+    <button class="action-btn" aria-label="Share post"><i class="ti ti-share" aria-hidden="true"></i><span>Share</span></button>
+  </div>
+  <div class="comments-section">
+    <button class="view-more-comments">View 29 more comments</button>
+    <div class="comment-row">
+      <div class="comment-avatar" style="background:#E1F5EE;color:#0F6E56">JR</div>
+      <div>
+        <div class="comment-bubble">
+          <span class="cname">jrose</span>
+          <p class="ctext">This is absolutely breathtaking! Which trail did you take?</p>
+        </div>
+        <div class="comment-actions">
+          <button class="comment-action">Like</button>
+          <button class="comment-action">Reply</button>
+          <span style="font-size:11px;color:var(--color-text-tertiary)">1h</span>
+        </div>
+      </div>
+    </div>
+    <div class="comment-row">
+      <div class="comment-avatar" style="background:#FBEAF0;color:#993556">MV</div>
+      <div>
+        <div class="comment-bubble">
+          <span class="cname">mia.v</span>
+          <p class="ctext">Okay this is my sign to finally book that trip 😍</p>
+        </div>
+        <div class="comment-actions">
+          <button class="comment-action">Like</button>
+          <button class="comment-action">Reply</button>
+          <span style="font-size:11px;color:var(--color-text-tertiary)">45m</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="comment-compose">
+    <div class="compose-avatar" style="background:#E6F1FB;color:#185FA5">You</div>
+    <textarea id="compose-1" class="compose-input" placeholder="Write a comment…" rows="1" onInput="handleCompose(this,'post-btn-1')" aria-label="Write a comment"></textarea>
+    <button id="post-btn-1" class="compose-post" onclick="submitComment('compose-1','comments-1','post-btn-1','mia_v')">Post</button>
+  </div>
+</article>
+
+<!-- POST 2 -->
+<article class="post-card" aria-label="Post by Dev Lu">
+  <div class="post-header">
+    <div class="post-avatar" style="background:#FAEEDA;color:#854F0B">DL</div>
+    <div class="post-meta">
+      <div class="post-name">Dev Lu</div>
+      <div class="post-time"><i class="ti ti-lock globe-icon" aria-hidden="true"></i> Yesterday at 7:14 PM</div>
+    </div>
+    <button class="post-more" aria-label="Post options"><i class="ti ti-dots" aria-hidden="true"></i></button>
+  </div>
+  <div class="post-text">After 6 months I finally shipped my side project 🚀 It started as a weekend hack and turned into 3,000 lines of code, 140 commits, and way too many late nights. Lesson learned: done is better than perfect. Link in bio. <span class="hashtag">#buildinpublic</span> <span class="hashtag">#shipped</span></div>
+  <div class="reaction-summary">
+    <div class="reaction-pills" aria-hidden="true">
+      <div class="reaction-pill">🔥</div>
+      <div class="reaction-pill">❤️</div>
+      <div class="reaction-pill">👏</div>
+    </div>
+    <span class="reaction-count">581 reactions</span>
+    <button class="post-stats">74 comments</button>
+  </div>
+  <div class="action-bar" role="group" aria-label="Post actions">
+    <button class="action-btn liked" id="like-btn-2" onclick="toggleLike(2)" aria-label="Unlike post"><i class="ti ti-heart-filled" aria-hidden="true"></i><span>Liked</span></button>
+    <button class="action-btn" aria-label="Comment on post" onclick="focusComment('compose-2')"><i class="ti ti-message-circle" aria-hidden="true"></i><span>Comment</span></button>
+    <button class="action-btn" aria-label="Share post"><i class="ti ti-share" aria-hidden="true"></i><span>Share</span></button>
+  </div>
+  <div class="comments-section">
+    <button class="view-more-comments">View 71 more comments</button>
+    <div class="comment-row">
+      <div class="comment-avatar" style="background:#E6F1FB;color:#185FA5">PW</div>
+      <div>
+        <div class="comment-bubble">
+          <span class="cname">priya.w</span>
+          <p class="ctext">This is huge!! Congrats Dev, you've been talking about this for ages 🎉</p>
+        </div>
+        <div class="comment-actions">
+          <button class="comment-action">Like</button>
+          <button class="comment-action">Reply</button>
+          <span style="font-size:11px;color:var(--color-text-tertiary)">18h</span>
+        </div>
+      </div>
+    </div>
+    <div class="comment-row">
+      <div class="comment-avatar" style="background:#EEEDFE;color:#534AB7">AK</div>
+      <div>
+        <div class="comment-bubble">
+          <span class="cname">anika_k</span>
+          <p class="ctext">Done is better than perfect — printing this and putting it on my wall 🙌</p>
+        </div>
+        <div class="comment-actions">
+          <button class="comment-action">Like</button>
+          <button class="comment-action">Reply</button>
+          <span style="font-size:11px;color:var(--color-text-tertiary)">14h</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="comment-compose">
+    <div class="compose-avatar" style="background:#E6F1FB;color:#185FA5">You</div>
+    <textarea id="compose-2" class="compose-input" placeholder="Write a comment…" rows="1" onInput="handleCompose(this,'post-btn-2')" aria-label="Write a comment"></textarea>
+    <button id="post-btn-2" class="compose-post" onclick="submitComment('compose-2','comments-2','post-btn-2','dev_lu')">Post</button>
+  </div>
+</article>
+
+<!-- POST 3 – image post with video-style -->
+<article class="post-card" aria-label="Post by Mia V">
+  <div class="post-header">
+    <div class="post-avatar" style="background:#FBEAF0;color:#993556">MV</div>
+    <div class="post-meta">
+      <div class="post-name">Mia V</div>
+      <div class="post-time"><i class="ti ti-globe globe-icon" aria-hidden="true"></i> 3 days ago</div>
+    </div>
+    <button class="post-more" aria-label="Post options"><i class="ti ti-dots" aria-hidden="true"></i></button>
+  </div>
+  <div class="post-text">Street food > restaurants, always. Spent the whole afternoon just eating my way through the old quarter. No plans, no reservations, just vibes. <span class="hashtag">#foodie</span> <span class="hashtag">#streetfood</span> <span class="hashtag">#travel</span></div>
+  <div class="post-image-placeholder ratio-16-9" style="position:relative">
+    <span style="font-size:56px">🍜</span>
+    <div style="position:absolute;bottom:10px;right:10px;background:rgba(0,0,0,0.55);border-radius:20px;padding:3px 10px;display:flex;align-items:center;gap:5px">
+      <i class="ti ti-player-play" style="font-size:12px;color:#fff" aria-hidden="true"></i>
+      <span style="font-size:12px;color:#fff;font-weight:500">0:42</span>
+    </div>
+  </div>
+  <div class="reaction-summary">
+    <div class="reaction-pills" aria-hidden="true">
+      <div class="reaction-pill">😍</div>
+      <div class="reaction-pill">❤️</div>
+    </div>
+    <span class="reaction-count">1.2k reactions</span>
+    <button class="post-stats">108 comments · 44 shares</button>
+  </div>
+  <div class="action-bar" role="group" aria-label="Post actions">
+    <button class="action-btn" id="like-btn-3" onclick="toggleLike(3)" aria-label="Like post"><i class="ti ti-heart" aria-hidden="true"></i><span>Like</span></button>
+    <button class="action-btn" aria-label="Comment on post" onclick="focusComment('compose-3')"><i class="ti ti-message-circle" aria-hidden="true"></i><span>Comment</span></button>
+    <button class="action-btn" aria-label="Share post"><i class="ti ti-share" aria-hidden="true"></i><span>Share</span></button>
+  </div>
+  <div class="comments-section" id="comments-3">
+    <button class="view-more-comments">View 105 more comments</button>
+    <div class="comment-row">
+      <div class="comment-avatar" style="background:#FAEEDA;color:#854F0B">DL</div>
+      <div>
+        <div class="comment-bubble">
+          <span class="cname">dev_lu</span>
+          <p class="ctext">okay I need that noodle dish in my life immediately</p>
+        </div>
+        <div class="comment-actions">
+          <button class="comment-action">Like</button>
+          <button class="comment-action">Reply</button>
+          <span style="font-size:11px;color:var(--color-text-tertiary)">2d</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="comment-compose">
+    <div class="compose-avatar" style="background:#E6F1FB;color:#185FA5">You</div>
+    <textarea id="compose-3" class="compose-input" placeholder="Write a comment…" rows="1" onInput="handleCompose(this,'post-btn-3')" aria-label="Write a comment"></textarea>
+    <button id="post-btn-3" class="compose-post" onclick="submitComment('compose-3','comments-3','post-btn-3','mia_v')">Post</button>
+  </div>
+</article>
+
+<button class="load-more" onclick="loadMore(this)" aria-label="Load more posts"><i class="ti ti-refresh" aria-hidden="true" style="font-size:15px;vertical-align:-2px;margin-right:6px"></i>Load more posts</button>
+
+</div>
+
+<script>
+const likeState={1:false,2:true,3:false};
+
+function toggleLike(id){
+  likeState[id]=!likeState[id];
+  const btn=document.getElementById('like-btn-'+id);
+  if(likeState[id]){
+    btn.classList.add('liked');
+    btn.innerHTML='<i class="ti ti-heart-filled" aria-hidden="true"></i><span>Liked</span>';
+    btn.setAttribute('aria-label','Unlike post');
+  } else {
+    btn.classList.remove('liked');
+    btn.innerHTML='<i class="ti ti-heart" aria-hidden="true"></i><span>Like</span>';
+    btn.setAttribute('aria-label','Like post');
+  }
+}
+
+function handleCompose(el,btnId){
+  el.style.height='auto';
+  el.style.height=Math.min(el.scrollHeight,80)+'px';
+  const btn=document.getElementById(btnId);
+  if(el.value.trim().length>0){btn.classList.add('active');}
+  else{btn.classList.remove('active');}
+}
+
+function focusComment(id){
+  const el=document.getElementById(id);
+  if(el){el.focus();}
+}
+
+function submitComment(inputId,sectionId,btnId,authorKey){
+  const input=document.getElementById(inputId);
+  const text=input.value.trim();
+  if(!text) return;
+  const section=document.getElementById(sectionId)||input.closest('.post-card').querySelector('.comments-section');
+  const compose=input.closest('.comment-compose');
+  const row=document.createElement('div');
+  row.className='comment-row';
+  row.style.animation='none';
+  row.innerHTML=`<div class="comment-avatar" style="background:#E6F1FB;color:#185FA5">You</div><div><div class="comment-bubble"><span class="cname">You</span><p class="ctext">${text.replace(/</g,'&lt;')}</p></div><div class="comment-actions"><button class="comment-action">Like</button><button class="comment-action">Reply</button><span style="font-size:11px;color:var(--color-text-tertiary)">Just now</span></div></div>`;
+  section.insertBefore(row,compose||null);
+  input.value='';
+  input.style.height='36px';
+  document.getElementById(btnId).classList.remove('active');
+}
+
+function loadMore(btn){
+  btn.textContent='Loading…';
+  btn.disabled=true;
+  setTimeout(()=>{
+    const feed=document.querySelector('.feed-wrap');
+    const newPost=document.createElement('article');
+    newPost.className='post-card';
+    newPost.setAttribute('aria-label','Post by Priya W');
+    newPost.innerHTML=`<div class="post-header"><div class="post-avatar" style="background:#E6F1FB;color:#185FA5">PW</div><div class="post-meta"><div class="post-name">Priya W</div><div class="post-time"><i class="ti ti-globe globe-icon" aria-hidden="true"></i> 5 days ago</div></div><button class="post-more" aria-label="Post options"><i class="ti ti-dots" aria-hidden="true"></i></button></div><div class="post-text">Finally read a book that made me forget my phone existed. Highly recommend turning off notifications and picking up something with actual pages. <span class="hashtag">#reading</span> <span class="hashtag">#offline</span></div><div class="reaction-summary"><div class="reaction-pills" aria-hidden="true"><div class="reaction-pill">❤️</div></div><span class="reaction-count">89 reactions</span><button class="post-stats">12 comments</button></div><div class="action-bar" role="group" aria-label="Post actions"><button class="action-btn" aria-label="Like post"><i class="ti ti-heart" aria-hidden="true"></i><span>Like</span></button><button class="action-btn" aria-label="Comment on post"><i class="ti ti-message-circle" aria-hidden="true"></i><span>Comment</span></button><button class="action-btn" aria-label="Share post"><i class="ti ti-share" aria-hidden="true"></i><span>Share</span></button></div><div class="comment-compose"><div class="compose-avatar" style="background:#E6F1FB;color:#185FA5">You</div><textarea class="compose-input" placeholder="Write a comment…" rows="1" aria-label="Write a comment"></textarea><button class="compose-post">Post</button></div>`;
+    feed.insertBefore(newPost,btn);
+    btn.textContent='';
+    btn.innerHTML='<i class="ti ti-refresh" aria-hidden="true" style="font-size:15px;vertical-align:-2px;margin-right:6px"></i>Load more posts';
+    btn.disabled=false;
+  },800);
+}
+</script>

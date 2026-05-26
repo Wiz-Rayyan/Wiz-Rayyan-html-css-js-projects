@@ -1,0 +1,186 @@
+<h2 class="sr-only">Checkout UI with progress indicator, payment form, and order summary sidebar</h2>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-sans); }
+.checkout-wrap { display: flex; gap: 24px; padding: 1.5rem 0; align-items: flex-start; }
+.checkout-main { flex: 1; min-width: 0; }
+.checkout-sidebar { width: 300px; flex-shrink: 0; }
+
+.progress-bar { display: flex; align-items: center; margin-bottom: 2rem; }
+.step { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--color-text-tertiary); cursor: default; }
+.step.active { color: var(--color-text-primary); font-weight: 500; }
+.step.done { color: var(--color-text-secondary); }
+.step-num { width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid var(--color-border-secondary); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; flex-shrink: 0; }
+.step.active .step-num { background: var(--color-text-primary); color: var(--color-background-primary); border-color: var(--color-text-primary); }
+.step.done .step-num { background: var(--color-background-success); border-color: var(--color-border-success); color: var(--color-text-success); font-size: 13px; }
+.step-divider { flex: 1; height: 1px; background: var(--color-border-tertiary); margin: 0 8px; min-width: 16px; }
+
+.section-card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1.25rem; margin-bottom: 1rem; }
+.section-title { font-size: 14px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 1rem; display: flex; align-items: center; gap: 8px; }
+.section-title i { font-size: 16px; color: var(--color-text-secondary); }
+
+.form-row { display: flex; gap: 12px; }
+.field { display: flex; flex-direction: column; gap: 5px; flex: 1; margin-bottom: 12px; }
+.field label { font-size: 12px; color: var(--color-text-secondary); font-weight: 500; letter-spacing: 0.02em; }
+.field input, .field select { font-size: 13px; padding: 8px 10px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-secondary); background: var(--color-background-primary); color: var(--color-text-primary); width: 100%; outline: none; }
+.field input:focus, .field select:focus { border-color: var(--color-border-primary); box-shadow: 0 0 0 3px var(--color-background-info); }
+.field input.card-input { letter-spacing: 0.08em; }
+
+.payment-icons { display: flex; gap: 6px; align-items: center; margin-bottom: 1rem; }
+.pay-icon { height: 24px; padding: 3px 7px; border: 0.5px solid var(--color-border-tertiary); border-radius: 4px; background: var(--color-background-primary); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 500; color: var(--color-text-secondary); letter-spacing: 0.03em; }
+.pay-icon.visa { color: #1a1f71; font-style: italic; font-weight: 700; font-size: 11px; }
+.pay-icon.mc { font-size: 18px; }
+.pay-icon.amex { color: #2E77BC; font-weight: 700; font-size: 9px; }
+.pay-icon.discover { color: #F76F20; font-weight: 700; font-size: 9px; }
+
+.cvv-wrap { position: relative; }
+.cvv-hint { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: var(--color-text-tertiary); font-size: 14px; cursor: pointer; }
+
+.order-card { background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1.25rem; position: sticky; top: 1rem; }
+.order-title { font-size: 14px; font-weight: 500; margin-bottom: 1rem; color: var(--color-text-primary); }
+.order-item { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.item-img { width: 44px; height: 44px; border-radius: var(--border-radius-md); background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+.item-info { flex: 1; min-width: 0; }
+.item-name { font-size: 13px; color: var(--color-text-primary); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.item-qty { font-size: 12px; color: var(--color-text-tertiary); }
+.item-price { font-size: 13px; font-weight: 500; color: var(--color-text-primary); }
+.order-divider { height: 0.5px; background: var(--color-border-tertiary); margin: 12px 0; }
+.order-row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; }
+.order-row .label { color: var(--color-text-secondary); }
+.order-row .val { color: var(--color-text-primary); }
+.order-row.total { font-size: 15px; font-weight: 500; margin-top: 6px; }
+.order-row.total .label, .order-row.total .val { color: var(--color-text-primary); }
+
+.promo-wrap { display: flex; gap: 8px; margin-top: 12px; }
+.promo-wrap input { flex: 1; font-size: 13px; padding: 7px 10px; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); background: var(--color-background-primary); color: var(--color-text-primary); outline: none; }
+.promo-wrap button { font-size: 12px; padding: 7px 12px; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); background: var(--color-background-primary); color: var(--color-text-secondary); cursor: pointer; white-space: nowrap; }
+
+.trust-badges { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; }
+.badge { display: flex; align-items: center; gap: 7px; font-size: 11px; color: var(--color-text-secondary); }
+.badge i { font-size: 14px; color: var(--color-text-success); }
+
+.pay-btn { width: 100%; padding: 11px; border-radius: var(--border-radius-md); background: var(--color-text-primary); color: var(--color-background-primary); border: none; font-size: 14px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 1rem; }
+.pay-btn:hover { opacity: 0.88; }
+.pay-btn i { font-size: 15px; }
+
+.same-billing { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--color-text-secondary); margin-top: 4px; cursor: pointer; }
+.same-billing input { width: 14px; height: 14px; }
+
+.addr-note { font-size: 11px; color: var(--color-text-tertiary); margin-top: -6px; margin-bottom: 8px; }
+</style>
+
+<div class="progress-bar">
+  <div class="step done">
+    <div class="step-num"><i class="ti ti-check" aria-hidden="true"></i></div>
+    <span>Cart</span>
+  </div>
+  <div class="step-divider"></div>
+  <div class="step done">
+    <div class="step-num"><i class="ti ti-check" aria-hidden="true"></i></div>
+    <span>Info</span>
+  </div>
+  <div class="step-divider"></div>
+  <div class="step active">
+    <div class="step-num">3</div>
+    <span>Payment</span>
+  </div>
+  <div class="step-divider"></div>
+  <div class="step">
+    <div class="step-num">4</div>
+    <span>Confirm</span>
+  </div>
+</div>
+
+<div class="checkout-wrap">
+  <div class="checkout-main">
+
+    <div class="section-card">
+      <div class="section-title"><i class="ti ti-map-pin" aria-hidden="true"></i> Shipping address</div>
+      <div class="form-row">
+        <div class="field"><label>First name</label><input type="text" placeholder="Maya" value="Maya"></div>
+        <div class="field"><label>Last name</label><input type="text" placeholder="Rodriguez" value="Rodriguez"></div>
+      </div>
+      <div class="field"><label>Address</label><input type="text" placeholder="123 Main Street" value="14 Primrose Hill"></div>
+      <div class="addr-note">Apt, suite, floor (optional)</div>
+      <div class="form-row">
+        <div class="field" style="flex:2"><label>City</label><input type="text" value="London"></div>
+        <div class="field"><label>Postcode</label><input type="text" value="NW1 4NR"></div>
+      </div>
+      <div class="field"><label>Country</label>
+        <select><option selected>United Kingdom</option><option>United States</option><option>India</option><option>Germany</option></select>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-title"><i class="ti ti-credit-card" aria-hidden="true"></i> Payment method</div>
+      <div class="payment-icons">
+        <div class="pay-icon visa">VISA</div>
+        <div class="pay-icon mc">🔴🟠</div>
+        <div class="pay-icon amex">AMEX</div>
+        <div class="pay-icon discover">DISC</div>
+        <div class="pay-icon" style="font-size:11px;">+ more</div>
+      </div>
+      <div class="field"><label>Cardholder name</label><input type="text" value="Maya Rodriguez"></div>
+      <div class="field"><label>Card number</label><input class="card-input" type="text" value="4242 4242 4242 4242"></div>
+      <div class="form-row">
+        <div class="field"><label>Expiry date</label><input type="text" placeholder="MM / YY" value="09 / 27"></div>
+        <div class="field">
+          <label>CVV</label>
+          <div class="cvv-wrap">
+            <input type="password" placeholder="•••" value="412" style="padding-right:32px">
+            <span class="cvv-hint"><i class="ti ti-help-circle" aria-hidden="true"></i></span>
+          </div>
+        </div>
+      </div>
+      <label class="same-billing"><input type="checkbox" checked> Billing address same as shipping</label>
+    </div>
+
+    <button class="pay-btn" onclick="sendPrompt('Complete the checkout payment flow — what happens after clicking Pay now?')">
+      <i class="ti ti-lock" aria-hidden="true"></i> Pay now — £238.00 ↗
+    </button>
+
+  </div>
+
+  <div class="checkout-sidebar">
+    <div class="order-card">
+      <div class="order-title">Order summary</div>
+
+      <div class="order-item">
+        <div class="item-img">🎧</div>
+        <div class="item-info">
+          <div class="item-name">Studio Pro Headphones</div>
+          <div class="item-qty">Qty: 1 · Black</div>
+        </div>
+        <div class="item-price">£179.00</div>
+      </div>
+
+      <div class="order-item">
+        <div class="item-img">🔌</div>
+        <div class="item-info">
+          <div class="item-name">USB-C Charging Cable</div>
+          <div class="item-qty">Qty: 2 · 2m</div>
+        </div>
+        <div class="item-price">£24.00</div>
+      </div>
+
+      <div class="promo-wrap">
+        <input type="text" placeholder="Promo code">
+        <button>Apply</button>
+      </div>
+
+      <div class="order-divider"></div>
+      <div class="order-row"><span class="label">Subtotal</span><span class="val">£203.00</span></div>
+      <div class="order-row"><span class="label">Shipping</span><span class="val" style="color:var(--color-text-success)">Free</span></div>
+      <div class="order-row"><span class="label">Tax (VAT 20%)</span><span class="val">£35.00</span></div>
+      <div class="order-divider"></div>
+      <div class="order-row total"><span class="label">Total</span><span class="val">£238.00</span></div>
+
+      <div class="trust-badges">
+        <div class="badge"><i class="ti ti-shield-check" aria-hidden="true"></i> SSL encrypted checkout</div>
+        <div class="badge"><i class="ti ti-refresh" aria-hidden="true"></i> 30-day free returns</div>
+        <div class="badge"><i class="ti ti-truck" aria-hidden="true"></i> Dispatched within 24 hours</div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,174 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:transparent}
+.dash{background:#0f1117;border-radius:var(--border-radius-lg);padding:20px;color:#e2e8f0;font-family:var(--font-sans);min-height:600px}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.topbar-title{font-size:15px;font-weight:500;color:#94a3b8}
+.date-range{display:flex;gap:6px;align-items:center}
+.date-btn{background:#1e2432;border:0.5px solid #2d3748;color:#94a3b8;font-size:12px;padding:5px 12px;border-radius:6px;cursor:pointer;transition:background .15s}
+.date-btn.active,.date-btn:hover{background:#2d3748;color:#e2e8f0}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:20px}
+.kpi{background:#1a1f2e;border:0.5px solid #2d3748;border-radius:10px;padding:14px 16px}
+.kpi-label{font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.kpi-value{font-size:28px;font-weight:500;color:#f1f5f9;line-height:1;margin-bottom:6px}
+.kpi-trend{font-size:12px;display:flex;align-items:center;gap:4px}
+.up{color:#22d3a0}.down{color:#f87171}
+.charts-row{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:12px;margin-bottom:12px}
+.chart-card{background:#1a1f2e;border:0.5px solid #2d3748;border-radius:10px;padding:16px}
+.chart-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.chart-title{font-size:13px;font-weight:500;color:#cbd5e1}
+.chart-meta{font-size:11px;color:#475569}
+.legend{display:flex;gap:14px;font-size:11px;color:#64748b}
+.legend span{display:flex;align-items:center;gap:5px}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.table-card{background:#1a1f2e;border:0.5px solid #2d3748;border-radius:10px;padding:16px}
+.table-header{font-size:13px;font-weight:500;color:#cbd5e1;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead th{color:#475569;font-weight:500;padding:0 8px 8px;text-align:left;border-bottom:0.5px solid #2d3748}
+thead th:not(:first-child){text-align:right}
+tbody tr{border-bottom:0.5px solid #1e2432}
+tbody tr:hover{background:#1e2432}
+tbody td{padding:9px 8px;color:#94a3b8}
+tbody td:not(:first-child){text-align:right}
+td.name{color:#e2e8f0;font-weight:500}
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px}
+.badge-up{background:#0d3326;color:#22d3a0}
+.badge-dn{background:#2d1515;color:#f87171}
+.badge-fl{background:#1e2432;color:#64748b}
+.bar-wrap{display:flex;align-items:center;gap:8px}
+.bar-bg{flex:1;height:4px;background:#2d3748;border-radius:2px;overflow:hidden}
+.bar-fill{height:100%;border-radius:2px;background:#3b82f6}
+</style>
+
+<div class="dash">
+  <div class="topbar">
+    <span style="font-size:16px;font-weight:500;color:#f1f5f9">Product Analytics</span>
+    <div class="date-range">
+      <i class="ti ti-calendar" style="font-size:14px;color:#475569" aria-hidden="true"></i>
+      <button class="date-btn" onclick="setRange(this,'7d')">7d</button>
+      <button class="date-btn active" onclick="setRange(this,'30d')">30d</button>
+      <button class="date-btn" onclick="setRange(this,'90d')">90d</button>
+      <button class="date-btn" onclick="setRange(this,'1y')">1y</button>
+    </div>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi">
+      <div class="kpi-label">Monthly Active Users</div>
+      <div class="kpi-value" id="k1">84,291</div>
+      <div class="kpi-trend up"><i class="ti ti-trending-up" style="font-size:13px" aria-hidden="true"></i> +12.4% vs prev</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Revenue</div>
+      <div class="kpi-value" id="k2">$142.6k</div>
+      <div class="kpi-trend up"><i class="ti ti-trending-up" style="font-size:13px" aria-hidden="true"></i> +8.1% vs prev</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Conversion Rate</div>
+      <div class="kpi-value" id="k3">3.72%</div>
+      <div class="kpi-trend down"><i class="ti ti-trending-down" style="font-size:13px" aria-hidden="true"></i> −0.3% vs prev</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Avg. Session</div>
+      <div class="kpi-value" id="k4">4m 18s</div>
+      <div class="kpi-trend up"><i class="ti ti-trending-up" style="font-size:13px" aria-hidden="true"></i> +5.7% vs prev</div>
+    </div>
+  </div>
+
+  <div class="charts-row">
+    <div class="chart-card">
+      <div class="chart-header">
+        <span class="chart-title">Users & Revenue</span>
+        <div class="legend">
+          <span><span class="dot" style="background:#3b82f6"></span>Users</span>
+          <span><span class="dot" style="background:#22d3a0"></span>Revenue</span>
+        </div>
+      </div>
+      <div style="position:relative;height:180px">
+        <canvas id="lineChart" role="img" aria-label="Line chart showing users and revenue trends over 30 days">Users and revenue trend data.</canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-header">
+        <span class="chart-title">Traffic Sources</span>
+        <span class="chart-meta">This period</span>
+      </div>
+      <div style="position:relative;height:180px">
+        <canvas id="barChart" role="img" aria-label="Bar chart of traffic sources: Organic, Direct, Referral, Social, Email">Traffic sources breakdown.</canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <div class="table-header">
+      <span>Top Pages</span>
+      <span style="font-size:11px;color:#475569">Last 30 days</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:34%">Page</th>
+          <th>Views</th>
+          <th>Unique</th>
+          <th>Bounce</th>
+          <th style="width:18%">Change</th>
+          <th style="width:16%">Share</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td class="name">/dashboard</td><td>18,420</td><td>12,301</td><td>22%</td><td><span class="badge badge-up">+18.2%</span></td><td><div class="bar-wrap"><div class="bar-bg"><div class="bar-fill" style="width:82%"></div></div><span style="color:#64748b;min-width:30px">82%</span></div></td></tr>
+        <tr><td class="name">/pricing</td><td>11,850</td><td>9,640</td><td>38%</td><td><span class="badge badge-up">+6.4%</span></td><td><div class="bar-wrap"><div class="bar-bg"><div class="bar-fill" style="width:53%"></div></div><span style="color:#64748b;min-width:30px">53%</span></div></td></tr>
+        <tr><td class="name">/docs/api</td><td>9,201</td><td>7,820</td><td>14%</td><td><span class="badge badge-fl">0.0%</span></td><td><div class="bar-wrap"><div class="bar-bg"><div class="bar-fill" style="width:41%"></div></div><span style="color:#64748b;min-width:30px">41%</span></div></td></tr>
+        <tr><td class="name">/blog</td><td>6,730</td><td>6,100</td><td>61%</td><td><span class="badge badge-dn">−4.1%</span></td><td><div class="bar-wrap"><div class="bar-bg"><div class="bar-fill" style="width:30%"></div></div><span style="color:#64748b;min-width:30px">30%</span></div></td></tr>
+        <tr><td class="name">/signup</td><td>4,980</td><td>4,980</td><td>5%</td><td><span class="badge badge-up">+22.7%</span></td><td><div class="bar-wrap"><div class="bar-bg"><div class="bar-fill" style="width:22%"></div></div><span style="color:#64748b;min-width:30px">22%</span></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+function setRange(el,r){document.querySelectorAll('.date-btn').forEach(b=>b.classList.remove('active'));el.classList.add('active');}
+
+const labels30=['Apr 27','Apr 29','May 1','May 3','May 5','May 7','May 9','May 11','May 13','May 15','May 17','May 19','May 21','May 23','May 25'];
+const users=[2100,2340,2190,2580,2720,2450,2870,3010,2950,3200,3380,3140,3490,3620,3750];
+const rev=[4200,4780,4510,5100,5430,4920,5720,6010,5830,6420,6900,6310,7100,7480,7820];
+
+new Chart(document.getElementById('lineChart'),{
+  type:'line',
+  data:{
+    labels:labels30,
+    datasets:[
+      {label:'Users',data:users,borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,0.08)',borderWidth:2,pointRadius:0,fill:true,tension:.4},
+      {label:'Revenue',data:rev,borderColor:'#22d3a0',backgroundColor:'rgba(34,211,160,0.06)',borderWidth:2,pointRadius:0,fill:true,tension:.4,yAxisID:'y2'}
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    interaction:{mode:'index',intersect:false},
+    plugins:{legend:{display:false},tooltip:{backgroundColor:'#1e2432',titleColor:'#94a3b8',bodyColor:'#e2e8f0',borderColor:'#2d3748',borderWidth:1}},
+    scales:{
+      x:{ticks:{color:'#475569',font:{size:10},maxRotation:0,autoSkip:true,maxTicksLimit:6},grid:{color:'rgba(45,55,72,0.5)'},border:{display:false}},
+      y:{ticks:{color:'#475569',font:{size:10},callback:v=>v>=1000?Math.round(v/1000)+'k':v},grid:{color:'rgba(45,55,72,0.5)'},border:{display:false}},
+      y2:{position:'right',ticks:{color:'#22d3a0',font:{size:10},callback:v=>'$'+(v>=1000?Math.round(v/1000)+'k':v)},grid:{display:false},border:{display:false}}
+    }
+  }
+});
+
+new Chart(document.getElementById('barChart'),{
+  type:'bar',
+  data:{
+    labels:['Organic','Direct','Referral','Social','Email'],
+    datasets:[{label:'Sessions',data:[38,26,17,12,7],backgroundColor:['#3b82f6','#6366f1','#22d3a0','#f59e0b','#ec4899'],borderRadius:4,borderSkipped:false}]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{backgroundColor:'#1e2432',titleColor:'#94a3b8',bodyColor:'#e2e8f0',borderColor:'#2d3748',borderWidth:1,callbacks:{label:c=>c.raw+'%'}}},
+    scales:{
+      x:{ticks:{color:'#475569',font:{size:10}},grid:{display:false},border:{display:false}},
+      y:{ticks:{color:'#475569',font:{size:10},callback:v=>v+'%'},grid:{color:'rgba(45,55,72,0.5)'},border:{display:false}}
+    }
+  }
+});
+</script>

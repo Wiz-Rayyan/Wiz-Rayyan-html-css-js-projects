@@ -1,0 +1,90 @@
+
+<style>
+h2.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;padding:1.5rem 0}
+.card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);overflow:hidden;cursor:pointer;transition:box-shadow .2s,border-color .2s;position:relative}
+.card:hover{border-color:var(--color-border-secondary);box-shadow:0 4px 16px rgba(0,0,0,.08)}
+.card:hover .img-wrap img{transform:scale(1.05)}
+.card:hover .add-btn{opacity:1;transform:translateY(0)}
+.img-wrap{overflow:hidden;aspect-ratio:1;background:var(--color-background-secondary);position:relative}
+.img-wrap img{width:100%;height:100%;object-fit:cover;transition:transform .35s ease;display:block}
+.badge{position:absolute;top:10px;left:10px;background:#E24B4A;color:#fff;font-size:11px;font-weight:500;padding:3px 8px;border-radius:20px;z-index:2;line-height:1.4}
+.wish{position:absolute;top:8px;right:8px;background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;z-index:2;cursor:pointer;transition:border-color .2s}
+.wish:hover{border-color:var(--color-border-primary)}
+.wish i{font-size:15px;color:var(--color-text-secondary);transition:color .2s}
+.wish.active i{color:#E24B4A}
+.body{padding:12px}
+.name{font-size:13px;font-weight:500;color:var(--color-text-primary);line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin:0 0 6px}
+.prices{display:flex;align-items:baseline;gap:6px;margin:0 0 6px}
+.price{font-size:15px;font-weight:500;color:var(--color-text-primary)}
+.orig{font-size:12px;color:var(--color-text-tertiary);text-decoration:line-through}
+.stars{display:flex;align-items:center;gap:4px;margin:0 0 10px}
+.stars svg{width:68px;height:12px}
+.rev{font-size:11px;color:var(--color-text-secondary)}
+.add-btn{width:100%;padding:8px 0;font-size:12px;font-weight:500;background:var(--color-text-primary);color:var(--color-background-primary);border:none;border-radius:6px;cursor:pointer;opacity:0;transform:translateY(4px);transition:opacity .2s,transform .2s;margin-top:2px}
+.add-btn:active{transform:scale(.98)}
+@media(hover:none){.add-btn{opacity:1;transform:none}}
+</style>
+
+<h2 class="sr-only">Product card grid showing 4 items with hover zoom, ratings, price, and add-to-cart button</h2>
+
+<div class="grid" id="grid"></div>
+
+<script>
+const products=[
+  {name:"Merino Wool Crewneck Sweater in Oatmeal",price:"$68.00",orig:"$95.00",rating:4.5,reviews:312,sale:"30% off",img:"https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?w=400&q=80"},
+  {name:"Leather Minimalist Wallet — Slim Card Holder",price:"$34.00",orig:null,rating:4.8,reviews:874,sale:null,img:"https://images.unsplash.com/photo-1627123424574-724758594e93?w=400&q=80"},
+  {name:"Matte Ceramic Pour-Over Coffee Set",price:"$52.00",orig:"$72.00",rating:4.2,reviews:156,sale:"Sale",img:"https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400&q=80"},
+  {name:"Linen Throw Blanket — Natural Texture",price:"$89.00",orig:null,rating:4.6,reviews:228,sale:null,img:"https://images.unsplash.com/photo-1584100936595-c0654b55a2e2?w=400&q=80"}
+];
+
+function stars(r){
+  const full=Math.floor(r),half=r%1>=.5,empty=5-full-(half?1:0);
+  const g=[];
+  const sq=(fill,id)=>`<rect x="${g.length*14}" y="0" width="12" height="12" rx="2" fill="${fill}"/>`;
+  let x=0;
+  const svgParts=[];
+  for(let i=0;i<full;i++){svgParts.push(`<rect x="${x}" y="0" width="12" height="12" rx="2" fill="#E24B4A" opacity=".9"/>`);x+=14;}
+  if(half){svgParts.push(`<defs><linearGradient id="hg"><stop offset="50%" stop-color="#E24B4A" stop-opacity=".9"/><stop offset="50%" stop-color="currentColor" stop-opacity=".15"/></linearGradient></defs><rect x="${x}" y="0" width="12" height="12" rx="2" fill="url(#hg)"/>`);x+=14;}
+  for(let i=0;i<empty;i++){svgParts.push(`<rect x="${x}" y="0" width="12" height="12" rx="2" fill="currentColor" opacity=".12"/>`);x+=14;}
+  return`<svg viewBox="0 0 68 12" xmlns="http://www.w3.org/2000/svg" style="color:var(--color-text-secondary)">${svgParts.join('')}</svg>`;
+}
+
+const g=document.getElementById('grid');
+products.forEach((p,i)=>{
+  const c=document.createElement('div');
+  c.className='card';
+  c.innerHTML=`
+    <div class="img-wrap">
+      <img src="${p.img}" alt="${p.name}" loading="lazy">
+      ${p.sale?`<span class="badge">${p.sale}</span>`:''}
+      <button class="wish" aria-label="Add to wishlist" data-i="${i}"><i class="ti ti-heart" aria-hidden="true"></i></button>
+    </div>
+    <div class="body">
+      <p class="name">${p.name}</p>
+      <div class="prices">
+        <span class="price">${p.price}</span>
+        ${p.orig?`<span class="orig">${p.orig}</span>`:''}
+      </div>
+      <div class="stars">${stars(p.rating)}<span class="rev">(${p.reviews})</span></div>
+      <button class="add-btn">Add to cart</button>
+    </div>`;
+  g.appendChild(c);
+});
+
+document.querySelectorAll('.wish').forEach(btn=>{
+  btn.addEventListener('click',e=>{
+    e.stopPropagation();
+    btn.classList.toggle('active');
+  });
+});
+
+document.querySelectorAll('.add-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const orig=btn.textContent;
+    btn.textContent='Added ✓';
+    btn.style.background='var(--color-text-secondary)';
+    setTimeout(()=>{btn.textContent=orig;btn.style.background='';},1200);
+  });
+});
+</script>

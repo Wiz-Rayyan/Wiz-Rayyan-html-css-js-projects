@@ -1,0 +1,381 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --navy: #0A2540;
+    --navy-mid: #1a3a5c;
+    --navy-light: #2d5a8e;
+    --slate: #4a5568;
+    --muted: #718096;
+    --border: #e2e8f0;
+    --bg: #f7f8fa;
+    --white: #ffffff;
+    --accent: #1a56db;
+    --accent-light: #ebf1fd;
+    --success: #0f766e;
+    --success-bg: #f0fdf9;
+    --warn: #b45309;
+    --warn-bg: #fffbeb;
+    --danger: #b91c1c;
+    --danger-bg: #fef2f2;
+  }
+  body { font-family: 'Georgia', 'Times New Roman', serif; background: var(--bg); color: var(--navy); }
+
+  .shell { display: grid; grid-template-columns: 220px 1fr; min-height: 700px; }
+
+  .sidebar {
+    background: var(--navy);
+    padding: 0;
+    display: flex; flex-direction: column;
+    border-radius: var(--border-radius-lg, 12px) 0 0 var(--border-radius-lg, 12px);
+  }
+  .sidebar-header {
+    padding: 20px 18px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .firm-name { font-size: 13px; font-weight: 700; color: #fff; letter-spacing: 0.08em; text-transform: uppercase; }
+  .firm-sub { font-size: 11px; color: rgba(255,255,255,0.45); margin-top: 2px; font-family: 'Helvetica Neue', sans-serif; }
+  .nav { padding: 12px 0; flex: 1; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 18px; font-size: 13px; cursor: pointer;
+    color: rgba(255,255,255,0.6); font-family: 'Helvetica Neue', sans-serif;
+    border-left: 2px solid transparent; transition: all 0.15s;
+  }
+  .nav-item:hover { color: #fff; background: rgba(255,255,255,0.06); }
+  .nav-item.active { color: #fff; border-left-color: #4a9eff; background: rgba(74,158,255,0.1); }
+  .nav-item i { font-size: 15px; }
+  .nav-section { font-size: 10px; color: rgba(255,255,255,0.3); text-transform: uppercase; letter-spacing: 0.1em; padding: 12px 18px 4px; font-family: 'Helvetica Neue', sans-serif; }
+
+  .main { background: var(--bg); border-radius: 0 var(--border-radius-lg, 12px) var(--border-radius-lg, 12px) 0; overflow: hidden; }
+  .topbar {
+    background: var(--white); border-bottom: 1px solid var(--border);
+    padding: 0 24px; height: 52px; display: flex; align-items: center; justify-content: space-between;
+  }
+  .case-breadcrumb { font-size: 12px; color: var(--muted); font-family: 'Helvetica Neue', sans-serif; }
+  .case-breadcrumb span { color: var(--navy); font-weight: 500; }
+  .status-badge {
+    font-size: 11px; padding: 3px 10px; border-radius: 3px; font-family: 'Helvetica Neue', sans-serif; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+  }
+  .status-active { background: #dbeafe; color: #1e40af; }
+  .status-urgent { background: #fee2e2; color: #991b1b; }
+  .status-pending { background: #fef3c7; color: #92400e; }
+
+  .content { padding: 20px 24px; display: grid; grid-template-columns: 1fr 280px; gap: 20px; }
+
+  .card {
+    background: var(--white); border: 1px solid var(--border); border-radius: 6px; overflow: hidden;
+  }
+  .card-header {
+    padding: 12px 16px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .card-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--navy); font-family: 'Helvetica Neue', sans-serif; }
+  .card-action { font-size: 11px; color: var(--accent); cursor: pointer; font-family: 'Helvetica Neue', sans-serif; }
+
+  .client-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+  .client-field { padding: 10px 16px; border-bottom: 1px solid var(--border); }
+  .client-field:nth-child(odd) { border-right: 1px solid var(--border); }
+  .field-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-family: 'Helvetica Neue', sans-serif; margin-bottom: 3px; }
+  .field-value { font-size: 13px; color: var(--navy); font-family: 'Helvetica Neue', sans-serif; }
+  .field-value.accent { color: var(--accent); }
+
+  .timeline { padding: 4px 0; }
+  .tl-item { display: flex; gap: 0; position: relative; }
+  .tl-left { width: 52px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; padding-top: 12px; }
+  .tl-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--navy); flex-shrink: 0; z-index: 1; }
+  .tl-dot.upcoming { background: var(--white); border: 2px solid var(--navy-light); }
+  .tl-dot.warn { background: var(--warn); }
+  .tl-line { width: 1px; background: var(--border); flex: 1; margin-top: 3px; }
+  .tl-item:last-child .tl-line { display: none; }
+  .tl-body { padding: 8px 16px 12px 0; flex: 1; }
+  .tl-date { font-size: 10px; color: var(--muted); font-family: 'Helvetica Neue', sans-serif; text-transform: uppercase; letter-spacing: 0.06em; }
+  .tl-event { font-size: 13px; color: var(--navy); margin-top: 2px; font-family: 'Helvetica Neue', sans-serif; font-weight: 500; }
+  .tl-detail { font-size: 12px; color: var(--slate); margin-top: 2px; font-family: 'Helvetica Neue', sans-serif; }
+
+  .doc-list { }
+  .doc-row {
+    display: flex; align-items: center; gap: 10px; padding: 9px 16px;
+    border-bottom: 1px solid var(--border); cursor: pointer;
+  }
+  .doc-row:last-child { border-bottom: none; }
+  .doc-row:hover { background: #f9fafb; }
+  .doc-icon { width: 28px; height-min: 28px; display: flex; align-items: center; justify-content: center; background: #ebf1fd; border-radius: 3px; flex-shrink: 0; }
+  .doc-icon i { font-size: 14px; color: var(--accent); }
+  .doc-icon.red { background: #fee2e2; }
+  .doc-icon.red i { color: #dc2626; }
+  .doc-meta { flex: 1; }
+  .doc-name { font-size: 12px; color: var(--navy); font-family: 'Helvetica Neue', sans-serif; font-weight: 500; }
+  .doc-date { font-size: 11px; color: var(--muted); font-family: 'Helvetica Neue', sans-serif; margin-top: 1px; }
+  .doc-size { font-size: 11px; color: var(--muted); font-family: 'Helvetica Neue', sans-serif; }
+
+  .calendar-grid { padding: 12px 16px; }
+  .cal-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .cal-month { font-size: 12px; font-weight: 600; color: var(--navy); font-family: 'Helvetica Neue', sans-serif; }
+  .cal-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 14px; padding: 2px 6px; }
+  .cal-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+  .cal-day-header { font-size: 10px; text-align: center; color: var(--muted); font-family: 'Helvetica Neue', sans-serif; text-transform: uppercase; padding: 2px 0 4px; }
+  .cal-day {
+    aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-family: 'Helvetica Neue', sans-serif; border-radius: 3px; cursor: pointer;
+    color: var(--slate);
+  }
+  .cal-day:hover { background: var(--border); }
+  .cal-day.today { background: var(--navy); color: #fff; font-weight: 600; }
+  .cal-day.has-event { background: #dbeafe; color: #1e40af; font-weight: 600; }
+  .cal-day.has-event.urgent { background: #fee2e2; color: #991b1b; }
+  .cal-day.other-month { color: var(--border); }
+
+  .event-list { padding: 0 16px 12px; }
+  .event-item { display: flex; gap: 8px; padding: 6px 0; border-top: 1px solid var(--border); align-items: flex-start; }
+  .event-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex-shrink: 0; margin-top: 5px; }
+  .event-dot.urgent { background: var(--danger); }
+  .event-text { font-size: 11px; color: var(--navy); font-family: 'Helvetica Neue', sans-serif; }
+  .event-date-tag { font-size: 10px; color: var(--muted); display: block; margin-top: 1px; }
+
+  .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; border-bottom: 1px solid var(--border); }
+  .metric { padding: 14px 16px; border-right: 1px solid var(--border); }
+  .metric:last-child { border-right: none; }
+  .metric-val { font-size: 22px; font-weight: 600; color: var(--navy); font-family: 'Helvetica Neue', sans-serif; }
+  .metric-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; font-family: 'Helvetica Neue', sans-serif; margin-top: 2px; }
+
+  .sidebar-cases { padding: 8px 0; }
+  .case-item { padding: 8px 18px; cursor: pointer; border-left: 2px solid transparent; }
+  .case-item:hover { background: rgba(255,255,255,0.05); }
+  .case-item.active-case { border-left-color: #4a9eff; background: rgba(74,158,255,0.08); }
+  .case-num { font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.8); font-family: 'Helvetica Neue', sans-serif; }
+  .case-party { font-size: 11px; color: rgba(255,255,255,0.45); font-family: 'Helvetica Neue', sans-serif; margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .case-status { font-size: 10px; margin-top: 3px; display: inline-block; padding: 1px 6px; border-radius: 2px; font-family: 'Helvetica Neue', sans-serif; }
+  .cs-active { background: rgba(74,158,255,0.2); color: #7eb8ff; }
+  .cs-pending { background: rgba(234,179,8,0.2); color: #fbbf24; }
+  .cs-closed { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.3); }
+
+  .two-col { grid-column: 1 / -1; }
+</style>
+
+<h2 class="sr-only">Legal case management dashboard for Hartwell & Associates — active cases, timeline, documents, and court calendar</h2>
+
+<div class="shell">
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div class="firm-name">Hartwell & Associates</div>
+      <div class="firm-sub">Attorneys at Law · Est. 1987</div>
+    </div>
+    <div class="nav">
+      <div class="nav-item active"><i class="ti ti-briefcase" aria-hidden="true"></i> My Cases</div>
+      <div class="nav-item"><i class="ti ti-calendar" aria-hidden="true"></i> Calendar</div>
+      <div class="nav-item"><i class="ti ti-file-text" aria-hidden="true"></i> Documents</div>
+      <div class="nav-item"><i class="ti ti-users" aria-hidden="true"></i> Clients</div>
+      <div class="nav-item"><i class="ti ti-clock" aria-hidden="true"></i> Billing</div>
+      <div class="nav-section">Active Cases</div>
+      <div class="sidebar-cases">
+        <div class="case-item active-case">
+          <div class="case-num">2024-CV-1847</div>
+          <div class="case-party">Mercer v. Donovan Industrial</div>
+          <span class="case-status cs-active">Active</span>
+        </div>
+        <div class="case-item">
+          <div class="case-num">2024-CV-1701</div>
+          <div class="case-party">Whitfield Estate Matter</div>
+          <span class="case-status cs-pending">Pending</span>
+        </div>
+        <div class="case-item">
+          <div class="case-num">2023-CR-0892</div>
+          <div class="case-party">Commonwealth v. Reyes</div>
+          <span class="case-status cs-active">Active</span>
+        </div>
+        <div class="case-item">
+          <div class="case-num">2024-FA-0311</div>
+          <div class="case-party">Nakamura Dissolution</div>
+          <span class="case-status cs-closed">Closed</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="case-breadcrumb">Cases › <span>Mercer v. Donovan Industrial LLC</span> · <span style="color: var(--muted);">2024-CV-1847</span></div>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <span class="status-badge status-urgent">⚠ Hearing in 4 days</span>
+        <span class="status-badge status-active">Active</span>
+      </div>
+    </div>
+
+    <div class="content">
+      <div>
+        <div class="card" style="margin-bottom:16px;">
+          <div class="metrics">
+            <div class="metric"><div class="metric-val">847</div><div class="metric-label">Days open</div></div>
+            <div class="metric"><div class="metric-val">23</div><div class="metric-label">Documents filed</div></div>
+            <div class="metric"><div class="metric-val">$148k</div><div class="metric-label">Billed to date</div></div>
+          </div>
+          <div class="card-header">
+            <div class="card-title">Client Information</div>
+            <div class="card-action">Edit record</div>
+          </div>
+          <div class="client-grid">
+            <div class="client-field">
+              <div class="field-label">Client</div>
+              <div class="field-value">Eleanor Mercer</div>
+            </div>
+            <div class="client-field">
+              <div class="field-label">Case type</div>
+              <div class="field-value">Civil Litigation</div>
+            </div>
+            <div class="client-field">
+              <div class="field-label">Opposing counsel</div>
+              <div class="field-value">Patel & Rourke LLP</div>
+            </div>
+            <div class="client-field">
+              <div class="field-label">Court</div>
+              <div class="field-value">Superior Court, Div. 7</div>
+            </div>
+            <div class="client-field">
+              <div class="field-label">Lead attorney</div>
+              <div class="field-value">R. Hartwell, Esq.</div>
+            </div>
+            <div class="client-field">
+              <div class="field-label">Judge</div>
+              <div class="field-value">Hon. C. Blackwood</div>
+            </div>
+            <div class="client-field" style="grid-column: 1/-1; border-right: none;">
+              <div class="field-label">Matter</div>
+              <div class="field-value">Wrongful termination & breach of employment contract; seeking $2.4M in damages</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Case Timeline</div>
+            <div class="card-action">Add event</div>
+          </div>
+          <div class="timeline" style="padding: 8px 16px;">
+            <div class="tl-item">
+              <div class="tl-left"><div class="tl-dot"></div><div class="tl-line"></div></div>
+              <div class="tl-body"><div class="tl-date">Aug 14, 2022</div><div class="tl-event">Complaint filed</div><div class="tl-detail">Initial complaint lodged in Superior Court; summons issued to Donovan Industrial LLC</div></div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-left"><div class="tl-dot"></div><div class="tl-line"></div></div>
+              <div class="tl-body"><div class="tl-date">Oct 03, 2022</div><div class="tl-event">Answer & counterclaim received</div><div class="tl-detail">Defendant denies all claims; asserts counterclaim for trade secret misappropriation</div></div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-left"><div class="tl-dot"></div><div class="tl-line"></div></div>
+              <div class="tl-body"><div class="tl-date">Jan–Jun 2023</div><div class="tl-event">Discovery phase</div><div class="tl-detail">12,000 documents produced; 8 depositions taken including CEO and HR director</div></div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-left"><div class="tl-dot"></div><div class="tl-line"></div></div>
+              <div class="tl-body"><div class="tl-date">Sep 22, 2023</div><div class="tl-event">Motion for summary judgment — denied</div><div class="tl-detail">Judge Blackwood finds genuine disputes of material fact; case proceeds to trial</div></div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-left"><div class="tl-dot warn"></div><div class="tl-line"></div></div>
+              <div class="tl-body"><div class="tl-date">May 30, 2024 · <span style="color: var(--warn); font-weight:600;">4 days</span></div><div class="tl-event">Pre-trial hearing</div><div class="tl-detail">Motion in limine arguments; exhibit list finalization — Courtroom 7B, 9:00 AM</div></div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-left"><div class="tl-dot upcoming"></div><div class="tl-line"></div></div>
+              <div class="tl-body"><div class="tl-date">Jun 17, 2024 · <span style="color: var(--slate);">Scheduled</span></div><div class="tl-event">Trial begins</div><div class="tl-detail">Estimated 5 days; jury selection to commence 8:30 AM</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:16px;">
+          <div class="card-header">
+            <div class="card-title">Filed Documents</div>
+            <div class="card-action">Upload document</div>
+          </div>
+          <div class="doc-list">
+            <div class="doc-row">
+              <div class="doc-icon red"><i class="ti ti-file-type-pdf" aria-hidden="true"></i></div>
+              <div class="doc-meta"><div class="doc-name">Complaint — Original Filing</div><div class="doc-date">Aug 14, 2022</div></div>
+              <div class="doc-size">1.2 MB</div>
+            </div>
+            <div class="doc-row">
+              <div class="doc-icon red"><i class="ti ti-file-type-pdf" aria-hidden="true"></i></div>
+              <div class="doc-meta"><div class="doc-name">Defendant's Answer & Counterclaim</div><div class="doc-date">Oct 03, 2022</div></div>
+              <div class="doc-size">884 KB</div>
+            </div>
+            <div class="doc-row">
+              <div class="doc-icon"><i class="ti ti-file-text" aria-hidden="true"></i></div>
+              <div class="doc-meta"><div class="doc-name">Interrogatory Responses — Plaintiff</div><div class="doc-date">Mar 15, 2023</div></div>
+              <div class="doc-size">421 KB</div>
+            </div>
+            <div class="doc-row">
+              <div class="doc-icon red"><i class="ti ti-file-type-pdf" aria-hidden="true"></i></div>
+              <div class="doc-meta"><div class="doc-name">MSJ — Defendant's Motion</div><div class="doc-date">Aug 01, 2023</div></div>
+              <div class="doc-size">2.1 MB</div>
+            </div>
+            <div class="doc-row">
+              <div class="doc-icon red"><i class="ti ti-file-type-pdf" aria-hidden="true"></i></div>
+              <div class="doc-meta"><div class="doc-name">MSJ Opposition — Plaintiff's Brief</div><div class="doc-date">Aug 22, 2023</div></div>
+              <div class="doc-size">1.7 MB</div>
+            </div>
+            <div class="doc-row">
+              <div class="doc-icon"><i class="ti ti-file-text" aria-hidden="true"></i></div>
+              <div class="doc-meta"><div class="doc-name">Pre-Trial Memorandum (Draft)</div><div class="doc-date">May 18, 2024</div></div>
+              <div class="doc-size">638 KB</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-header"><div class="card-title">Court Calendar — May 2024</div></div>
+          <div class="calendar-grid">
+            <div class="cal-nav">
+              <button class="cal-btn"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
+              <div class="cal-month">May 2024</div>
+              <button class="cal-btn"><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
+            </div>
+            <div class="cal-days">
+              <div class="cal-day-header">S</div><div class="cal-day-header">M</div><div class="cal-day-header">T</div><div class="cal-day-header">W</div><div class="cal-day-header">T</div><div class="cal-day-header">F</div><div class="cal-day-header">S</div>
+              <div class="cal-day other-month">28</div><div class="cal-day other-month">29</div><div class="cal-day other-month">30</div><div class="cal-day">1</div><div class="cal-day">2</div><div class="cal-day">3</div><div class="cal-day">4</div>
+              <div class="cal-day">5</div><div class="cal-day">6</div><div class="cal-day">7</div><div class="cal-day">8</div><div class="cal-day">9</div><div class="cal-day">10</div><div class="cal-day">11</div>
+              <div class="cal-day">12</div><div class="cal-day has-event">13</div><div class="cal-day">14</div><div class="cal-day">15</div><div class="cal-day">16</div><div class="cal-day">17</div><div class="cal-day">18</div>
+              <div class="cal-day">19</div><div class="cal-day">20</div><div class="cal-day">21</div><div class="cal-day today">22</div><div class="cal-day">23</div><div class="cal-day">24</div><div class="cal-day">25</div>
+              <div class="cal-day">26</div><div class="cal-day">27</div><div class="cal-day">28</div><div class="cal-day">29</div><div class="cal-day has-event urgent">30</div><div class="cal-day">31</div><div class="cal-day other-month">1</div>
+            </div>
+          </div>
+          <div class="event-list">
+            <div class="event-item">
+              <div class="event-dot"></div>
+              <div class="event-text">Filing deadline — Trial exhibit list<span class="event-date-tag">Mon, May 13 · Mercer v. Donovan</span></div>
+            </div>
+            <div class="event-item">
+              <div class="event-dot urgent"></div>
+              <div class="event-text">Pre-trial hearing — Courtroom 7B<span class="event-date-tag">Thu, May 30 · 9:00 AM · Mercer v. Donovan</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><div class="card-title">Upcoming Deadlines</div></div>
+          <div style="padding: 0 16px 4px;">
+            <div style="padding: 10px 0; border-bottom: 1px solid var(--border); display:flex; justify-content:space-between; align-items:flex-start;">
+              <div>
+                <div style="font-size:12px; font-weight:600; color: var(--danger); font-family: 'Helvetica Neue', sans-serif;">May 30</div>
+                <div style="font-size:12px; color: var(--navy); font-family: 'Helvetica Neue', sans-serif; margin-top:2px;">Pre-trial hearing</div>
+              </div>
+              <span class="status-badge status-urgent">4 days</span>
+            </div>
+            <div style="padding: 10px 0; border-bottom: 1px solid var(--border); display:flex; justify-content:space-between; align-items:flex-start;">
+              <div>
+                <div style="font-size:12px; font-weight:600; color: var(--warn); font-family: 'Helvetica Neue', sans-serif;">Jun 10</div>
+                <div style="font-size:12px; color: var(--navy); font-family: 'Helvetica Neue', sans-serif; margin-top:2px;">Final witness list due</div>
+              </div>
+              <span class="status-badge status-pending">15 days</span>
+            </div>
+            <div style="padding: 10px 0; display:flex; justify-content:space-between; align-items:flex-start;">
+              <div>
+                <div style="font-size:12px; font-weight:600; color: var(--slate); font-family: 'Helvetica Neue', sans-serif;">Jun 17</div>
+                <div style="font-size:12px; color: var(--navy); font-family: 'Helvetica Neue', sans-serif; margin-top:2px;">Trial commences</div>
+              </div>
+              <span class="status-badge status-active">22 days</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

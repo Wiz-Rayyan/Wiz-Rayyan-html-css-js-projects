@@ -1,0 +1,243 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  #dash { background: #0A0A0A; color: #E0E0E0; font-family: 'Fira Code', 'Cascadia Code', monospace; padding: 16px; min-height: 100vh; }
+  .top-bar { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2A2A2A; padding-bottom: 12px; margin-bottom: 16px; }
+  .top-bar .logo { font-size: 13px; color: #888; letter-spacing: 0.08em; }
+  .top-bar .logo span { color: #4ADE80; }
+  .top-bar .cluster-tag { font-size: 11px; background: #141414; border: 1px solid #2A2A2A; padding: 3px 10px; border-radius: 4px; color: #888; }
+  .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px; }
+  .metric-card { background: #111; border: 1px solid #2A2A2A; border-radius: 6px; padding: 12px 14px; }
+  .metric-card .label { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; }
+  .metric-card .value { font-size: 22px; font-weight: 500; }
+  .metric-card .delta { font-size: 11px; color: #666; margin-top: 4px; }
+  .metric-card .delta.up { color: #4ADE80; }
+  .metric-card .delta.down { color: #F87171; }
+  .metric-card .delta.warn { color: #FBBF24; }
+  .mid-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .panel { background: #111; border: 1px solid #2A2A2A; border-radius: 6px; padding: 14px; }
+  .panel-title { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .panel-title .dot { width: 6px; height: 6px; border-radius: 50%; background: #4ADE80; }
+  .panel-title .dot.warn { background: #FBBF24; }
+  .instances { display: flex; flex-direction: column; gap: 8px; }
+  .instance { border-left: 4px solid #2A2A2A; padding: 8px 12px; background: #0D0D0D; border-radius: 0 4px 4px 0; display: flex; align-items: center; justify-content: space-between; font-size: 12px; }
+  .instance.healthy { border-left-color: #4ADE80; }
+  .instance.warning { border-left-color: #FBBF24; }
+  .instance.down { border-left-color: #F87171; }
+  .instance .name { color: #E0E0E0; }
+  .instance .meta { color: #666; font-size: 10px; margin-top: 2px; }
+  .instance .badge { font-size: 10px; padding: 2px 8px; border-radius: 3px; }
+  .badge.healthy { background: #0F2B1C; color: #4ADE80; border: 1px solid #1a4a2e; }
+  .badge.warning { background: #2B1F0A; color: #FBBF24; border: 1px solid #4a3510; }
+  .badge.down { background: #2B0F0F; color: #F87171; border: 1px solid #4a1c1c; }
+  .chart-wrap { position: relative; height: 130px; }
+  .bottom-row { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 10px; }
+  .log-panel { background: #0D0D0D; border: 1px solid #2A2A2A; border-radius: 6px; padding: 0; overflow: hidden; }
+  .log-header { background: #141414; border-bottom: 1px solid #2A2A2A; padding: 8px 14px; font-size: 10px; color: #666; letter-spacing: 0.08em; text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
+  .log-header .term-dots { display: flex; gap: 5px; }
+  .term-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .log-body { padding: 10px 14px; font-size: 11px; line-height: 1.7; }
+  .log-line { display: flex; gap: 10px; }
+  .log-ts { color: #444; min-width: 70px; }
+  .log-svc { min-width: 70px; }
+  .log-svc.api { color: #818CF8; }
+  .log-svc.db { color: #34D399; }
+  .log-svc.proxy { color: #F472B6; }
+  .log-svc.cache { color: #FBBF24; }
+  .log-msg.info { color: #94A3B8; }
+  .log-msg.warn { color: #FBBF24; }
+  .log-msg.err { color: #F87171; }
+  .log-msg.ok { color: #4ADE80; }
+  .alerts-panel { background: #111; border: 1px solid #2A2A2A; border-radius: 6px; padding: 14px; }
+  .alert-item { display: flex; align-items: flex-start; gap: 10px; padding: 9px 0; border-bottom: 1px solid #1a1a1a; }
+  .alert-item:last-child { border-bottom: none; }
+  .alert-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
+  .alert-dot.crit { background: #F87171; box-shadow: 0 0 0 2px #2B0F0F; }
+  .alert-dot.warn { background: #FBBF24; box-shadow: 0 0 0 2px #2B1F0A; }
+  .alert-dot.info { background: #60A5FA; box-shadow: 0 0 0 2px #0F1B2B; }
+  .alert-text { font-size: 11px; color: #C0C0C0; line-height: 1.5; }
+  .alert-time { font-size: 10px; color: #555; margin-top: 2px; }
+  .sparkline { display: flex; align-items: flex-end; gap: 2px; height: 24px; }
+  .spark-bar { width: 3px; border-radius: 1px; background: #4ADE80; opacity: 0.7; }
+</style>
+
+<div id="dash">
+  <h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);">DevOps cloud infrastructure dashboard showing cluster health, resource usage, instance status, and recent logs.</h2>
+
+  <div class="top-bar">
+    <div class="logo">// <span>CLOUDOPS</span> CONTROL PLANE &nbsp;<span style="color:#444">v2.14.1</span></div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div style="font-size:11px;color:#4ADE80;display:flex;align-items:center;gap:6px;"><span style="width:7px;height:7px;border-radius:50%;background:#4ADE80;display:inline-block;"></span>ALL SYSTEMS OPERATIONAL</div>
+      <div class="cluster-tag">prod-us-east-1</div>
+    </div>
+  </div>
+
+  <div class="metrics">
+    <div class="metric-card">
+      <div class="label">CPU Usage</div>
+      <div class="value" style="color:#E0E0E0;">63<span style="font-size:14px;color:#666">%</span></div>
+      <div class="delta warn">▲ +4% vs 1h ago</div>
+      <div class="sparkline" style="margin-top:8px;" id="spark-cpu"></div>
+    </div>
+    <div class="metric-card">
+      <div class="label">Memory</div>
+      <div class="value" style="color:#FBBF24;">81<span style="font-size:14px;color:#666">%</span></div>
+      <div class="delta down">▲ +9% vs 1h ago</div>
+      <div class="sparkline" style="margin-top:8px;" id="spark-mem"></div>
+    </div>
+    <div class="metric-card">
+      <div class="label">Network I/O</div>
+      <div class="value" style="color:#60A5FA;">2.4<span style="font-size:14px;color:#666">Gb/s</span></div>
+      <div class="delta up">▼ -0.2 vs 1h ago</div>
+      <div class="sparkline" style="margin-top:8px;" id="spark-net"></div>
+    </div>
+    <div class="metric-card">
+      <div class="label">Req / sec</div>
+      <div class="value" style="color:#4ADE80;">14.2<span style="font-size:14px;color:#666">k</span></div>
+      <div class="delta up">▲ p99 = 43ms</div>
+      <div class="sparkline" style="margin-top:8px;" id="spark-req"></div>
+    </div>
+  </div>
+
+  <div class="mid-row">
+    <div class="panel">
+      <div class="panel-title"><span class="dot"></span>Resource usage — last 30 min</div>
+      <div class="chart-wrap"><canvas id="resChart" role="img" aria-label="Line chart of CPU and memory usage over 30 minutes">CPU fluctuating 55-75%, Memory rising from 68% to 81%.</canvas></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title"><span class="dot warn"></span>Instance health</div>
+      <div class="instances">
+        <div class="instance healthy"><div><div class="name">web-prod-01</div><div class="meta">t3.xlarge · us-east-1a</div></div><span class="badge healthy">HEALTHY</span></div>
+        <div class="instance healthy"><div><div class="name">web-prod-02</div><div class="meta">t3.xlarge · us-east-1b</div></div><span class="badge healthy">HEALTHY</span></div>
+        <div class="instance warning"><div><div class="name">api-prod-03</div><div class="meta">c5.2xlarge · us-east-1c</div></div><span class="badge warning">WARN</span></div>
+        <div class="instance healthy"><div><div class="name">db-primary</div><div class="meta">r6g.2xlarge · us-east-1a</div></div><span class="badge healthy">HEALTHY</span></div>
+        <div class="instance down"><div><div class="name">cache-replica-2</div><div class="meta">r6g.large · us-east-1b</div></div><span class="badge down">DOWN</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-row">
+    <div class="log-panel">
+      <div class="log-header">
+        <div class="term-dots"><div class="term-dot" style="background:#F87171;"></div><div class="term-dot" style="background:#FBBF24;"></div><div class="term-dot" style="background:#4ADE80;"></div></div>
+        <span>// system logs — live tail</span>
+      </div>
+      <div class="log-body">
+        <div class="log-line"><span class="log-ts">14:02:31</span><span class="log-svc cache">cache</span><span class="log-msg err">WARN replica-2 connection timeout after 3000ms</span></div>
+        <div class="log-line"><span class="log-ts">14:02:29</span><span class="log-svc api">api</span><span class="log-msg warn">p99 latency spike: 312ms on /v2/search</span></div>
+        <div class="log-line"><span class="log-ts">14:02:27</span><span class="log-svc db">db</span><span class="log-msg ok">checkpoint complete, 4821 buffers written</span></div>
+        <div class="log-line"><span class="log-ts">14:02:24</span><span class="log-svc proxy">proxy</span><span class="log-msg info">upstream reconnect — backend pool refreshed</span></div>
+        <div class="log-line"><span class="log-ts">14:02:21</span><span class="log-svc api">api</span><span class="log-msg ok">deploy canary-v3.1.4 health check passed</span></div>
+        <div class="log-line"><span class="log-ts">14:02:18</span><span class="log-svc cache">cache</span><span class="log-msg err">ERROR replica-2 unreachable — promoting standby</span></div>
+        <div class="log-line"><span class="log-ts">14:02:15</span><span class="log-svc db">db</span><span class="log-msg info">autovacuum: processing table users_index</span></div>
+        <div class="log-line"><span class="log-ts">14:02:11</span><span class="log-svc api">api</span><span class="log-msg info">rate-limit eviction: 142 stale keys purged</span></div>
+        <div class="log-line"><span class="log-ts">14:02:08</span><span class="log-svc proxy">proxy</span><span class="log-msg ok">SSL cert renewed — next expiry 2025-08-12</span></div>
+        <div class="log-line"><span class="log-ts">14:02:04</span><span class="log-svc api">api</span><span class="log-msg info">scaling event triggered — adding node to pool</span></div>
+      </div>
+    </div>
+
+    <div class="alerts-panel">
+      <div class="panel-title"><span class="dot" style="background:#F87171;"></span>Active alerts</div>
+      <div class="alert-item"><div class="alert-dot crit"></div><div><div class="alert-text">cache-replica-2 is unreachable — standby promotion in progress</div><div class="alert-time">2 min ago · cache</div></div></div>
+      <div class="alert-item"><div class="alert-dot warn"></div><div><div class="alert-text">api-prod-03 memory at 87% — above warn threshold</div><div class="alert-time">5 min ago · api</div></div></div>
+      <div class="alert-item"><div class="alert-dot warn"></div><div><div class="alert-text">p99 latency on /v2/search exceeded 300ms SLO</div><div class="alert-time">5 min ago · api</div></div></div>
+      <div class="alert-item"><div class="alert-dot info"></div><div><div class="alert-text">Canary deploy v3.1.4 — rollout at 15% traffic</div><div class="alert-time">11 min ago · deploy</div></div></div>
+      <div class="alert-item"><div class="alert-dot info"></div><div><div class="alert-text">Scheduled maintenance window starts in 3h 12m</div><div class="alert-time">ongoing · ops</div></div></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+function buildSparkline(id, data, color) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const max = Math.max(...data);
+  data.forEach(v => {
+    const b = document.createElement('div');
+    b.className = 'spark-bar';
+    b.style.height = Math.round((v / max) * 24) + 'px';
+    b.style.background = color;
+    el.appendChild(b);
+  });
+}
+buildSparkline('spark-cpu', [48,52,55,58,60,57,61,63,65,62,63], '#94A3B8');
+buildSparkline('spark-mem', [68,70,71,73,74,75,76,78,79,80,81], '#FBBF24');
+buildSparkline('spark-net', [2.8,2.6,2.7,2.5,2.4,2.6,2.3,2.4,2.5,2.4,2.4], '#60A5FA');
+buildSparkline('spark-req', [11,12,13,14,13,14,15,14,14,15,14.2], '#4ADE80');
+
+const labels = ['14:32','14:34','14:36','14:38','14:40','14:42','14:44','14:46','14:48','14:50','14:52','14:54','14:56','14:58','15:00','15:02'];
+const cpuData = [55,57,58,60,62,59,61,63,65,62,64,66,63,65,63,63];
+const memData = [68,69,70,71,72,73,74,75,76,77,78,79,80,80,81,81];
+
+new Chart(document.getElementById('resChart'), {
+  type: 'line',
+  data: {
+    labels,
+    datasets: [
+      {
+        label: 'CPU %',
+        data: cpuData,
+        borderColor: '#818CF8',
+        borderWidth: 1.5,
+        pointRadius: 0,
+        tension: 0.4,
+        borderDash: [],
+        fill: false
+      },
+      {
+        label: 'Mem %',
+        data: memData,
+        borderColor: '#FBBF24',
+        borderWidth: 1.5,
+        pointRadius: 0,
+        tension: 0.4,
+        borderDash: [4, 3],
+        fill: false
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: true,
+        position: 'top',
+        align: 'end',
+        labels: {
+          color: '#666',
+          font: { family: "'Fira Code', monospace", size: 10 },
+          boxWidth: 12,
+          boxHeight: 2,
+          padding: 12,
+          usePointStyle: false
+        }
+      },
+      tooltip: {
+        backgroundColor: '#1a1a1a',
+        borderColor: '#2A2A2A',
+        borderWidth: 1,
+        titleColor: '#888',
+        bodyColor: '#E0E0E0',
+        titleFont: { family: "'Fira Code', monospace", size: 10 },
+        bodyFont: { family: "'Fira Code', monospace", size: 11 }
+      }
+    },
+    scales: {
+      x: {
+        ticks: { color: '#444', font: { family: "'Fira Code', monospace", size: 9 }, maxTicksLimit: 6, maxRotation: 0 },
+        grid: { color: '#1a1a1a' },
+        border: { color: '#2A2A2A' }
+      },
+      y: {
+        min: 40,
+        max: 100,
+        ticks: { color: '#444', font: { family: "'Fira Code', monospace", size: 9 }, callback: v => v + '%' },
+        grid: { color: '#1a1a1a' },
+        border: { color: '#2A2A2A' }
+      }
+    }
+  }
+});
+</script>

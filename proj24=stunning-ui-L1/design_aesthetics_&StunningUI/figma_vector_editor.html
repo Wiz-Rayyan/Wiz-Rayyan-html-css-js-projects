@@ -1,0 +1,348 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', var(--font-sans); }
+  .figma-root { display: flex; flex-direction: column; height: 620px; background: #1e1e1e; color: #e0e0e0; font-size: 12px; border-radius: 8px; overflow: hidden; }
+  .toolbar { height: 40px; background: #2c2c2c; border-bottom: 1px solid #3a3a3a; display: flex; align-items: center; gap: 2px; padding: 0 12px; justify-content: space-between; }
+  .tool-group { display: flex; align-items: center; gap: 2px; }
+  .tool-btn { width: 32px; height: 28px; border-radius: 4px; border: none; background: transparent; color: #ccc; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 15px; transition: background 0.1s; }
+  .tool-btn:hover { background: #3c3c3c; }
+  .tool-btn.active { background: #9747FF; color: #fff; }
+  .main { display: flex; flex: 1; overflow: hidden; }
+  .layers { width: 200px; min-width: 200px; background: #2c2c2c; border-right: 1px solid #3a3a3a; display: flex; flex-direction: column; }
+  .panel-header { padding: 8px 12px; font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 1px solid #3a3a3a; }
+  .layer-item { display: flex; align-items: center; gap: 8px; padding: 5px 12px; cursor: pointer; transition: background 0.1s; user-select: none; }
+  .layer-item:hover { background: #363636; }
+  .layer-item.selected { background: #3d2d5e; color: #c9a6ff; }
+  .layer-item.selected .layer-icon { color: #9747FF; }
+  .layer-indent { padding-left: 24px; }
+  .layer-icon { font-size: 13px; opacity: 0.7; min-width: 14px; }
+  .layer-name { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .layer-vis { margin-left: auto; opacity: 0; font-size: 12px; }
+  .layer-item:hover .layer-vis { opacity: 0.5; }
+  .canvas-wrap { flex: 1; position: relative; overflow: hidden; background: #1e1e1e; cursor: default; }
+  .canvas-inner { position: absolute; inset: 0; }
+  .pixel-grid { position: absolute; inset: 0; pointer-events: none;
+    background-image: radial-gradient(circle, #3a3a3a 1px, transparent 1px);
+    background-size: 20px 20px; opacity: 0.6; }
+  .frame { position: absolute; background: #fff; border: 1.5px solid #3a3a3a; }
+  .frame-label { position: absolute; top: -18px; left: 0; font-size: 11px; color: #888; white-space: nowrap; }
+  .shape { position: absolute; cursor: pointer; }
+  .shape.selected { outline: 2px solid #9747FF; outline-offset: 0px; }
+  .shape.hovered { outline: 1.5px solid #18a0fb; outline-offset: 0px; }
+  .selection-handles { position: absolute; pointer-events: none; }
+  .handle { width: 7px; height: 7px; background: #fff; border: 1.5px solid #9747FF; position: absolute; border-radius: 1px; }
+  .proto-arrow { position: absolute; pointer-events: none; }
+  .cursor { position: absolute; pointer-events: none; display: flex; align-items: flex-end; gap: 4px; }
+  .cursor-dot { width: 14px; height: 20px; }
+  .cursor-label { font-size: 11px; padding: 2px 6px; border-radius: 3px; white-space: nowrap; color: #fff; font-weight: 500; }
+  .inspector { width: 220px; min-width: 220px; background: #2c2c2c; border-left: 1px solid #3a3a3a; display: flex; flex-direction: column; overflow-y: auto; }
+  .insp-section { padding: 10px 12px; border-bottom: 1px solid #3a3a3a; }
+  .insp-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .insp-label { font-size: 11px; color: #888; }
+  .insp-val { font-size: 11px; color: #e0e0e0; background: #3a3a3a; border: none; border-radius: 3px; padding: 3px 6px; width: 70px; text-align: right; outline: none; }
+  .insp-val:focus { border: 1px solid #9747FF; background: #2c2c2c; }
+  .color-swatch { width: 16px; height: 16px; border-radius: 3px; border: 1px solid #555; cursor: pointer; flex-shrink: 0; }
+  .insp-title { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 8px; }
+  .zoom-badge { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); background: #3a3a3a; color: #ccc; font-size: 11px; padding: 3px 10px; border-radius: 4px; border: 1px solid #4a4a4a; pointer-events: none; }
+  .status-bar { height: 28px; background: #2c2c2c; border-top: 1px solid #3a3a3a; display: flex; align-items: center; padding: 0 14px; gap: 18px; font-size: 11px; color: #666; }
+  .status-pill { background: #9747FF22; color: #c9a6ff; border-radius: 3px; padding: 1px 6px; font-size: 10px; }
+  .file-name { color: #e0e0e0; font-weight: 500; }
+  .div-line { width: 1px; height: 16px; background: #3a3a3a; }
+  .toggle-btn { font-size: 11px; padding: 2px 8px; border-radius: 3px; border: 1px solid #4a4a4a; background: transparent; color: #aaa; cursor: pointer; }
+  .toggle-btn:hover { background: #363636; }
+  .collapse-icon { font-size: 10px; color: #666; margin-right: 2px; cursor: pointer; }
+  .section-toggle { display: flex; align-items: center; gap: 4px; margin-bottom: 6px; cursor: pointer; }
+  .section-toggle:hover .insp-title { color: #ccc; }
+  .proto-dot { width: 8px; height: 8px; border-radius: 50%; border: 2px solid #18a0fb; background: transparent; position: absolute; }
+</style>
+
+<div class="figma-root">
+  <div class="toolbar">
+    <div class="tool-group">
+      <div class="tool-btn" title="Move" id="tb-move" onclick="setTool('move')"><i class="ti ti-pointer" aria-hidden="true"></i></div>
+      <div class="tool-btn" title="Scale" onclick="setTool('scale')"><i class="ti ti-dimensions" aria-hidden="true"></i></div>
+      <div class="div-line"></div>
+      <div class="tool-btn active" title="Frame" id="tb-frame" onclick="setTool('frame')"><i class="ti ti-layout-2" aria-hidden="true"></i></div>
+      <div class="tool-btn" title="Rectangle" id="tb-rect" onclick="setTool('rect')"><i class="ti ti-square" aria-hidden="true"></i></div>
+      <div class="tool-btn" title="Ellipse" id="tb-ellipse" onclick="setTool('ellipse')"><i class="ti ti-circle" aria-hidden="true"></i></div>
+      <div class="tool-btn" title="Line" onclick="setTool('line')"><i class="ti ti-minus" aria-hidden="true"></i></div>
+      <div class="tool-btn" title="Text" id="tb-text" onclick="setTool('text')"><i class="ti ti-letter-t" aria-hidden="true"></i></div>
+      <div class="tool-btn" title="Pen" onclick="setTool('pen')"><i class="ti ti-pen" aria-hidden="true"></i></div>
+    </div>
+    <div class="tool-group">
+      <span class="file-name">Design System UI</span>
+    </div>
+    <div class="tool-group">
+      <button class="toggle-btn" onclick="toggleGrid()">Grid</button>
+      <button class="toggle-btn" onclick="toggleProto()">Proto</button>
+      <div class="div-line"></div>
+      <div class="tool-btn" title="Share"><i class="ti ti-share" aria-hidden="true"></i></div>
+      <div class="tool-btn" title="Zoom" onclick="cycleZoom()"><i class="ti ti-zoom-in" aria-hidden="true"></i></div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="layers" id="layers">
+      <div class="panel-header">Layers</div>
+      <div class="layer-item" onclick="selectLayer('page')">
+        <span class="collapse-icon">▸</span>
+        <span class="layer-icon"><i class="ti ti-stack-2" aria-hidden="true"></i></span>
+        <span class="layer-name">Page 1</span>
+        <span class="layer-vis"><i class="ti ti-eye" aria-hidden="true"></i></span>
+      </div>
+      <div class="layer-item layer-indent" onclick="selectLayer('frame1')">
+        <span class="collapse-icon">▾</span>
+        <span class="layer-icon"><i class="ti ti-layout-2" aria-hidden="true"></i></span>
+        <span class="layer-name">Card / Default</span>
+        <span class="layer-vis"><i class="ti ti-eye" aria-hidden="true"></i></span>
+      </div>
+      <div class="layer-item layer-indent selected" id="layer-rect" onclick="selectLayer('rect')">
+        <span style="width:8px"></span>
+        <span class="layer-icon"><i class="ti ti-square" aria-hidden="true"></i></span>
+        <span class="layer-name">Header BG</span>
+        <span class="layer-vis"><i class="ti ti-eye" aria-hidden="true"></i></span>
+      </div>
+      <div class="layer-item layer-indent" onclick="selectLayer('ellipse')">
+        <span style="width:8px"></span>
+        <span class="layer-icon"><i class="ti ti-circle" aria-hidden="true"></i></span>
+        <span class="layer-name">Avatar</span>
+        <span class="layer-vis"><i class="ti ti-eye" aria-hidden="true"></i></span>
+      </div>
+      <div class="layer-item layer-indent" onclick="selectLayer('text1')">
+        <span style="width:8px"></span>
+        <span class="layer-icon"><i class="ti ti-letter-t" aria-hidden="true"></i></span>
+        <span class="layer-name">Title Text</span>
+        <span class="layer-vis"><i class="ti ti-eye" aria-hidden="true"></i></span>
+      </div>
+      <div class="layer-item layer-indent" onclick="selectLayer('btn')">
+        <span style="width:8px"></span>
+        <span class="layer-icon"><i class="ti ti-square" aria-hidden="true"></i></span>
+        <span class="layer-name">Button / Primary</span>
+        <span class="layer-vis"><i class="ti ti-eye" aria-hidden="true"></i></span>
+      </div>
+      <div class="layer-item layer-indent" onclick="selectLayer('frame2')">
+        <span class="collapse-icon">▸</span>
+        <span class="layer-icon"><i class="ti ti-layout-2" aria-hidden="true"></i></span>
+        <span class="layer-name">Card / Hover</span>
+        <span class="layer-vis"><i class="ti ti-eye" aria-hidden="true"></i></span>
+      </div>
+      <div class="layer-item layer-indent" onclick="selectLayer('icon')">
+        <span style="width:8px"></span>
+        <span class="layer-icon"><i class="ti ti-vector" aria-hidden="true"></i></span>
+        <span class="layer-name">Icon / Star</span>
+        <span class="layer-vis"><i class="ti ti-eye" aria-hidden="true"></i></span>
+      </div>
+    </div>
+
+    <div class="canvas-wrap" id="canvas-wrap">
+      <div class="canvas-inner" id="canvas-inner">
+        <div class="pixel-grid" id="pixel-grid"></div>
+
+        <div class="frame" id="frame1" style="left:80px;top:40px;width:200px;height:240px;border-radius:12px;overflow:visible;">
+          <div class="frame-label">Card / Default</div>
+          <div class="shape selected" id="shape-rect" style="left:0;top:0;width:200px;height:56px;background:#9747FF;border-radius:12px 12px 0 0;" onclick="selectShape('rect')">
+            <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#fff;font-size:11px;font-weight:500;white-space:nowrap">Header BG</div>
+          </div>
+          <div class="shape" id="shape-ellipse" style="left:12px;top:14px;width:28px;height:28px;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;color:#9747FF;font-weight:600;" onclick="selectShape('ellipse')">AJ</div>
+          <div class="shape" id="shape-text1" style="left:46px;top:18px;width:110px;height:20px;display:flex;align-items:center;color:#fff;font-size:11px;font-weight:500;" onclick="selectShape('text1')">Alex Johnson</div>
+          <div style="padding:12px;margin-top:56px;">
+            <div style="width:100%;height:8px;background:#f0f0f0;border-radius:4px;margin-bottom:8px;"></div>
+            <div style="width:75%;height:8px;background:#f0f0f0;border-radius:4px;margin-bottom:16px;"></div>
+            <div class="shape" id="shape-btn" style="width:100%;height:32px;background:#9747FF;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:500;cursor:pointer;" onclick="selectShape('btn')">Get Started</div>
+          </div>
+          <div id="selection-handles" style="position:absolute;top:0;left:0;width:200px;height:56px;pointer-events:none;">
+            <div class="handle" style="top:-4px;left:-4px;"></div>
+            <div class="handle" style="top:-4px;right:-4px;"></div>
+            <div class="handle" style="bottom:-4px;left:-4px;"></div>
+            <div class="handle" style="bottom:-4px;right:-4px;"></div>
+            <div class="handle" style="top:-4px;left:96px;"></div>
+            <div class="handle" style="bottom:-4px;left:96px;"></div>
+            <div class="handle" style="top:24px;left:-4px;"></div>
+            <div class="handle" style="top:24px;right:-4px;"></div>
+          </div>
+        </div>
+
+        <div class="frame hovered" id="frame2" style="left:320px;top:40px;width:200px;height:240px;border-radius:12px;overflow:visible;">
+          <div class="frame-label">Card / Hover</div>
+          <div style="position:absolute;top:0;left:0;width:200px;height:56px;background:#7c35d4;border-radius:12px 12px 0 0;"></div>
+          <div style="position:absolute;top:14px;left:12px;width:28px;height:28px;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;color:#9747FF;font-weight:600;">AJ</div>
+          <div style="position:absolute;top:18px;left:46px;color:#fff;font-size:11px;font-weight:500;">Alex Johnson</div>
+          <div style="padding:12px;margin-top:56px;">
+            <div style="width:100%;height:8px;background:#e8e8e8;border-radius:4px;margin-bottom:8px;"></div>
+            <div style="width:75%;height:8px;background:#e8e8e8;border-radius:4px;margin-bottom:16px;"></div>
+            <div style="width:100%;height:32px;background:#7c35d4;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:500;">Get Started</div>
+          </div>
+        </div>
+
+        <svg class="proto-arrow" id="proto-arrow" style="position:absolute;top:0;left:0;width:100%;height:100%;display:none;" pointer-events="none">
+          <defs>
+            <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+              <polygon points="0 0, 8 3, 0 6" fill="#18a0fb"/>
+            </marker>
+          </defs>
+          <path d="M 280,160 C 300,160 300,160 320,160" stroke="#18a0fb" stroke-width="1.5" fill="none" stroke-dasharray="4,3" marker-end="url(#arrowhead)"/>
+          <circle cx="280" cy="160" r="4" fill="none" stroke="#18a0fb" stroke-width="1.5"/>
+          <circle cx="320" cy="160" r="4" fill="none" stroke="#18a0fb" stroke-width="1.5"/>
+        </svg>
+
+        <div class="cursor" style="left:370px;top:80px;" id="cursor-maya">
+          <svg class="cursor-dot" width="14" height="20" viewBox="0 0 14 20"><path d="M0 0 L14 8 L8 10 L10 20 L6 18 L4 10 L0 16 Z" fill="#f76040"/></svg>
+          <div class="cursor-label" style="background:#f76040;">Maya</div>
+        </div>
+        <div class="cursor" style="left:140px;top:200px;" id="cursor-sam">
+          <svg class="cursor-dot" width="14" height="20" viewBox="0 0 14 20"><path d="M0 0 L14 8 L8 10 L10 20 L6 18 L4 10 L0 16 Z" fill="#1bc47d"/></svg>
+          <div class="cursor-label" style="background:#1bc47d;">Sam</div>
+        </div>
+
+        <div class="zoom-badge" id="zoom-badge">100%</div>
+      </div>
+    </div>
+
+    <div class="inspector">
+      <div class="panel-header">Design</div>
+      <div class="insp-section">
+        <div class="insp-title">Frame</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+          <div><div class="insp-label" style="margin-bottom:2px;">X</div><input class="insp-val" value="80" style="width:100%;" /></div>
+          <div><div class="insp-label" style="margin-bottom:2px;">Y</div><input class="insp-val" value="40" style="width:100%;" /></div>
+          <div><div class="insp-label" style="margin-bottom:2px;">W</div><input class="insp-val" value="200" style="width:100%;" /></div>
+          <div><div class="insp-label" style="margin-bottom:2px;">H</div><input class="insp-val" value="56" style="width:100%;" /></div>
+          <div><div class="insp-label" style="margin-bottom:2px;">R°</div><input class="insp-val" value="0" style="width:100%;" /></div>
+          <div><div class="insp-label" style="margin-bottom:2px;">Corner</div><input class="insp-val" value="12" style="width:100%;" /></div>
+        </div>
+      </div>
+      <div class="insp-section">
+        <div class="insp-title">Fill</div>
+        <div class="insp-row">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <div class="color-swatch" id="fill-swatch" style="background:#9747FF;" onclick="cycleFill()"></div>
+            <input class="insp-val" id="fill-hex" value="9747FF" style="width:80px;font-family:monospace;" />
+          </div>
+          <input class="insp-val" value="100%" style="width:44px;" />
+        </div>
+      </div>
+      <div class="insp-section">
+        <div class="insp-title">Stroke</div>
+        <div class="insp-row">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <div class="color-swatch" style="background:transparent;border:1.5px solid #888;"></div>
+            <input class="insp-val" value="None" style="width:80px;" />
+          </div>
+          <input class="insp-val" value="—" style="width:44px;" />
+        </div>
+      </div>
+      <div class="insp-section">
+        <div class="insp-title">Effects</div>
+        <div class="insp-row">
+          <span class="insp-label">Drop Shadow</span>
+          <button class="toggle-btn" style="font-size:10px;padding:1px 6px;" onclick="toggleEffect(this)">off</button>
+        </div>
+        <div class="insp-row">
+          <span class="insp-label">Blur</span>
+          <button class="toggle-btn" style="font-size:10px;padding:1px 6px;" onclick="toggleEffect(this)">off</button>
+        </div>
+      </div>
+      <div class="insp-section">
+        <div class="insp-title">Export</div>
+        <div class="insp-row">
+          <span class="insp-label">PNG 1x</span>
+          <button class="toggle-btn" style="font-size:10px;padding:1px 6px;"><i class="ti ti-download" aria-hidden="true"></i></button>
+        </div>
+      </div>
+      <div class="insp-section">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+          <div style="width:8px;height:8px;border-radius:50%;background:#9747FF;"></div>
+          <span class="insp-label" style="font-size:11px;">Component: Button/Primary</span>
+        </div>
+        <div class="insp-row">
+          <span class="insp-label">Variant</span>
+          <input class="insp-val" value="Default" style="width:80px;" />
+        </div>
+        <div class="insp-row">
+          <span class="insp-label">Size</span>
+          <input class="insp-val" value="Medium" style="width:80px;" />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="status-bar">
+    <span class="status-pill">Auto Layout</span>
+    <span>Header BG — 200 × 56</span>
+    <div class="div-line"></div>
+    <span>2 collaborators</span>
+    <div class="div-line"></div>
+    <span id="status-msg">Rectangle selected</span>
+  </div>
+</div>
+
+<script>
+let gridOn = true, protoOn = false;
+const fills = ['9747FF','18a0fb','f76040','1bc47d','f5a623','2c2c2c'];
+let fillIdx = 0;
+let zoomLevels = ['50%','75%','100%','150%','200%'];
+let zoomIdx = 2;
+
+function setTool(t) {
+  document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+  const map = {move:'tb-move',frame:'tb-frame',rect:'tb-rect',ellipse:'tb-ellipse',text:'tb-text'};
+  if(map[t]) document.getElementById(map[t]).classList.add('active');
+  document.getElementById('status-msg').textContent = t.charAt(0).toUpperCase()+t.slice(1)+' tool selected';
+}
+
+function selectLayer(id) {
+  document.querySelectorAll('.layer-item').forEach(l => l.classList.remove('selected'));
+  const names = {page:'Page selected',frame1:'Card/Default selected',rect:'Header BG — 200 × 56',ellipse:'Avatar — 28 × 28',text1:'Title Text selected',btn:'Button/Primary — 168 × 32',frame2:'Card/Hover selected',icon:'Icon/Star selected'};
+  event.currentTarget.classList.add('selected');
+  document.getElementById('status-msg').textContent = names[id] || id+' selected';
+}
+
+function selectShape(s) {
+  const names = {rect:'Header BG — 200 × 56',ellipse:'Avatar — 28 × 28',text1:'Title Text selected',btn:'Button/Primary — 168 × 32'};
+  document.querySelectorAll('.shape').forEach(el => el.classList.remove('selected'));
+  document.getElementById('shape-'+s).classList.add('selected');
+  document.getElementById('layer-rect').classList.remove('selected');
+  document.getElementById('status-msg').textContent = names[s] || s+' selected';
+}
+
+function toggleGrid() {
+  gridOn = !gridOn;
+  document.getElementById('pixel-grid').style.opacity = gridOn ? '0.6' : '0';
+}
+
+function toggleProto() {
+  protoOn = !protoOn;
+  document.getElementById('proto-arrow').style.display = protoOn ? 'block' : 'none';
+  document.getElementById('status-msg').textContent = protoOn ? 'Prototype connections shown' : 'Design mode';
+}
+
+function cycleFill() {
+  fillIdx = (fillIdx + 1) % fills.length;
+  const c = fills[fillIdx];
+  document.getElementById('fill-swatch').style.background = '#'+c;
+  document.getElementById('fill-hex').value = c;
+  const rect = document.getElementById('shape-rect');
+  if(rect) rect.style.background = '#'+c;
+}
+
+function cycleZoom() {
+  zoomIdx = (zoomIdx + 1) % zoomLevels.length;
+  document.getElementById('zoom-badge').textContent = zoomLevels[zoomIdx];
+}
+
+function toggleEffect(btn) {
+  btn.textContent = btn.textContent === 'off' ? 'on' : 'off';
+}
+
+let t = 0;
+function animCursors() {
+  t += 0.012;
+  const maya = document.getElementById('cursor-maya');
+  const sam = document.getElementById('cursor-sam');
+  if(maya) { maya.style.left = (370 + Math.sin(t)*18) + 'px'; maya.style.top = (80 + Math.cos(t*0.7)*12) + 'px'; }
+  if(sam) { sam.style.left = (140 + Math.cos(t*0.8)*14) + 'px'; sam.style.top = (200 + Math.sin(t*1.1)*10) + 'px'; }
+  requestAnimationFrame(animCursors);
+}
+animCursors();
+</script>

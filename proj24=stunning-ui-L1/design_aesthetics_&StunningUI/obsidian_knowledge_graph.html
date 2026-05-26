@@ -1,0 +1,495 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: transparent; }
+  #app {
+    background: #1E1E2E;
+    color: #CDD6F4;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    height: 560px;
+    display: grid;
+    grid-template-rows: 36px 1fr;
+    grid-template-columns: 1fr 220px;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid #313244;
+  }
+  #titlebar {
+    grid-column: 1 / -1;
+    background: #181825;
+    border-bottom: 1px solid #313244;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 12px;
+  }
+  .dot { width: 12px; height: 12px; border-radius: 50%; }
+  .dot-r { background: #F38BA8; }
+  .dot-y { background: #F9E2AF; }
+  .dot-g { background: #A6E3A1; }
+  #titlebar-name {
+    margin-left: 8px;
+    font-size: 12px;
+    color: #6C7086;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.5px;
+  }
+  #tabs {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    margin-left: 12px;
+  }
+  .tab {
+    padding: 4px 12px;
+    font-size: 11px;
+    color: #6C7086;
+    border-radius: 4px 4px 0 0;
+    cursor: pointer;
+    border: 1px solid transparent;
+    border-bottom: none;
+    transition: all 0.15s;
+  }
+  .tab.active {
+    background: #1E1E2E;
+    color: #CDD6F4;
+    border-color: #313244;
+  }
+  .tab:hover:not(.active) { color: #BAC2DE; }
+  #editor-area {
+    background: #1E1E2E;
+    padding: 20px 24px;
+    overflow-y: auto;
+    line-height: 1.7;
+    position: relative;
+  }
+  #editor-area.hidden { display: none; }
+  #graph-area {
+    background: #181825;
+    position: relative;
+  }
+  #graph-area.hidden { display: none; }
+  #sidebar {
+    background: #181825;
+    border-left: 1px solid #313244;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .sidebar-section {
+    border-bottom: 1px solid #313244;
+    padding: 10px 12px;
+  }
+  .sidebar-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #6C7086;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .sidebar-label i { font-size: 13px; }
+  .backlink-item {
+    padding: 5px 7px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 12px;
+    color: #89B4FA;
+    transition: background 0.12s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 2px;
+  }
+  .backlink-item:hover { background: #313244; }
+  .backlink-item i { color: #585B70; font-size: 12px; }
+  .backlink-context {
+    font-size: 11px;
+    color: #585B70;
+    padding-left: 18px;
+    margin-top: 2px;
+    margin-bottom: 4px;
+    line-height: 1.4;
+  }
+  .prop-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    padding: 2px 0;
+    color: #6C7086;
+  }
+  .prop-val { color: #A6E3A1; font-family: 'JetBrains Mono', monospace; }
+  .tag-pill {
+    display: inline-block;
+    background: #313244;
+    color: #CBA6F7;
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 12px;
+    margin: 2px 2px 2px 0;
+    cursor: pointer;
+  }
+  .tag-pill:hover { background: #45475A; }
+  #graph-canvas { width: 100%; height: 100%; }
+  .md-h1 { font-size: 22px; font-weight: 600; color: #CDD6F4; margin-bottom: 12px; border-bottom: 1px solid #313244; padding-bottom: 8px; }
+  .md-h2 { font-size: 16px; font-weight: 500; color: #CDD6F4; margin: 16px 0 6px; }
+  .md-h3 { font-size: 14px; font-weight: 500; color: #BAC2DE; margin: 12px 0 4px; }
+  .md-p { font-size: 13px; color: #BAC2DE; margin-bottom: 8px; line-height: 1.7; }
+  .md-link { color: #89B4FA; text-decoration: none; border-bottom: 1px solid #3B4261; cursor: pointer; }
+  .md-link:hover { color: #CDD6F4; border-bottom-color: #89B4FA; }
+  .md-code { font-family: 'JetBrains Mono', monospace; background: #313244; color: #F38BA8; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+  .md-blockquote { border-left: 3px solid #CBA6F7; padding-left: 12px; color: #6C7086; font-style: italic; margin: 8px 0; }
+  .md-bullet { color: #BAC2DE; margin-bottom: 3px; font-size: 13px; }
+  .md-bullet::before { content: "•"; color: #585B70; margin-right: 7px; }
+  .callout { background: #1E1E2E; border: 1px solid #313244; border-left: 3px solid #89DCEB; border-radius: 6px; padding: 10px 14px; margin: 10px 0; }
+  .callout-title { font-size: 11px; font-weight: 600; color: #89DCEB; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 4px; display: flex; align-items: center; gap: 5px; }
+  .callout-body { font-size: 12px; color: #7F849C; }
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    margin-left: auto;
+    padding-right: 4px;
+  }
+  .tbtn {
+    width: 26px; height: 26px;
+    border-radius: 5px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    color: #6C7086;
+    font-size: 14px;
+    transition: background 0.12s, color 0.12s;
+  }
+  .tbtn:hover { background: #313244; color: #CDD6F4; }
+  .tbtn.active { background: #313244; color: #CBA6F7; }
+  .graph-legend {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    background: #13131d99;
+    border: 1px solid #313244;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 10px;
+    color: #6C7086;
+    pointer-events: none;
+  }
+  .legend-row { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
+  .legend-row:last-child { margin-bottom: 0; }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+  #node-tooltip {
+    position: absolute;
+    background: #313244;
+    border: 1px solid #45475A;
+    border-radius: 6px;
+    padding: 5px 9px;
+    font-size: 11px;
+    color: #CDD6F4;
+    pointer-events: none;
+    display: none;
+    z-index: 10;
+    white-space: nowrap;
+  }
+  .toc-item {
+    font-size: 11px;
+    color: #6C7086;
+    padding: 2px 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .toc-item:hover { color: #89B4FA; }
+  .toc-item i { font-size: 11px; }
+  #file-list { padding: 6px 0; }
+  .file-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 8px;
+    cursor: pointer;
+    font-size: 11px;
+    border-radius: 4px;
+    color: #6C7086;
+    transition: background 0.1s, color 0.1s;
+  }
+  .file-item:hover { background: #313244; color: #CDD6F4; }
+  .file-item.active { background: #313244; color: #89B4FA; }
+  .file-item i { font-size: 12px; }
+  #search-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 8px;
+    height: 28px;
+    background: #13131d;
+    border-bottom: 1px solid #313244;
+  }
+  #search-row input {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #CDD6F4;
+    font-size: 11px;
+    width: 100%;
+    font-family: 'Inter', sans-serif;
+  }
+  #search-row input::placeholder { color: #45475A; }
+  #search-row i { color: #45475A; font-size: 12px; }
+  .note-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 10px;
+    color: #45475A;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #26263a;
+  }
+  .note-meta i { font-size: 11px; }
+</style>
+
+<div id="app">
+  <div id="titlebar">
+    <div class="dot dot-r"></div>
+    <div class="dot dot-y"></div>
+    <div class="dot dot-g"></div>
+    <span id="titlebar-name">~/vault/Zettelkasten</span>
+    <div id="tabs">
+      <div class="tab active" id="tab-note" onclick="switchView('note')">Atomic Notes</div>
+      <div class="tab" id="tab-graph" onclick="switchView('graph')">Graph View</div>
+    </div>
+    <div class="toolbar">
+      <div class="tbtn" title="Search" aria-label="Search"><i class="ti ti-search" aria-hidden="true"></i></div>
+      <div class="tbtn" title="New note" aria-label="New note"><i class="ti ti-file-plus" aria-hidden="true"></i></div>
+      <div class="tbtn active" title="Backlinks" aria-label="Backlinks"><i class="ti ti-link" aria-hidden="true"></i></div>
+      <div class="tbtn" title="Settings" aria-label="Settings"><i class="ti ti-settings" aria-hidden="true"></i></div>
+    </div>
+  </div>
+
+  <div id="editor-area">
+    <div class="md-h1">Atomic Notes</div>
+    <div class="note-meta">
+      <i class="ti ti-calendar" aria-hidden="true"></i> 2024-03-12
+      <i class="ti ti-clock" aria-hidden="true"></i> 3 min read
+      <i class="ti ti-eye" aria-hidden="true"></i> 14 links
+    </div>
+    <div class="md-h2">Overview</div>
+    <p class="md-p">An <span class="md-link" onclick="ripple(this)">[[Atomic Note]]</span> contains exactly one idea, making it <em>linkable, reusable, and composable</em>. Unlike wiki entries, atomic notes serve the author's thinking — not a reader.</p>
+    <div class="callout">
+      <div class="callout-title"><i class="ti ti-bulb" aria-hidden="true"></i> key insight</div>
+      <div class="callout-body">Connections between notes matter more than the notes themselves. A note without links is an orphan.</div>
+    </div>
+    <div class="md-h2">Core principles</div>
+    <p class="md-bullet">Notes should be in your own words, not copied</p>
+    <p class="md-bullet">Each note has one <span class="md-link" onclick="ripple(this)">[[concept]]</span> or argument</p>
+    <p class="md-bullet">Titles are <code class="md-code">[[claim statements]]</code>, not topic labels</p>
+    <p class="md-bullet">Always link to <span class="md-link" onclick="ripple(this)">[[related ideas]]</span></p>
+    <div class="md-h2">Vs. traditional notes</div>
+    <p class="md-p">Most note-taking buries ideas in long documents. The <span class="md-link" onclick="ripple(this)">[[Zettelkasten]]</span> method inverts this: small notes, densely connected, form an emergent second brain.</p>
+    <blockquote class="md-blockquote">"A slip box that gets filled with ideas over decades can generate a lifetime's work of insight."</blockquote>
+    <div class="md-h2">Related</div>
+    <p class="md-p">See also: <span class="md-link" onclick="ripple(this)">[[Zettelkasten]]</span> · <span class="md-link" onclick="ripple(this)">[[Evergreen Notes]]</span> · <span class="md-link" onclick="ripple(this)">[[Spaced Repetition]]</span> · <span class="md-link" onclick="ripple(this)">[[PKM]]</span></p>
+  </div>
+
+  <div id="graph-area" class="hidden">
+    <svg id="graph-canvas"></svg>
+    <div id="node-tooltip"></div>
+    <div class="graph-legend">
+      <div class="legend-row"><div class="legend-dot" style="background:#CBA6F7"></div> current note</div>
+      <div class="legend-row"><div class="legend-dot" style="background:#89B4FA"></div> direct link</div>
+      <div class="legend-row"><div class="legend-dot" style="background:#45475A"></div> distant node</div>
+    </div>
+  </div>
+
+  <div id="sidebar">
+    <div id="search-row">
+      <i class="ti ti-search" aria-hidden="true"></i>
+      <input type="text" placeholder="Search notes..." id="search-input" onkeyup="filterFiles(this.value)" />
+    </div>
+    <div id="file-list">
+      <div class="file-item active" onclick="setActive(this,'Atomic Notes')"><i class="ti ti-file-text" aria-hidden="true"></i> Atomic Notes</div>
+      <div class="file-item" onclick="setActive(this,'Zettelkasten')"><i class="ti ti-file-text" aria-hidden="true"></i> Zettelkasten</div>
+      <div class="file-item" onclick="setActive(this,'Evergreen Notes')"><i class="ti ti-file-text" aria-hidden="true"></i> Evergreen Notes</div>
+      <div class="file-item" onclick="setActive(this,'Spaced Repetition')"><i class="ti ti-file-text" aria-hidden="true"></i> Spaced Repetition</div>
+      <div class="file-item" onclick="setActive(this,'PKM')"><i class="ti ti-file-text" aria-hidden="true"></i> PKM</div>
+      <div class="file-item" onclick="setActive(this,'Concept Maps')"><i class="ti ti-file-text" aria-hidden="true"></i> Concept Maps</div>
+      <div class="file-item" onclick="setActive(this,'Linking Notes')"><i class="ti ti-file-text" aria-hidden="true"></i> Linking Notes</div>
+      <div class="file-item" onclick="setActive(this,'MOC')"><i class="ti ti-file-text" aria-hidden="true"></i> MOC</div>
+    </div>
+    <div class="sidebar-section" style="flex:1; overflow-y:auto;">
+      <div class="sidebar-label"><i class="ti ti-arrow-back-up" aria-hidden="true"></i> Backlinks</div>
+      <div class="backlink-item" onclick="ripple(this)"><i class="ti ti-file-text" aria-hidden="true"></i> Zettelkasten</div>
+      <div class="backlink-context">…the slip-box relies on <strong style="color:#CDD6F4">[[Atomic Notes]]</strong> as its core unit…</div>
+      <div class="backlink-item" onclick="ripple(this)"><i class="ti ti-file-text" aria-hidden="true"></i> Evergreen Notes</div>
+      <div class="backlink-context">…<strong style="color:#CDD6F4">[[Atomic Notes]]</strong> are a prerequisite for evergreen thinking…</div>
+      <div class="backlink-item" onclick="ripple(this)"><i class="ti ti-file-text" aria-hidden="true"></i> MOC</div>
+      <div class="backlink-context">…index of all <strong style="color:#CDD6F4">[[Atomic Notes]]</strong> in the vault…</div>
+      <div class="backlink-item" onclick="ripple(this)"><i class="ti ti-file-text" aria-hidden="true"></i> PKM</div>
+      <div class="backlink-context">…<strong style="color:#CDD6F4">[[Atomic Notes]]</strong> reduce cognitive overhead by…</div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label"><i class="ti ti-tag" aria-hidden="true"></i> Tags</div>
+      <span class="tag-pill">#zettelkasten</span>
+      <span class="tag-pill">#pkm</span>
+      <span class="tag-pill">#notes</span>
+      <span class="tag-pill">#atomic</span>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label"><i class="ti ti-info-circle" aria-hidden="true"></i> Properties</div>
+      <div class="prop-row"><span>Created</span><span class="prop-val">2024-03-12</span></div>
+      <div class="prop-row"><span>Modified</span><span class="prop-val">2024-04-01</span></div>
+      <div class="prop-row"><span>Links</span><span class="prop-val">14</span></div>
+      <div class="prop-row"><span>Backlinks</span><span class="prop-val">4</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const nodes = [
+  { id: 0, label: 'Atomic Notes', x: 0, y: 0, r: 14, color: '#CBA6F7', type: 'current' },
+  { id: 1, label: 'Zettelkasten', x: 90, y: -60, r: 11, color: '#89B4FA', type: 'link' },
+  { id: 2, label: 'Evergreen Notes', x: -80, y: -55, r: 10, color: '#89B4FA', type: 'link' },
+  { id: 3, label: 'PKM', x: 100, y: 55, r: 10, color: '#89B4FA', type: 'link' },
+  { id: 4, label: 'Spaced Repetition', x: -95, y: 50, r: 9, color: '#89B4FA', type: 'link' },
+  { id: 5, label: 'Linking Notes', x: 25, y: 100, r: 8, color: '#89B4FA', type: 'link' },
+  { id: 6, label: 'MOC', x: -30, y: -110, r: 8, color: '#89B4FA', type: 'link' },
+  { id: 7, label: 'Luhmann', x: 160, y: -90, r: 7, color: '#45475A', type: 'distant' },
+  { id: 8, label: 'Niklas', x: 170, y: -20, r: 6, color: '#45475A', type: 'distant' },
+  { id: 9, label: 'Second Brain', x: -155, y: -30, r: 7, color: '#45475A', type: 'distant' },
+  { id: 10, label: 'Notion', x: -160, y: 60, r: 6, color: '#45475A', type: 'distant' },
+  { id: 11, label: 'Roam', x: 60, y: -140, r: 6, color: '#45475A', type: 'distant' },
+  { id: 12, label: 'Concept Map', x: 130, y: 110, r: 6, color: '#45475A', type: 'distant' },
+  { id: 13, label: 'Memory', x: -100, y: 130, r: 6, color: '#45475A', type: 'distant' },
+];
+
+const edges = [
+  [0,1],[0,2],[0,3],[0,4],[0,5],[0,6],
+  [1,7],[1,8],[1,6],[1,11],
+  [2,9],[2,6],
+  [3,10],[3,12],
+  [4,13],[4,9],
+  [5,1],[5,3],
+];
+
+function drawGraph() {
+  const svg = document.getElementById('graph-canvas');
+  const W = svg.parentElement.offsetWidth;
+  const H = svg.parentElement.offsetHeight;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.setAttribute('width', W);
+  svg.setAttribute('height', H);
+  svg.innerHTML = '';
+
+  const cx = W / 2, cy = H / 2;
+  const scale = Math.min(W, H) / 340;
+
+  const defs = document.createElementNS('http://www.w3.org/2000/svg','defs');
+  const glow = document.createElementNS('http://www.w3.org/2000/svg','filter');
+  glow.setAttribute('id','glow');
+  glow.innerHTML = '<feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>';
+  defs.appendChild(glow);
+  svg.appendChild(defs);
+
+  edges.forEach(([a,b]) => {
+    const na = nodes[a], nb = nodes[b];
+    const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1', cx + na.x * scale);
+    line.setAttribute('y1', cy + na.y * scale);
+    line.setAttribute('x2', cx + nb.x * scale);
+    line.setAttribute('y2', cy + nb.y * scale);
+    const isDirect = a === 0 || b === 0;
+    line.setAttribute('stroke', isDirect ? '#585B70' : '#313244');
+    line.setAttribute('stroke-width', isDirect ? '1.2' : '0.8');
+    line.setAttribute('opacity', '0.8');
+    svg.appendChild(line);
+  });
+
+  nodes.forEach(n => {
+    const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.style.cursor = 'pointer';
+
+    const circle = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    const px = cx + n.x * scale, py = cy + n.y * scale;
+    circle.setAttribute('cx', px);
+    circle.setAttribute('cy', py);
+    circle.setAttribute('r', n.r * (n.type === 'current' ? 1.1 : 1) * scale * 0.85);
+    circle.setAttribute('fill', n.color);
+    circle.setAttribute('opacity', n.type === 'current' ? '1' : n.type === 'link' ? '0.85' : '0.55');
+    if (n.type === 'current') circle.setAttribute('filter','url(#glow)');
+
+    g.appendChild(circle);
+
+    if (n.r >= 9 || n.type === 'current') {
+      const text = document.createElementNS('http://www.w3.org/2000/svg','text');
+      text.setAttribute('x', px);
+      text.setAttribute('y', py + n.r * scale * 0.85 + 11);
+      text.setAttribute('text-anchor','middle');
+      text.setAttribute('fill', n.type === 'current' ? '#CDD6F4' : n.type === 'link' ? '#BAC2DE' : '#6C7086');
+      text.setAttribute('font-size', n.type === 'current' ? '11' : '9');
+      text.setAttribute('font-family','Inter,sans-serif');
+      text.textContent = n.label;
+      g.appendChild(text);
+    }
+
+    const tooltip = document.getElementById('node-tooltip');
+    g.addEventListener('mouseenter', (e) => {
+      tooltip.textContent = n.label;
+      tooltip.style.display = 'block';
+      tooltip.style.left = (e.offsetX + 12) + 'px';
+      tooltip.style.top = (e.offsetY - 8) + 'px';
+      circle.setAttribute('opacity','1');
+    });
+    g.addEventListener('mousemove', (e) => {
+      tooltip.style.left = (e.offsetX + 12) + 'px';
+      tooltip.style.top = (e.offsetY - 8) + 'px';
+    });
+    g.addEventListener('mouseleave', () => {
+      tooltip.style.display = 'none';
+      circle.setAttribute('opacity', n.type === 'current' ? '1' : n.type === 'link' ? '0.85' : '0.55');
+    });
+
+    svg.appendChild(g);
+  });
+}
+
+function switchView(view) {
+  const editor = document.getElementById('editor-area');
+  const graph = document.getElementById('graph-area');
+  const tn = document.getElementById('tab-note');
+  const tg = document.getElementById('tab-graph');
+  if (view === 'graph') {
+    editor.classList.add('hidden');
+    graph.classList.remove('hidden');
+    tg.classList.add('active');
+    tn.classList.remove('active');
+    setTimeout(drawGraph, 50);
+  } else {
+    graph.classList.add('hidden');
+    editor.classList.remove('hidden');
+    tn.classList.add('active');
+    tg.classList.remove('active');
+  }
+}
+
+function setActive(el, name) {
+  document.querySelectorAll('.file-item').forEach(f => f.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function filterFiles(q) {
+  document.querySelectorAll('.file-item').forEach(f => {
+    f.style.display = f.textContent.toLowerCase().includes(q.toLowerCase()) ? '' : 'none';
+  });
+}
+
+function ripple(el) {
+  el.style.opacity = '0.5';
+  setTimeout(() => { el.style.opacity = ''; }, 180);
+}
+</script>
