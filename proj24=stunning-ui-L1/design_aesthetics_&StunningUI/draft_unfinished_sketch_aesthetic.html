@@ -1,0 +1,268 @@
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+body,html{background:transparent}
+:root{
+  --blue:#0066CC;
+  --blue-lt:#4499EE;
+  --blue-dim:rgba(0,102,204,0.12);
+  --blue-dim2:rgba(0,102,204,0.06);
+  --handle:#0066CC;
+  --ruler:#E8F0FA;
+  --font:'Courier Prime',Courier,monospace;
+}
+.canvas{
+  position:relative;
+  width:100%;
+  font-family:var(--font);
+  background:
+    repeating-linear-gradient(0deg,transparent,transparent 39px,rgba(0,102,204,0.18) 40px),
+    repeating-linear-gradient(90deg,transparent,transparent 39px,rgba(0,102,204,0.18) 40px),
+    repeating-linear-gradient(0deg,transparent,transparent 7px,rgba(0,102,204,0.06) 8px),
+    repeating-linear-gradient(90deg,transparent,transparent 7px,rgba(0,102,204,0.06) 8px),
+    #F5F8FF;
+  padding:0;
+  overflow:hidden;
+  border:1px solid rgba(0,102,204,0.3);
+}
+.ruler-h{
+  height:20px;background:#E8F0FA;border-bottom:1px solid rgba(0,102,204,0.3);
+  display:flex;align-items:flex-end;overflow:hidden;position:relative;
+}
+.ruler-v{
+  position:absolute;top:20px;left:0;width:20px;
+  background:#E8F0FA;border-right:1px solid rgba(0,102,204,0.3);
+  display:flex;flex-direction:column;align-items:flex-end;
+  z-index:10;
+}
+.ruler-h span,.ruler-v span{
+  font-size:8px;color:rgba(0,102,204,0.55);font-family:var(--font);
+  position:absolute;
+}
+.work-area{
+  position:relative;margin-left:20px;
+  padding:28px 24px 32px 28px;
+  min-height:540px;
+}
+.annotation{
+  position:absolute;font-size:10px;color:rgba(0,102,204,0.65);
+  font-family:var(--font);white-space:nowrap;letter-spacing:0.03em;
+}
+.sketch-line{
+  position:absolute;border-top:1px solid rgba(0,102,204,0.35);
+  transform-origin:left center;
+}
+.section-label{
+  font-size:10px;letter-spacing:0.12em;color:rgba(0,102,204,0.5);
+  text-transform:uppercase;font-family:var(--font);margin-bottom:6px;
+}
+.dashed-card{
+  border:1px dashed var(--blue);
+  background:rgba(255,255,255,0.7);
+  padding:16px 18px;
+  position:relative;
+  margin-bottom:20px;
+}
+.dashed-card::before{
+  content:'';position:absolute;
+  top:-6px;left:-6px;right:-6px;bottom:-6px;
+  border:1px dashed rgba(0,102,204,0.25);
+  pointer-events:none;
+}
+.handle{
+  width:7px;height:7px;
+  background:#fff;border:1.5px solid var(--blue);
+  position:absolute;
+}
+.h-tl{top:-4px;left:-4px}
+.h-tr{top:-4px;right:-4px}
+.h-bl{bottom:-4px;left:-4px}
+.h-br{bottom:-4px;right:-4px}
+.h-tm{top:-4px;left:50%;transform:translateX(-50%)}
+.h-bm{bottom:-4px;left:50%;transform:translateX(-50%)}
+.h-ml{top:50%;left:-4px;transform:translateY(-50%)}
+.h-mr{top:50%;right:-4px;transform:translateY(-50%)}
+.selection-box{
+  position:absolute;
+  border:1px dashed rgba(0,102,204,0.7);
+  background:rgba(0,102,204,0.04);
+  pointer-events:none;
+}
+.dim-line{
+  position:absolute;display:flex;align-items:center;
+}
+.dim-line::before,.dim-line::after{
+  content:'';flex-shrink:0;
+  border-left:1px solid rgba(0,102,204,0.5);height:8px;
+}
+.dim-line .dim-track{
+  flex:1;border-top:1px solid rgba(0,102,204,0.5);
+  display:flex;align-items:center;justify-content:center;
+}
+.dim-label{
+  font-size:9px;color:var(--blue);font-family:var(--font);
+  background:#F5F8FF;padding:0 3px;
+}
+.card-title{
+  font-size:15px;font-weight:700;color:#003d7a;
+  font-family:var(--font);margin-bottom:4px;letter-spacing:0.02em;
+}
+.card-body{
+  font-size:12px;color:rgba(0,60,120,0.7);line-height:1.7;font-family:var(--font);
+}
+.badge{
+  display:inline-block;font-size:9px;letter-spacing:0.08em;
+  border:1px solid var(--blue);color:var(--blue);
+  padding:1px 6px;margin-right:4px;font-family:var(--font);
+  text-transform:uppercase;
+}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+.crosshair{
+  position:absolute;pointer-events:none;
+}
+.crosshair::before{
+  content:'';position:absolute;
+  top:50%;left:0;right:0;height:0;
+  border-top:1px dashed rgba(0,102,204,0.4);
+}
+.crosshair::after{
+  content:'';position:absolute;
+  left:50%;top:0;bottom:0;width:0;
+  border-left:1px dashed rgba(0,102,204,0.4);
+}
+.tag-corner{
+  position:absolute;top:-10px;right:8px;
+  font-size:9px;font-family:var(--font);
+  background:var(--blue);color:#fff;padding:1px 6px;letter-spacing:0.05em;
+}
+.progress-bar-wrap{
+  height:6px;background:rgba(0,102,204,0.12);border:1px solid rgba(0,102,204,0.3);
+  margin-top:8px;
+}
+.progress-bar-fill{
+  height:100%;background:rgba(0,102,204,0.4);
+}
+.ruler-tick-h{
+  position:absolute;bottom:0;
+  border-left:1px solid rgba(0,102,204,0.35);
+}
+.ruler-tick-v{
+  position:absolute;right:0;
+  border-top:1px solid rgba(0,102,204,0.35);
+}
+</style>
+
+<div class="canvas" role="img" aria-label="Draft / unfinished sketch aesthetic demo — blue grid background, dashed borders, ruler guides, selection handles, and blueprint-style typography">
+
+<div class="ruler-h" id="rh">
+  <span style="left:24px;bottom:2px">0</span>
+  <span style="left:64px;bottom:2px">80</span>
+  <span style="left:104px;bottom:2px">160</span>
+  <span style="left:164px;bottom:2px">280</span>
+  <span style="left:224px;bottom:2px">400</span>
+  <span style="left:284px;bottom:2px">520</span>
+  <span style="left:344px;bottom:2px">640</span>
+  <span style="left:404px;bottom:2px">760</span>
+  <span style="left:464px;bottom:2px">880</span>
+  <span style="left:524px;bottom:2px">1000</span>
+</div>
+
+<div class="ruler-v" id="rv" style="height:520px">
+  <span style="top:10px;right:2px">0</span>
+  <span style="top:50px;right:2px">80</span>
+  <span style="top:90px;right:2px">160</span>
+  <span style="top:130px;right:2px">240</span>
+  <span style="top:170px;right:2px">320</span>
+  <span style="top:210px;right:2px">400</span>
+  <span style="top:250px;right:2px">480</span>
+  <span style="top:290px;right:2px">560</span>
+  <span style="top:330px;right:2px">640</span>
+  <span style="top:370px;right:2px">720</span>
+  <span style="top:410px;right:2px">800</span>
+</div>
+
+<div class="work-area">
+
+  <div class="annotation" style="top:0px;left:0px">// hero section — draft v3</div>
+  <div class="annotation" style="top:0px;right:16px">⚑ layer: LAYOUT</div>
+
+  <div style="margin-bottom:22px;position:relative">
+    <div class="section-label">heading component</div>
+    <div class="dashed-card" style="padding:20px 22px">
+      <div class="tag-corner">TEXT</div>
+      <div class="handle h-tl"></div><div class="handle h-tr"></div>
+      <div class="handle h-bl"></div><div class="handle h-br"></div>
+      <div class="handle h-tm"></div><div class="handle h-bm"></div>
+      <div class="handle h-ml"></div><div class="handle h-mr"></div>
+      <div class="card-title" style="font-size:22px;letter-spacing:0.01em">Draft / Unfinished Sketch</div>
+      <div class="card-body" style="font-size:13px;margin-top:6px;max-width:420px">
+        Design shows its own construction. Grid lines, blue pencil marks, dashed borders — the scaffolding is the aesthetic.
+      </div>
+      <div style="margin-top:10px">
+        <span class="badge">WIP</span>
+        <span class="badge">DRAFT</span>
+        <span class="badge">v0.3</span>
+      </div>
+    </div>
+    <div class="dim-line" style="left:-2px;right:0;bottom:-16px;height:12px">
+      <div class="dim-track"><span class="dim-label">width: auto</span></div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div style="position:relative">
+      <div class="section-label">card — left</div>
+      <div class="dashed-card" style="min-height:120px">
+        <div class="tag-corner">CARD</div>
+        <div class="handle h-tl"></div><div class="handle h-tr"></div>
+        <div class="handle h-bl"></div><div class="handle h-br"></div>
+        <div class="card-title">Blueprint Type</div>
+        <div class="card-body">Courier grid. Monospace readability. Every glyph sits on the baseline — no ambiguity.</div>
+        <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:72%"></div></div>
+        <div class="annotation" style="bottom:-14px;right:0;font-size:9px">72% complete</div>
+      </div>
+    </div>
+    <div style="position:relative">
+      <div class="section-label">card — right</div>
+      <div class="dashed-card" style="min-height:120px">
+        <div class="tag-corner">CARD</div>
+        <div class="handle h-tl"></div><div class="handle h-tr"></div>
+        <div class="handle h-bl"></div><div class="handle h-br"></div>
+        <div class="card-title">Selection State</div>
+        <div class="card-body">Eight-point handles. Outer dashed rings. Every element announces it can be moved.</div>
+        <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:45%"></div></div>
+        <div class="annotation" style="bottom:-14px;right:0;font-size:9px">45% complete</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="position:relative;margin-bottom:8px">
+    <div class="section-label">image placeholder</div>
+    <div class="dashed-card" style="height:80px;display:flex;align-items:center;justify-content:center;background:rgba(0,102,204,0.04)">
+      <div class="handle h-tl"></div><div class="handle h-tr"></div>
+      <div class="handle h-bl"></div><div class="handle h-br"></div>
+      <div class="crosshair" style="top:0;left:0;right:0;bottom:0"></div>
+      <span style="font-size:11px;color:rgba(0,102,204,0.45);font-family:'Courier Prime',monospace;letter-spacing:0.08em">[ IMAGE — 640 × 240 ]</span>
+    </div>
+  </div>
+
+  <div class="selection-box" style="top:182px;left:0px;width:46%;height:168px"></div>
+  <div class="annotation" style="top:348px;left:2px;font-size:9px;color:rgba(0,102,204,0.45)">↖ selected group (2 objects)</div>
+
+  <div class="sketch-line" style="left:-4px;top:64px;width:calc(100% + 8px);opacity:0.5"></div>
+  <div class="annotation" style="top:57px;right:0;font-size:9px">— — fold line — —</div>
+
+  <div class="sketch-line" style="left:50%;top:180px;width:50%;opacity:0.3;border-top-style:dotted"></div>
+
+  <div style="margin-top:8px;display:flex;gap:10px;align-items:center">
+    <div class="annotation" style="position:static;font-size:10px">STATUS:</div>
+    <div style="display:flex;gap:6px">
+      <span class="badge" style="border-color:rgba(0,102,204,0.4);color:rgba(0,102,204,0.5)">PENDING</span>
+      <span class="badge" style="background:rgba(0,102,204,0.08)">IN REVIEW</span>
+      <span class="badge" style="border-style:dotted">BLOCKED</span>
+    </div>
+    <div class="annotation" style="position:static;margin-left:auto;font-size:9px;color:rgba(0,102,204,0.4)">rev. 04 · 2024-06-12 · auto-saved</div>
+  </div>
+
+</div>
+</div>

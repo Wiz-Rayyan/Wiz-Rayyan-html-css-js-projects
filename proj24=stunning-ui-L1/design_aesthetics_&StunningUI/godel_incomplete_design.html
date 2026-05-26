@@ -1,0 +1,409 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body { background: transparent; }
+
+  .canvas {
+    position: relative;
+    width: 100%;
+    min-height: 600px;
+    overflow: hidden;
+    background: transparent;
+  }
+
+  .golden-bg {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 60% 40% at 50% 30%, rgba(255,220,100,0.13) 0%, transparent 70%),
+      radial-gradient(ellipse 80% 60% at 20% 80%, rgba(180,120,255,0.08) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 50% at 80% 60%, rgba(80,200,220,0.07) 0%, transparent 60%);
+  }
+
+  .spiral-svg {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    opacity: 0.15;
+    pointer-events: none;
+  }
+
+  .tiles {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    grid-template-columns: repeat(20, 1fr);
+    grid-template-rows: repeat(12, 1fr);
+    opacity: 0.06;
+    pointer-events: none;
+  }
+
+  .tile {
+    border: 0.5px solid var(--color-text-primary);
+  }
+
+  .tile:nth-child(3n) { background: rgba(255,200,80,0.4); }
+  .tile:nth-child(5n) { background: rgba(160,100,255,0.3); }
+  .tile:nth-child(7n) { background: rgba(60,200,200,0.3); }
+
+  .content {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 600px;
+    padding: 48px 32px;
+    gap: 0;
+  }
+
+  .serif-giant {
+    font-family: 'IM Fell English', Georgia, serif;
+    font-size: 13px;
+    font-style: italic;
+    letter-spacing: 0.35em;
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    margin-bottom: 28px;
+    opacity: 0.7;
+  }
+
+  .golden-ratio-frame {
+    position: relative;
+    width: 480px;
+    max-width: 100%;
+    border: 0.5px solid var(--color-border-secondary);
+    padding: 40px 44px 36px;
+  }
+
+  .corner {
+    position: absolute;
+    width: 16px; height: 16px;
+  }
+  .corner-tl { top: -1px; left: -1px; border-top: 2px solid var(--color-text-secondary); border-left: 2px solid var(--color-text-secondary); }
+  .corner-tr { top: -1px; right: -1px; border-top: 2px solid var(--color-text-secondary); border-right: 2px solid var(--color-text-secondary); }
+  .corner-bl { bottom: -1px; left: -1px; border-bottom: 2px solid var(--color-text-secondary); border-left: 2px solid var(--color-text-secondary); }
+  .corner-br { bottom: -1px; right: -1px; border-bottom: 2px solid var(--color-text-secondary); border-right: 2px solid var(--color-text-secondary); }
+
+  .main-statement {
+    font-family: 'IM Fell English', Georgia, serif;
+    font-size: 26px;
+    font-style: italic;
+    line-height: 1.5;
+    color: var(--color-text-primary);
+    text-align: center;
+    margin-bottom: 28px;
+  }
+
+  .divider {
+    width: 100%;
+    height: 0.5px;
+    background: var(--color-border-secondary);
+    margin-bottom: 24px;
+  }
+
+  .proof-block {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .proof-line {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    font-family: 'IM Fell English', Georgia, serif;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--color-text-secondary);
+  }
+
+  .proof-num {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--color-text-tertiary);
+    padding-top: 2px;
+    min-width: 18px;
+    opacity: 0.6;
+  }
+
+  .proof-text { flex: 1; }
+
+  .proof-text em {
+    font-style: italic;
+    color: var(--color-text-primary);
+  }
+
+  .proof-text .contradiction {
+    color: #c0392b;
+    font-style: normal;
+  }
+
+  .proof-text .beauty {
+    color: #8e44ad;
+    font-style: italic;
+  }
+
+  .qed-line {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .qed-dash {
+    flex: 1;
+    height: 0.5px;
+    background: var(--color-border-tertiary);
+  }
+
+  .qed {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--color-text-tertiary);
+    letter-spacing: 0.1em;
+  }
+
+  .alert-band {
+    width: 100%;
+    max-width: 480px;
+    margin-top: 24px;
+    background: rgba(142,68,173,0.06);
+    border: 0.5px solid rgba(142,68,173,0.2);
+    border-radius: var(--border-radius-md);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .alert-band:hover { background: rgba(142,68,173,0.10); }
+
+  .alert-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #8e44ad;
+    flex-shrink: 0;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.7); }
+  }
+
+  .alert-text {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    flex: 1;
+  }
+
+  .alert-arrow {
+    font-size: 12px;
+    color: var(--color-text-tertiary);
+  }
+
+  .footnote-row {
+    margin-top: 32px;
+    display: flex;
+    gap: 40px;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .fn-item {
+    text-align: center;
+  }
+
+  .fn-symbol {
+    font-family: 'IM Fell English', Georgia, serif;
+    font-size: 22px;
+    color: var(--color-text-secondary);
+    opacity: 0.4;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .fn-label {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--color-text-tertiary);
+    font-family: var(--font-mono);
+  }
+
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-overlay.active { display: flex; }
+
+  .modal {
+    background: var(--color-background-primary);
+    border: 0.5px solid var(--color-border-secondary);
+    border-radius: var(--border-radius-lg);
+    padding: 32px 36px;
+    max-width: 400px;
+    width: 90%;
+    text-align: center;
+    position: relative;
+  }
+
+  .modal-title {
+    font-family: 'IM Fell English', Georgia, serif;
+    font-size: 18px;
+    font-style: italic;
+    color: var(--color-text-primary);
+    margin-bottom: 12px;
+  }
+
+  .modal-body {
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--color-text-secondary);
+    margin-bottom: 20px;
+    font-family: var(--font-mono);
+  }
+
+  .modal-btn {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 8px 20px;
+    border: 0.5px solid var(--color-border-secondary);
+    border-radius: var(--border-radius-md);
+    background: transparent;
+    color: var(--color-text-primary);
+    cursor: pointer;
+  }
+
+  .modal-btn:hover { background: var(--color-background-secondary); }
+
+  @media (prefers-color-scheme: dark) {
+    .proof-text .contradiction { color: #e74c3c; }
+    .proof-text .beauty { color: #bb8fce; }
+    .alert-band { background: rgba(187,143,206,0.08); border-color: rgba(187,143,206,0.2); }
+    .alert-band:hover { background: rgba(187,143,206,0.13); }
+    .alert-dot { background: #bb8fce; }
+  }
+</style>
+
+<div class="canvas">
+  <div class="golden-bg"></div>
+
+  <div class="tiles" aria-hidden="true">
+    <script>
+      document.currentScript.insertAdjacentHTML('afterend',
+        Array.from({length:240}, () => '<div class="tile"></div>').join('')
+      );
+    </script>
+  </div>
+
+  <svg class="spiral-svg" viewBox="0 0 680 600" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <path d="M340,300 Q380,260 420,300 Q460,340 420,380 Q380,420 340,400 Q280,380 260,320 Q240,260 280,220 Q320,180 380,200 Q440,220 460,280 Q480,340 460,400 Q440,460 380,480 Q320,500 260,480 Q200,460 180,400 Q160,340 180,280 Q200,220 260,200 Q320,180 380,180"
+      fill="none" stroke="var(--color-text-primary)" stroke-width="0.5"/>
+    <path d="M340,300 Q360,280 380,300 Q400,320 380,340 Q360,360 340,350 Q310,340 305,315 Q300,290 315,275 Q330,260 355,265 Q380,270 390,295 Q400,320 390,345 Q380,370 355,378 Q330,386 305,375 Q280,364 272,338 Q264,312 275,288"
+      fill="none" stroke="var(--color-text-primary)" stroke-width="0.5"/>
+    <circle cx="340" cy="300" r="2" fill="var(--color-text-tertiary)" opacity="0.4"/>
+    <line x1="100" y1="50" x2="580" y2="50" stroke="var(--color-text-primary)" stroke-width="0.5"/>
+    <line x1="100" y1="550" x2="580" y2="550" stroke="var(--color-text-primary)" stroke-width="0.5"/>
+    <line x1="100" y1="50" x2="100" y2="550" stroke="var(--color-text-primary)" stroke-width="0.5"/>
+    <line x1="580" y1="50" x2="580" y2="550" stroke="var(--color-text-primary)" stroke-width="0.5"/>
+    <line x1="100" y1="50" x2="580" y2="550" stroke="var(--color-text-primary)" stroke-width="0.3" opacity="0.5"/>
+    <line x1="580" y1="50" x2="100" y2="550" stroke="var(--color-text-primary)" stroke-width="0.3" opacity="0.5"/>
+    <circle cx="340" cy="300" r="180" fill="none" stroke="var(--color-text-primary)" stroke-width="0.5" opacity="0.5"/>
+    <circle cx="340" cy="300" r="111" fill="none" stroke="var(--color-text-primary)" stroke-width="0.5" opacity="0.4"/>
+    <circle cx="340" cy="300" r="68" fill="none" stroke="var(--color-text-primary)" stroke-width="0.5" opacity="0.3"/>
+    <circle cx="340" cy="300" r="42" fill="none" stroke="var(--color-text-primary)" stroke-width="0.5" opacity="0.2"/>
+  </svg>
+
+  <div class="content">
+    <div class="serif-giant">On the incompleteness of this design</div>
+
+    <div class="golden-ratio-frame">
+      <div class="corner corner-tl"></div>
+      <div class="corner corner-tr"></div>
+      <div class="corner corner-bl"></div>
+      <div class="corner corner-br"></div>
+
+      <div class="main-statement">
+        "This design is not aesthetically pleasing."
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="proof-block">
+        <div class="proof-line">
+          <span class="proof-num">i.</span>
+          <span class="proof-text">Assume the statement is <em>true</em>. Then the design is <span class="contradiction">ugly</span>. But a design of such proportions, geometry, and care cannot be ugly. <span class="contradiction">Contradiction.</span></span>
+        </div>
+        <div class="proof-line">
+          <span class="proof-num">ii.</span>
+          <span class="proof-text">Assume the statement is <em>false</em>. Then the design is <span class="beauty">beautiful</span>. But then its central claim is false, undermining its own integrity. <span class="contradiction">Contradiction.</span></span>
+        </div>
+        <div class="proof-line">
+          <span class="proof-num">iii.</span>
+          <span class="proof-text">Therefore no consistent aesthetic judgment of this design is possible within the system the design itself defines. The proposition is <em>undecidable</em>.</span>
+        </div>
+
+        <div class="qed-line">
+          <span class="qed-dash"></span>
+          <span class="qed">∎ Q.E.D.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="alert-band" onclick="document.getElementById('godel-modal').classList.add('active')" role="button" tabindex="0" aria-label="Trigger Gödel alert">
+      <div class="alert-dot"></div>
+      <span class="alert-text">alert("Gödel was here") — click to execute</span>
+      <span class="alert-arrow">↗</span>
+    </div>
+
+    <div class="footnote-row" aria-hidden="true">
+      <div class="fn-item">
+        <div class="fn-symbol">𝔾</div>
+        <div class="fn-label">Gödel 1931</div>
+      </div>
+      <div class="fn-item">
+        <div class="fn-symbol">∞</div>
+        <div class="fn-label">Undecidable</div>
+      </div>
+      <div class="fn-item">
+        <div class="fn-symbol">φ</div>
+        <div class="fn-label">Golden ratio</div>
+      </div>
+      <div class="fn-item">
+        <div class="fn-symbol">⊥</div>
+        <div class="fn-label">Contradiction</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="godel-modal" onclick="if(event.target===this)this.classList.remove('active')">
+  <div class="modal">
+    <div class="modal-title">Gödel was here.</div>
+    <div class="modal-body">
+      This system cannot prove its own beauty.<br>
+      This system cannot prove its own ugliness.<br><br>
+      It is complete. It is inconsistent.<br>
+      It is incomplete. It is beautiful.<br><br>
+      — K. Gödel, 1931 (paraphrased by this design)
+    </div>
+    <button class="modal-btn" onclick="document.getElementById('godel-modal').classList.remove('active')">close() → return to the undecidable</button>
+  </div>
+</div>

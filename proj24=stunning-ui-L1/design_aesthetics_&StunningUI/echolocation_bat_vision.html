@@ -1,0 +1,310 @@
+
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #000; }
+  #c { display: block; width: 100%; cursor: crosshair; }
+  #hud {
+    position: absolute; top: 16px; left: 0; right: 0;
+    display: flex; justify-content: center; gap: 32px;
+    font-family: monospace; font-size: 11px; letter-spacing: 0.12em; color: rgba(80,255,160,0.55);
+    pointer-events: none;
+  }
+  #hud span { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  #hud b { font-size: 15px; font-weight: 400; color: rgba(120,255,180,0.85); }
+  #legend {
+    position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 8px; pointer-events: none;
+  }
+  #legend canvas { border-radius: 2px; }
+  #legend span { font-family: monospace; font-size: 10px; letter-spacing: 0.1em; color: rgba(80,255,160,0.45); }
+  #wrapper { position: relative; background: #000; width: 100%; }
+</style>
+<div id="wrapper">
+  <canvas id="c"></canvas>
+  <div id="hud">
+    <span><div>PINGS</div><b id="h-pings">0</b></span>
+    <span><div>OBJECTS</div><b id="h-obj">0</b></span>
+    <span><div>RANGE</div><b id="h-range">—</b></span>
+    <span><div>MODE</div><b id="h-mode">SWEEP</b></span>
+  </div>
+  <div id="legend">
+    <span>LOW FREQ</span>
+    <canvas id="leg" width="120" height="8"></canvas>
+    <span>HIGH FREQ</span>
+  </div>
+</div>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const wrapper = document.getElementById('wrapper');
+
+let W, H, cx, cy;
+function resize() {
+  W = canvas.width = wrapper.clientWidth;
+  H = canvas.height = Math.round(W * 0.72);
+  canvas.style.height = H + 'px';
+  wrapper.style.height = H + 'px';
+  cx = W / 2; cy = H / 2;
+}
+resize();
+window.addEventListener('resize', () => { resize(); });
+
+const legC = document.getElementById('leg');
+const legX = legC.getContext('2d');
+const lg = legX.createLinearGradient(0, 0, 120, 0);
+for (let i = 0; i <= 1; i += 0.05) {
+  const h = i * 200 + 160;
+  lg.addColorStop(i, `hsl(${h},100%,55%)`);
+}
+legX.fillStyle = lg;
+legX.fillRect(0, 0, 120, 8);
+
+const objects = [];
+const NUM_OBJ = 18;
+for (let i = 0; i < NUM_OBJ; i++) {
+  const angle = Math.random() * Math.PI * 2;
+  const dist = 60 + Math.random() * (Math.min(W, H) / 2 - 80);
+  objects.push({
+    x: cx + Math.cos(angle) * dist,
+    y: cy + Math.sin(angle) * dist,
+    size: 3 + Math.random() * 12,
+    freq: Math.random(),
+    brightness: 0,
+    phase: Math.random() * Math.PI * 2
+  });
+}
+
+const rings = [];
+let sweepAngle = -Math.PI / 2;
+const SWEEP_SPEED = 0.018;
+let pingCount = 0;
+let lastSweepPing = -1;
+let mouseX = null, mouseY = null;
+let manualPings = [];
+let frame = 0;
+
+canvas.addEventListener('click', (e) => {
+  const r = canvas.getBoundingClientRect();
+  const mx = (e.clientX - r.left) * (W / r.width);
+  const my = (e.clientY - r.top) * (H / r.height);
+  manualPings.push({ x: mx, y: my, r: 0, life: 1, born: frame });
+  pingCount++;
+  document.getElementById('h-pings').textContent = pingCount;
+  document.getElementById('h-mode').textContent = 'ECHO';
+  setTimeout(() => document.getElementById('h-mode').textContent = 'SWEEP', 2000);
+});
+
+canvas.addEventListener('mousemove', (e) => {
+  const r = canvas.getBoundingClientRect();
+  mouseX = (e.clientX - r.left) * (W / r.width);
+  mouseY = (e.clientY - r.top) * (H / r.height);
+});
+canvas.addEventListener('mouseleave', () => { mouseX = null; mouseY = null; });
+
+function dist(ax, ay, bx, by) {
+  return Math.sqrt((ax - bx) ** 2 + (ay - by) ** 2);
+}
+
+function hslStr(hue, sat, light, alpha) {
+  return `hsla(${hue},${sat}%,${light}%,${alpha})`;
+}
+
+function drawGrid() {
+  const maxR = Math.max(W, H);
+  const step = Math.min(W, H) / 6;
+  ctx.strokeStyle = 'rgba(0,255,120,0.04)';
+  ctx.lineWidth = 0.5;
+  for (let r = step; r < maxR; r += step) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  for (let a = 0; a < Math.PI * 2; a += Math.PI / 6) {
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + Math.cos(a) * maxR, cy + Math.sin(a) * maxR);
+    ctx.stroke();
+  }
+}
+
+function drawSweep() {
+  const sweep = sweepAngle;
+  const grad = ctx.createConicalGradient
+    ? null
+    : null;
+
+  for (let i = 0; i < 60; i++) {
+    const a = sweep - (i / 60) * (Math.PI * 0.35);
+    const alpha = (1 - i / 60) * 0.22;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, Math.max(W, H), a, a + 0.018);
+    ctx.closePath();
+    ctx.fillStyle = hslStr(145, 90, 50, alpha);
+    ctx.fill();
+  }
+
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(
+    cx + Math.cos(sweep) * Math.max(W, H),
+    cy + Math.sin(sweep) * Math.max(W, H)
+  );
+  ctx.strokeStyle = hslStr(145, 100, 70, 0.7);
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+}
+
+function drawObjects() {
+  let closestDist = Infinity;
+  objects.forEach(o => {
+    if (o.brightness > 0.01) {
+      const d = dist(o.x, o.y, cx, cy);
+      if (d < closestDist) closestDist = d;
+
+      const hue = 160 + o.freq * 200;
+      const b = o.brightness;
+      const glow = ctx.createRadialGradient(o.x, o.y, 0, o.x, o.y, o.size * 4 * b);
+      glow.addColorStop(0, hslStr(hue, 100, 70, b * 0.9));
+      glow.addColorStop(0.4, hslStr(hue, 90, 55, b * 0.4));
+      glow.addColorStop(1, hslStr(hue, 80, 40, 0));
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(o.x, o.y, o.size * 4, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = hslStr(hue, 100, 85, Math.min(1, b * 1.5));
+      ctx.beginPath();
+      ctx.arc(o.x, o.y, Math.max(1, o.size * 0.4), 0, Math.PI * 2);
+      ctx.fill();
+
+      const stepR = Math.min(W, H) / 6;
+      const ring = dist(o.x, o.y, cx, cy) / stepR;
+      if (b > 0.3) {
+        ctx.font = `9px monospace`;
+        ctx.fillStyle = hslStr(hue, 100, 80, b * 0.5);
+        ctx.fillText(`${ring.toFixed(1)}u`, o.x + o.size * 1.5, o.y - o.size * 1.5);
+      }
+    }
+    o.brightness *= 0.988;
+  });
+
+  if (closestDist < Infinity) {
+    const stepR = Math.min(W, H) / 6;
+    document.getElementById('h-range').textContent = closestDist.toFixed(0) + 'px';
+  }
+}
+
+function drawRings() {
+  rings.forEach((ring, i) => {
+    ctx.beginPath();
+    ctx.arc(ring.x, ring.y, ring.r, 0, Math.PI * 2);
+    const hue = 155 + ring.freq * 40;
+    ctx.strokeStyle = hslStr(hue, 80, 60, ring.life * 0.5);
+    ctx.lineWidth = ring.life * 2;
+    ctx.stroke();
+    ring.r += 4;
+    ring.life *= 0.94;
+  });
+  for (let i = rings.length - 1; i >= 0; i--) {
+    if (rings[i].life < 0.02) rings.splice(i, 1);
+  }
+}
+
+function drawManualPings() {
+  manualPings.forEach(p => {
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.strokeStyle = hslStr(170, 100, 70, p.life * 0.8);
+    ctx.lineWidth = p.life * 2.5;
+    ctx.stroke();
+    p.r += 5;
+    p.life *= 0.93;
+
+    objects.forEach(o => {
+      const d = dist(p.x, p.y, o.x, o.y);
+      if (Math.abs(d - p.r) < 8) {
+        o.brightness = Math.min(1, o.brightness + 0.7);
+      }
+    });
+  });
+  for (let i = manualPings.length - 1; i >= 0; i--) {
+    if (manualPings[i].life < 0.02) manualPings.splice(i, 1);
+  }
+}
+
+function drawCrosshair() {
+  if (mouseX === null) return;
+  ctx.strokeStyle = 'rgba(0,255,140,0.2)';
+  ctx.lineWidth = 0.5;
+  ctx.setLineDash([4, 8]);
+  ctx.beginPath(); ctx.moveTo(mouseX, 0); ctx.lineTo(mouseX, H); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0, mouseY); ctx.lineTo(W, mouseY); ctx.stroke();
+  ctx.setLineDash([]);
+  const d = dist(mouseX, mouseY, cx, cy);
+  const a = Math.atan2(mouseY - cy, mouseX - cx) * 180 / Math.PI;
+  ctx.font = '9px monospace';
+  ctx.fillStyle = 'rgba(0,255,140,0.4)';
+  ctx.fillText(`${d.toFixed(0)}px  ${a.toFixed(0)}°`, mouseX + 8, mouseY - 6);
+}
+
+let activeObjects = 0;
+
+function loop() {
+  frame++;
+  ctx.fillStyle = 'rgba(0,0,0,0.18)';
+  ctx.fillRect(0, 0, W, H);
+
+  drawGrid();
+  drawSweep();
+  drawRings();
+  drawManualPings();
+
+  sweepAngle += SWEEP_SPEED;
+  if (sweepAngle > Math.PI * 2 - Math.PI / 2) sweepAngle -= Math.PI * 2;
+
+  const sweepSector = (sweepAngle + Math.PI * 2) % (Math.PI * 2);
+  activeObjects = 0;
+  objects.forEach(o => {
+    const objAngle = (Math.atan2(o.y - cy, o.x - cx) + Math.PI * 2) % (Math.PI * 2);
+    const diff = Math.abs(sweepSector - objAngle);
+    const wrap = Math.min(diff, Math.PI * 2 - diff);
+    if (wrap < 0.03) {
+      const d = dist(o.x, o.y, cx, cy);
+      o.brightness = Math.min(1, o.brightness + 0.85 * (1 - d / (Math.max(W, H) * 0.7)));
+      if (frame % 4 === 0) {
+        rings.push({ x: o.x, y: o.y, r: 2, life: 0.9, freq: o.freq });
+      }
+      if (frame !== lastSweepPing) {
+        lastSweepPing = frame;
+        pingCount++;
+        document.getElementById('h-pings').textContent = pingCount;
+      }
+    }
+    if (o.brightness > 0.1) activeObjects++;
+  });
+
+  document.getElementById('h-obj').textContent = activeObjects;
+
+  drawObjects();
+  drawCrosshair();
+
+  ctx.save();
+  ctx.globalCompositeOperation = 'source-over';
+  const vignette = ctx.createRadialGradient(cx, cy, Math.min(W,H)*0.35, cx, cy, Math.min(W,H)*0.8);
+  vignette.addColorStop(0, 'rgba(0,0,0,0)');
+  vignette.addColorStop(1, 'rgba(0,0,0,0.7)');
+  ctx.fillStyle = vignette;
+  ctx.fillRect(0, 0, W, H);
+  ctx.restore();
+
+  ctx.fillStyle = 'rgba(0,255,140,0.18)';
+  ctx.beginPath(); ctx.arc(cx, cy, 4, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = 'rgba(0,255,140,0.4)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.arc(cx, cy, 10, 0, Math.PI*2); ctx.stroke();
+
+  requestAnimationFrame(loop);
+}
+loop();
+</script>

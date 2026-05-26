@@ -1,0 +1,268 @@
+
+<style>
+  @keyframes heatPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.85; }
+  }
+  @keyframes scanLine {
+    0% { transform: translateY(-100%); }
+    100% { transform: translateY(400%); }
+  }
+  @keyframes flicker {
+    0%, 100% { opacity: 0.06; }
+    50% { opacity: 0.12; }
+  }
+  .heat-body {
+    font-family: 'Courier New', monospace;
+    background: #0a0004;
+    min-height: 520px;
+    padding: 0;
+    margin: 0;
+    overflow: hidden;
+    position: relative;
+  }
+  .scene {
+    position: relative;
+    width: 100%;
+    height: 520px;
+    overflow: hidden;
+  }
+  .scan-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(180deg, transparent, rgba(255,255,255,0.15), transparent);
+    animation: scanLine 4s linear infinite;
+    pointer-events: none;
+    z-index: 10;
+  }
+  .noise {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+    opacity: 0.04;
+    animation: flicker 2s ease-in-out infinite;
+    pointer-events: none;
+    z-index: 9;
+  }
+  .hud-border {
+    position: absolute;
+    top: 12px; left: 12px; right: 12px; bottom: 12px;
+    border: 1px solid rgba(255, 80, 0, 0.25);
+    pointer-events: none;
+    z-index: 8;
+  }
+  .hud-corner {
+    position: absolute;
+    width: 18px; height: 18px;
+    border-color: rgba(255, 120, 0, 0.7);
+    border-style: solid;
+  }
+  .hud-corner.tl { top: 12px; left: 12px; border-width: 2px 0 0 2px; }
+  .hud-corner.tr { top: 12px; right: 12px; border-width: 2px 2px 0 0; }
+  .hud-corner.bl { bottom: 12px; left: 12px; border-width: 0 0 2px 2px; }
+  .hud-corner.br { bottom: 12px; right: 12px; border-width: 0 2px 2px 0; }
+
+  /* THERMAL OBJECTS */
+  .thermal-bg {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background:
+      radial-gradient(ellipse 340px 200px at 52% 60%, #ff3800 0%, #c41200 18%, #6b0000 38%, transparent 62%),
+      radial-gradient(ellipse 180px 140px at 20% 38%, #ff7200 0%, #d44000 20%, #7a1800 40%, transparent 65%),
+      radial-gradient(ellipse 120px 90px at 78% 28%, #ff9800 0%, #e06000 22%, #7a3000 44%, transparent 68%),
+      radial-gradient(ellipse 220px 160px at 65% 78%, #b80000 0%, #6a0000 25%, transparent 60%),
+      radial-gradient(ellipse 90px 70px at 35% 72%, #ff4400 0%, #aa1800 28%, transparent 60%),
+      radial-gradient(ellipse 260px 180px at 10% 85%, #001a6e 0%, #000a3a 30%, transparent 65%),
+      radial-gradient(ellipse 200px 150px at 90% 90%, #00126a 0%, #000830 32%, transparent 62%),
+      radial-gradient(ellipse 300px 100px at 50% 5%, #001060 0%, #000520 30%, transparent 65%),
+      #0a0004;
+  }
+  .person-heat {
+    position: absolute;
+    bottom: 120px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90px;
+    animation: heatPulse 3s ease-in-out infinite;
+  }
+  .info-label {
+    position: absolute;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255, 160, 0, 0.75);
+    pointer-events: none;
+  }
+  .temp-readout {
+    position: absolute;
+    top: 22px;
+    right: 24px;
+    text-align: right;
+  }
+  .temp-readout .val {
+    font-size: 28px;
+    font-weight: bold;
+    color: #ff5500;
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+  .temp-readout .unit {
+    font-size: 12px;
+    color: rgba(255, 120, 0, 0.6);
+    letter-spacing: 0.1em;
+  }
+  .mode-tag {
+    position: absolute;
+    top: 22px;
+    left: 24px;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    color: rgba(255, 100, 0, 0.65);
+  }
+  .palette-bar {
+    position: absolute;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 220px;
+  }
+  .palette-gradient {
+    height: 8px;
+    border-radius: 4px;
+    background: linear-gradient(to right, #001a8a, #0044cc, #006644, #884400, #cc2200, #ff4400, #ff8800, #ffcc00, #ffffff);
+  }
+  .palette-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 4px;
+  }
+  .palette-labels span {
+    font-size: 9px;
+    color: rgba(255,120,0,0.5);
+    letter-spacing: 0.1em;
+  }
+  .crosshair {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 40px;
+    height: 40px;
+    pointer-events: none;
+  }
+  .crosshair::before, .crosshair::after {
+    content: '';
+    position: absolute;
+    background: rgba(255,200,0,0.35);
+  }
+  .crosshair::before { width: 100%; height: 1px; top: 50%; }
+  .crosshair::after { height: 100%; width: 1px; left: 50%; top: 0; }
+  .heat-ring {
+    position: absolute;
+    border-radius: 50%;
+    border: 1px solid;
+    pointer-events: none;
+    opacity: 0;
+    animation: ringPulse 4s ease-out infinite;
+  }
+  @keyframes ringPulse {
+    0% { transform: translate(-50%, -50%) scale(0.4); opacity: 0.6; }
+    100% { transform: translate(-50%, -50%) scale(1.4); opacity: 0; }
+  }
+  .pixel-grid {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-image:
+      linear-gradient(rgba(0,0,0,0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,0,0,0.08) 1px, transparent 1px);
+    background-size: 16px 16px;
+    pointer-events: none;
+    z-index: 2;
+  }
+  .caption {
+    position: absolute;
+    bottom: 70px;
+    left: 24px;
+    right: 24px;
+    text-align: center;
+    font-size: 11px;
+    color: rgba(255, 100, 0, 0.45);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+</style>
+
+<div class="heat-body">
+  <div class="scene">
+    <div class="thermal-bg"></div>
+    <div class="pixel-grid"></div>
+    <div class="scan-overlay"></div>
+    <div class="noise"></div>
+
+    <!-- HUD frame -->
+    <div class="hud-border"></div>
+    <div class="hud-corner tl"></div>
+    <div class="hud-corner tr"></div>
+    <div class="hud-corner bl"></div>
+    <div class="hud-corner br"></div>
+
+    <!-- Human figure SVG — thermal silhouette -->
+    <svg class="person-heat" viewBox="0 0 90 200" style="filter: drop-shadow(0 0 18px #ff4400cc);">
+      <!-- head -->
+      <ellipse cx="45" cy="22" rx="18" ry="20" fill="#ff5500" opacity="0.95"/>
+      <!-- neck -->
+      <rect x="38" y="38" width="14" height="12" rx="4" fill="#ee4400" opacity="0.9"/>
+      <!-- torso — hottest -->
+      <rect x="20" y="48" width="50" height="70" rx="10" fill="#ff2200" opacity="0.98"/>
+      <!-- upper arms -->
+      <rect x="3" y="52" width="20" height="48" rx="8" fill="#dd3300" opacity="0.88"/>
+      <rect x="67" y="52" width="20" height="48" rx="8" fill="#dd3300" opacity="0.88"/>
+      <!-- forearms — cooler -->
+      <rect x="0" y="98" width="18" height="36" rx="7" fill="#aa2200" opacity="0.8"/>
+      <rect x="72" y="98" width="18" height="36" rx="7" fill="#aa2200" opacity="0.8"/>
+      <!-- hands — cooler extremities -->
+      <ellipse cx="9" cy="140" rx="9" ry="8" fill="#882200" opacity="0.75"/>
+      <ellipse cx="81" cy="140" rx="9" ry="8" fill="#882200" opacity="0.75"/>
+      <!-- legs -->
+      <rect x="22" y="116" width="20" height="62" rx="8" fill="#cc2800" opacity="0.88"/>
+      <rect x="48" y="116" width="20" height="62" rx="8" fill="#cc2800" opacity="0.88"/>
+      <!-- feet — coldest -->
+      <ellipse cx="32" cy="182" rx="13" ry="9" fill="#661800" opacity="0.7"/>
+      <ellipse cx="58" cy="182" rx="13" ry="9" fill="#661800" opacity="0.7"/>
+    </svg>
+
+    <!-- Heat rings from body -->
+    <div class="heat-ring" style="width:100px;height:100px;border-color:rgba(255,80,0,0.4);top:50%;left:50%;animation-delay:0s;"></div>
+    <div class="heat-ring" style="width:80px;height:80px;border-color:rgba(255,120,0,0.3);top:50%;left:50%;animation-delay:1.3s;"></div>
+    <div class="heat-ring" style="width:60px;height:60px;border-color:rgba(255,160,0,0.2);top:50%;left:50%;animation-delay:2.6s;"></div>
+
+    <!-- HUD overlays -->
+    <div class="mode-tag">IR · THERMAL · 8–14µm</div>
+
+    <div class="temp-readout">
+      <div class="val">36.8°</div>
+      <div class="unit">CELSIUS · CORE</div>
+    </div>
+
+    <!-- Data labels -->
+    <div class="info-label" style="top:115px;left:24px;font-size:9px;">AMBIENT: 21.4°C</div>
+    <div class="info-label" style="top:130px;left:24px;font-size:9px;">DELTA: +15.4°C</div>
+    <div class="info-label" style="top:145px;left:24px;font-size:9px;">EMISSIVITY: 0.98</div>
+
+    <div class="crosshair"></div>
+
+    <!-- Color palette bar -->
+    <div class="palette-bar">
+      <div class="palette-gradient"></div>
+      <div class="palette-labels">
+        <span>COLD</span>
+        <span>—15°C</span>
+        <span>+20°C</span>
+        <span>HOT</span>
+      </div>
+    </div>
+
+    <div class="caption">you see heat translated — not color, not light — truth</div>
+  </div>
+</div>

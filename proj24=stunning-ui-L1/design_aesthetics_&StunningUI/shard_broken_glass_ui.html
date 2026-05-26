@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0a0a0f;
+    font-family: 'Arial', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+    color: #fff;
+  }
+
+  .scene {
+    position: relative;
+    padding: 40px 32px 60px;
+    min-height: 100vh;
+  }
+
+  /* Crack pattern background */
+  .crack-bg {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+  }
+
+  /* === HEADER === */
+  .header {
+    position: relative;
+    z-index: 10;
+    margin-bottom: 48px;
+    text-align: center;
+  }
+
+  .header-title {
+    font-size: clamp(32px, 6vw, 56px);
+    font-weight: 900;
+    letter-spacing: -1px;
+    color: #fff;
+    position: relative;
+    display: inline-block;
+    text-transform: uppercase;
+  }
+
+  .header-title::before {
+    content: 'SHATTER';
+    position: absolute;
+    inset: 0;
+    color: #00fff2;
+    clip-path: polygon(0 0, 48% 0, 52% 100%, 0 100%);
+    mix-blend-mode: screen;
+    transform: translateX(-2px);
+    opacity: 0.9;
+  }
+
+  .header-title::after {
+    content: 'SHATTER';
+    position: absolute;
+    inset: 0;
+    color: #ff003c;
+    clip-path: polygon(52% 0, 100% 0, 100% 100%, 48% 100%);
+    mix-blend-mode: screen;
+    transform: translateX(2px);
+    opacity: 0.9;
+  }
+
+  .header-sub {
+    font-size: 11px;
+    letter-spacing: 6px;
+    color: #555;
+    text-transform: uppercase;
+    margin-top: 10px;
+  }
+
+  /* === SHARD CARDS GRID === */
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    position: relative;
+    z-index: 10;
+    margin-bottom: 48px;
+  }
+
+  .shard-card {
+    position: relative;
+    padding: 28px 24px 24px;
+    background: rgba(255,255,255,0.04);
+    border: 0.5px solid rgba(255,255,255,0.15);
+    overflow: hidden;
+    cursor: default;
+    transition: transform 0.2s ease;
+  }
+
+  .shard-card:hover { transform: translateY(-3px); }
+
+  /* Shard 1: top-left jagged */
+  .shard-card:nth-child(1) {
+    clip-path: polygon(0 0, 100% 0, 100% 78%, 88% 100%, 12% 100%, 0 82%);
+  }
+  .shard-card:nth-child(2) {
+    clip-path: polygon(8% 0, 100% 0, 100% 100%, 0 100%, 0 14%);
+  }
+  .shard-card:nth-child(3) {
+    clip-path: polygon(0 0, 92% 0, 100% 18%, 100% 100%, 0 100%);
+  }
+  .shard-card:nth-child(4) {
+    clip-path: polygon(0 0, 100% 0, 100% 85%, 60% 100%, 0 100%);
+  }
+
+  .shard-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(0,255,242,0.08) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  .shard-card::after {
+    content: '';
+    position: absolute;
+    top: -1px; left: -1px; right: -1px; bottom: -1px;
+    background: transparent;
+    border: 1px solid rgba(0,255,242,0.25);
+    clip-path: inherit;
+    pointer-events: none;
+  }
+
+  .card-accent {
+    width: 28px;
+    height: 2px;
+    margin-bottom: 14px;
+  }
+
+  .card-label {
+    font-size: 10px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: #555;
+    margin-bottom: 8px;
+  }
+
+  .card-value {
+    font-size: 36px;
+    font-weight: 900;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+
+  .card-desc {
+    font-size: 12px;
+    color: #666;
+    letter-spacing: 0.5px;
+  }
+
+  /* === FRAGMENTED TEXT HERO === */
+  .frag-section {
+    position: relative;
+    z-index: 10;
+    margin-bottom: 48px;
+    padding: 40px 32px;
+    background: rgba(255,255,255,0.02);
+    border-left: 1px solid rgba(0,255,242,0.4);
+    clip-path: polygon(0 0, 100% 0, 100% 90%, 96% 100%, 0 100%);
+    overflow: hidden;
+  }
+
+  .frag-section::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      -55deg,
+      transparent,
+      transparent 40px,
+      rgba(0,255,242,0.015) 40px,
+      rgba(0,255,242,0.015) 41px
+    );
+    pointer-events: none;
+  }
+
+  .frag-label {
+    font-size: 10px;
+    letter-spacing: 5px;
+    color: #00fff2;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+
+  .frag-headline {
+    font-size: clamp(22px, 4vw, 38px);
+    font-weight: 900;
+    line-height: 1.1;
+    text-transform: uppercase;
+    letter-spacing: -0.5px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+  }
+
+  /* Each word in headline is a "shard" fragment */
+  .frag-word {
+    display: inline-block;
+    position: relative;
+    margin-right: 12px;
+    margin-bottom: 4px;
+  }
+
+  .frag-word.offset-up { transform: translateY(-3px) rotate(-0.5deg); }
+  .frag-word.offset-down { transform: translateY(4px) rotate(0.4deg); }
+  .frag-word.accent-cyan { color: #00fff2; }
+  .frag-word.accent-red  { color: #ff003c; }
+
+  .frag-body {
+    margin-top: 20px;
+    font-size: 13px;
+    color: #555;
+    letter-spacing: 0.3px;
+    line-height: 1.7;
+    max-width: 480px;
+  }
+
+  /* === SHARD CRACK LINES === */
+  .cracks-svg {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.18;
+  }
+
+  /* === CTA BUTTON — jagged === */
+  .cta-row {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .shard-btn {
+    position: relative;
+    padding: 14px 32px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.15s ease;
+    overflow: visible;
+  }
+
+  .shard-btn:active { transform: scale(0.97); }
+
+  .shard-btn-primary {
+    background: #00fff2;
+    color: #0a0a0f;
+    clip-path: polygon(0 0, 100% 0, 100% 70%, 92% 100%, 0 100%);
+  }
+
+  .shard-btn-primary:hover { background: #3ffff7; }
+
+  .shard-btn-secondary {
+    background: transparent;
+    color: #fff;
+    clip-path: polygon(6% 0, 100% 0, 100% 100%, 0 100%, 0 30%);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.25);
+  }
+
+  .shard-btn-secondary:hover { box-shadow: inset 0 0 0 1px rgba(0,255,242,0.6); color: #00fff2; }
+
+  /* === REFRACTION OVERLAY — glitch shimmer on hero === */
+  .refraction {
+    position: absolute;
+    top: 0; left: 0;
+    width: 60%;
+    height: 100%;
+    background: linear-gradient(105deg, rgba(0,255,242,0.04) 0%, transparent 70%);
+    mix-blend-mode: screen;
+    pointer-events: none;
+    clip-path: polygon(0 0, 55% 0, 100% 100%, 0 100%);
+  }
+
+  /* Glitch animation on title */
+  @keyframes glitch {
+    0%, 90%, 100% { clip-path: none; transform: none; opacity: 1; }
+    91% { clip-path: polygon(0 20%, 100% 20%, 100% 50%, 0 50%); transform: translateX(-3px); opacity: 0.9; }
+    93% { clip-path: polygon(0 60%, 100% 60%, 100% 80%, 0 80%); transform: translateX(3px); opacity: 0.85; }
+    95% { clip-path: none; transform: none; opacity: 1; }
+    97% { clip-path: polygon(0 0, 100% 0, 100% 30%, 0 30%); transform: translateX(-2px); }
+  }
+
+  .header-title { animation: glitch 6s infinite; }
+
+  /* Progress bar — shard style */
+  .progress-section {
+    position: relative;
+    z-index: 10;
+    margin-bottom: 48px;
+  }
+
+  .prog-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+
+  .prog-label {
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #444;
+    width: 80px;
+    flex-shrink: 0;
+  }
+
+  .prog-track {
+    flex: 1;
+    height: 4px;
+    background: rgba(255,255,255,0.06);
+    position: relative;
+    clip-path: polygon(0 0, 100% 0, 97% 100%, 0 100%);
+  }
+
+  .prog-fill {
+    height: 100%;
+    position: relative;
+  }
+
+  .prog-fill::after {
+    content: '';
+    position: absolute;
+    right: -4px;
+    top: -4px;
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 0;
+    border-top: 6px solid transparent;
+  }
+
+  .prog-val {
+    font-size: 11px;
+    font-weight: 700;
+    width: 36px;
+    text-align: right;
+    color: #333;
+  }
+</style>
+</head>
+<body>
+<div class="scene">
+
+  <!-- Background crack SVG -->
+  <svg class="cracks-svg" viewBox="0 0 1200 900" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+    <!-- Main cracks radiating from impact point -->
+    <g stroke="#00fff2" stroke-width="0.8" fill="none">
+      <line x1="420" y1="280" x2="0" y2="60"/>
+      <line x1="420" y1="280" x2="180" y2="0"/>
+      <line x1="420" y1="280" x2="620" y2="0"/>
+      <line x1="420" y1="280" x2="800" y2="120"/>
+      <line x1="420" y1="280" x2="1200" y2="200"/>
+      <line x1="420" y1="280" x2="1100" y2="600"/>
+      <line x1="420" y1="280" x2="700" y2="900"/>
+      <line x1="420" y1="280" x2="200" y2="900"/>
+      <line x1="420" y1="280" x2="0" y2="600"/>
+      <line x1="420" y1="280" x2="0" y2="380"/>
+      <!-- secondary cracks -->
+      <line x1="200" y1="140" x2="80" y2="400"/>
+      <line x1="200" y1="140" x2="350" y2="0"/>
+      <line x1="700" y1="190" x2="900" y2="0"/>
+      <line x1="700" y1="190" x2="1000" y2="350"/>
+      <line x1="350" y1="560" x2="100" y2="750"/>
+      <line x1="350" y1="560" x2="550" y2="900"/>
+      <line x1="800" y1="500" x2="1100" y2="800"/>
+      <line x1="800" y1="500" x2="1200" y2="400"/>
+    </g>
+    <!-- impact circle -->
+    <circle cx="420" cy="280" r="6" fill="none" stroke="#00fff2" stroke-width="0.8" opacity="0.6"/>
+    <circle cx="420" cy="280" r="18" fill="none" stroke="#00fff2" stroke-width="0.4" opacity="0.3"/>
+  </svg>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-title">SHATTER</div>
+    <div class="header-sub">UI Shard Design System — Broken Glass Aesthetic</div>
+  </div>
+
+  <!-- Metric shard cards -->
+  <div class="cards-grid">
+    <div class="shard-card">
+      <div class="card-accent" style="background:#00fff2;"></div>
+      <div class="card-label">Damage</div>
+      <div class="card-value" style="color:#00fff2;">9.7</div>
+      <div class="card-desc">Impact force / 10</div>
+    </div>
+    <div class="shard-card">
+      <div class="card-accent" style="background:#ff003c;"></div>
+      <div class="card-label">Fragments</div>
+      <div class="card-value" style="color:#fff;">247</div>
+      <div class="card-desc">Shards detected</div>
+    </div>
+    <div class="shard-card">
+      <div class="card-accent" style="background:#ff9500;"></div>
+      <div class="card-label">Velocity</div>
+      <div class="card-value" style="color:#ff9500;">∞</div>
+      <div class="card-desc">Breaking point</div>
+    </div>
+    <div class="shard-card">
+      <div class="card-accent" style="background:#cc00ff;"></div>
+      <div class="card-label">Depth</div>
+      <div class="card-value" style="color:#cc00ff;">4K</div>
+      <div class="card-desc">Refraction layers</div>
+    </div>
+  </div>
+
+  <!-- Fragmented headline section -->
+  <div class="frag-section">
+    <div class="refraction"></div>
+    <div class="frag-label">// Fragment 001 — manifesto</div>
+    <div class="frag-headline">
+      <span class="frag-word offset-up">BREAK</span>
+      <span class="frag-word accent-cyan">EVERY</span>
+      <span class="frag-word offset-down">RULE</span>
+      <span class="frag-word">OF</span>
+      <span class="frag-word offset-up accent-red">DESIGN</span>
+    </div>
+    <div class="frag-body">
+      Clip-path edges that cut. Offsets that disorient. Refraction that bends reality.
+      This is not UI — this is wreckage rendered beautiful. 
+      Built with jagged polygons, mix-blend-mode warfare, and neon that bleeds through the cracks.
+    </div>
+  </div>
+
+  <!-- Progress bars shard-style -->
+  <div class="progress-section">
+    <div class="prog-row">
+      <div class="prog-label">Intensity</div>
+      <div class="prog-track">
+        <div class="prog-fill" style="width:92%; background:#00fff2;"></div>
+      </div>
+      <div class="prog-val" style="color:#00fff2;">92%</div>
+    </div>
+    <div class="prog-row">
+      <div class="prog-label">Chaos</div>
+      <div class="prog-track">
+        <div class="prog-fill" style="width:78%; background:#ff003c;"></div>
+      </div>
+      <div class="prog-val" style="color:#ff003c;">78%</div>
+    </div>
+    <div class="prog-row">
+      <div class="prog-label">Refraction</div>
+      <div class="prog-track">
+        <div class="prog-fill" style="width:61%; background:#cc00ff;"></div>
+      </div>
+      <div class="prog-val" style="color:#cc00ff;">61%</div>
+    </div>
+    <div class="prog-row">
+      <div class="prog-label">Impact</div>
+      <div class="prog-track">
+        <div class="prog-fill" style="width:100%; background:#ff9500;"></div>
+      </div>
+      <div class="prog-val" style="color:#ff9500;">MAX</div>
+    </div>
+  </div>
+
+  <!-- CTA buttons -->
+  <div class="cta-row">
+    <button class="shard-btn shard-btn-primary">DETONATE</button>
+    <button class="shard-btn shard-btn-secondary">INSPECT</button>
+  </div>
+
+</div>
+</body>
+</html>

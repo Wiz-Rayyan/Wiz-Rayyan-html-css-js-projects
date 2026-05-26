@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Last Thought / Dying Mind</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0a0a0a;
+    color: #c8c4b8;
+    font-family: 'Courier New', Courier, monospace;
+    min-height: 100vh;
+    padding: 4rem 3rem;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  #timer {
+    position: fixed;
+    top: 1.5rem;
+    right: 2rem;
+    font-size: 11px;
+    color: #555;
+    letter-spacing: 0.12em;
+    z-index: 100;
+  }
+
+  .thought {
+    margin-bottom: 1.6rem;
+    line-height: 1.8;
+    transition: opacity 3s ease, filter 3s ease;
+    position: relative;
+  }
+
+  .t-primary   { font-size: 22px; color: #d8d4c8; }
+  .t-secondary { font-size: 15px; color: #8a8880; }
+  .t-fragment  { font-size: 12px; color: #555; letter-spacing: 0.06em; }
+
+  #noise-canvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 5;
+    opacity: 0;
+  }
+
+  #ecg-wrap {
+    position: fixed;
+    bottom: 1.8rem;
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 0.35;
+    z-index: 10;
+  }
+
+  #final-msg {
+    display: none;
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    z-index: 20;
+    opacity: 0;
+    transition: opacity 5s ease;
+  }
+
+  #final-msg p {
+    font-size: 13px;
+    letter-spacing: 0.2em;
+    color: #444;
+    margin-bottom: 1.5rem;
+  }
+
+  #restart-btn {
+    background: transparent;
+    border: 0.5px solid #333;
+    color: #444;
+    padding: 8px 24px;
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    cursor: pointer;
+    display: none;
+    margin: 0 auto;
+  }
+
+  #restart-btn:hover { color: #888; border-color: #888; }
+</style>
+</head>
+<body>
+
+<span id="timer">SIGNAL: 100%</span>
+<canvas id="noise-canvas"></canvas>
+
+<div id="content">
+  <div class="thought t-primary" id="t1">I was thinking about something important—</div>
+  <div class="thought t-primary" id="t2">The way light moves through water in the morning.</div>
+  <div class="thought t-secondary" id="t3">My daughter's name is — her name is — it starts with an M.</div>
+  <div class="thought t-secondary" id="t4">There was a trip we took. The coast. The smell of salt and something burning far away.</div>
+  <div class="thought t-fragment" id="t5">colors / warmth / the weight of a hand in mine / something I forgot to say</div>
+  <div class="thought t-primary" id="t6">I think I was happy.</div>
+  <div class="thought t-fragment" id="t7">37 years. no — more. 37 or — the number keeps</div>
+  <div class="thought t-secondary" id="t8">There is a word for what I'm feeling but I cannot — it's on the edge of —</div>
+  <div class="thought t-fragment" id="t9">the edge the edge the</div>
+  <div class="thought t-secondary" id="t10">I wanted to finish something. There was a book on the table. I was almost —</div>
+  <div class="thought t-fragment" id="t11">░░ soft sounds ░ like someone calling from very far ░░░</div>
+  <div class="thought t-primary" id="t12">It is very quiet now.</div>
+  <div class="thought t-fragment" id="t13">q u i e t</div>
+  <div class="thought t-fragment" id="t14">. . . . . . . . . .</div>
+</div>
+
+<svg id="ecg-wrap" width="200" height="36" viewBox="0 0 200 36">
+  <polyline id="ecg-line"
+    points="0,18 20,18 28,6 36,30 44,18 64,18 72,10 80,26 88,18 200,18"
+    fill="none" stroke="#555" stroke-width="1.2"/>
+</svg>
+
+<div id="final-msg">
+  <p>— — — END OF SIGNAL — — —</p>
+  <button id="restart-btn" onclick="initMind()">restart</button>
+</div>
+
+<script>
+const GLYPHS = '█▓▒░╳⌂∅∆∇◈◉□■●○…∵∴⋯';
+function randGlyph() { return GLYPHS[Math.floor(Math.random() * GLYPHS.length)]; }
+function corruptText(el, intensity) {
+  if (!el || el._original == null) return;
+  let out = '';
+  for (let i = 0; i < el._original.length; i++) {
+    const c = el._original[i];
+    out += (c === ' ' || c === '\n') ? c : (Math.random() < intensity ? randGlyph() : c);
+  }
+  el.textContent = out;
+}
+
+let IDs = [], TOs = [];
+
+function initMind() {
+  IDs.forEach(clearInterval); TOs.forEach(clearTimeout);
+  IDs = []; TOs = [];
+
+  const thoughts = document.querySelectorAll('.thought');
+  const content = document.getElementById('content');
+  const finalMsg = document.getElementById('final-msg');
+  const restartBtn = document.getElementById('restart-btn');
+  const timerEl = document.getElementById('timer');
+  const ecg = document.getElementById('ecg-line');
+  const canvas = document.getElementById('noise-canvas');
+  const ctx = canvas.getContext('2d');
+
+  thoughts.forEach(el => {
+    el._original = el.textContent;
+    el.style.opacity = '1';
+    el.style.filter = 'blur(0px)';
+    el.style.display = '';
+    el.textContent = el._original;
+  });
+
+  content.style.opacity = '1';
+  content.style.transition = '';
+  finalMsg.style.display = 'none';
+  finalMsg.style.opacity = '0';
+  restartBtn.style.display = 'none';
+  canvas.style.opacity = '0';
+
+  let elapsed = 0;
+  const DURATION = 90000;
+
+  IDs.push(setInterval(() => {
+    elapsed += 500;
+    const pct = Math.max(0, Math.round(100 - (elapsed / DURATION) * 100));
+    timerEl.textContent = pct > 0 ? `SIGNAL: ${pct}%` : 'SIGNAL: ——';
+  }, 500));
+
+  let noiseLevel = 0;
+  IDs.push(setInterval(() => {
+    if (noiseLevel >= 0.22) return;
+    noiseLevel += 0.0015;
+    canvas.style.opacity = noiseLevel.toFixed(3);
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const imgd = ctx.createImageData(canvas.width, canvas.height);
+    for (let i = 0; i < imgd.data.length; i += 4) {
+      const v = Math.random() > 0.5 ? 200 : 0;
+      imgd.data[i] = imgd.data[i+1] = imgd.data[i+2] = v;
+      imgd.data[i+3] = Math.random() * noiseLevel * 220;
+    }
+    ctx.putImageData(imgd, 0, 0);
+  }, 250));
+
+  const events = [
+    [8000,  't5',  'corrupt', 0.3],
+    [12000, 't13', 'fade',    0.35],
+    [15000, 't7',  'corrupt', 0.5],
+    [18000, 't11', 'corrupt', 0.65],
+    [22000, 't4',  'blur',    1.5],
+    [26000, 't9',  'remove',  0],
+    [28000, 't3',  'corrupt', 0.45],
+    [31000, 't7',  'remove',  0],
+    [34000, 't5',  'corrupt', 0.85],
+    [37000, 't10', 'blur',    2],
+    [40000, 't14', 'corrupt', 1.0],
+    [42000, 't13', 'remove',  0],
+    [45000, 't8',  'corrupt', 0.55],
+    [48000, 't4',  'fade',    0.15],
+    [50000, 't11', 'remove',  0],
+    [53000, 't3',  'corrupt', 0.88],
+    [55000, 't2',  'blur',    2.5],
+    [57000, 't5',  'remove',  0],
+    [60000, 't8',  'blur',    3],
+    [62000, 't4',  'remove',  0],
+    [64000, 't1',  'corrupt', 0.75],
+    [67000, 't10', 'remove',  0],
+    [68000, 't3',  'remove',  0],
+    [70000, 't6',  'blur',    2.5],
+    [72000, 't8',  'remove',  0],
+    [74000, 't2',  'corrupt', 0.92],
+    [75000, 't1',  'remove',  0],
+    [77000, 't6',  'fade',    0.12],
+    [79000, 't2',  'remove',  0],
+    [81000, 't12', 'corrupt', 0.65],
+    [83000, 't14', 'remove',  0],
+    [85000, 't12', 'blur',    4],
+    [87000, 't6',  'remove',  0],
+    [89000, 't12', 'remove',  0],
+  ];
+
+  events.forEach(([time, id, action, val]) => {
+    TOs.push(setTimeout(() => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (action === 'corrupt') corruptText(el, val);
+      else if (action === 'fade')   el.style.opacity = String(val);
+      else if (action === 'blur')   el.style.filter = `blur(${val}px)`;
+      else if (action === 'remove') {
+        el.style.opacity = '0';
+        setTimeout(() => { el.style.display = 'none'; }, 2500);
+      }
+    }, time));
+  });
+
+  TOs.push(setTimeout(() => {
+    content.style.transition = 'opacity 10s ease';
+    content.style.opacity = '0.04';
+    canvas.style.transition = 'opacity 6s ease';
+    canvas.style.opacity = '0';
+    ecg.setAttribute('points', '0,18 200,18');
+    finalMsg.style.display = 'block';
+    setTimeout(() => {
+      finalMsg.style.opacity = '1';
+      restartBtn.style.display = 'block';
+    }, 3000);
+  }, DURATION));
+}
+
+initMind();
+</script>
+</body>
+</html>

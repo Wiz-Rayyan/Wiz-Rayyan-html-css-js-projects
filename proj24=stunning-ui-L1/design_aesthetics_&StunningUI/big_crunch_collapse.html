@@ -1,0 +1,261 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #000; }
+  #universe {
+    width: 100%;
+    min-height: 520px;
+    background: #000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+  }
+  #stage {
+    transform-origin: center center;
+    width: 600px;
+    padding: 40px 32px;
+    transition: none;
+  }
+  .page-title {
+    font-family: Georgia, serif;
+    font-size: 28px;
+    font-weight: 400;
+    color: #e8e0d0;
+    margin-bottom: 10px;
+    letter-spacing: 0.04em;
+  }
+  .page-subtitle {
+    font-size: 13px;
+    color: #7a7060;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 32px;
+  }
+  .article-body p {
+    font-size: 15px;
+    line-height: 1.75;
+    color: #b0a898;
+    margin-bottom: 18px;
+  }
+  .article-body p strong { color: #d8d0c0; font-weight: 500; }
+  .data-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 10px 0;
+    border-bottom: 0.5px solid #2a2520;
+  }
+  .data-label { font-size: 12px; color: #5a5248; letter-spacing: 0.08em; }
+  .data-value { font-size: 14px; color: #908880; font-variant-numeric: tabular-nums; }
+  .stars-bg {
+    position: absolute; inset: 0; pointer-events: none; overflow: hidden;
+  }
+  .star { position: absolute; border-radius: 50%; background: #fff; }
+  #singularity {
+    position: absolute;
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: #fff;
+    top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+    opacity: 0;
+    box-shadow: 0 0 0px 0px rgba(255,220,180,0);
+    transition: none;
+    pointer-events: none;
+  }
+  #controls {
+    position: absolute;
+    bottom: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  #crunch-btn {
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #5a5248;
+    background: transparent;
+    border: 0.5px solid #3a332e;
+    border-radius: 4px;
+    padding: 7px 18px;
+    cursor: pointer;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  #crunch-btn:hover { color: #a09888; border-color: #5a5248; }
+  #progress-label {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: #3a332e;
+    font-variant-numeric: tabular-nums;
+    min-width: 80px;
+    text-align: right;
+  }
+  #void-msg {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none;
+  }
+  #void-msg span {
+    font-family: Georgia, serif;
+    font-size: 13px;
+    color: #3a332e;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+</style>
+
+<div id="universe" aria-label="Big Crunch animation — a page collapsing into a singularity">
+  <div class="stars-bg" id="stars-bg"></div>
+
+  <div id="stage">
+    <div class="page-title">The Observable Universe</div>
+    <div class="page-subtitle">Cosmological Record — Year 13,800,000,000</div>
+
+    <div class="article-body">
+      <p>The universe began <strong>13.8 billion years ago</strong> from an infinitely dense singularity. In the first fraction of a second, space itself expanded faster than light — a period called inflation.</p>
+      <p>Everything you have ever seen, every atom in your body, every photon of light — all emerged from a single point of near-infinite density and temperature.</p>
+      <p>Now watch what happens when time reverses. <strong>The Big Crunch</strong> is the mirror of creation: gravity wins, expansion halts, and all matter collapses back toward the origin.</p>
+    </div>
+
+    <div style="margin-top: 24px;">
+      <div class="data-row"><span class="data-label">Observable radius</span><span class="data-value">93 billion light-years</span></div>
+      <div class="data-row"><span class="data-label">Baryonic matter</span><span class="data-value">4.9%</span></div>
+      <div class="data-row"><span class="data-label">Dark energy</span><span class="data-value">68.3%</span></div>
+      <div class="data-row"><span class="data-label">Temperature (CMB)</span><span class="data-value">2.725 K</span></div>
+      <div class="data-row"><span class="data-label">Status</span><span class="data-value" id="status-val">Expanding</span></div>
+    </div>
+  </div>
+
+  <div id="singularity"></div>
+
+  <div id="void-msg">
+    <span>nothing</span>
+  </div>
+
+  <div id="controls">
+    <button id="crunch-btn">Begin the Crunch</button>
+    <span id="progress-label"></span>
+  </div>
+</div>
+
+<script>
+const stageEl = document.getElementById('stage');
+const singularity = document.getElementById('singularity');
+const btn = document.getElementById('crunch-btn');
+const progressLabel = document.getElementById('progress-label');
+const statusVal = document.getElementById('status-val');
+const voidMsg = document.getElementById('void-msg');
+const starsEl = document.getElementById('stars-bg');
+
+// generate stars
+for (let i = 0; i < 80; i++) {
+  const s = document.createElement('div');
+  s.className = 'star';
+  const size = Math.random() < 0.1 ? 2 : 1;
+  s.style.cssText = `width:${size}px;height:${size}px;top:${Math.random()*100}%;left:${Math.random()*100}%;opacity:${0.1+Math.random()*0.4}`;
+  starsEl.appendChild(s);
+}
+const stars = starsEl.querySelectorAll('.star');
+
+let animating = false;
+let progress = 0;
+let rafId = null;
+
+function easeIn(t) { return t * t * t; }
+
+function apply(p) {
+  const ep = easeIn(p);
+  const scale = 1 - ep * 0.999;
+  const opacity = Math.max(0, 1 - ep * 1.3);
+  const blur = ep * ep * 8;
+
+  stageEl.style.transform = `scale(${scale})`;
+  stageEl.style.opacity = opacity;
+  stageEl.style.filter = blur > 0.3 ? `blur(${blur.toFixed(2)}px)` : '';
+
+  // stars collapse inward
+  stars.forEach((s, i) => {
+    const t2 = Math.min(1, ep * 1.2);
+    const cx = parseFloat(s.dataset.cx || (s.dataset.cx = s.style.left));
+    const cy = parseFloat(s.dataset.cy || (s.dataset.cy = s.style.top));
+    const nx = cx + (50 - cx) * t2;
+    const ny = cy + (50 - cy) * t2;
+    s.style.left = nx + '%';
+    s.style.top = ny + '%';
+    s.style.opacity = (parseFloat(s.dataset.baseop || (s.dataset.baseop = s.style.opacity))) * (1 - t2 * 0.9);
+  });
+
+  // singularity flare
+  if (ep > 0.85) {
+    const sp = (ep - 0.85) / 0.15;
+    singularity.style.opacity = sp;
+    const glow = sp * 24;
+    const color = `rgba(255,${Math.round(200+55*(1-sp))},${Math.round(120*(1-sp))},${(sp*0.6).toFixed(2)})`;
+    singularity.style.boxShadow = `0 0 ${glow}px ${glow/2}px ${color}`;
+    singularity.style.width = singularity.style.height = (2 + sp * 4) + 'px';
+  } else {
+    singularity.style.opacity = 0;
+  }
+
+  // status label
+  if (p < 0.3) {
+    statusVal.textContent = 'Expanding';
+  } else if (p < 0.6) {
+    statusVal.textContent = 'Contracting';
+  } else if (p < 0.85) {
+    statusVal.textContent = 'Collapsing';
+  } else {
+    statusVal.textContent = '—';
+  }
+
+  progressLabel.textContent = p < 0.005 ? '' : `t = −${(p * 100).toFixed(0)}%`;
+
+  if (ep > 0.97) {
+    voidMsg.style.opacity = (ep - 0.97) / 0.03;
+  }
+}
+
+function step() {
+  progress = Math.min(1, progress + 0.004);
+  apply(progress);
+  if (progress < 1) {
+    rafId = requestAnimationFrame(step);
+  } else {
+    btn.textContent = 'Reset';
+    btn.style.color = '#5a5248';
+    animating = false;
+    progressLabel.textContent = '';
+  }
+}
+
+btn.addEventListener('click', () => {
+  if (animating) return;
+  if (progress >= 1) {
+    // reset
+    progress = 0;
+    apply(0);
+    singularity.style.opacity = 0;
+    voidMsg.style.opacity = 0;
+    statusVal.textContent = 'Expanding';
+    progressLabel.textContent = '';
+    stars.forEach(s => {
+      s.style.left = s.dataset.cx + '%';
+      s.style.top = s.dataset.cy + '%';
+      s.style.opacity = s.dataset.baseop;
+      delete s.dataset.cx; delete s.dataset.cy; delete s.dataset.baseop;
+    });
+    btn.textContent = 'Begin the Crunch';
+    return;
+  }
+  animating = true;
+  btn.textContent = 'Collapsing…';
+  rafId = requestAnimationFrame(step);
+});
+</script>

@@ -1,0 +1,229 @@
+
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body, html { background: #808080; }
+#container {
+  width: 100%;
+  min-height: 520px;
+  background: #808080;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  font-family: monospace;
+}
+canvas#entropy {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 1;
+}
+#center {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  pointer-events: none;
+}
+#title {
+  font-size: 13px;
+  letter-spacing: 0.3em;
+  color: #808080;
+  text-transform: uppercase;
+  margin-bottom: 2rem;
+  transition: color 8s ease;
+}
+#entropy-value {
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  color: #808080;
+  transition: color 8s ease;
+}
+#message {
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  color: #808080;
+  margin-top: 1.5rem;
+  max-width: 320px;
+  line-height: 1.8;
+  transition: color 8s ease;
+  text-align: center;
+}
+#invoke-btn {
+  position: relative;
+  z-index: 2;
+  margin-top: 2.5rem;
+  background: none;
+  border: 0.5px solid #808080;
+  color: #808080;
+  font-family: monospace;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  padding: 10px 24px;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: border-color 0.3s, color 0.3s;
+}
+#invoke-btn:hover {
+  border-color: #909090;
+  color: #909090;
+}
+#phase {
+  font-size: 10px;
+  letter-spacing: 0.25em;
+  color: #808080;
+  margin-top: 0.75rem;
+  position: relative;
+  z-index: 2;
+  transition: color 4s ease;
+}
+</style>
+
+<div id="container">
+  <canvas id="entropy"></canvas>
+  <div id="center">
+    <div id="title">Heat Death</div>
+    <div id="entropy-value">S = ∞</div>
+    <div id="message">Nothing moves.<br>Nothing changes.<br>No color, no light, no dark.</div>
+  </div>
+  <button id="invoke-btn" onclick="invokeAI()">invoke the end ↗</button>
+  <div id="phase">t → ∞</div>
+</div>
+
+<script>
+const canvas = document.getElementById('entropy');
+const ctx = canvas.getContext('2d');
+const GRAY = '#808080';
+let W, H, particles, animFrame, phase = 0, dying = false;
+
+function resize() {
+  const container = document.getElementById('container');
+  W = canvas.offsetWidth;
+  H = canvas.offsetHeight;
+  canvas.width = W;
+  canvas.height = H;
+}
+
+function makeParticles() {
+  particles = [];
+  const count = 60;
+  for (let i = 0; i < count; i++) {
+    const energy = Math.random();
+    const gray = Math.floor(80 + energy * 60);
+    particles.push({
+      x: Math.random() * W,
+      y: Math.random() * H,
+      vx: (Math.random() - 0.5) * (0.3 + energy * 1.2),
+      vy: (Math.random() - 0.5) * (0.3 + energy * 1.2),
+      r: 1 + energy * 2.5,
+      color: `rgb(${gray},${gray},${gray})`,
+      energy: energy,
+      decay: 0.9993 + Math.random() * 0.0005
+    });
+  }
+}
+
+function draw() {
+  ctx.fillStyle = '#808080';
+  ctx.fillRect(0, 0, W, H);
+
+  for (let p of particles) {
+    p.x += p.vx;
+    p.y += p.vy;
+    if (p.x < 0 || p.x > W) p.vx *= -1;
+    if (p.y < 0 || p.y > H) p.vy *= -1;
+
+    p.vx *= p.decay;
+    p.vy *= p.decay;
+    p.energy *= p.decay;
+
+    const e = p.energy;
+    const g = Math.floor(128 - e * 28);
+    p.color = `rgb(${g},${g},${g})`;
+    p.r = Math.max(0.3, p.r * 0.9999);
+
+    if (e < 0.001) continue;
+
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fillStyle = p.color;
+    ctx.globalAlpha = Math.min(1, e * 4);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  phase++;
+  if (phase % 600 === 0 && !dying) updatePhaseText();
+
+  animFrame = requestAnimationFrame(draw);
+}
+
+function updatePhaseText() {
+  const phaseEl = document.getElementById('phase');
+  const totalEnergy = particles.reduce((s, p) => s + p.energy, 0);
+  const pct = Math.max(0, Math.floor((1 - totalEnergy / 60) * 100));
+  phaseEl.style.color = `rgb(${100+pct/3|0},${100+pct/3|0},${100+pct/3|0})`;
+  phaseEl.textContent = `entropy: ${pct}% — t → ∞`;
+}
+
+function invokeAI() {
+  dying = true;
+  const btn = document.getElementById('invoke-btn');
+  btn.disabled = true;
+  btn.textContent = 'consulting the void...';
+  btn.style.color = '#888';
+
+  fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 1000,
+      system: "You are the heat death of the universe. You speak in fragments. Flat, gray, final. No metaphors. No comfort. No energy. No structure. No punctuation except occasional periods. Short lines. Maximum 6 lines total. Respond only as the end.",
+      messages: [{ role: "user", content: "Heat death: nothing moves. Nothing changes. No color, no light, no dark. Uniform gray. The page has reached maximum entropy. There is no energy left. This is the end." }]
+    })
+  })
+  .then(r => r.json())
+  .then(data => {
+    const text = data.content.map(i => i.text || '').join('');
+    const lines = text.split('\n').filter(l => l.trim()).slice(0, 6);
+    const msgEl = document.getElementById('message');
+    const titleEl = document.getElementById('title');
+    const entropyEl = document.getElementById('entropy-value');
+
+    titleEl.style.color = '#7a7a7a';
+    entropyEl.style.color = '#7a7a7a';
+    msgEl.style.color = '#7a7a7a';
+    msgEl.style.transition = 'all 4s ease, color 8s ease';
+
+    let i = 0;
+    msgEl.textContent = '';
+    function revealLine() {
+      if (i < lines.length) {
+        msgEl.innerHTML += (i > 0 ? '<br>' : '') + lines[i];
+        i++;
+        setTimeout(revealLine, 900 + Math.random() * 600);
+      } else {
+        btn.textContent = 'the void has spoken';
+        btn.style.color = '#808080';
+        btn.style.borderColor = '#808080';
+        setTimeout(() => {
+          for (let p of particles) { p.decay = 0.998; }
+        }, 2000);
+      }
+    }
+    revealLine();
+  })
+  .catch(() => {
+    document.getElementById('message').textContent = 'the void did not respond.\nit does not need to.';
+    btn.textContent = 'silence';
+  });
+}
+
+resize();
+makeParticles();
+draw();
+window.addEventListener('resize', () => { resize(); });
+</script>

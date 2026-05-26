@@ -1,0 +1,441 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#060810}
+
+.wrap{background:#060810;border-radius:12px;overflow:hidden;position:relative}
+
+.stage{
+  position:relative;width:100%;height:560px;
+  overflow:hidden;display:flex;align-items:center;justify-content:center;
+  cursor:crosshair;
+}
+
+canvas#bg{position:absolute;inset:0;width:100%;height:100%}
+
+.hud{position:absolute;inset:0;pointer-events:none}
+
+.panel{
+  position:absolute;transform-origin:center center;
+  pointer-events:auto;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  transition:filter .15s;
+  will-change:transform,opacity;
+}
+.panel:hover .pinner{border-color:rgba(255,255,255,0.55)!important;filter:brightness(1.25)}
+.panel.active .pinner{border-color:rgba(255,255,255,0.8)!important;filter:brightness(1.5)}
+
+.pinner{
+  width:100%;height:100%;
+  border:1px solid;border-radius:3px;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  gap:3px;padding:8px 12px;
+  transition:all .2s;
+  position:relative;overflow:hidden;
+}
+.pinner::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,0.05) 0%,transparent 60%);
+  pointer-events:none;
+}
+
+.plabel{font-family:'Courier New',monospace;letter-spacing:.14em;text-transform:uppercase;white-space:nowrap;line-height:1}
+.psub{font-family:'Courier New',monospace;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;line-height:1;opacity:.55}
+.pval{font-family:'Courier New',monospace;letter-spacing:.06em;white-space:nowrap;line-height:1;opacity:.9}
+
+.crosshair{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  pointer-events:none;z-index:30;
+}
+
+.detail-box{
+  position:absolute;bottom:0;left:0;right:0;
+  background:rgba(6,8,16,0.96);border-top:1px solid rgba(80,140,255,0.25);
+  padding:12px 20px;display:flex;align-items:center;gap:20px;
+  pointer-events:none;
+  transition:opacity .3s;
+}
+.detail-name{font-family:'Courier New',monospace;font-size:13px;text-transform:uppercase;letter-spacing:.15em}
+.detail-stat{font-family:'Courier New',monospace;font-size:11px;letter-spacing:.1em;opacity:.6}
+.detail-bar{flex:1;height:3px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden}
+.detail-fill{height:100%;border-radius:2px;transition:width .6s cubic-bezier(.4,0,.2,1)}
+
+.toolbar{
+  display:flex;align-items:center;gap:8px;padding:10px 14px;
+  border-top:1px solid rgba(255,255,255,0.06);
+  background:#070910;flex-wrap:wrap;
+}
+.tbtn{
+  font-family:'Courier New',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+  padding:5px 12px;border-radius:3px;cursor:pointer;
+  border:1px solid;transition:all .15s;background:transparent;
+}
+.tbtn:hover{opacity:.7;transform:scale(0.97)}
+.tbtn.active-theme{opacity:1}
+
+.tlabel{font-family:'Courier New',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;opacity:.4;margin-left:auto}
+.tslider-wrap{display:flex;align-items:center;gap:8px}
+.tslider-wrap input{width:80px}
+.tslider-wrap span{font-family:'Courier New',monospace;font-size:10px;letter-spacing:.08em;opacity:.55;min-width:28px}
+
+.status-bar{
+  display:flex;align-items:center;gap:16px;padding:6px 14px;
+  background:#050710;border-top:1px solid rgba(255,255,255,0.04);
+}
+.status-dot{width:6px;height:6px;border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.status-txt{font-family:'Courier New',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;opacity:.5}
+.status-coord{font-family:'Courier New',monospace;font-size:10px;letter-spacing:.06em;opacity:.35;margin-left:auto}
+</style>
+
+<h2 class="sr-only">Interactive tunnel perspective UI — a sci-fi corridor with animated depth panels, converging grid, and live system readouts.</h2>
+
+<div class="wrap">
+  <div class="stage" id="stage">
+    <canvas id="bg"></canvas>
+    <div class="hud" id="hud"></div>
+
+    <div class="crosshair" id="xhair">
+      <svg width="48" height="48" viewBox="0 0 48 48">
+        <circle cx="24" cy="24" r="22" fill="none" stroke="rgba(80,140,255,0.3)" stroke-width="0.5"/>
+        <circle cx="24" cy="24" r="14" fill="none" stroke="rgba(80,140,255,0.5)" stroke-width="0.5"/>
+        <circle cx="24" cy="24" r="4"  fill="none" stroke="rgba(80,140,255,0.8)" stroke-width="0.75"/>
+        <circle cx="24" cy="24" r="1.5" fill="rgba(130,190,255,1)"/>
+        <line x1="24" y1="2"  x2="24" y2="10" stroke="rgba(80,140,255,0.5)" stroke-width="0.5"/>
+        <line x1="24" y1="38" x2="24" y2="46" stroke="rgba(80,140,255,0.5)" stroke-width="0.5"/>
+        <line x1="2"  y1="24" x2="10" y2="24" stroke="rgba(80,140,255,0.5)" stroke-width="0.5"/>
+        <line x1="38" y1="24" x2="46" y2="24" stroke="rgba(80,140,255,0.5)" stroke-width="0.5"/>
+      </svg>
+    </div>
+
+    <div class="detail-box" id="detailBox" style="opacity:0">
+      <div>
+        <div class="detail-name" id="dName" style="color:#6ab0ff">—</div>
+        <div class="detail-stat" id="dStat" style="color:#aaa">—</div>
+      </div>
+      <div class="detail-bar"><div class="detail-fill" id="dFill" style="width:0%;background:#378add"></div></div>
+      <div class="detail-stat" id="dVal" style="color:#aaa;min-width:40px;text-align:right">—</div>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <button class="tbtn active-theme" id="bt0" style="color:#6ab0ff;border-color:rgba(80,140,255,0.4)" onclick="applyTheme(0)">Blue</button>
+    <button class="tbtn" id="bt1" style="color:#3dd6a4;border-color:rgba(40,210,160,0.35)" onclick="applyTheme(1)">Teal</button>
+    <button class="tbtn" id="bt2" style="color:#c47aff;border-color:rgba(190,90,255,0.35)" onclick="applyTheme(2)">Violet</button>
+    <button class="tbtn" id="bt3" style="color:#ffa040;border-color:rgba(255,160,40,0.35)" onclick="applyTheme(3)">Amber</button>
+    <button class="tbtn" id="bt4" style="color:#ff6080;border-color:rgba(255,60,80,0.35)" onclick="applyTheme(4)">Red</button>
+    <div style="width:1px;height:18px;background:rgba(255,255,255,0.1);margin:0 4px"></div>
+    <button class="tbtn" id="pauseBtn" style="color:rgba(255,255,255,0.5);border-color:rgba(255,255,255,0.15)" onclick="togglePause()">⏸ Pause</button>
+    <div class="tslider-wrap" style="margin-left:8px">
+      <span class="tlabel" style="margin-left:0">Speed</span>
+      <input type="range" min="1" max="10" step="1" value="4" id="spd" oninput="speed=this.value/4;document.getElementById('spdv').textContent=parseFloat(this.value/4).toFixed(1)+'×'">
+      <span id="spdv">1.0×</span>
+    </div>
+    <span class="tlabel">Tunnel / Perspective UI</span>
+  </div>
+
+  <div class="status-bar">
+    <div class="status-dot" id="sdot" style="background:#378add"></div>
+    <span class="status-txt">System online</span>
+    <span class="status-txt" id="sFps">60 fps</span>
+    <span class="status-coord" id="sCoord">X: 340 / Y: 280</span>
+  </div>
+</div>
+
+<script>
+const PANELS = [
+  {label:'NETWORK', sub:'Link status',  val:()=>Math.round(72+Math.sin(Date.now()*.0007)*22)+'%', icon:'◈'},
+  {label:'MEMORY',  sub:'Allocation',   val:()=>Math.round(58+Math.cos(Date.now()*.0005)*18)+'%', icon:'◉'},
+  {label:'SIGNAL',  sub:'Input gain',   val:()=>Math.round(85+Math.sin(Date.now()*.0012)*12)+'%', icon:'◎'},
+  {label:'RENDER',  sub:'Frame output', val:()=>Math.round(94+Math.cos(Date.now()*.0008)*5)+'%',  icon:'◈'},
+  {label:'CORE',    sub:'Processor',    val:()=>Math.round(61+Math.sin(Date.now()*.0006)*25)+'%', icon:'◉'},
+  {label:'SECTOR',  sub:'Zone delta',   val:()=>Math.round(45+Math.cos(Date.now()*.0009)*30)+'%', icon:'◎'},
+  {label:'PORTAL',  sub:'Gate sync',    val:()=>Math.round(99+Math.sin(Date.now()*.0003)*1)+'%',  icon:'◈'},
+];
+
+const THEMES = [
+  {p:[80,140,255],  txt:'#6ab0ff',  name:'blue'},
+  {p:[40,210,160],  txt:'#3dd6a4',  name:'teal'},
+  {p:[190,90,255],  txt:'#c47aff',  name:'violet'},
+  {p:[255,160,40],  txt:'#ffa040',  name:'amber'},
+  {p:[255,70,90],   txt:'#ff6080',  name:'red'},
+];
+
+let theme = THEMES[0];
+let paused = false;
+let speed = 1;
+let t = 0;
+let mouseX = 0.5, mouseY = 0.5;
+let activePanel = -1;
+let lastT = null;
+let fps = 60, fpsAcc = 0, fpsN = 0;
+
+const stage   = document.getElementById('stage');
+const canvas  = document.getElementById('bg');
+const hud     = document.getElementById('hud');
+const xhair   = document.getElementById('xhair');
+const detBox  = document.getElementById('detailBox');
+const dName   = document.getElementById('dName');
+const dStat   = document.getElementById('dStat');
+const dFill   = document.getElementById('dFill');
+const dVal    = document.getElementById('dVal');
+const sdot    = document.getElementById('sdot');
+const sFps    = document.getElementById('sFps');
+const sCoord  = document.getElementById('sCoord');
+let ctx;
+
+function getWH(){
+  const r = stage.getBoundingClientRect();
+  return [r.width, r.height];
+}
+
+function resizeCanvas(){
+  const [w,h] = getWH();
+  canvas.width = w; canvas.height = h;
+}
+
+resizeCanvas();
+ctx = canvas.getContext('2d');
+window.addEventListener('resize', resizeCanvas);
+
+stage.addEventListener('mousemove', e => {
+  const r = stage.getBoundingClientRect();
+  mouseX = (e.clientX - r.left) / r.width;
+  mouseY = (e.clientY - r.top) / r.height;
+  sCoord.textContent = `X: ${Math.round(e.clientX - r.left)} / Y: ${Math.round(e.clientY - r.top)}`;
+});
+
+function rgbaStr(rgb, a){ return `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${a})`; }
+
+function drawBackground(){
+  const w = canvas.width, h = canvas.height;
+  const cx = w * (0.3 + mouseX * 0.4);
+  const cy = h * (0.3 + mouseY * 0.4);
+  const p = theme.p;
+
+  ctx.fillStyle = '#060810';
+  ctx.fillRect(0,0,w,h);
+
+  function drawGrid(cols, rows, alpha, converge){
+    ctx.strokeStyle = rgbaStr(p, alpha);
+    ctx.lineWidth = 0.5;
+    for(let i=0;i<=cols;i++){
+      const x = (w/cols)*i;
+      const tx = cx + (x-cx)*converge;
+      ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(tx,h); ctx.stroke();
+    }
+    for(let i=0;i<=rows;i++){
+      const y = (h/rows)*i;
+      const ty = cy + (y-cy)*converge;
+      ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,ty); ctx.stroke();
+    }
+  }
+  drawGrid(14, 10, 0.06, 0.12);
+
+  const rays = 24;
+  ctx.lineWidth = 0.5;
+  for(let i=0;i<rays;i++){
+    const angle = (i/rays) * Math.PI * 2;
+    const ex = cx + Math.cos(angle)*Math.max(w,h)*1.4;
+    const ey = cy + Math.sin(angle)*Math.max(w,h)*1.4;
+    const dist = 1 - Math.min(1, 0.6);
+    ctx.strokeStyle = rgbaStr(p, 0.07);
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(ex,ey); ctx.stroke();
+  }
+
+  const rings = 10;
+  for(let i=rings;i>=1;i--){
+    const frac = i/rings;
+    const scl = 0.03 + frac * 0.97;
+    const rw = w * scl * 0.85;
+    const rh = h * scl * 0.8;
+    const rx2 = cx - rw/2;
+    const ry2 = cy - rh/2;
+    ctx.strokeStyle = rgbaStr(p, 0.05 + (1-frac)*0.12);
+    ctx.lineWidth = 0.5;
+    ctx.strokeRect(rx2, ry2, rw, rh);
+  }
+
+  const pulse = 0.5 + Math.sin(t * 2.8) * 0.5;
+  const grad = ctx.createRadialGradient(cx,cy,0, cx,cy, Math.min(w,h)*0.12);
+  grad.addColorStop(0, rgbaStr(p, 0.18 * pulse));
+  grad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0,0,w,h);
+
+  const vig = ctx.createRadialGradient(w/2,h/2,h*0.25, w/2,h/2,h*0.75);
+  vig.addColorStop(0,'rgba(0,0,0,0)');
+  vig.addColorStop(1,'rgba(4,6,14,0.88)');
+  ctx.fillStyle = vig;
+  ctx.fillRect(0,0,w,h);
+
+  for(let i=0;i<h;i+=4){
+    ctx.fillStyle = 'rgba(0,0,0,0.06)';
+    ctx.fillRect(0,i,w,1);
+  }
+}
+
+const PERIOD = 5000;
+const N = PANELS.length;
+
+function panelLayout(i, t, w, h){
+  const cx = w/2, cy = h/2;
+  const angle = [-90, 90, 180, 0, -45, 135, 45][i] * Math.PI / 180;
+  const baseR  = [190, 190, 210, 210, 155, 155, 140][i];
+  const offset = (i/N) * PERIOD;
+  const phase  = ((t*1000 + offset) % PERIOD) / PERIOD;
+  const ease   = phase < 0.5 ? 2*phase*phase : 1 - Math.pow(-2*phase+2,2)/2;
+  const scl    = 0.22 + ease * 0.78;
+  const r      = baseR * scl;
+  const px     = cx + Math.cos(angle) * r;
+  const py     = cy + Math.sin(angle) * r;
+  const bw     = 118, bh = 54;
+  return { px, py, scl, phase, ease,
+           w: bw*scl, h: bh*scl, alpha: 0.12 + ease*0.88 };
+}
+
+function buildPanels(w, h){
+  const p = theme.p;
+  const tc = theme.txt;
+  hud.innerHTML = '';
+  for(let i=0;i<N;i++){
+    const el = document.createElement('div');
+    el.className = 'panel';
+    el.dataset.idx = i;
+    el.style.cssText = 'position:absolute;top:50%;left:50%;';
+    const inner = document.createElement('div');
+    inner.className = 'pinner';
+    inner.style.cssText = `background:rgba(6,10,22,0.82);border-color:${rgbaStr(p,0.32)};`;
+
+    const lb = document.createElement('div');
+    lb.className = 'plabel';
+    lb.style.color = tc;
+
+    const sb = document.createElement('div');
+    sb.className = 'psub';
+    sb.style.color = tc;
+
+    const vb = document.createElement('div');
+    vb.className = 'pval';
+    vb.style.color = tc;
+
+    inner.append(lb, sb, vb);
+    el.appendChild(inner);
+    hud.appendChild(el);
+
+    el.addEventListener('click', () => {
+      activePanel = activePanel === i ? -1 : i;
+      updateDetail();
+    });
+    el.addEventListener('mouseenter', () => { if(activePanel<0) showDetail(i); });
+    el.addEventListener('mouseleave', () => { if(activePanel<0) hideDetail(); });
+  }
+}
+
+function updateDetail(){
+  if(activePanel >= 0){
+    showDetail(activePanel);
+  } else {
+    hideDetail();
+  }
+}
+
+function showDetail(i){
+  const pd = PANELS[i];
+  const p = theme.p;
+  const valNum = parseInt(pd.val());
+  dName.textContent = pd.label;
+  dName.style.color = theme.txt;
+  dStat.textContent = pd.sub;
+  dFill.style.background = rgbaStr(p,0.85);
+  dFill.style.width = valNum+'%';
+  dVal.textContent = valNum+'%';
+  detBox.style.opacity = '1';
+}
+
+function hideDetail(){
+  if(activePanel < 0) detBox.style.opacity = '0';
+}
+
+function positionPanels(w, h){
+  const els = hud.querySelectorAll('.panel');
+  els.forEach((el, i) => {
+    const pd = PANELS[i];
+    const lay = panelLayout(i, t, w, h);
+    const inner = el.querySelector('.pinner');
+    const lb = el.querySelector('.plabel');
+    const sb = el.querySelector('.psub');
+    const vb = el.querySelector('.pval');
+    const p = theme.p;
+
+    el.style.width  = lay.w+'px';
+    el.style.height = lay.h+'px';
+    el.style.marginLeft = (-lay.w/2)+'px';
+    el.style.marginTop  = (-lay.h/2)+'px';
+    el.style.transform = `translate(calc(-50% + ${lay.px - w/2}px), calc(-50% + ${lay.py - h/2}px))`;
+    el.style.opacity = lay.alpha;
+    el.style.zIndex = Math.round(lay.ease * 100);
+
+    const fs1 = Math.max(9, 11 * lay.scl);
+    const fs2 = Math.max(8, 9 * lay.scl);
+    lb.style.fontSize = fs1+'px';
+    lb.textContent = pd.label;
+    sb.style.fontSize = fs2+'px';
+    sb.textContent = pd.sub;
+    vb.style.fontSize = fs2+'px';
+    vb.textContent = pd.val();
+
+    inner.style.borderColor = i === activePanel
+      ? `rgba(${p[0]},${p[1]},${p[2]},0.8)`
+      : `rgba(${p[0]},${p[1]},${p[2]},${0.2 + lay.ease*0.25})`;
+  });
+}
+
+function updateCrosshair(w, h){
+  const pulse = 0.7 + Math.sin(t * 3.5) * 0.3;
+  xhair.style.opacity = pulse;
+  xhair.style.transform = `translate(-50%,-50%) rotate(${t*12}deg)`;
+}
+
+function applyTheme(idx){
+  theme = THEMES[idx];
+  sdot.style.background = theme.txt;
+  document.querySelectorAll('.tbtn').forEach((b,i) => {
+    b.classList.toggle('active-theme', i===idx);
+  });
+  const els = hud.querySelectorAll('.pinner .plabel, .pinner .psub, .pinner .pval');
+  els.forEach(e => e.style.color = theme.txt);
+}
+
+function togglePause(){
+  paused = !paused;
+  document.getElementById('pauseBtn').textContent = paused ? '▶ Play' : '⏸ Pause';
+}
+
+let lastFpsUpdate = 0;
+function raf(ts){
+  if(!lastT) lastT = ts;
+  const dt = Math.min(ts - lastT, 80) / 1000;
+  lastT = ts;
+  if(!paused) t += dt * speed;
+
+  fpsAcc += 1/(dt||0.016); fpsN++;
+  if(ts - lastFpsUpdate > 800){
+    fps = Math.round(fpsAcc / fpsN);
+    sFps.textContent = fps+' fps';
+    fpsAcc = 0; fpsN = 0;
+    lastFpsUpdate = ts;
+  }
+
+  const [w,h] = getWH();
+  drawBackground();
+  positionPanels(w,h);
+  updateCrosshair(w,h);
+  if(activePanel >= 0) updateDetail();
+  requestAnimationFrame(raf);
+}
+
+buildPanels(...getWH());
+requestAnimationFrame(raf);
+</script>

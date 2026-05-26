@@ -1,0 +1,326 @@
+<h2 class="sr-only">Morphing menu navigation demo — a button morphs between hamburger, close X, back arrow, and logo states with fluid SVG path animation</h2>
+
+<style>
+  :root {
+    --ease: cubic-bezier(0.34, 1.2, 0.64, 1);
+    --dur: 0.42s;
+  }
+  .demo-shell {
+    padding: 2rem 0 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+  }
+  .nav-bar {
+    width: 100%;
+    max-width: 540px;
+    height: 56px;
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--border-radius-lg);
+    background: var(--color-background-primary);
+    display: flex;
+    align-items: center;
+    padding: 0 1rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .morph-btn {
+    width: 40px;
+    height: 40px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    transition: background var(--dur) var(--ease);
+    position: relative;
+    z-index: 2;
+    flex-shrink: 0;
+  }
+  .morph-btn:hover { background: var(--color-background-secondary); }
+  .morph-btn svg { overflow: visible; }
+  .icon-path {
+    fill: none;
+    stroke: var(--color-text-primary);
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: d var(--dur) var(--ease), opacity var(--dur) var(--ease), stroke-dashoffset var(--dur) var(--ease);
+  }
+  .icon-dot {
+    transition: cx var(--dur) var(--ease), cy var(--dur) var(--ease), r var(--dur) var(--ease), opacity var(--dur) var(--ease), fill var(--dur) var(--ease);
+  }
+  .nav-label {
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    margin-left: 10px;
+    letter-spacing: 0.01em;
+    transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease);
+  }
+  .nav-title {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-text-primary);
+    transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease);
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  .nav-actions {
+    margin-left: auto;
+    display: flex;
+    gap: 4px;
+    z-index: 2;
+  }
+  .nav-pill {
+    height: 28px;
+    padding: 0 12px;
+    border-radius: 999px;
+    border: 0.5px solid var(--color-border-tertiary);
+    background: var(--color-background-secondary);
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease), background 0.2s;
+    white-space: nowrap;
+  }
+  .nav-pill:hover { background: var(--color-background-tertiary); }
+  .slide-panel {
+    position: absolute;
+    inset: 0;
+    background: var(--color-background-primary);
+    transform: translateX(100%);
+    transition: transform var(--dur) var(--ease);
+    display: flex;
+    align-items: center;
+    padding: 0 1rem 0 60px;
+    gap: 1.5rem;
+  }
+  .slide-panel.open { transform: translateX(0); }
+  .slide-panel span {
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+  .slide-panel span:hover { color: var(--color-text-primary); }
+  .back-panel {
+    position: absolute;
+    inset: 0;
+    background: var(--color-background-primary);
+    transform: translateX(100%);
+    transition: transform var(--dur) var(--ease);
+    display: flex;
+    align-items: center;
+    padding: 0 1rem 0 60px;
+    gap: 1.5rem;
+  }
+  .back-panel.open { transform: translateX(0); }
+  .back-panel span {
+    font-size: 13px;
+    color: var(--color-text-secondary);
+  }
+  .state-track {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .state-pip {
+    height: 4px;
+    border-radius: 2px;
+    background: var(--color-border-tertiary);
+    transition: width var(--dur) var(--ease), background var(--dur) var(--ease);
+    cursor: pointer;
+  }
+  .state-pip.active {
+    background: var(--color-text-primary);
+  }
+  .state-label {
+    font-size: 11px;
+    color: var(--color-text-tertiary);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    min-width: 80px;
+    text-align: center;
+  }
+  .code-chip {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--color-text-secondary);
+    background: var(--color-background-secondary);
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: 6px;
+    padding: 0.6rem 0.85rem;
+    width: 100%;
+    max-width: 540px;
+    line-height: 1.7;
+  }
+  .hint {
+    font-size: 12px;
+    color: var(--color-text-tertiary);
+    text-align: center;
+  }
+</style>
+
+<div class="demo-shell">
+
+  <div class="nav-bar" id="navBar">
+    <button class="morph-btn" id="morphBtn" aria-label="Toggle menu" onclick="nextState()">
+      <svg width="22" height="22" viewBox="0 0 22 22">
+        <path class="icon-path" id="lineTop"    d="M3,6 L19,6" />
+        <path class="icon-path" id="lineMid"    d="M3,11 L19,11" />
+        <path class="icon-path" id="lineBot"    d="M3,16 L19,16" />
+        <path class="icon-path" id="lineArrow1" d="M11,11 L11,11" style="opacity:0" />
+        <path class="icon-path" id="lineArrow2" d="M11,11 L11,11" style="opacity:0" />
+        <circle class="icon-dot" id="logoDot1" cx="11" cy="11" r="0" style="fill:var(--color-text-primary);opacity:0" />
+        <circle class="icon-dot" id="logoDot2" cx="11" cy="11" r="0" style="fill:var(--color-text-primary);opacity:0" />
+      </svg>
+    </button>
+    <span class="nav-label" id="navLabel">Menu</span>
+    <div class="nav-title" id="navTitle" style="opacity:0; transform: translateX(-50%) translateY(4px);">Products</div>
+    <div class="nav-actions" id="navActions">
+      <button class="nav-pill">Sign in</button>
+      <button class="nav-pill" style="background: var(--color-text-primary); color: var(--color-background-primary); border-color: var(--color-text-primary);">Get started</button>
+    </div>
+    <div class="slide-panel" id="slidePanel">
+      <span onclick="goSubMenu()">Products ›</span>
+      <span>Pricing</span>
+      <span>Docs</span>
+      <span>Blog</span>
+    </div>
+    <div class="back-panel" id="backPanel">
+      <span style="color:var(--color-text-primary); font-weight:500;">Core</span>
+      <span>Enterprise</span>
+      <span>API</span>
+    </div>
+  </div>
+
+  <div style="display:flex; flex-direction:column; align-items:center; gap:10px;">
+    <div class="state-track" id="stateTrack"></div>
+    <div class="state-label" id="stateLabel">hamburger</div>
+  </div>
+
+  <div class="hint">Click the icon to morph through all 4 states</div>
+
+  <div class="code-chip">
+    transition: d <span id="codeEase">0.42s cubic-bezier(0.34, 1.2, 0.64, 1)</span><br>
+    current path: <span id="codePath" style="color:var(--color-text-primary)">M3,6 L19,6 · M3,11 L19,11 · M3,16 L19,16</span>
+  </div>
+
+</div>
+
+<script>
+const states = ['hamburger','close','back','logo'];
+const labels = ['hamburger','close ×','back ←','logo ◉'];
+const paths = {
+  hamburger: {
+    top: 'M3,6 L19,6', mid: 'M3,11 L19,11', bot: 'M3,16 L19,16',
+    a1: 'M11,11 L11,11', a2: 'M11,11 L11,11',
+    a1o: 0, a2o: 0,
+    d1r: 0, d1cx: 11, d1cy: 11,
+    d2r: 0, d2cx: 11, d2cy: 11,
+    navLabel: 'Menu', showTitle: false, showMenu: false, showBack: false,
+    showActions: true, codeDesc: 'M3,6 L19,6 · M3,11 L19,11 · M3,16 L19,16'
+  },
+  close: {
+    top: 'M5,5 L17,17', mid: 'M11,11 L11,11', bot: 'M17,5 L5,17',
+    a1: 'M11,11 L11,11', a2: 'M11,11 L11,11',
+    a1o: 0, a2o: 0,
+    d1r: 0, d1cx: 11, d1cy: 11,
+    d2r: 0, d2cx: 11, d2cy: 11,
+    navLabel: 'Close', showTitle: false, showMenu: true, showBack: false,
+    showActions: false, codeDesc: 'M5,5 L17,17 · M17,5 L5,17'
+  },
+  back: {
+    top: 'M3,11 L12,5', mid: 'M3,11 L19,11', bot: 'M3,11 L12,17',
+    a1: 'M11,11 L11,11', a2: 'M11,11 L11,11',
+    a1o: 0, a2o: 0,
+    d1r: 0, d1cx: 11, d1cy: 11,
+    d2r: 0, d2cx: 11, d2cy: 11,
+    navLabel: 'Back', showTitle: true, showMenu: false, showBack: true,
+    showActions: false, codeDesc: 'M3,11 L12,5 · M3,11 L19,11 · M3,11 L12,17'
+  },
+  logo: {
+    top: 'M11,11 L11,11', mid: 'M11,11 L11,11', bot: 'M11,11 L11,11',
+    a1: 'M11,11 L11,11', a2: 'M11,11 L11,11',
+    a1o: 0, a2o: 0,
+    d1r: 4.5, d1cx: 11, d1cy: 11,
+    d2r: 2, d2cx: 11, d2cy: 11,
+    navLabel: '', showTitle: false, showMenu: false, showBack: false,
+    showActions: true, codeDesc: 'circle r=4.5 + circle r=2 (logo rings)'
+  }
+};
+
+let cur = 0;
+
+function buildTrack() {
+  const track = document.getElementById('stateTrack');
+  track.innerHTML = '';
+  states.forEach((s, i) => {
+    const pip = document.createElement('div');
+    pip.className = 'state-pip' + (i === cur ? ' active' : '');
+    pip.style.width = i === cur ? '28px' : '14px';
+    pip.onclick = () => { cur = i; applyState(); };
+    track.appendChild(pip);
+  });
+  document.getElementById('stateLabel').textContent = labels[cur];
+}
+
+function applyState() {
+  const s = paths[states[cur]];
+  document.getElementById('lineTop').style.d = `path("${s.top}")`;
+  document.getElementById('lineMid').style.d = `path("${s.mid}")`;
+  document.getElementById('lineBot').style.d = `path("${s.bot}")`;
+  document.getElementById('lineArrow1').style.d = `path("${s.a1}")`;
+  document.getElementById('lineArrow2').style.d = `path("${s.a2}")`;
+  document.getElementById('lineArrow1').style.opacity = s.a1o;
+  document.getElementById('lineArrow2').style.opacity = s.a2o;
+
+  const d1 = document.getElementById('logoDot1');
+  const d2 = document.getElementById('logoDot2');
+  d1.setAttribute('r', s.d1r); d1.setAttribute('cx', s.d1cx); d1.setAttribute('cy', s.d1cy);
+  d1.style.opacity = s.d1r > 0 ? 1 : 0;
+  d2.setAttribute('r', s.d2r); d2.setAttribute('cx', s.d2cx); d2.setAttribute('cy', s.d2cy);
+  d2.style.opacity = s.d2r > 0 ? 1 : 0;
+  if (s.d2r > 0) {
+    d2.style.fill = 'var(--color-background-primary)';
+  }
+
+  const navLabel = document.getElementById('navLabel');
+  navLabel.textContent = s.navLabel;
+  navLabel.style.opacity = s.navLabel ? 1 : 0;
+
+  const navTitle = document.getElementById('navTitle');
+  navTitle.style.opacity = s.showTitle ? 1 : 0;
+  navTitle.style.transform = `translateX(-50%) translateY(${s.showTitle ? 0 : 4}px)`;
+
+  const actions = document.getElementById('navActions');
+  actions.style.opacity = s.showActions ? 1 : 0;
+  actions.style.transform = `translateX(${s.showActions ? 0 : 8}px)`;
+
+  document.getElementById('slidePanel').classList.toggle('open', s.showMenu);
+  document.getElementById('backPanel').classList.toggle('open', s.showBack);
+
+  document.getElementById('codePath').textContent = s.codeDesc;
+  buildTrack();
+}
+
+function nextState() {
+  cur = (cur + 1) % states.length;
+  applyState();
+}
+
+function goSubMenu() {
+  cur = 2;
+  applyState();
+}
+
+buildTrack();
+applyState();
+</script>

@@ -1,0 +1,454 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  .tunnel-scene {
+    position: relative;
+    width: 100%;
+    height: 580px;
+    background: #080a10;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    perspective: 900px;
+    perspective-origin: 50% 50%;
+  }
+
+  .tunnel-world {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+  }
+
+  /* Converging grid lines */
+  .grid-svg {
+    position: absolute;
+    inset: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+  }
+
+  /* Tunnel rings */
+  .ring {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform-origin: center;
+    border: 1px solid rgba(80, 140, 255, 0.18);
+    border-radius: 4px;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+
+  /* Floating panels */
+  .panel {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform-origin: center center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: filter 0.2s;
+  }
+
+  .panel:hover { filter: brightness(1.35); }
+
+  .panel-inner {
+    border: 1px solid;
+    border-radius: 3px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    overflow: hidden;
+  }
+
+  .panel-label {
+    font-family: 'Courier New', monospace;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .panel-sub {
+    font-family: 'Courier New', monospace;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    opacity: 0.6;
+    white-space: nowrap;
+  }
+
+  /* Center vortex */
+  .vortex {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  /* Scan line overlay */
+  .scanlines {
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      to bottom,
+      transparent 0px,
+      transparent 3px,
+      rgba(0,0,0,0.07) 3px,
+      rgba(0,0,0,0.07) 4px
+    );
+    pointer-events: none;
+    z-index: 20;
+  }
+
+  /* Vignette */
+  .vignette {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center,
+      transparent 30%,
+      rgba(4,6,14,0.55) 75%,
+      rgba(4,6,14,0.92) 100%
+    );
+    pointer-events: none;
+    z-index: 19;
+  }
+
+  /* Controls */
+  .controls {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    padding: 14px 0 4px;
+    flex-wrap: wrap;
+  }
+
+  .ctrl-btn {
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 6px 16px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.15s;
+    background: transparent;
+  }
+
+  .ctrl-btn:hover { opacity: 0.75; transform: scale(0.97); }
+
+  /* Speed control */
+  .speed-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 6px 0 0;
+  }
+
+  .speed-row label {
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(120,160,255,0.7);
+  }
+
+  .speed-row input { width: 110px; }
+</style>
+
+<h2 class="sr-only">Tunnel perspective UI — a forced-perspective 3D corridor with floating navigation panels converging toward a central vanishing point.</h2>
+
+<div class="tunnel-scene" id="scene">
+
+  <!-- Converging grid SVG -->
+  <svg class="grid-svg" viewBox="0 0 680 580" xmlns="http://www.w3.org/2000/svg" id="gridSvg"></svg>
+
+  <!-- Rings drawn by JS -->
+  <div id="rings"></div>
+
+  <!-- Panels drawn by JS -->
+  <div id="panels" style="position:absolute;inset:0;"></div>
+
+  <!-- Vortex center -->
+  <div class="vortex" id="vortex">
+    <svg width="60" height="60" viewBox="0 0 60 60">
+      <circle cx="30" cy="30" r="28" fill="none" stroke="rgba(80,140,255,0.35)" stroke-width="0.5"/>
+      <circle cx="30" cy="30" r="18" fill="none" stroke="rgba(80,140,255,0.5)" stroke-width="0.5"/>
+      <circle cx="30" cy="30" r="9"  fill="none" stroke="rgba(80,140,255,0.7)" stroke-width="0.75"/>
+      <circle cx="30" cy="30" r="3"  fill="rgba(120,180,255,0.9)"/>
+    </svg>
+  </div>
+
+  <div class="vignette"></div>
+  <div class="scanlines"></div>
+</div>
+
+<div class="controls" id="controls">
+  <button class="ctrl-btn" id="toggleBtn" style="color:rgba(120,180,255,0.9);border:1px solid rgba(80,140,255,0.45);">⏸ Pause</button>
+  <button class="ctrl-btn" style="color:rgba(80,220,160,0.9);border:1px solid rgba(80,220,160,0.4);" onclick="setTheme('cyan')">Cyan</button>
+  <button class="ctrl-btn" style="color:rgba(220,120,255,0.9);border:1px solid rgba(200,100,255,0.4);" onclick="setTheme('violet')">Violet</button>
+  <button class="ctrl-btn" style="color:rgba(255,180,60,0.9);border:1px solid rgba(255,160,40,0.4);"  onclick="setTheme('amber')">Amber</button>
+  <button class="ctrl-btn" style="color:rgba(255,80,100,0.9);border:1px solid rgba(255,60,80,0.4);"   onclick="setTheme('red')">Red</button>
+</div>
+<div class="speed-row">
+  <label>Speed</label>
+  <input type="range" min="0.2" max="3" step="0.1" value="1" id="speedSlider">
+  <span id="speedVal" style="font-family:monospace;font-size:11px;color:rgba(120,160,255,0.7);min-width:28px;">1.0×</span>
+</div>
+
+<script>
+const PANELS = [
+  { label: 'SYSTEM', sub: 'CORE' },
+  { label: 'NETWORK', sub: 'LINK' },
+  { label: 'MEMORY', sub: 'BANK' },
+  { label: 'SIGNAL', sub: 'INPUT' },
+  { label: 'RENDER', sub: 'OUTPUT' },
+  { label: 'SECTOR', sub: 'DELTA' },
+  { label: 'PORTAL', sub: 'GATE' },
+];
+
+const DEPTHS = [0, 1, 2, 3, 4, 5, 6]; // panel depth layers
+
+let theme = {
+  primary: 'rgba(80,140,255',
+  text: '#6ab0ff',
+  bg: 'rgba(8,14,30',
+};
+
+const THEMES = {
+  cyan:   { primary: 'rgba(40,210,160', text: '#3dd6a4', bg: 'rgba(4,18,14' },
+  violet: { primary: 'rgba(190,90,255', text: '#c47aff', bg: 'rgba(12,4,22' },
+  amber:  { primary: 'rgba(255,160,40', text: '#ffa040', bg: 'rgba(20,12,2' },
+  red:    { primary: 'rgba(255,60,80',  text: '#ff4055', bg: 'rgba(20,4,6'  },
+  blue:   { primary: 'rgba(80,140,255', text: '#6ab0ff', bg: 'rgba(8,14,30' },
+};
+
+function setTheme(name) {
+  theme = THEMES[name] || THEMES.blue;
+  buildGrid();
+  buildRings();
+  buildPanels();
+}
+
+// Build perspective grid lines
+function buildGrid() {
+  const svg = document.getElementById('gridSvg');
+  const W = 680, H = 580, cx = W/2, cy = H/2;
+  const lines = [];
+  const cols = ['rgba(80,140,255,0.13)','rgba(80,140,255,0.09)'];
+  const c = theme.primary;
+
+  // Horizontal converging lines
+  const rows = 12;
+  for (let i = 0; i <= rows; i++) {
+    const t = i / rows;
+    const yTop = H * t;
+    // converge toward center y
+    const yt = cy + (yTop - cy) * 0.05;
+    lines.push(`<line x1="0" y1="${yTop}" x2="${W}" y2="${yTop}" stroke="${c},${0.05 + 0.04*(1-Math.abs(t-0.5)*2)})" stroke-width="0.5"/>`);
+    // rays from corners to center
+  }
+
+  // Radial rays from corners and edges toward vanishing point
+  const sources = [
+    [0,0],[W/4,0],[W/2,0],[3*W/4,0],[W,0],
+    [0,H],[W/4,H],[W/2,H],[3*W/4,H],[W,H],
+    [0,H/4],[0,H/2],[0,3*H/4],
+    [W,H/4],[W,H/2],[W,3*H/4],
+  ];
+  sources.forEach(([x,y]) => {
+    const dx = cx - x, dy = cy - y;
+    const len = Math.sqrt(dx*dx+dy*dy);
+    const nx = dx/len, ny = dy/len;
+    const ex = cx - nx*18, ey = cy - ny*18;
+    const alpha = 0.06 + 0.05 * (1 - Math.min(len,400)/400);
+    lines.push(`<line x1="${x}" y1="${y}" x2="${ex}" y2="${ey}" stroke="${c},${alpha})" stroke-width="0.5"/>`);
+  });
+
+  // Vertical lines
+  const vcols = 10;
+  for (let i = 0; i <= vcols; i++) {
+    const x = (W / vcols) * i;
+    lines.push(`<line x1="${x}" y1="0" x2="${cx + (x-cx)*0.04}" y2="${H}" stroke="${c},0.05)" stroke-width="0.5"/>`);
+  }
+
+  svg.innerHTML = lines.join('');
+}
+
+// Build rectangular tunnel rings
+function buildRings() {
+  const container = document.getElementById('rings');
+  const ringData = [
+    { w: 600, h: 520, op: 0.08 },
+    { w: 500, h: 430, op: 0.11 },
+    { w: 400, h: 340, op: 0.13 },
+    { w: 300, h: 255, op: 0.16 },
+    { w: 210, h: 178, op: 0.20 },
+    { w: 130, h: 110, op: 0.28 },
+    { w: 70,  h: 58,  op: 0.38 },
+  ];
+  const c = theme.primary;
+  container.innerHTML = ringData.map(r =>
+    `<div class="ring" style="width:${r.w}px;height:${r.h}px;border-color:${c},${r.op});"></div>`
+  ).join('');
+}
+
+// Build floating panels
+function buildPanels() {
+  const container = document.getElementById('panels');
+  const c = theme.primary;
+  const tc = theme.text;
+  const bg = theme.bg;
+
+  // Panel positions: arranged in a cross / diamond around center, at varied depths
+  // Each has an (angle, radius) in screen space at full size, then scaled by depth
+  const layout = [
+    { angle: -90, baseR: 180, depthIdx: 0 }, // top
+    { angle:  90, baseR: 180, depthIdx: 0 }, // bottom
+    { angle: 180, baseR: 200, depthIdx: 1 }, // left
+    { angle:   0, baseR: 200, depthIdx: 1 }, // right
+    { angle: -45, baseR: 140, depthIdx: 2 }, // top-right
+    { angle: 135, baseR: 140, depthIdx: 2 }, // bottom-left
+    { angle:  45, baseR: 130, depthIdx: 3 }, // bottom-right
+  ];
+
+  // Base panel sizes at depth 0
+  const BASE_W = 112, BASE_H = 52;
+  const N = 7;
+
+  container.innerHTML = PANELS.slice(0, N).map((p, i) => {
+    const { angle, baseR, depthIdx } = layout[i];
+    const scaleFactor = 1 - depthIdx * 0.135;
+    const rad = angle * Math.PI / 180;
+    const r = baseR * scaleFactor;
+    const px = Math.cos(rad) * r; // offset from center
+    const py = Math.sin(rad) * r;
+    const w = BASE_W * scaleFactor;
+    const h = BASE_H * scaleFactor;
+    const alpha = 0.9 - depthIdx * 0.11;
+    const fontSize = Math.max(8, 11 * scaleFactor);
+    const subSize  = Math.max(7, 9 * scaleFactor);
+
+    return `
+    <div class="panel" data-panel="${i}" style="
+      width:${w}px; height:${h}px;
+      margin-left:${-w/2}px; margin-top:${-h/2}px;
+      transform: translate(calc(-50% + ${px}px), calc(-50% + ${py}px));
+    ">
+      <div class="panel-inner" style="
+        width:100%; height:100%;
+        background:${bg},${0.72 + depthIdx*0.03});
+        border-color:${c},${0.35 + depthIdx*0.06});
+        padding: 6px 10px;
+      ">
+        <div class="panel-label" style="font-size:${fontSize}px;color:${tc};opacity:${alpha};">${p.label}</div>
+        <div class="panel-sub"   style="font-size:${subSize}px; color:${tc};">${p.sub}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// Animation: panels slowly drift toward the viewer (loop)
+const scene = document.getElementById('scene');
+let running = true;
+let speed = 1.0;
+let raf;
+let t = 0;
+
+// Each panel has its own "phase" in the tunnel loop
+const LOOP_PERIOD = 4200; // ms for a full depth cycle
+
+function getPanelDepthFraction(i, t) {
+  // panels cycle through depths. each panel is offset by (i/N) * PERIOD
+  const N = 7;
+  const offset = (i / N) * LOOP_PERIOD;
+  const phase = ((t + offset) % LOOP_PERIOD) / LOOP_PERIOD;
+  return phase; // 0 = far (small), 1 = close (large), wraps
+}
+
+function easeInOut(x) {
+  return x < 0.5 ? 2*x*x : 1 - Math.pow(-2*x+2,2)/2;
+}
+
+let last = null;
+function animate(ts) {
+  if (!last) last = ts;
+  const dt = Math.min(ts - last, 80);
+  last = ts;
+  if (running) t += dt * speed;
+
+  const panels = document.querySelectorAll('#panels .panel');
+  const N = 7;
+
+  // Layout angles/radii (same as in buildPanels but computed dynamically)
+  const layout = [
+    { angle: -90, baseR: 180 },
+    { angle:  90, baseR: 180 },
+    { angle: 180, baseR: 200 },
+    { angle:   0, baseR: 200 },
+    { angle: -45, baseR: 140 },
+    { angle: 135, baseR: 140 },
+    { angle:  45, baseR: 130 },
+  ];
+
+  const BASE_W = 112, BASE_H = 52;
+
+  panels.forEach((el, i) => {
+    if (i >= layout.length) return;
+    const phase = getPanelDepthFraction(i, t);
+    // phase 0 → small/far, phase 1 → large/close → resets to 0
+    const scaleFactor = 0.28 + easeInOut(phase) * 0.72;
+    const alpha = 0.15 + phase * 0.85;
+
+    const { angle, baseR } = layout[i];
+    const rad = angle * Math.PI / 180;
+    const r = baseR * scaleFactor;
+    const px = Math.cos(rad) * r;
+    const py = Math.sin(rad) * r;
+    const w = BASE_W * scaleFactor;
+    const h = BASE_H * scaleFactor;
+
+    el.style.width = `${w}px`;
+    el.style.height = `${h}px`;
+    el.style.marginLeft = `${-w/2}px`;
+    el.style.marginTop  = `${-h/2}px`;
+    el.style.transform  = `translate(calc(-50% + ${px}px), calc(-50% + ${py}px))`;
+    el.style.opacity = alpha;
+    el.style.zIndex = Math.round(phase * 100);
+  });
+
+  // Pulse vortex
+  const vEl = document.getElementById('vortex');
+  const pulse = 0.85 + Math.sin(t * 0.003) * 0.15;
+  vEl.style.opacity = pulse;
+  vEl.style.transform = `translate(-50%, -50%) rotate(${t * 0.02}deg)`;
+
+  raf = requestAnimationFrame(animate);
+}
+
+// Toggle
+document.getElementById('toggleBtn').addEventListener('click', function() {
+  running = !running;
+  this.textContent = running ? '⏸ Pause' : '▶ Play';
+});
+
+// Speed
+const slider = document.getElementById('speedSlider');
+const speedVal = document.getElementById('speedVal');
+slider.addEventListener('input', function() {
+  speed = parseFloat(this.value);
+  speedVal.textContent = speed.toFixed(1) + '×';
+});
+
+// Kick off
+buildGrid();
+buildRings();
+buildPanels();
+requestAnimationFrame(animate);
+</script>

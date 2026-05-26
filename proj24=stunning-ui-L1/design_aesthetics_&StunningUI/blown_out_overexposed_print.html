@@ -1,0 +1,438 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Bebas+Neue&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  .blown-root {
+    background: #F5F0E6;
+    font-family: 'Space Mono', monospace;
+    color: #1a1008;
+    min-height: 100vh;
+    overflow: hidden;
+  }
+
+  .film-noise {
+    position: absolute;
+    inset: 0;
+    opacity: 0.18;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    background-size: 200px 200px;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  .header-strip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 28px 14px;
+    border-bottom: 1px solid rgba(26,16,8,0.15);
+    position: relative;
+    z-index: 5;
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 4px;
+    color: #1a1008;
+    opacity: 0.85;
+  }
+
+  .meta {
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: #1a1008;
+    opacity: 0.45;
+    text-transform: uppercase;
+  }
+
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: auto auto;
+    gap: 0;
+    position: relative;
+  }
+
+  .img-wrap {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .img-wrap.tall {
+    grid-row: span 2;
+  }
+
+  .img-fill {
+    width: 100%;
+    height: 100%;
+    min-height: 260px;
+    object-fit: cover;
+    display: block;
+    filter: brightness(1.35) contrast(0.75) saturate(0.5) sepia(0.12);
+  }
+
+  .halation-layer {
+    position: absolute;
+    inset: 0;
+    mix-blend-mode: screen;
+    pointer-events: none;
+  }
+
+  .halation-red {
+    background: radial-gradient(ellipse at 70% 25%, rgba(255,80,30,0.22) 0%, transparent 55%),
+                radial-gradient(ellipse at 20% 75%, rgba(255,50,20,0.15) 0%, transparent 45%);
+  }
+
+  .halation-cyan {
+    background: radial-gradient(ellipse at 30% 20%, rgba(0,220,200,0.14) 0%, transparent 50%),
+                radial-gradient(ellipse at 75% 80%, rgba(20,180,200,0.12) 0%, transparent 45%);
+  }
+
+  .blown-highlight {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 60% 30%, rgba(245,240,230,0.7) 0%, transparent 60%);
+    mix-blend-mode: screen;
+    pointer-events: none;
+  }
+
+  .fringe-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    mix-blend-mode: color-dodge;
+    background: 
+      linear-gradient(90deg, transparent 0%, rgba(255,40,10,0.07) 45%, rgba(0,200,220,0.07) 55%, transparent 100%);
+  }
+
+  .img-border {
+    position: absolute;
+    inset: 0;
+    border: 1px solid rgba(245,240,230,0.3);
+    pointer-events: none;
+  }
+
+  .caption-block {
+    padding: 20px 24px;
+    background: #F5F0E6;
+    position: relative;
+    z-index: 5;
+  }
+
+  .caption-block.inverted {
+    background: #1a1008;
+    color: #F5F0E6;
+  }
+
+  .caption-label {
+    font-size: 9px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    opacity: 0.45;
+    margin-bottom: 6px;
+  }
+
+  .caption-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 36px;
+    letter-spacing: 2px;
+    line-height: 1;
+    opacity: 0.88;
+  }
+
+  .caption-sub {
+    font-size: 10px;
+    line-height: 1.6;
+    opacity: 0.55;
+    margin-top: 8px;
+    max-width: 220px;
+  }
+
+  .film-strip-row {
+    display: flex;
+    border-top: 1px solid rgba(26,16,8,0.12);
+    position: relative;
+    z-index: 5;
+  }
+
+  .film-frame {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    border-right: 1px solid rgba(26,16,8,0.1);
+  }
+
+  .film-frame:last-child { border-right: none; }
+
+  .film-frame-img {
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+    display: block;
+    filter: brightness(1.4) contrast(0.7) saturate(0.4) sepia(0.18);
+  }
+
+  .frame-num {
+    position: absolute;
+    bottom: 6px;
+    right: 8px;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: #F5F0E6;
+    opacity: 0.8;
+    text-shadow: 0 0 8px rgba(245,240,230,0.9);
+    mix-blend-mode: screen;
+  }
+
+  .bottom-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 28px;
+    border-top: 1px solid rgba(26,16,8,0.15);
+    position: relative;
+    z-index: 5;
+  }
+
+  .roll-info {
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    opacity: 0.38;
+  }
+
+  .exposure-badge {
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    border: 1px solid rgba(26,16,8,0.2);
+    padding: 3px 10px;
+    opacity: 0.5;
+  }
+
+  .feature-wrap {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .overlap-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 96px;
+    color: #F5F0E6;
+    letter-spacing: 6px;
+    mix-blend-mode: screen;
+    opacity: 0.55;
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 4;
+    text-shadow: 2px 0 0 rgba(255,60,20,0.5), -2px 0 0 rgba(0,200,220,0.4);
+  }
+
+  .divider-v {
+    width: 1px;
+    background: rgba(26,16,8,0.1);
+  }
+</style>
+
+<div class="blown-root">
+  <div class="film-noise"></div>
+
+  <div class="header-strip">
+    <span class="logo">OVEREXPOSED</span>
+    <span class="meta">35mm / ISO 800 / 2024</span>
+    <span class="meta">Vol. 03 — Summer</span>
+  </div>
+
+  <div class="main-grid">
+
+    <div class="img-wrap tall feature-wrap" style="grid-column:1; grid-row:1/3; border-right:1px solid rgba(26,16,8,0.1);">
+      <svg viewBox="0 0 300 520" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" style="display:block;min-height:520px;">
+        <defs>
+          <filter id="blown">
+            <feColorMatrix type="saturate" values="0.45"/>
+            <feComponentTransfer>
+              <feFuncR type="linear" slope="1.18" intercept="0.08"/>
+              <feFuncG type="linear" slope="1.12" intercept="0.06"/>
+              <feFuncB type="linear" slope="1.05" intercept="0.04"/>
+            </feComponentTransfer>
+            <feComponentTransfer>
+              <feFuncR type="gamma" amplitude="1" exponent="0.78" offset="0"/>
+              <feFuncG type="gamma" amplitude="1" exponent="0.82" offset="0"/>
+              <feFuncB type="gamma" amplitude="1" exponent="0.85" offset="0"/>
+            </feComponentTransfer>
+          </filter>
+          <radialGradient id="hal-r" cx="65%" cy="28%" r="55%">
+            <stop offset="0%" stop-color="rgba(255,70,20,0.28)"/>
+            <stop offset="100%" stop-color="transparent"/>
+          </radialGradient>
+          <radialGradient id="hal-c" cx="30%" cy="72%" r="45%">
+            <stop offset="0%" stop-color="rgba(0,210,200,0.18)"/>
+            <stop offset="100%" stop-color="transparent"/>
+          </radialGradient>
+          <radialGradient id="glow-c" cx="55%" cy="35%" r="50%">
+            <stop offset="0%" stop-color="rgba(245,240,230,0.75)"/>
+            <stop offset="100%" stop-color="transparent"/>
+          </radialGradient>
+        </defs>
+
+        <rect width="300" height="520" fill="#C8BFB0"/>
+
+        <ellipse cx="110" cy="190" rx="70" ry="95" fill="#8B7355" filter="url(#blown)"/>
+        <ellipse cx="135" cy="320" rx="90" ry="60" fill="#A08060" filter="url(#blown)"/>
+        <rect x="60" y="100" width="180" height="300" rx="2" fill="#B0A090" opacity="0.4"/>
+
+        <ellipse cx="200" cy="140" rx="55" ry="75" fill="#D4C4A8" opacity="0.8"/>
+        <ellipse cx="80" cy="380" rx="60" ry="40" fill="#7A6850" opacity="0.6"/>
+
+        <rect x="0" y="0" width="300" height="520" fill="url(#hal-r)" style="mix-blend-mode:screen"/>
+        <rect x="0" y="0" width="300" height="520" fill="url(#hal-c)" style="mix-blend-mode:screen"/>
+        <rect x="0" y="0" width="300" height="520" fill="url(#glow-c)" style="mix-blend-mode:screen"/>
+
+        <rect x="0" y="0" width="300" height="520" fill="rgba(245,240,230,0.08)"/>
+
+        <text x="150" y="270" font-family="'Bebas Neue', sans-serif" font-size="88" fill="rgba(245,240,230,0.5)" text-anchor="middle" style="mix-blend-mode:screen;letter-spacing:4px;">
+          FILM
+        </text>
+        <text x="148" y="270" font-family="'Bebas Neue', sans-serif" font-size="88" fill="rgba(255,60,20,0.22)" text-anchor="middle" style="letter-spacing:4px;">FILM</text>
+        <text x="152" y="270" font-family="'Bebas Neue', sans-serif" font-size="88" fill="rgba(0,200,220,0.15)" text-anchor="middle" style="letter-spacing:4px;">FILM</text>
+      </svg>
+
+      <div class="overlap-text" style="font-size:72px;">LIGHT<br>LEAK</div>
+    </div>
+
+    <div style="grid-column:2/4; grid-row:1; display:grid; grid-template-columns:1fr 1fr; border-bottom:1px solid rgba(26,16,8,0.1);">
+
+      <div class="img-wrap" style="border-right:1px solid rgba(26,16,8,0.1);">
+        <svg viewBox="0 0 300 260" xmlns="http://www.w3.org/2000/svg" width="100%" height="260" style="display:block;">
+          <defs>
+            <radialGradient id="gr2" cx="40%" cy="35%" r="55%">
+              <stop offset="0%" stop-color="#F0EAD8"/>
+              <stop offset="60%" stop-color="#B8A888"/>
+              <stop offset="100%" stop-color="#8A7860"/>
+            </radialGradient>
+            <radialGradient id="hal2" cx="35%" cy="30%" r="60%">
+              <stop offset="0%" stop-color="rgba(255,80,30,0.3)"/>
+              <stop offset="100%" stop-color="transparent"/>
+            </radialGradient>
+          </defs>
+          <rect width="300" height="260" fill="url(#gr2)"/>
+          <ellipse cx="150" cy="110" rx="80" ry="90" fill="#C0AD90" opacity="0.7"/>
+          <rect x="0" y="0" width="300" height="260" fill="url(#hal2)" style="mix-blend-mode:screen"/>
+          <rect x="0" y="0" width="300" height="260" fill="rgba(245,240,230,0.12)"/>
+        </svg>
+        <div class="halation-layer halation-red"></div>
+        <div class="blown-highlight"></div>
+        <div class="img-border"></div>
+      </div>
+
+      <div class="caption-block" style="display:flex;flex-direction:column;justify-content:flex-end;">
+        <div class="caption-label">Issue No. 03</div>
+        <div class="caption-title">Blown<br>Out</div>
+        <div class="caption-sub">Intentional overexposure. Washed light, crushed shadows. The camera remembers what the eye forgets.</div>
+      </div>
+    </div>
+
+    <div style="grid-column:2/4; grid-row:2; display:grid; grid-template-columns:1fr 1fr;">
+
+      <div class="caption-block inverted">
+        <div class="caption-label" style="color:#F5F0E6;">Technique</div>
+        <div class="caption-title" style="color:#F5F0E6;font-size:28px;">+2 Stop<br>Push</div>
+        <div class="caption-sub" style="color:#F5F0E6;">Halation fringe on every bright edge. Grain at ISO 1600. Point-and-shoot.</div>
+      </div>
+
+      <div class="img-wrap" style="border-left:1px solid rgba(26,16,8,0.1);">
+        <svg viewBox="0 0 300 240" xmlns="http://www.w3.org/2000/svg" width="100%" height="240" style="display:block;">
+          <defs>
+            <radialGradient id="gr3" cx="55%" cy="45%" r="60%">
+              <stop offset="0%" stop-color="#F8F4EC"/>
+              <stop offset="50%" stop-color="#D0C0A0"/>
+              <stop offset="100%" stop-color="#907868"/>
+            </radialGradient>
+            <radialGradient id="cyan3" cx="70%" cy="65%" r="45%">
+              <stop offset="0%" stop-color="rgba(0,200,210,0.22)"/>
+              <stop offset="100%" stop-color="transparent"/>
+            </radialGradient>
+          </defs>
+          <rect width="300" height="240" fill="url(#gr3)"/>
+          <circle cx="160" cy="100" r="65" fill="#E0D0B0" opacity="0.75"/>
+          <ellipse cx="80" cy="180" rx="70" ry="35" fill="#A09080" opacity="0.5"/>
+          <rect x="0" y="0" width="300" height="240" fill="url(#cyan3)" style="mix-blend-mode:screen"/>
+          <rect x="0" y="0" width="300" height="240" fill="rgba(255,240,220,0.1)"/>
+        </svg>
+        <div class="halation-layer halation-cyan"></div>
+        <div class="fringe-overlay"></div>
+        <div class="img-border"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="film-strip-row">
+    <div class="film-frame">
+      <svg viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg" width="100%" height="120" style="display:block;">
+        <defs><radialGradient id="f1" cx="40%" cy="40%" r="55%"><stop offset="0%" stop-color="#F0E8D4"/><stop offset="100%" stop-color="#8A7A62"/></radialGradient>
+        <radialGradient id="fh1" cx="35%" cy="35%" r="50%"><stop offset="0%" stop-color="rgba(255,70,20,0.28)"/><stop offset="100%" stop-color="transparent"/></radialGradient></defs>
+        <rect width="200" height="120" fill="url(#f1)"/>
+        <ellipse cx="90" cy="55" rx="50" ry="42" fill="#C8B898" opacity="0.7"/>
+        <rect x="0" y="0" width="200" height="120" fill="url(#fh1)" style="mix-blend-mode:screen"/>
+      </svg>
+      <div class="frame-num">01▲</div>
+    </div>
+    <div class="film-frame">
+      <svg viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg" width="100%" height="120" style="display:block;">
+        <defs><radialGradient id="f2" cx="60%" cy="35%" r="55%"><stop offset="0%" stop-color="#EEE4CC"/><stop offset="100%" stop-color="#786858"/></radialGradient>
+        <radialGradient id="fh2" cx="65%" cy="30%" r="45%"><stop offset="0%" stop-color="rgba(0,210,200,0.2)"/><stop offset="100%" stop-color="transparent"/></radialGradient></defs>
+        <rect width="200" height="120" fill="url(#f2)"/>
+        <circle cx="120" cy="50" r="38" fill="#D4C4A0" opacity="0.65"/>
+        <ellipse cx="60" cy="90" rx="45" ry="22" fill="#A09078" opacity="0.5"/>
+        <rect x="0" y="0" width="200" height="120" fill="url(#fh2)" style="mix-blend-mode:screen"/>
+      </svg>
+      <div class="frame-num">02▲</div>
+    </div>
+    <div class="film-frame">
+      <svg viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg" width="100%" height="120" style="display:block;">
+        <defs><radialGradient id="f3" cx="50%" cy="50%" r="55%"><stop offset="0%" stop-color="#F5EDD8"/><stop offset="100%" stop-color="#906858"/></radialGradient>
+        <radialGradient id="fh3" cx="50%" cy="25%" r="55%"><stop offset="0%" stop-color="rgba(255,60,10,0.25)"/><stop offset="100%" stop-color="transparent"/></radialGradient></defs>
+        <rect width="200" height="120" fill="url(#f3)"/>
+        <rect x="50" y="20" width="110" height="80" rx="2" fill="#C8B898" opacity="0.55"/>
+        <ellipse cx="100" cy="60" rx="55" ry="40" fill="#E0D0B0" opacity="0.6"/>
+        <rect x="0" y="0" width="200" height="120" fill="url(#fh3)" style="mix-blend-mode:screen"/>
+      </svg>
+      <div class="frame-num">03▲</div>
+    </div>
+    <div class="film-frame">
+      <svg viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg" width="100%" height="120" style="display:block;">
+        <defs><radialGradient id="f4" cx="30%" cy="60%" r="55%"><stop offset="0%" stop-color="#F2E8D0"/><stop offset="100%" stop-color="#80706A"/></radialGradient>
+        <radialGradient id="fh4" cx="30%" cy="60%" r="50%"><stop offset="0%" stop-color="rgba(0,200,180,0.22)"/><stop offset="100%" stop-color="transparent"/></radialGradient></defs>
+        <rect width="200" height="120" fill="url(#f4)"/>
+        <ellipse cx="80" cy="70" rx="60" ry="38" fill="#B8A888" opacity="0.65"/>
+        <circle cx="140" cy="40" r="30" fill="#D8CCB0" opacity="0.7"/>
+        <rect x="0" y="0" width="200" height="120" fill="url(#fh4)" style="mix-blend-mode:screen"/>
+      </svg>
+      <div class="frame-num">04▲</div>
+    </div>
+    <div class="film-frame" style="border-right:none;">
+      <svg viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg" width="100%" height="120" style="display:block;">
+        <defs><radialGradient id="f5" cx="70%" cy="40%" r="55%"><stop offset="0%" stop-color="#F8F0E0"/><stop offset="100%" stop-color="#706050"/></radialGradient>
+        <radialGradient id="fh5" cx="70%" cy="38%" r="50%"><stop offset="0%" stop-color="rgba(255,80,30,0.3)"/><stop offset="100%" stop-color="transparent"/></radialGradient></defs>
+        <rect width="200" height="120" fill="url(#f5)"/>
+        <ellipse cx="130" cy="55" rx="55" ry="45" fill="#C0B090" opacity="0.7"/>
+        <rect x="0" y="0" width="200" height="120" fill="url(#fh5)" style="mix-blend-mode:screen"/>
+      </svg>
+      <div class="frame-num">05▲</div>
+    </div>
+  </div>
+
+  <div class="bottom-bar">
+    <span class="roll-info">Kodak Portra 400 — 36exp — Roll 07</span>
+    <span class="exposure-badge">EV +2.3</span>
+    <span class="roll-info">Scanned / Unedited</span>
+  </div>
+</div>

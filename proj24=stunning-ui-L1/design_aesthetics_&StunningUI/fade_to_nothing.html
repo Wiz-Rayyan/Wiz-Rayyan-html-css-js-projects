@@ -1,0 +1,181 @@
+
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  #stage {
+    min-height: 520px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    background: var(--color-background-primary);
+  }
+
+  #veil {
+    position: absolute;
+    inset: 0;
+    background: var(--color-background-primary);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  #content {
+    text-align: center;
+    padding: 3rem 2rem;
+    max-width: 480px;
+    position: relative;
+    z-index: 1;
+  }
+
+  #epitaph {
+    font-family: var(--font-serif);
+    font-size: 13px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-text-tertiary);
+    margin-bottom: 2.5rem;
+  }
+
+  #main-text {
+    font-family: var(--font-serif);
+    font-size: 28px;
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--color-text-primary);
+    margin-bottom: 2.5rem;
+  }
+
+  #sub-text {
+    font-size: 14px;
+    color: var(--color-text-secondary);
+    line-height: 1.8;
+    margin-bottom: 3rem;
+  }
+
+  #timer-track {
+    width: 200px;
+    height: 1px;
+    background: var(--color-border-tertiary);
+    margin: 0 auto 1rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  #timer-bar {
+    position: absolute;
+    left: 0; top: 0;
+    height: 100%;
+    width: 100%;
+    background: var(--color-text-secondary);
+    transform-origin: left;
+  }
+
+  #timer-label {
+    font-size: 12px;
+    color: var(--color-text-tertiary);
+    letter-spacing: 0.08em;
+  }
+
+  #rebirth {
+    margin-top: 2.5rem;
+    opacity: 0;
+    transition: opacity 1s ease;
+  }
+
+  #rebirth button {
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-text-tertiary);
+    background: none;
+    border: 0.5px solid var(--color-border-secondary);
+    padding: 8px 20px;
+    border-radius: var(--border-radius-md);
+    cursor: pointer;
+  }
+
+  #rebirth button:hover {
+    color: var(--color-text-primary);
+    border-color: var(--color-border-primary);
+  }
+</style>
+
+<div id="stage">
+  <div id="veil"></div>
+  <div id="content">
+    <p id="epitaph">Memento mori</p>
+    <p id="main-text">The page is already<br>disappearing.</p>
+    <p id="sub-text">
+      By the time you read this, it has faded.<br>
+      You are looking at a ghost.
+    </p>
+    <div id="timer-track">
+      <div id="timer-bar"></div>
+    </div>
+    <p id="timer-label">10 seconds</p>
+    <div id="rebirth">
+      <button onclick="begin()">Begin again</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let rafId, startTime, totalDuration = 10000;
+  let phase = 'alive';
+
+  function begin() {
+    phase = 'alive';
+    startTime = performance.now();
+
+    document.getElementById('veil').style.transition = 'none';
+    document.getElementById('veil').style.opacity = '0';
+    document.getElementById('content').style.opacity = '1';
+    document.getElementById('content').style.transition = 'none';
+    document.getElementById('rebirth').style.opacity = '0';
+    document.getElementById('timer-bar').style.transform = 'scaleX(1)';
+    document.getElementById('timer-label').textContent = '10 seconds';
+
+    cancelAnimationFrame(rafId);
+    tick();
+  }
+
+  function tick() {
+    const elapsed = performance.now() - startTime;
+    const progress = Math.min(elapsed / totalDuration, 1);
+    const remaining = Math.max(0, Math.ceil((totalDuration - elapsed) / 1000));
+
+    document.getElementById('timer-bar').style.transform = `scaleX(${1 - progress})`;
+
+    if (remaining <= 3 && remaining > 0) {
+      document.getElementById('timer-label').textContent = remaining === 1 ? '1 second' : `${remaining} seconds`;
+    } else if (remaining > 3) {
+      document.getElementById('timer-label').textContent = `${remaining} seconds`;
+    }
+
+    if (progress < 1) {
+      const fadeStart = 0.6;
+      if (progress > fadeStart) {
+        const fadeProgress = (progress - fadeStart) / (1 - fadeStart);
+        document.getElementById('content').style.opacity = 1 - fadeProgress;
+        document.getElementById('veil').style.opacity = fadeProgress * 0.6;
+      }
+      rafId = requestAnimationFrame(tick);
+    } else {
+      document.getElementById('content').style.opacity = '0';
+      document.getElementById('veil').style.opacity = '1';
+      document.getElementById('veil').style.transition = 'opacity 2s ease';
+      document.getElementById('timer-label').textContent = 'nothing';
+      phase = 'gone';
+
+      setTimeout(() => {
+        document.getElementById('rebirth').style.opacity = '1';
+        document.getElementById('veil').style.opacity = '0.85';
+      }, 2000);
+    }
+  }
+
+  begin();
+</script>

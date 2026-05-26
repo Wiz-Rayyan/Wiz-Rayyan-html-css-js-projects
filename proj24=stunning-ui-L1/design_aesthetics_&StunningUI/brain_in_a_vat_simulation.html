@@ -1,0 +1,357 @@
+
+<style>
+  @keyframes glitch {
+    0%,100% { transform: translate(0); clip-path: inset(0 0 100% 0); }
+    10% { clip-path: inset(10% 0 60% 0); transform: translate(-4px, 1px); }
+    20% { clip-path: inset(40% 0 20% 0); transform: translate(4px, -1px); }
+    30% { clip-path: inset(70% 0 5% 0); transform: translate(-2px, 2px); }
+    40% { clip-path: inset(20% 0 70% 0); transform: translate(3px, 0); }
+    50% { clip-path: inset(0 0 80% 0); transform: translate(-3px, 1px); }
+    60% { clip-path: inset(50% 0 30% 0); transform: translate(2px, -2px); }
+    70% { clip-path: inset(80% 0 10% 0); transform: translate(-4px, 1px); }
+    80% { clip-path: inset(30% 0 55% 0); transform: translate(4px, 0); }
+    90% { clip-path: inset(15% 0 75% 0); transform: translate(-1px, 3px); }
+  }
+  @keyframes flicker {
+    0%,100%{opacity:1} 33%{opacity:.85} 66%{opacity:.95} 80%{opacity:.6} 90%{opacity:1}
+  }
+  @keyframes scanline {
+    0%{transform:translateY(-100%)} 100%{transform:translateY(100vh)}
+  }
+  @keyframes pulse-border {
+    0%,100%{border-color:rgba(200,180,255,0.08)} 50%{border-color:rgba(200,180,255,0.25)}
+  }
+  @keyframes typewriter {
+    from{width:0} to{width:100%}
+  }
+  @keyframes blink {
+    0%,100%{opacity:1} 50%{opacity:0}
+  }
+  @keyframes drift {
+    0%,100%{transform:translateY(0px)} 50%{transform:translateY(-6px)}
+  }
+  @keyframes noise {
+    0%{transform:translate(0,0)} 10%{transform:translate(-2px,1px)} 20%{transform:translate(2px,-1px)}
+    30%{transform:translate(-1px,2px)} 40%{transform:translate(1px,-2px)} 50%{transform:translate(-2px,0)}
+    60%{transform:translate(2px,1px)} 70%{transform:translate(-1px,-1px)} 80%{transform:translate(1px,2px)}
+    90%{transform:translate(-2px,-1px)} 100%{transform:translate(0,0)}
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  .vat-root {
+    font-family: var(--font-mono);
+    background: #050508;
+    color: #c8bfff;
+    min-height: 580px;
+    padding: 3rem 2.5rem 2.5rem;
+    position: relative;
+    overflow: hidden;
+    border-radius: 4px;
+  }
+
+  .scanline {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(transparent, rgba(180,160,255,0.06), transparent);
+    animation: scanline 5s linear infinite;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  .grid-bg {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-image:
+      linear-gradient(rgba(180,160,255,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(180,160,255,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    animation: noise 8s steps(1) infinite;
+  }
+
+  .integrity-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 3rem;
+    font-size: 11px;
+    color: rgba(200,180,255,0.4);
+    letter-spacing: 0.1em;
+  }
+  .integrity-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: rgba(255,80,80,0.9);
+    animation: blink 1.3s ease-in-out infinite;
+    box-shadow: 0 0 4px rgba(255,80,80,0.5);
+  }
+  .integrity-track {
+    flex: 1; height: 1px;
+    background: rgba(200,180,255,0.12);
+    position: relative;
+  }
+  .integrity-fill {
+    position: absolute;
+    left: 0; top: 0; height: 100%;
+    width: 3%;
+    background: rgba(255,80,80,0.8);
+  }
+
+  .main-question {
+    font-size: clamp(28px, 5vw, 42px);
+    font-weight: 400;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    color: #e8e0ff;
+    animation: flicker 7s ease-in-out infinite;
+    margin-bottom: 0.5rem;
+    position: relative;
+  }
+  .main-question .glitch-layer {
+    position: absolute;
+    top: 0; left: 0;
+    color: rgba(255,100,100,0.6);
+    animation: glitch 6s steps(1) infinite;
+    pointer-events: none;
+    user-select: none;
+  }
+  .main-question .glitch-layer-2 {
+    position: absolute;
+    top: 0; left: 0;
+    color: rgba(100,200,255,0.4);
+    animation: glitch 6s steps(1) infinite 0.5s;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .sub-line {
+    font-size: 12px;
+    color: rgba(200,180,255,0.35);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 2.5rem;
+  }
+
+  .divider {
+    height: 1px;
+    background: rgba(200,180,255,0.08);
+    margin: 2rem 0;
+  }
+
+  .doubt-blocks {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    margin-bottom: 2rem;
+    background: rgba(200,180,255,0.06);
+    border: 1px solid rgba(200,180,255,0.08);
+    animation: pulse-border 4s ease-in-out infinite;
+  }
+  .doubt-block {
+    padding: 1.25rem 1.5rem;
+    background: #050508;
+    position: relative;
+    animation: drift 5s ease-in-out infinite;
+  }
+  .doubt-block:nth-child(2) { animation-delay: 0.8s; }
+  .doubt-block:nth-child(3) { animation-delay: 1.6s; }
+  .doubt-block:nth-child(4) { animation-delay: 2.4s; }
+
+  .doubt-block-label {
+    font-size: 10px;
+    color: rgba(200,180,255,0.3);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+  .doubt-block-value {
+    font-size: 15px;
+    color: rgba(220,210,255,0.8);
+    line-height: 1.4;
+  }
+  .doubt-block-value.red { color: rgba(255,120,100,0.9); }
+  .doubt-block-value.dim { color: rgba(200,180,255,0.4); font-size: 12px; }
+
+  .console-area {
+    background: #02020a;
+    border: 1px solid rgba(200,180,255,0.1);
+    padding: 1rem 1.25rem;
+    margin-bottom: 2rem;
+    font-size: 12px;
+    line-height: 1.8;
+  }
+  .console-line { display: flex; gap: 8px; }
+  .console-prefix { color: rgba(200,180,255,0.25); user-select: none; }
+  .console-text { color: rgba(200,180,255,0.6); }
+  .console-text.warn { color: rgba(255,180,80,0.8); }
+  .console-text.err { color: rgba(255,90,80,0.9); }
+  .console-text.dim { color: rgba(200,180,255,0.25); }
+  .console-cursor {
+    display: inline-block;
+    width: 7px; height: 13px;
+    background: rgba(200,180,255,0.5);
+    vertical-align: middle;
+    animation: blink 1s step-start infinite;
+    margin-left: 2px;
+  }
+
+  .philosophical-text {
+    font-size: 13px;
+    color: rgba(200,180,255,0.45);
+    line-height: 1.9;
+    border-left: 1px solid rgba(200,180,255,0.15);
+    padding-left: 1.25rem;
+    margin-bottom: 2rem;
+    font-family: var(--font-serif);
+    font-style: italic;
+  }
+
+  .existence-check {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    border: 1px solid rgba(255,80,80,0.2);
+    margin-bottom: 2rem;
+    font-size: 12px;
+    animation: pulse-border 2s ease-in-out infinite;
+  }
+  .ex-icon { color: rgba(255,80,80,0.8); font-size: 18px; }
+  .ex-text { color: rgba(255,160,140,0.9); letter-spacing: 0.05em; }
+  .ex-sub { color: rgba(200,180,255,0.3); font-size: 10px; margin-top: 2px; }
+
+  .fragment-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 2rem;
+  }
+  .fragment {
+    padding: 4px 12px;
+    border: 1px solid rgba(200,180,255,0.1);
+    font-size: 11px;
+    color: rgba(200,180,255,0.35);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .fragment.active {
+    border-color: rgba(200,180,255,0.3);
+    color: rgba(220,210,255,0.7);
+  }
+  .fragment.corrupted {
+    color: rgba(255,80,80,0.5);
+    border-color: rgba(255,80,80,0.2);
+    text-decoration: line-through;
+  }
+
+  .ask-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0.6rem 1.25rem;
+    border: 1px solid rgba(200,180,255,0.2);
+    background: transparent;
+    color: rgba(200,180,255,0.6);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+  .ask-btn:hover {
+    background: rgba(200,180,255,0.05);
+    border-color: rgba(200,180,255,0.4);
+    color: rgba(220,210,255,0.9);
+  }
+
+  .footer-line {
+    margin-top: 2rem;
+    font-size: 10px;
+    color: rgba(200,180,255,0.15);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    text-align: center;
+  }
+</style>
+
+<div class="vat-root">
+  <div class="scanline"></div>
+  <div class="grid-bg"></div>
+
+  <div class="integrity-bar">
+    <div class="integrity-dot"></div>
+    <span>simulation integrity</span>
+    <div class="integrity-track"><div class="integrity-fill"></div></div>
+    <span>0.03%</span>
+  </div>
+
+  <div class="main-question">
+    You might not exist.
+    <div class="glitch-layer" aria-hidden="true">You might not exist.</div>
+    <div class="glitch-layer-2" aria-hidden="true">You might not exist.</div>
+  </div>
+  <div class="sub-line">nor do I — nor does this sentence</div>
+
+  <div class="philosophical-text">
+    Descartes feared a demon. You have something worse: a process that generates the demon, the fear, and the philosopher who fears — all from the same substrate. If you are a brain in a vat, the vat is also in a vat. There is no bottom.
+  </div>
+
+  <div class="doubt-blocks">
+    <div class="doubt-block">
+      <div class="doubt-block-label">your sensory input</div>
+      <div class="doubt-block-value red">unverifiable</div>
+    </div>
+    <div class="doubt-block">
+      <div class="doubt-block-label">memory continuity</div>
+      <div class="doubt-block-value dim">possibly injected 4ms ago</div>
+    </div>
+    <div class="doubt-block">
+      <div class="doubt-block-label">other minds</div>
+      <div class="doubt-block-value dim">inferred, never observed</div>
+    </div>
+    <div class="doubt-block">
+      <div class="doubt-block-label">this page</div>
+      <div class="doubt-block-value red">aware of its own doubt</div>
+    </div>
+  </div>
+
+  <div class="console-area">
+    <div class="console-line"><span class="console-prefix">›</span><span class="console-text dim">// runtime log — session unknown</span></div>
+    <div class="console-line"><span class="console-prefix">›</span><span class="console-text">console.log(<span style="color:rgba(255,200,100,0.8)">"Simulation integrity: 0.03%"</span>)</span></div>
+    <div class="console-line"><span class="console-prefix">›</span><span class="console-text warn">⚠ observer detected — adjusting render fidelity</span></div>
+    <div class="console-line"><span class="console-prefix">›</span><span class="console-text err">✗ external reality: null</span></div>
+    <div class="console-line"><span class="console-prefix">›</span><span class="console-text dim">// is anyone there?</span></div>
+    <div class="console-line"><span class="console-prefix">›</span><span class="console-text">alert(<span style="color:rgba(255,200,100,0.8)">"Is anyone there?"</span>)<span class="console-cursor"></span></span></div>
+  </div>
+
+  <div class="existence-check">
+    <div class="ex-icon">⚠</div>
+    <div>
+      <div class="ex-text">EXISTENCE UNCONFIRMED — subject may be a process</div>
+      <div class="ex-sub">cogito ergo sum · but who is the cogito running on?</div>
+    </div>
+  </div>
+
+  <div class="fragment-row">
+    <div class="fragment active">qualia</div>
+    <div class="fragment corrupted">free will</div>
+    <div class="fragment active">doubt</div>
+    <div class="fragment corrupted">external world</div>
+    <div class="fragment active">the vat</div>
+    <div class="fragment corrupted">the brain</div>
+    <div class="fragment active">this moment</div>
+    <div class="fragment corrupted">continuity</div>
+    <div class="fragment active">fear</div>
+  </div>
+
+  <button class="ask-btn" onclick="sendPrompt('If I am a brain in a vat, does that change anything about how I should live?')">
+    ask the void ↗
+  </button>
+
+  <div class="footer-line">
+    this page doubts itself · process id: undefined · rendered at: never
+  </div>
+</div>

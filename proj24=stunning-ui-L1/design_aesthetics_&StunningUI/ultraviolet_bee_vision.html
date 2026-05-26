@@ -1,0 +1,297 @@
+
+<style>
+  @keyframes uvPulse {
+    0%, 100% { opacity: 0.18; transform: scale(1); }
+    50% { opacity: 0.32; transform: scale(1.03); }
+  }
+  @keyframes hexDrift {
+    0% { transform: translateY(0px) rotate(0deg); }
+    100% { transform: translateY(-8px) rotate(3deg); }
+  }
+  @keyframes scanline {
+    0% { top: -4px; }
+    100% { top: 100%; }
+  }
+  @keyframes flicker {
+    0%, 95%, 100% { opacity: 1; }
+    96%, 99% { opacity: 0.7; }
+  }
+  .uv-root {
+    background: #0a0014;
+    min-height: 520px;
+    padding: 0;
+    position: relative;
+    overflow: hidden;
+    font-family: 'Courier New', monospace;
+  }
+  .uv-secret-layer {
+    position: absolute; inset: 0;
+    background:
+      repeating-conic-gradient(from 0deg at 20% 30%, #8800ff08 0deg 6deg, transparent 6deg 12deg),
+      repeating-conic-gradient(from 60deg at 80% 70%, #ff00cc06 0deg 4deg, transparent 4deg 8deg),
+      repeating-linear-gradient(47deg, #5500ff05 0px, #5500ff05 1px, transparent 1px, transparent 40px),
+      repeating-linear-gradient(-47deg, #ff00aa04 0px, #ff00aa04 1px, transparent 1px, transparent 40px);
+    pointer-events: none;
+    animation: uvPulse 8s ease-in-out infinite;
+  }
+  .uv-hex-grid {
+    position: absolute; inset: 0;
+    background-image:
+      radial-gradient(circle at 25% 20%, #7700ff12 0%, transparent 40%),
+      radial-gradient(circle at 75% 80%, #dd00ff10 0%, transparent 40%),
+      radial-gradient(circle at 50% 50%, #ff00bb08 0%, transparent 60%);
+    pointer-events: none;
+  }
+  .scanline {
+    position: absolute; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, #bf00ff22, #bf00ff44, #bf00ff22, transparent);
+    animation: scanline 6s linear infinite;
+    pointer-events: none;
+  }
+  .uv-content {
+    position: relative; z-index: 2;
+    padding: 48px 40px 40px;
+  }
+  .eyerow {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 32px;
+  }
+  .eye-badge {
+    background: #2a0050; border: 1px solid #7700cc44;
+    border-radius: 4px; padding: 4px 10px;
+    font-size: 11px; color: #cc88ff; letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .eye-sep {
+    flex: 1; height: 1px; background: linear-gradient(90deg, #7700cc22, transparent);
+  }
+  .eye-freq {
+    font-size: 11px; color: #7755aa; letter-spacing: 0.1em;
+  }
+  .uv-title {
+    font-size: 36px; font-weight: 700; line-height: 1.1;
+    color: #f0ddff;
+    margin-bottom: 8px;
+    text-shadow: 0 0 40px #9900ff44;
+    animation: flicker 12s ease-in-out infinite;
+  }
+  .uv-title span {
+    color: #cc44ff;
+    text-shadow: 0 0 30px #aa00ff88;
+  }
+  .uv-subtitle {
+    font-size: 13px; color: #7755aa; letter-spacing: 0.05em;
+    margin-bottom: 40px; font-family: 'Courier New', monospace;
+  }
+  .spectrum-bar {
+    display: flex; align-items: stretch; height: 10px;
+    border-radius: 5px; overflow: hidden; margin-bottom: 8px;
+    width: 100%;
+  }
+  .spec-seg {
+    flex: 1; position: relative;
+  }
+  .spec-human {
+    background: linear-gradient(90deg, #3300ff, #0044ff, #0088ff, #00ccff, #00ff88, #88ff00, #ffee00, #ff8800, #ff2200);
+    flex: 3;
+  }
+  .spec-uv {
+    background: linear-gradient(90deg, #cc00ff, #aa00ff88, #88006644, #66003322);
+    flex: 1.2;
+    position: relative;
+  }
+  .spec-ir {
+    background: linear-gradient(90deg, #ff220022, #ff220044, #ff440066, #ff2200aa);
+    flex: 1.2;
+  }
+  .spec-labels {
+    display: flex; font-size: 10px; color: #664488; letter-spacing: 0.06em;
+    margin-bottom: 32px;
+  }
+  .spec-labels span { flex: 1; }
+  .spec-labels .sl-uv { flex: 1.2; color: #cc66ff; }
+  .spec-labels .sl-vis { flex: 3; }
+  .spec-labels .sl-ir { flex: 1.2; color: #ff6644; }
+  .you-marker {
+    position: relative; display: inline-block;
+    color: #ff8844; font-size: 10px; letter-spacing: 0.04em;
+  }
+  .panels {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+    margin-bottom: 32px;
+  }
+  .panel {
+    background: #110022; border: 1px solid #5500aa22;
+    border-radius: 6px; padding: 20px;
+    position: relative; overflow: hidden;
+  }
+  .panel::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, #aa44ff44, transparent);
+  }
+  .panel-label {
+    font-size: 10px; color: #7744aa; letter-spacing: 0.1em;
+    text-transform: uppercase; margin-bottom: 12px;
+  }
+  .panel-value {
+    font-size: 22px; font-weight: 700; color: #e8ccff;
+    margin-bottom: 4px;
+  }
+  .panel-desc {
+    font-size: 12px; color: #664488; line-height: 1.5;
+  }
+  .panel-bee .panel-value { color: #cc88ff; text-shadow: 0 0 20px #aa44ff55; }
+  .hidden-pattern {
+    width: 100%; height: 80px;
+    position: relative; overflow: hidden;
+    border-radius: 6px; margin-bottom: 16px;
+    border: 1px solid #3300aa33;
+  }
+  .hp-bg {
+    position: absolute; inset: 0;
+    background:
+      repeating-radial-gradient(circle at 50% 50%, #440088 0px, #440088 2px, transparent 2px, transparent 20px),
+      repeating-radial-gradient(circle at 20% 50%, #330066 0px, #330066 1px, transparent 1px, transparent 15px),
+      repeating-radial-gradient(circle at 80% 50%, #550099 0px, #550099 1px, transparent 1px, transparent 18px);
+    opacity: 0.5;
+  }
+  .hp-text {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; color: #4a2266; letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+  .hp-uv-text {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700;
+    color: #9911cc08;
+    letter-spacing: 0.2em; text-transform: uppercase;
+    user-select: none;
+  }
+  .flower-row {
+    display: flex; gap: 12px; margin-bottom: 28px;
+  }
+  .flower-card {
+    flex: 1; border-radius: 6px; overflow: hidden;
+    border: 1px solid #2200440;
+  }
+  .fc-human {
+    background: linear-gradient(135deg, #fff8d4 0%, #ffe066 50%, #ffcc33 100%);
+    height: 90px; display: flex; align-items: center; justify-content: center;
+    position: relative;
+  }
+  .fc-bee {
+    background: linear-gradient(135deg, #1a003a 0%, #3300aa 40%, #8800cc 100%);
+    height: 90px; display: flex; align-items: center; justify-content: center;
+    position: relative; overflow: hidden;
+  }
+  .fc-bee::before {
+    content: '';
+    position: absolute; inset: 0;
+    background:
+      repeating-conic-gradient(from 0deg at 50% 50%, #aa00ff44 0deg 30deg, transparent 30deg 60deg);
+    opacity: 0.6;
+  }
+  .fc-label {
+    font-size: 10px; color: #664488; letter-spacing: 0.08em;
+    text-align: center; padding: 6px 8px;
+    background: #0d001f; border-top: 1px solid #2200440;
+    text-transform: uppercase;
+  }
+  .fc-bee .fc-label { color: #cc66ff; }
+  .petal-human { font-size: 28px; }
+  .petal-bee {
+    position: relative; z-index: 1; font-size: 24px;
+    filter: hue-rotate(200deg) saturate(2);
+  }
+  .uv-bullseye {
+    position: absolute; width: 40px; height: 40px;
+    right: 12px; top: 12px; z-index: 1;
+    background: radial-gradient(circle, #cc00ff88, #8800ff44, transparent);
+    border-radius: 50%;
+    animation: uvPulse 3s ease-in-out infinite;
+  }
+  .limit-line {
+    border-top: 1px solid #3300aa33;
+    padding-top: 20px; margin-top: 8px;
+    font-size: 12px; color: #553377;
+    letter-spacing: 0.04em; line-height: 1.8;
+    font-style: italic;
+  }
+  .limit-line strong {
+    color: #8844aa; font-style: normal; font-weight: 500;
+  }
+  .bee-eye-svg {
+    display: block; margin: 0 auto 28px;
+    opacity: 0.85;
+  }
+</style>
+
+<div class="uv-root">
+  <div class="uv-secret-layer"></div>
+  <div class="uv-hex-grid"></div>
+  <div class="scanline"></div>
+
+  <div class="uv-content">
+    <div class="eyerow">
+      <span class="eye-badge">UV spectrum</span>
+      <span class="eye-sep"></span>
+      <span class="eye-freq">300 – 400 nm</span>
+    </div>
+
+    <div class="uv-title">You cannot<br>see <span>everything.</span></div>
+    <div class="uv-subtitle">// This page was not designed for your eyes.</div>
+
+    <div class="spectrum-bar">
+      <div class="spec-seg spec-uv"></div>
+      <div class="spec-seg spec-human"></div>
+      <div class="spec-seg spec-ir"></div>
+    </div>
+    <div class="spec-labels">
+      <span class="sl-uv">UV ← invisible to you</span>
+      <span class="sl-vis" style="text-align:center">← your window →</span>
+      <span class="sl-ir" style="text-align:right">infrared →</span>
+    </div>
+
+    <div class="flower-row">
+      <div class="flower-card">
+        <div class="fc-human"><span class="petal-human">🌻</span></div>
+        <div class="fc-label">Human eye</div>
+      </div>
+      <div class="flower-card">
+        <div class="fc-bee">
+          <div class="uv-bullseye"></div>
+          <span class="petal-bee">🌻</span>
+        </div>
+        <div class="fc-label" style="color:#cc66ff">Bee eye — UV bullseye visible</div>
+      </div>
+    </div>
+
+    <div class="hidden-pattern">
+      <div class="hp-bg"></div>
+      <div class="hp-text">pattern exists here — invisible to you</div>
+      <div class="hp-uv-text">NECTAR GUIDE</div>
+    </div>
+
+    <div class="panels">
+      <div class="panel">
+        <div class="panel-label">Human photoreceptors</div>
+        <div class="panel-value">3</div>
+        <div class="panel-desc">Red, green, blue — a small window, 380–700nm. You call it the full spectrum. It is not.</div>
+      </div>
+      <div class="panel panel-bee">
+        <div class="panel-label">Bee photoreceptors</div>
+        <div class="panel-value">3+</div>
+        <div class="panel-desc">Green, blue, <strong style="color:#cc88ff">ultraviolet</strong> — shifted toward 300nm. Flowers wear landing signals bees see, you don't.</div>
+      </div>
+    </div>
+
+    <div class="limit-line">
+      <strong>Patterns exist on this page you cannot perceive.</strong><br>
+      The background carries signals in wavelengths outside your range. The flowers have bullseyes.
+      The geometry encodes meaning your three cones cannot decode.
+      You are not the intended viewer. <strong>You are limited.</strong>
+    </div>
+  </div>
+</div>

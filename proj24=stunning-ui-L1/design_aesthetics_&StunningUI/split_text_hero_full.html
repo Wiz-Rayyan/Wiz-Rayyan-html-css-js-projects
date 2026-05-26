@@ -1,0 +1,328 @@
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400&display=swap');
+
+*{box-sizing:border-box;margin:0;padding:0}
+
+.hero{
+  position:relative;
+  width:100%;
+  height:520px;
+  overflow:hidden;
+  background:#0c0c0c;
+  cursor:crosshair;
+}
+
+.canvas-layer{
+  position:absolute;
+  inset:0;
+}
+
+.half{
+  position:absolute;
+  inset:-20px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  transition:clip-path 0.6s cubic-bezier(0.77,0,0.175,1);
+}
+
+.word{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(80px,15vw,136px);
+  letter-spacing:0.02em;
+  line-height:1;
+  white-space:nowrap;
+  pointer-events:none;
+  position:relative;
+}
+
+.half-a .word{color:#f2ede4;}
+.half-b .word{color:#0c0c0c;}
+
+.sub-line{
+  position:absolute;
+  bottom:0;
+  left:0;
+  right:0;
+  display:flex;
+  z-index:8;
+  pointer-events:none;
+}
+.sub-a,.sub-b{
+  flex:1;
+  padding:22px 28px;
+  font-family:'DM Sans',sans-serif;
+  font-size:10px;
+  letter-spacing:0.22em;
+  text-transform:uppercase;
+  font-weight:300;
+  transition:background 0.6s, color 0.6s;
+}
+.sub-a{background:#0c0c0c;color:#f2ede4;}
+.sub-b{background:#f2ede4;color:#0c0c0c;text-align:right;}
+
+.blade-svg{
+  position:absolute;
+  inset:0;
+  z-index:6;
+  pointer-events:none;
+  width:100%;height:100%;
+}
+
+.corner-tl,.corner-br{
+  position:absolute;
+  font-family:'DM Sans',sans-serif;
+  font-size:9px;
+  letter-spacing:0.28em;
+  text-transform:uppercase;
+  font-weight:400;
+  z-index:9;
+  pointer-events:none;
+}
+.corner-tl{top:26px;left:28px;color:#555;}
+.corner-br{bottom:54px;right:28px;color:#999;text-align:right;}
+
+.index-no{
+  position:absolute;
+  font-family:'Bebas Neue',sans-serif;
+  font-size:11px;
+  letter-spacing:0.3em;
+  z-index:9;
+  pointer-events:none;
+}
+.index-no-l{top:26px;right:50%;margin-right:32px;color:#444;}
+.index-no-r{top:26px;left:50%;margin-left:32px;color:#ccc;}
+
+.scanlines{
+  position:absolute;
+  inset:0;
+  z-index:7;
+  pointer-events:none;
+  opacity:0.04;
+  background-image:repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    #fff 3px,
+    #fff 4px
+  );
+}
+
+.toolbar{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:16px 0 4px;
+  flex-wrap:wrap;
+}
+.tbar-label{
+  font-size:11px;
+  color:var(--color-text-secondary);
+  font-family:var(--font-sans);
+  letter-spacing:0.05em;
+  white-space:nowrap;
+}
+.tbar-sep{width:0.5px;height:20px;background:var(--color-border-secondary);}
+
+.chip{
+  font-family:var(--font-sans);
+  font-size:11px;
+  padding:4px 11px;
+  border-radius:var(--border-radius-md);
+  border:0.5px solid var(--color-border-secondary);
+  background:var(--color-background-secondary);
+  color:var(--color-text-primary);
+  cursor:pointer;
+  transition:background 0.12s, border-color 0.12s;
+  white-space:nowrap;
+}
+.chip:hover{background:var(--color-background-tertiary);}
+.chip.on{
+  background:var(--color-text-primary);
+  color:var(--color-background-primary);
+  border-color:var(--color-text-primary);
+}
+
+.swatch{
+  width:18px;height:18px;
+  border-radius:50%;
+  border:1.5px solid var(--color-border-secondary);
+  cursor:pointer;
+  transition:transform 0.12s, border-color 0.12s;
+  flex-shrink:0;
+}
+.swatch:hover{transform:scale(1.15);}
+.swatch.on{border-color:var(--color-text-primary);border-width:2px;}
+
+.slider-row{
+  display:flex;align-items:center;gap:8px;margin-left:auto;
+}
+.slider-row input[type=range]{width:80px;}
+.slider-val{
+  font-size:11px;
+  color:var(--color-text-secondary);
+  font-family:var(--font-sans);
+  min-width:28px;
+}
+</style>
+
+<h2 style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">Interactive split-text diagonal hero with live controls for word, colour scheme, and blade angle.</h2>
+
+<div class="hero" id="hero">
+  <div class="half half-a" id="halfA">
+    <span class="word" id="wA">DIVIDE</span>
+  </div>
+  <div class="half half-b" id="halfB">
+    <span class="word" id="wB">DIVIDE</span>
+  </div>
+
+  <svg class="blade-svg" id="bladeSvg" viewBox="0 0 680 520" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <line id="bladeLine" x1="380" y1="0" x2="300" y2="520" stroke-width="1" stroke="#888"/>
+    <line id="bladeGlow" x1="380" y1="0" x2="300" y2="520" stroke-width="3" stroke="#fff" opacity="0.07"/>
+  </svg>
+
+  <div class="scanlines"></div>
+
+  <div class="corner-tl" id="ctTL">Editorial / 2025</div>
+  <div class="index-no index-no-l" id="inL">01/A</div>
+  <div class="index-no index-no-r" id="inR">01/B</div>
+  <div class="corner-br" id="ctBR">Agency Studio — Typeface: Bebas Neue</div>
+
+  <div class="sub-line">
+    <div class="sub-a" id="subA">Design</div>
+    <div class="sub-b" id="subB">Studio</div>
+  </div>
+</div>
+
+<div class="toolbar">
+  <span class="tbar-label">Word</span>
+  <button class="chip on" onclick="setWord('DIVIDE',this)">DIVIDE</button>
+  <button class="chip" onclick="setWord('CONTRAST',this)">CONTRAST</button>
+  <button class="chip" onclick="setWord('TENSION',this)">TENSION</button>
+  <button class="chip" onclick="setWord('RUPTURE',this)">RUPTURE</button>
+  <button class="chip" onclick="setWord('ECLIPSE',this)">ECLIPSE</button>
+
+  <div class="tbar-sep"></div>
+
+  <span class="tbar-label">Palette</span>
+  <div class="swatch on" style="background:#0c0c0c" onclick="setPalette('mono',this)" title="Mono"></div>
+  <div class="swatch" style="background:#1a1a2e" onclick="setPalette('midnight',this)" title="Midnight"></div>
+  <div class="swatch" style="background:#3d1a00" onclick="setPalette('ember',this)" title="Ember"></div>
+  <div class="swatch" style="background:#003d2b" onclick="setPalette('forest',this)" title="Forest"></div>
+  <div class="swatch" style="background:#1a0a2e" onclick="setPalette('violet',this)" title="Violet"></div>
+
+  <div class="tbar-sep"></div>
+  <div class="slider-row">
+    <span class="tbar-label">Angle</span>
+    <input type="range" min="3" max="45" value="16" step="1" id="angleSlider" oninput="setAngle(this.value)">
+    <span class="slider-val" id="angleOut">16°</span>
+  </div>
+</div>
+
+<script>
+const palettes = {
+  mono:     {bg:'#0c0c0c', fg:'#f2ede4', acc:'#888',    subABg:'#0c0c0c', subAFg:'#f2ede4', subBBg:'#f2ede4', subBFg:'#0c0c0c', blade:'#888',  ctTL:'#555', ctBR:'#999', inL:'#444', inR:'#ccc'},
+  midnight: {bg:'#1a1a2e', fg:'#e8dfc8', acc:'#4a4a7a', subABg:'#1a1a2e', subAFg:'#e8dfc8', subBBg:'#e8dfc8', subBFg:'#1a1a2e', blade:'#7a7ab0',ctTL:'#556', ctBR:'#aaa', inL:'#445', inR:'#bba'},
+  ember:    {bg:'#3d1a00', fg:'#f5e0c0', acc:'#c05a00',  subABg:'#3d1a00', subAFg:'#f5e0c0', subBBg:'#f5e0c0', subBFg:'#3d1a00', blade:'#c05a00',ctTL:'#864', ctBR:'#c96', inL:'#753', inR:'#da9'},
+  forest:   {bg:'#003d2b', fg:'#d8f0e0', acc:'#2aaa66',  subABg:'#003d2b', subAFg:'#d8f0e0', subBBg:'#d8f0e0', subBFg:'#003d2b', blade:'#2aaa66',ctTL:'#396', ctBR:'#7c9', inL:'#285', inR:'#9db'},
+  violet:   {bg:'#1a0a2e', fg:'#ede0f8', acc:'#8855cc',  subABg:'#1a0a2e', subAFg:'#ede0f8', subBBg:'#ede0f8', subBFg:'#1a0a2e', blade:'#8855cc',ctTL:'#55a', ctBR:'#aac', inL:'#449', inR:'#ccf'},
+};
+
+let angle = 16;
+let pal = palettes.mono;
+
+function clips(a) {
+  const tan = Math.tan(a * Math.PI / 180);
+  const shift = tan * 100;
+  const p = 52;
+  const darkPoly = `polygon(0 0, ${p}% 0, ${p+shift}% 100%, 0 100%)`;
+  const lightPoly = `polygon(${p}% 0, 100% 0, 100% 100%, ${p+shift}% 100%)`;
+  return {dark: darkPoly, light: lightPoly, lx: p, rx: p+shift};
+}
+
+function applyAngle() {
+  const c = clips(angle);
+  document.getElementById('halfA').style.clipPath = c.dark;
+  document.getElementById('halfB').style.clipPath = c.light;
+
+  const W = 680, H = 520;
+  const x1 = W * c.lx / 100;
+  const x2 = W * c.rx / 100;
+  document.getElementById('bladeLine').setAttribute('x1', x1);
+  document.getElementById('bladeLine').setAttribute('y1', 0);
+  document.getElementById('bladeLine').setAttribute('x2', x2);
+  document.getElementById('bladeLine').setAttribute('y2', H);
+  document.getElementById('bladeGlow').setAttribute('x1', x1);
+  document.getElementById('bladeGlow').setAttribute('y1', 0);
+  document.getElementById('bladeGlow').setAttribute('x2', x2);
+  document.getElementById('bladeGlow').setAttribute('y2', H);
+}
+
+function applyPal(p) {
+  const hero = document.getElementById('hero');
+  hero.style.background = p.bg;
+  document.getElementById('halfA').querySelector('.word').style.color = p.fg;
+  document.getElementById('halfB').querySelector('.word').style.color = p.bg;
+  const subA = document.getElementById('subA');
+  const subB = document.getElementById('subB');
+  subA.style.background = p.subABg; subA.style.color = p.subAFg;
+  subB.style.background = p.subBBg; subB.style.color = p.subBFg;
+  document.getElementById('bladeLine').setAttribute('stroke', p.blade);
+  document.getElementById('bladeGlow').setAttribute('stroke', p.blade);
+  document.getElementById('ctTL').style.color = p.ctTL;
+  document.getElementById('ctBR').style.color = p.ctBR;
+  document.getElementById('inL').style.color = p.inL;
+  document.getElementById('inR').style.color = p.inR;
+  document.getElementById('halfB').style.background = p.fg;
+}
+
+function setAngle(v) {
+  angle = parseInt(v);
+  document.getElementById('angleOut').textContent = v + '°';
+  applyAngle();
+}
+
+function setWord(w, btn) {
+  document.querySelectorAll('.chip').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('wA').textContent = w;
+  document.getElementById('wB').textContent = w;
+}
+
+function setPalette(name, el) {
+  document.querySelectorAll('.swatch').forEach(s => s.classList.remove('on'));
+  el.classList.add('on');
+  pal = palettes[name];
+  applyPal(pal);
+}
+
+let hovering = false;
+document.getElementById('hero').addEventListener('mousemove', e => {
+  const rect = e.currentTarget.getBoundingClientRect();
+  const xPct = ((e.clientX - rect.left) / rect.width) * 100;
+  const raw = xPct - 52;
+  const shift = Math.max(-18, Math.min(18, raw * 0.35));
+  const tan = Math.tan(angle * Math.PI / 180);
+  const shiftAmt = tan * 100;
+  const p = 52 + shift;
+  const darkPoly = `polygon(0 0, ${p}% 0, ${p+shiftAmt}% 100%, 0 100%)`;
+  const lightPoly = `polygon(${p}% 0, 100% 0, 100% 100%, ${p+shiftAmt}% 100%)`;
+  document.getElementById('halfA').style.clipPath = darkPoly;
+  document.getElementById('halfB').style.clipPath = lightPoly;
+  const W = 680, H = 520;
+  const x1 = W * p / 100;
+  const x2 = W * (p + shiftAmt) / 100;
+  document.getElementById('bladeLine').setAttribute('x1', x1);
+  document.getElementById('bladeLine').setAttribute('x2', x2);
+  document.getElementById('bladeGlow').setAttribute('x1', x1);
+  document.getElementById('bladeGlow').setAttribute('x2', x2);
+});
+
+document.getElementById('hero').addEventListener('mouseleave', () => {
+  applyAngle();
+});
+
+applyAngle();
+applyPal(pal);
+</script>

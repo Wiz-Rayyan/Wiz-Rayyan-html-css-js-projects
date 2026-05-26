@@ -1,0 +1,128 @@
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans)}
+#scene{width:100%;min-height:520px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3rem 2rem;position:relative;overflow:hidden;cursor:none}
+.bg-orb{position:absolute;border-radius:50%;pointer-events:none;will-change:transform}
+.card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1.5rem;width:200px;will-change:transform;transition:box-shadow .1s ease;position:relative;user-select:none}
+.card-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;width:100%;max-width:680px}
+.card-icon{font-size:24px;color:var(--color-text-secondary);margin-bottom:.75rem}
+.card-title{font-size:14px;font-weight:500;color:var(--color-text-primary);margin-bottom:.25rem}
+.card-sub{font-size:12px;color:var(--color-text-secondary)}
+.cursor-dot{position:absolute;width:12px;height:12px;border-radius:50%;background:var(--color-text-primary);pointer-events:none;transform:translate(-50%,-50%);z-index:100;will-change:transform;mix-blend-mode:difference}
+.cursor-ring{position:absolute;width:40px;height:40px;border-radius:50%;border:1px solid var(--color-border-primary);pointer-events:none;transform:translate(-50%,-50%);z-index:99;will-change:transform;transition:transform .08s ease,width .15s ease,height .15s ease}
+.hero-text{font-size:32px;font-weight:500;color:var(--color-text-primary);text-align:center;margin-bottom:2.5rem;will-change:transform;line-height:1.2}
+.hero-text span{display:inline-block;will-change:transform}
+.badge{display:inline-block;font-size:11px;padding:3px 10px;border-radius:20px;margin-top:.5rem}
+#debug{position:absolute;bottom:1rem;right:1rem;font-size:11px;color:var(--color-text-tertiary);font-family:var(--font-mono)}
+</style>
+
+<h2 class="sr-only">Interactive cursor-reactive UI demo — elements follow and respond to your mouse movement with parallax effects</h2>
+
+<div id="scene">
+  <div class="cursor-dot" id="dot"></div>
+  <div class="cursor-ring" id="ring"></div>
+
+  <div style="position:absolute;top:10%;left:10%;width:180px;height:180px;border-radius:50%;background:rgba(83,74,183,0.08);pointer-events:none;will-change:transform" class="bg-orb" data-speed="0.4" id="orb1"></div>
+  <div style="position:absolute;bottom:15%;right:8%;width:140px;height:140px;border-radius:50%;background:rgba(29,158,117,0.07);pointer-events:none;will-change:transform" class="bg-orb" data-speed="0.6" id="orb2"></div>
+  <div style="position:absolute;top:50%;left:5%;width:80px;height:80px;border-radius:50%;background:rgba(216,90,48,0.06);pointer-events:none;will-change:transform" class="bg-orb" data-speed="0.9" id="orb3"></div>
+
+  <div class="hero-text" id="hero">
+    <span data-depth="0.05" id="w1">Move</span>&nbsp;<span data-depth="0.08" id="w2">your</span>&nbsp;<span data-depth="0.12" id="w3">mouse</span>
+  </div>
+
+  <div class="card-grid">
+    <div class="card" data-depth="0.06" data-rotate="4">
+      <i class="ti ti-bolt card-icon" aria-hidden="true"></i>
+      <div class="card-title">Reactive</div>
+      <div class="card-sub">Responds to every move</div>
+      <div class="badge" style="background:rgba(83,74,183,0.1);color:#534AB7">parallax</div>
+    </div>
+    <div class="card" data-depth="0.10" data-rotate="7">
+      <i class="ti ti-rotate-2 card-icon" aria-hidden="true"></i>
+      <div class="card-title">Rotational</div>
+      <div class="card-sub">Tilts with mouse angle</div>
+      <div class="badge" style="background:rgba(29,158,117,0.1);color:#0F6E56">3d-ish</div>
+    </div>
+    <div class="card" data-depth="0.14" data-rotate="10">
+      <i class="ti ti-circles card-icon" aria-hidden="true"></i>
+      <div class="card-title">Layered</div>
+      <div class="card-sub">Different speeds per layer</div>
+      <div class="badge" style="background:rgba(216,90,48,0.1);color:#993C1D">depth</div>
+    </div>
+  </div>
+
+  <div id="debug">x: 0.00 &nbsp; y: 0.00</div>
+</div>
+
+<script>
+const scene = document.getElementById('scene');
+const dot = document.getElementById('dot');
+const ring = document.getElementById('ring');
+const debug = document.getElementById('debug');
+
+let mx = 0, my = 0;
+let dotX = 0, dotY = 0, ringX = 0, ringY = 0;
+let normX = 0, normY = 0;
+let raf;
+
+const cards = scene.querySelectorAll('[data-depth]');
+const orbs = scene.querySelectorAll('.bg-orb[data-speed]');
+const words = [document.getElementById('w1'),document.getElementById('w2'),document.getElementById('w3')];
+
+scene.addEventListener('mousemove', e => {
+  const r = scene.getBoundingClientRect();
+  mx = e.clientX - r.left;
+  my = e.clientY - r.top;
+  normX = (mx / r.width) * 2 - 1;
+  normY = (my / r.height) * 2 - 1;
+});
+
+scene.addEventListener('mouseleave', () => {
+  normX = 0; normY = 0;
+});
+
+function lerp(a, b, t){ return a + (b - a) * t; }
+
+function tick(){
+  raf = requestAnimationFrame(tick);
+
+  dotX = lerp(dotX, mx, 0.85);
+  dotY = lerp(dotY, my, 0.85);
+  ringX = lerp(ringX, mx, 0.12);
+  ringY = lerp(ringY, my, 0.12);
+
+  dot.style.left = dotX + 'px';
+  dot.style.top = dotY + 'px';
+  ring.style.left = ringX + 'px';
+  ring.style.top = ringY + 'px';
+
+  cards.forEach(card => {
+    const depth = parseFloat(card.dataset.depth) || 0.08;
+    const maxRot = parseFloat(card.dataset.rotate) || 6;
+    const tx = normX * depth * 120;
+    const ty = normY * depth * 120;
+    const rx = -normY * maxRot;
+    const ry = normX * maxRot;
+    card.style.transform = `translate(${tx.toFixed(1)}px, ${ty.toFixed(1)}px) rotateX(${rx.toFixed(1)}deg) rotateY(${ry.toFixed(1)}deg)`;
+    card.style.perspective = '600px';
+  });
+
+  orbs.forEach(orb => {
+    const speed = parseFloat(orb.dataset.speed) || 0.5;
+    const tx = normX * speed * 40;
+    const ty = normY * speed * 40;
+    orb.style.transform = `translate(${tx.toFixed(1)}px, ${ty.toFixed(1)}px)`;
+  });
+
+  const wordDepths = [0.03, 0.06, 0.10];
+  words.forEach((w, i) => {
+    const tx = normX * wordDepths[i] * 120;
+    const ty = normY * wordDepths[i] * 60;
+    w.style.transform = `translate(${tx.toFixed(1)}px, ${ty.toFixed(1)}px)`;
+  });
+
+  debug.textContent = `x: ${normX.toFixed(2)}  y: ${normY.toFixed(2)}`;
+}
+
+tick();
+</script>
