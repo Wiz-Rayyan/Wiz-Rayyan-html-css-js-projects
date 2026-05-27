@@ -1,0 +1,237 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font-sans); }
+  .scene {
+    min-height: 520px;
+    background: #0a0a0f;
+    border-radius: var(--border-radius-lg);
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .grid-bg {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(120,100,255,0.07) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(120,100,255,0.07) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+  .label {
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    color: rgba(160,150,220,0.5);
+    text-transform: uppercase;
+    position: relative;
+  }
+  .mag-btn {
+    position: relative;
+    padding: 14px 32px;
+    border-radius: 12px;
+    border: 1px solid rgba(120,100,255,0.35);
+    background: rgba(120,100,255,0.1);
+    color: #c4baff;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: transform 0.18s cubic-bezier(0.22,1,0.36,1), background 0.18s ease, border-color 0.18s ease;
+    will-change: transform;
+    user-select: none;
+    outline: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-sans);
+  }
+  .mag-btn:hover {
+    background: rgba(120,100,255,0.18);
+    border-color: rgba(160,140,255,0.6);
+    color: #e0dbff;
+  }
+  .mag-btn.snap {
+    transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1) !important;
+  }
+  .mag-btn .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: #7c68ee;
+    display: inline-block;
+  }
+  .btn-row {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    position: relative;
+  }
+  .card-row {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    position: relative;
+  }
+  .mag-card {
+    width: 160px;
+    padding: 1.25rem;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.07);
+    background: rgba(255,255,255,0.04);
+    cursor: default;
+    transition: transform 0.18s cubic-bezier(0.22,1,0.36,1), border-color 0.2s ease, background 0.2s ease;
+    will-change: transform;
+    user-select: none;
+    position: relative;
+    backdrop-filter: blur(4px);
+  }
+  .mag-card:hover {
+    border-color: rgba(120,100,255,0.3);
+    background: rgba(120,100,255,0.07);
+  }
+  .mag-card.snap {
+    transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1) !important;
+  }
+  .card-icon {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    margin-bottom: 10px;
+  }
+  .card-icon.purple { background: rgba(120,100,255,0.2); color: #a090ff; }
+  .card-icon.teal   { background: rgba(30,180,140,0.2); color: #4dd9af; }
+  .card-icon.pink   { background: rgba(220,80,140,0.2); color: #f080b0; }
+  .card-title { font-size: 13px; font-weight: 500; color: rgba(220,215,255,0.9); margin-bottom: 4px; }
+  .card-sub   { font-size: 11px; color: rgba(160,155,200,0.55); line-height: 1.5; }
+  .info-bar {
+    font-size: 12px;
+    color: rgba(120,110,180,0.55);
+    letter-spacing: 0.04em;
+    position: relative;
+    text-align: center;
+  }
+  .strength-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: relative;
+    width: 280px;
+  }
+  .strength-row label {
+    font-size: 12px;
+    color: rgba(160,150,220,0.5);
+    white-space: nowrap;
+  }
+  .strength-row input[type=range] {
+    flex: 1;
+    accent-color: #7c68ee;
+  }
+  .strength-val {
+    font-size: 12px;
+    color: rgba(160,150,220,0.7);
+    min-width: 28px;
+    text-align: right;
+  }
+</style>
+
+<div class="scene" id="scene">
+  <div class="grid-bg"></div>
+  <h2 class="sr-only">Magnetic cursor attraction demo — hover over buttons and cards to see them follow your cursor</h2>
+
+  <div class="label">Move your cursor — click to snap back</div>
+
+  <div class="btn-row" id="btnRow">
+    <button class="mag-btn" data-strength="0.28"><span class="dot"></span>Explore</button>
+    <button class="mag-btn" data-strength="0.28"><i class="ti ti-bolt" aria-hidden="true"></i>Launch</button>
+    <button class="mag-btn" data-strength="0.28"><i class="ti ti-heart" aria-hidden="true"></i>Save</button>
+  </div>
+
+  <div class="card-row" id="cardRow">
+    <div class="mag-card" data-strength="0.22">
+      <div class="card-icon purple"><i class="ti ti-sparkles" aria-hidden="true"></i></div>
+      <div class="card-title">AI Studio</div>
+      <div class="card-sub">Build with natural language</div>
+    </div>
+    <div class="mag-card" data-strength="0.22">
+      <div class="card-icon teal"><i class="ti ti-chart-line" aria-hidden="true"></i></div>
+      <div class="card-title">Analytics</div>
+      <div class="card-sub">Real-time insight layer</div>
+    </div>
+    <div class="mag-card" data-strength="0.22">
+      <div class="card-icon pink"><i class="ti ti-shield-check" aria-hidden="true"></i></div>
+      <div class="card-title">Security</div>
+      <div class="card-sub">Zero-trust by default</div>
+    </div>
+  </div>
+
+  <div class="strength-row">
+    <label for="magSlider">Pull strength</label>
+    <input type="range" id="magSlider" min="0" max="100" value="50" step="1">
+    <span class="strength-val" id="magVal">0.28×</span>
+  </div>
+
+  <div class="info-bar" id="infoBar">hover an element</div>
+</div>
+
+<script>
+const scene = document.getElementById('scene');
+const infoBar = document.getElementById('infoBar');
+const magSlider = document.getElementById('magSlider');
+const magVal = document.getElementById('magVal');
+
+let baseStrengths = {};
+let strengthMult = 1;
+
+magSlider.addEventListener('input', () => {
+  strengthMult = magSlider.value / 50;
+  magVal.textContent = (0.28 * strengthMult).toFixed(2) + '×';
+});
+
+function getMagElements() {
+  return document.querySelectorAll('.mag-btn, .mag-card');
+}
+
+function applyMag(el, e) {
+  const rect = el.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  const dx = e.clientX - cx;
+  const dy = e.clientY - cy;
+  const dist = Math.sqrt(dx*dx + dy*dy);
+  const maxDist = 120;
+  if (dist > maxDist) { el.style.transform = 'translate(0px,0px)'; return; }
+  const falloff = 1 - (dist / maxDist);
+  const base = parseFloat(el.dataset.strength || 0.25);
+  const str = base * strengthMult;
+  const tx = dx * str * falloff;
+  const ty = dy * str * falloff;
+  el.style.transform = `translate(${tx.toFixed(2)}px, ${ty.toFixed(2)}px)`;
+  infoBar.textContent = `translate(${tx.toFixed(1)}px, ${ty.toFixed(1)}px)  ·  ${Math.round(dist)}px from center`;
+}
+
+scene.addEventListener('mousemove', e => {
+  getMagElements().forEach(el => applyMag(el, e));
+});
+
+scene.addEventListener('mouseleave', () => {
+  getMagElements().forEach(el => {
+    el.classList.remove('snap');
+    el.style.transform = 'translate(0px,0px)';
+  });
+  infoBar.textContent = 'hover an element';
+});
+
+getMagElements().forEach(el => {
+  el.addEventListener('click', () => {
+    el.classList.add('snap');
+    el.style.transform = 'translate(0px,0px)';
+    setTimeout(() => el.classList.remove('snap'), 450);
+  });
+});
+</script>

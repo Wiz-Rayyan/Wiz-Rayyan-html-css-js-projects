@@ -1,0 +1,248 @@
+<style>
+  .chat-wrap { background: var(--color-background-secondary); border-radius: var(--border-radius-lg); padding: 0; overflow: hidden; font-family: var(--font-sans); }
+  .chat-header { background: var(--color-background-primary); border-bottom: 0.5px solid var(--color-border-tertiary); padding: 12px 16px; display: flex; align-items: center; gap: 10px; }
+  .chat-header .avatar { width: 36px; height: 36px; border-radius: 50%; background: #B5D4F4; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; color: #0C447C; flex-shrink: 0; cursor: pointer; }
+  .chat-header .info { flex: 1; }
+  .chat-header .name { font-size: 14px; font-weight: 500; color: var(--color-text-primary); }
+  .chat-header .status { font-size: 12px; color: var(--color-text-success); }
+  .chat-header .actions { display: flex; gap: 4px; }
+  .chat-header .actions button { background: none; border: none; cursor: pointer; color: var(--color-text-secondary); padding: 4px; font-size: 18px; border-radius: 6px; display: flex; align-items: center; }
+  .chat-header .actions button:hover { background: var(--color-background-secondary); }
+  .messages { padding: 16px; display: flex; flex-direction: column; gap: 4px; min-height: 360px; max-height: 420px; overflow-y: auto; }
+  .msg-row { display: flex; align-items: flex-end; gap: 8px; }
+  .msg-row.outgoing { flex-direction: row-reverse; }
+  .avatar-sm { width: 28px; height: 28px; border-radius: 50%; background: #B5D4F4; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; color: #0C447C; flex-shrink: 0; cursor: pointer; transition: transform 0.15s; }
+  .avatar-sm:hover { transform: scale(1.1); }
+  .avatar-sm.hidden { visibility: hidden; }
+  .bubble-wrap { display: flex; flex-direction: column; max-width: 70%; }
+  .outgoing .bubble-wrap { align-items: flex-end; }
+  .sender-name { font-size: 11px; color: var(--color-text-secondary); margin: 0 4px 2px; }
+  .bubble { padding: 9px 13px; position: relative; cursor: pointer; transition: filter 0.1s; line-height: 1.45; font-size: 14px; word-break: break-word; }
+  .bubble:hover { filter: brightness(0.95); }
+  .bubble.incoming { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); color: var(--color-text-primary); border-radius: 18px 18px 18px 4px; }
+  .bubble.outgoing { background: #185FA5; color: #E6F1FB; border-radius: 18px 18px 4px 18px; }
+  .bubble-meta { display: none; align-items: center; gap: 4px; font-size: 11px; color: var(--color-text-secondary); margin: 2px 4px 0; }
+  .outgoing .bubble-meta { justify-content: flex-end; }
+  .bubble-meta .receipt { display: flex; align-items: center; gap: 2px; }
+  .bubble-meta .receipt i { font-size: 13px; }
+  .receipt.sent { color: var(--color-text-secondary); }
+  .receipt.delivered { color: var(--color-text-secondary); }
+  .receipt.read { color: #185FA5; }
+  .msg-row:hover .bubble-meta { display: flex; }
+  .action-menu { display: none; position: absolute; background: var(--color-background-primary); border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); padding: 4px; box-shadow: none; z-index: 10; min-width: 120px; }
+  .incoming .action-menu { left: 0; bottom: calc(100% + 4px); }
+  .outgoing .action-menu { right: 0; bottom: calc(100% + 4px); }
+  .action-menu.show { display: block; }
+  .action-item { display: flex; align-items: center; gap: 8px; padding: 7px 10px; font-size: 13px; color: var(--color-text-primary); border-radius: 6px; cursor: pointer; white-space: nowrap; }
+  .action-item:hover { background: var(--color-background-secondary); }
+  .action-item.danger { color: var(--color-text-danger); }
+  .action-item i { font-size: 15px; }
+  .date-divider { text-align: center; font-size: 11px; color: var(--color-text-tertiary); margin: 10px 0 6px; display: flex; align-items: center; gap: 8px; }
+  .date-divider::before, .date-divider::after { content: ''; flex: 1; height: 0.5px; background: var(--color-border-tertiary); }
+  .typing-row { display: flex; align-items: flex-end; gap: 8px; margin-top: 4px; }
+  .typing-bubble { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: 18px 18px 18px 4px; padding: 10px 14px; display: flex; gap: 4px; align-items: center; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--color-text-tertiary); animation: bounce 1.2s infinite; }
+  .dot:nth-child(2) { animation-delay: 0.2s; }
+  .dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-5px)} }
+  .chat-input-bar { background: var(--color-background-primary); border-top: 0.5px solid var(--color-border-tertiary); padding: 10px 12px; display: flex; align-items: center; gap: 8px; }
+  .chat-input-bar input { flex: 1; background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); border-radius: 20px; padding: 8px 14px; font-size: 14px; color: var(--color-text-primary); outline: none; font-family: var(--font-sans); }
+  .chat-input-bar input:focus { border-color: var(--color-border-primary); }
+  .send-btn { width: 34px; height: 34px; border-radius: 50%; background: #185FA5; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; transition: background 0.15s; }
+  .send-btn:hover { background: #0C447C; }
+  .send-btn i { color: #E6F1FB; font-size: 16px; }
+  .icon-btn { background: none; border: none; cursor: pointer; color: var(--color-text-secondary); font-size: 20px; display: flex; padding: 4px; border-radius: 50%; transition: background 0.1s; }
+  .icon-btn:hover { background: var(--color-background-secondary); }
+  .profile-toast { position: absolute; top: 60px; left: 50%; transform: translateX(-50%); background: var(--color-background-primary); border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); padding: 10px 16px; font-size: 13px; color: var(--color-text-primary); display: none; white-space: nowrap; z-index: 20; }
+  .profile-toast.show { display: block; }
+  .outer { position: relative; }
+</style>
+<h2 class="sr-only">Chat thread demonstrating bubble stack UI with incoming and outgoing messages, hover timestamps, action menus, and typing indicator.</h2>
+<div class="outer">
+  <div class="chat-wrap">
+    <div class="chat-header">
+      <div class="avatar" onclick="showProfile('Ava Chen')" title="View profile">AC</div>
+      <div class="info">
+        <div class="name">Ava Chen</div>
+        <div class="status">● online</div>
+      </div>
+      <div class="actions">
+        <button title="Call"><i class="ti ti-phone" aria-hidden="true"></i></button>
+        <button title="Video"><i class="ti ti-video" aria-hidden="true"></i></button>
+        <button title="Search"><i class="ti ti-search" aria-hidden="true"></i></button>
+      </div>
+    </div>
+    <div class="messages" id="messages" onclick="closeMenus(event)">
+      <div class="date-divider">yesterday</div>
+      <div class="msg-row incoming">
+        <div class="avatar-sm" onclick="showProfile('Ava Chen')" title="View profile">AC</div>
+        <div class="bubble-wrap">
+          <div class="sender-name">Ava</div>
+          <div class="bubble incoming" oncontextmenu="openMenu(event,this)" ontouchstart="startLong(event,this)" ontouchend="endLong()">
+            Hey! Did you get a chance to look at the design files I sent over?
+            <div class="action-menu">
+              <div class="action-item" onclick="doAction('reply')"><i class="ti ti-arrow-back-up" aria-hidden="true"></i>Reply</div>
+              <div class="action-item" onclick="doAction('copy')"><i class="ti ti-copy" aria-hidden="true"></i>Copy</div>
+              <div class="action-item danger" onclick="doAction('delete')"><i class="ti ti-trash" aria-hidden="true"></i>Delete</div>
+            </div>
+          </div>
+          <div class="bubble-meta"><span>4:02 PM</span></div>
+        </div>
+      </div>
+      <div class="msg-row incoming" style="margin-top:2px">
+        <div class="avatar-sm hidden">AC</div>
+        <div class="bubble-wrap">
+          <div class="bubble incoming" style="border-radius:18px 18px 18px 4px" oncontextmenu="openMenu(event,this)" ontouchstart="startLong(event,this)" ontouchend="endLong()">
+            The new color palette looks really good 🎨
+            <div class="action-menu">
+              <div class="action-item" onclick="doAction('reply')"><i class="ti ti-arrow-back-up" aria-hidden="true"></i>Reply</div>
+              <div class="action-item" onclick="doAction('copy')"><i class="ti ti-copy" aria-hidden="true"></i>Copy</div>
+              <div class="action-item danger" onclick="doAction('delete')"><i class="ti ti-trash" aria-hidden="true"></i>Delete</div>
+            </div>
+          </div>
+          <div class="bubble-meta"><span>4:03 PM</span></div>
+        </div>
+      </div>
+      <div class="msg-row outgoing" style="margin-top:8px">
+        <div class="bubble-wrap">
+          <div class="bubble outgoing" oncontextmenu="openMenu(event,this)" ontouchstart="startLong(event,this)" ontouchend="endLong()">
+            Yes! Just finished reviewing — honestly love the direction. The spacing feels way more breathable now.
+            <div class="action-menu">
+              <div class="action-item" onclick="doAction('reply')"><i class="ti ti-arrow-back-up" aria-hidden="true"></i>Reply</div>
+              <div class="action-item" onclick="doAction('copy')"><i class="ti ti-copy" aria-hidden="true"></i>Copy</div>
+              <div class="action-item danger" onclick="doAction('delete')"><i class="ti ti-trash" aria-hidden="true"></i>Delete</div>
+            </div>
+          </div>
+          <div class="bubble-meta">
+            <span>4:07 PM</span>
+            <span class="receipt read"><i class="ti ti-checks" aria-hidden="true"></i></span>
+          </div>
+        </div>
+      </div>
+      <div class="msg-row outgoing" style="margin-top:2px">
+        <div class="bubble-wrap">
+          <div class="bubble outgoing" style="border-radius:18px 18px 4px 18px" oncontextmenu="openMenu(event,this)" ontouchstart="startLong(event,this)" ontouchend="endLong()">
+            One small note — can we revisit the button radius on mobile? Feels a bit sharp still.
+            <div class="action-menu">
+              <div class="action-item" onclick="doAction('reply')"><i class="ti ti-arrow-back-up" aria-hidden="true"></i>Reply</div>
+              <div class="action-item" onclick="doAction('copy')"><i class="ti ti-copy" aria-hidden="true"></i>Copy</div>
+              <div class="action-item danger" onclick="doAction('delete')"><i class="ti ti-trash" aria-hidden="true"></i>Delete</div>
+            </div>
+          </div>
+          <div class="bubble-meta">
+            <span>4:08 PM</span>
+            <span class="receipt delivered"><i class="ti ti-check" aria-hidden="true"></i></span>
+          </div>
+        </div>
+      </div>
+      <div class="date-divider" style="margin-top:16px">today</div>
+      <div class="msg-row incoming">
+        <div class="avatar-sm" onclick="showProfile('Ava Chen')" title="View profile">AC</div>
+        <div class="bubble-wrap">
+          <div class="bubble incoming" oncontextmenu="openMenu(event,this)" ontouchstart="startLong(event,this)" ontouchend="endLong()">
+            Good catch! I'll update the radius to 12px and push a new version by EOD.
+            <div class="action-menu">
+              <div class="action-item" onclick="doAction('reply')"><i class="ti ti-arrow-back-up" aria-hidden="true"></i>Reply</div>
+              <div class="action-item" onclick="doAction('copy')"><i class="ti ti-copy" aria-hidden="true"></i>Copy</div>
+              <div class="action-item danger" onclick="doAction('delete')"><i class="ti ti-trash" aria-hidden="true"></i>Delete</div>
+            </div>
+          </div>
+          <div class="bubble-meta"><span>9:41 AM</span></div>
+        </div>
+      </div>
+      <div class="typing-row" id="typing" style="display:none">
+        <div class="avatar-sm">AC</div>
+        <div class="typing-bubble">
+          <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+        </div>
+      </div>
+    </div>
+    <div class="chat-input-bar">
+      <button class="icon-btn" title="Attach" aria-label="Attach file"><i class="ti ti-paperclip" aria-hidden="true"></i></button>
+      <input type="text" id="msgInput" placeholder="Message Ava…" onkeydown="handleKey(event)" />
+      <button class="send-btn" onclick="sendMessage()" aria-label="Send message"><i class="ti ti-send" aria-hidden="true"></i></button>
+    </div>
+  </div>
+  <div class="profile-toast" id="profileToast"></div>
+</div>
+<script>
+  let longTimer = null;
+  let activeMenu = null;
+  let typingTimeout = null;
+
+  function closeMenus(e) {
+    if (activeMenu && !e.target.closest('.action-menu')) {
+      activeMenu.classList.remove('show');
+      activeMenu = null;
+    }
+  }
+
+  function openMenu(e, bubble) {
+    e.preventDefault();
+    if (activeMenu) activeMenu.classList.remove('show');
+    const menu = bubble.querySelector('.action-menu');
+    menu.classList.add('show');
+    activeMenu = menu;
+  }
+
+  function startLong(e, bubble) {
+    longTimer = setTimeout(() => openMenu(e, bubble), 500);
+  }
+
+  function endLong() {
+    clearTimeout(longTimer);
+  }
+
+  function doAction(type) {
+    if (activeMenu) { activeMenu.classList.remove('show'); activeMenu = null; }
+    if (type === 'copy') {
+      const bubble = document.querySelector('.action-menu.show')?.closest('.bubble');
+    }
+  }
+
+  function showProfile(name) {
+    const toast = document.getElementById('profileToast');
+    toast.textContent = '👤 Opening profile for ' + name + '…';
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2000);
+  }
+
+  function handleKey(e) {
+    if (e.key === 'Enter') sendMessage();
+  }
+
+  function sendMessage() {
+    const input = document.getElementById('msgInput');
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = '';
+    const msgs = document.getElementById('messages');
+
+    const row = document.createElement('div');
+    row.className = 'msg-row outgoing';
+    row.style.marginTop = '8px';
+    const now = new Date();
+    const time = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+    row.innerHTML = `<div class="bubble-wrap">
+      <div class="bubble outgoing" oncontextmenu="openMenu(event,this)" ontouchstart="startLong(event,this)" ontouchend="endLong()">
+        ${text.replace(/</g,'&lt;')}
+        <div class="action-menu">
+          <div class="action-item" onclick="doAction('reply')"><i class="ti ti-arrow-back-up" aria-hidden="true"></i>Reply</div>
+          <div class="action-item" onclick="doAction('copy')"><i class="ti ti-copy" aria-hidden="true"></i>Copy</div>
+          <div class="action-item danger" onclick="doAction('delete')"><i class="ti ti-trash" aria-hidden="true"></i>Delete</div>
+        </div>
+      </div>
+      <div class="bubble-meta"><span>${time}</span><span class="receipt sent"><i class="ti ti-check" aria-hidden="true"></i></span></div>
+    </div>`;
+    msgs.appendChild(row);
+    msgs.scrollTop = msgs.scrollHeight;
+
+    clearTimeout(typingTimeout);
+    const typing = document.getElementById('typing');
+    typing.style.display = 'flex';
+    msgs.scrollTop = msgs.scrollHeight;
+    typingTimeout = setTimeout(() => { typing.style.display = 'none'; }, 2200);
+  }
+
+  document.getElementById('messages').scrollTop = 9999;
+</script>

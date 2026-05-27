@@ -1,0 +1,365 @@
+
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+#scene {
+  width: 100%;
+  height: 520px;
+  overflow-y: scroll;
+  overflow-x: hidden;
+  position: relative;
+  background: #0a0e1a;
+  cursor: ns-resize;
+}
+#scroll-inner {
+  height: 1600px;
+  position: relative;
+}
+#layer-bg, #layer-mid, #layer-fg {
+  position: sticky;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 520px;
+  pointer-events: none;
+}
+#layer-bg { z-index: 1; }
+#layer-mid { z-index: 2; }
+#layer-fg { z-index: 3; }
+canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+#hud {
+  position: sticky;
+  top: 16px;
+  z-index: 10;
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  padding: 0 16px;
+  pointer-events: none;
+}
+.pill {
+  font-size: 11px;
+  font-family: var(--font-mono, monospace);
+  padding: 4px 10px;
+  border-radius: 99px;
+  border: 0.5px solid;
+  backdrop-filter: blur(4px);
+  letter-spacing: 0.02em;
+}
+.pill-bg { background: rgba(30,60,120,0.55); color: #7eb8ff; border-color: rgba(126,184,255,0.3); }
+.pill-mid { background: rgba(20,90,60,0.55); color: #6ee4b0; border-color: rgba(110,228,176,0.3); }
+.pill-fg { background: rgba(110,60,20,0.55); color: #ffb86c; border-color: rgba(255,184,108,0.3); }
+#cta {
+  position: absolute;
+  top: 200px;
+  width: 100%;
+  text-align: center;
+  z-index: 5;
+  pointer-events: none;
+  font-family: var(--font-sans, sans-serif);
+}
+#cta-main {
+  font-size: 13px;
+  color: rgba(255,255,255,0.45);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100%{opacity:.45} 50%{opacity:.9} }
+#scroll-hint {
+  position: absolute;
+  bottom: 20px;
+  width: 100%;
+  text-align: center;
+  z-index: 10;
+  pointer-events: none;
+  font-size: 12px;
+  font-family: var(--font-sans, sans-serif);
+  color: rgba(255,255,255,0.35);
+  letter-spacing: 0.06em;
+}
+#speed-panel {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 0;
+  overflow: hidden;
+  background: rgba(10,14,26,0.92);
+  border-top: 0.5px solid rgba(255,255,255,0.1);
+  transition: height 0.3s ease;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 0 20px;
+  font-family: var(--font-sans, sans-serif);
+}
+#speed-panel.open { height: 80px; }
+.sp-row { display: flex; align-items: center; gap: 10px; flex: 1; }
+.sp-label { font-size: 12px; color: rgba(255,255,255,0.5); white-space: nowrap; }
+.sp-val { font-size: 12px; font-family: var(--font-mono, monospace); min-width: 32px; color: rgba(255,255,255,0.85); }
+input[type=range].sp-slider { flex: 1; accent-color: #7eb8ff; }
+#toggle-btn {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  z-index: 30;
+  font-size: 11px;
+  padding: 5px 12px;
+  border-radius: 99px;
+  border: 0.5px solid rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.07);
+  color: rgba(255,255,255,0.6);
+  cursor: pointer;
+  font-family: var(--font-sans, sans-serif);
+  letter-spacing: 0.04em;
+  transition: background 0.15s;
+}
+#toggle-btn:hover { background: rgba(255,255,255,0.14); }
+</style>
+
+<h2 class="sr-only">Parallax depth scroll demo — three layers moving at different speeds: background 30%, midground 60%, foreground 100%.</h2>
+
+<div style="position: relative;">
+  <div id="scene">
+    <div id="scroll-inner">
+      <div id="hud">
+        <div class="pill pill-bg" id="hud-bg">bg · 30%</div>
+        <div class="pill pill-mid" id="hud-mid">mid · 60%</div>
+        <div class="pill pill-fg" id="hud-fg">fg · 100%</div>
+      </div>
+      <div id="layer-bg"><canvas id="c-bg"></canvas></div>
+      <div id="layer-mid"><canvas id="c-mid"></canvas></div>
+      <div id="layer-fg"><canvas id="c-fg"></canvas></div>
+      <div id="cta"><div id="cta-main">scroll to explore depth</div></div>
+    </div>
+  </div>
+  <div id="scroll-hint">↑ scroll inside the viewport ↑</div>
+  <button id="toggle-btn">adjust speeds</button>
+  <div id="speed-panel" id="speed-panel">
+    <div class="sp-row">
+      <span class="pill pill-bg" style="pointer-events:none">bg</span>
+      <input type="range" class="sp-slider" id="sl-bg" min="0" max="100" value="30" step="1">
+      <span class="sp-val" id="sv-bg">30%</span>
+    </div>
+    <div class="sp-row">
+      <span class="pill pill-mid" style="pointer-events:none">mid</span>
+      <input type="range" class="sp-slider" id="sl-mid" min="0" max="100" value="60" step="1">
+      <span class="sp-val" id="sv-mid">60%</span>
+    </div>
+    <div class="sp-row">
+      <span class="pill pill-fg" style="pointer-events:none">fg</span>
+      <input type="range" class="sp-slider" id="sl-fg" min="0" max="100" value="100" step="1">
+      <span class="sp-val" id="sv-fg">100%</span>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const scene = document.getElementById('scene');
+  const cBg = document.getElementById('c-bg');
+  const cMid = document.getElementById('c-mid');
+  const cFg = document.getElementById('c-fg');
+  const W = 680, H = 520;
+  [cBg, cMid, cFg].forEach(c => { c.width = W; c.height = H; });
+  const bg = cBg.getContext('2d');
+  const mid = cMid.getContext('2d');
+  const fg = cFg.getContext('2d');
+
+  let speeds = { bg: 0.30, mid: 0.60, fg: 1.00 };
+  let scrollY = 0, targetY = 0, rafId = null;
+  let hovering = false;
+
+  const stars = Array.from({length:180}, () => ({
+    x: Math.random()*W, y: Math.random()*H*3,
+    r: Math.random()*1.4+0.3, op: Math.random()*0.6+0.3
+  }));
+
+  const bgMountains = [
+    [{x:0,y:300},{x:80,y:180},{x:160,y:240},{x:240,y:140},{x:320,y:200},{x:400,y:160},{x:480,y:220},{x:560,y:170},{x:640,y:250},{x:680,y:280},{x:680,y:H},{x:0,y:H}],
+    [{x:0,y:340},{x:100,y:260},{x:200,y:290},{x:300,y:230},{x:400,y:270},{x:500,y:240},{x:600,y:280},{x:680,y:310},{x:680,y:H},{x:0,y:H}]
+  ];
+
+  const midRanges = [
+    [{x:-40,y:360},{x:60,y:260},{x:140,y:300},{x:220,y:240},{x:310,y:280},{x:400,y:230},{x:490,y:270},{x:580,y:250},{x:680,y:300},{x:720,y:330},{x:720,y:H},{x:-40,y:H}]
+  ];
+
+  const treeLine = [];
+  for(let x=0; x<W+40; x+=22){
+    const bx = x + (Math.random()-0.5)*10;
+    const by = 350 + Math.sin(x*0.04)*18 + Math.random()*12;
+    const h = 38+Math.random()*28;
+    treeLine.push({x:bx, y:by, h});
+  }
+
+  const fgRocks = Array.from({length:12}, (_,i) => ({
+    x: (i/11)*W*1.2-40, y: H-40+Math.random()*30,
+    w: 30+Math.random()*60, h: 20+Math.random()*30
+  }));
+
+  const fgGrass = Array.from({length:90}, () => ({
+    x: Math.random()*W, y: H-20+Math.random()*20,
+    h: 18+Math.random()*24, lean: (Math.random()-0.5)*0.5
+  }));
+
+  function drawSky(ctx, offset){
+    const oy = offset * speeds.bg;
+    const grad = ctx.createLinearGradient(0,0,0,H);
+    const t = Math.min(1, oy/300);
+    const top = lerpColor('#0a0e1a','#0d1832',t);
+    const bot = lerpColor('#1a2a4a','#2a1a3a',t);
+    grad.addColorStop(0, top);
+    grad.addColorStop(1, bot);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0,0,W,H);
+    const moonY = 80 - oy*0.05;
+    ctx.save();
+    ctx.globalAlpha=0.85;
+    ctx.fillStyle='#e8eef8';
+    ctx.beginPath(); ctx.arc(580, moonY, 28, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle='#0a0e1a'; ctx.beginPath(); ctx.arc(590, moonY-5, 24, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+    stars.forEach(s => {
+      const sy = ((s.y - oy*0.1) % (H*1.5) + H*1.5) % (H*1.5) - H*0.25;
+      ctx.save(); ctx.globalAlpha = s.op * 0.7;
+      ctx.fillStyle='#ffffff'; ctx.beginPath(); ctx.arc(s.x, sy, s.r, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+    });
+    bgMountains.forEach((pts, i) => {
+      const yo = offset * speeds.bg * (i===0 ? 0.28 : 0.22);
+      ctx.save();
+      ctx.fillStyle = i===0 ? '#1a2744' : '#213356';
+      ctx.beginPath();
+      pts.forEach((p,j) => { const py = p.y - yo; j===0 ? ctx.moveTo(p.x,py) : ctx.lineTo(p.x,py); });
+      ctx.closePath(); ctx.fill(); ctx.restore();
+    });
+  }
+
+  function drawMid(ctx, offset){
+    ctx.clearRect(0,0,W,H);
+    const yo = offset * speeds.mid * 0.5;
+    midRanges.forEach(pts => {
+      ctx.save(); ctx.fillStyle='#1e3d28';
+      ctx.beginPath();
+      pts.forEach((p,j) => { const py = p.y - yo; j===0 ? ctx.moveTo(p.x,py) : ctx.lineTo(p.x,py); });
+      ctx.closePath(); ctx.fill(); ctx.restore();
+    });
+    treeLine.forEach(t => {
+      const ty = t.y - yo;
+      const trunk = 6, w = 14+t.h*0.2;
+      ctx.fillStyle='#152b1c';
+      ctx.fillRect(t.x-trunk/2, ty-t.h*0.3, trunk, t.h*0.3);
+      ctx.fillStyle='#1f4a2a';
+      ctx.beginPath();
+      ctx.moveTo(t.x, ty-t.h);
+      ctx.lineTo(t.x-w, ty-t.h*0.25);
+      ctx.lineTo(t.x+w, ty-t.h*0.25);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle='#264f30';
+      ctx.beginPath();
+      ctx.moveTo(t.x, ty-t.h*1.15);
+      ctx.lineTo(t.x-w*0.7, ty-t.h*0.55);
+      ctx.lineTo(t.x+w*0.7, ty-t.h*0.55);
+      ctx.closePath(); ctx.fill();
+    });
+    const mist = ctx.createLinearGradient(0, H*0.55, 0, H*0.75);
+    mist.addColorStop(0, 'rgba(60,100,140,0)');
+    mist.addColorStop(0.5, 'rgba(80,120,160,0.18)');
+    mist.addColorStop(1, 'rgba(60,100,140,0)');
+    ctx.fillStyle=mist; ctx.fillRect(0, H*0.5, W, H*0.3);
+  }
+
+  function drawFg(ctx, offset){
+    ctx.clearRect(0,0,W,H);
+    const yo = offset * speeds.fg * 0.15;
+    fgRocks.forEach(r => {
+      const ry = r.y + yo*0.3;
+      ctx.save();
+      ctx.fillStyle='#0f1c0f';
+      ctx.beginPath();
+      ctx.ellipse(r.x+r.w/2, ry, r.w/2, r.h/2, 0, 0, Math.PI*2);
+      ctx.fill();
+      ctx.fillStyle='#172617';
+      ctx.beginPath();
+      ctx.ellipse(r.x+r.w/2-4, ry-4, r.w/2*0.6, r.h/2*0.5, -0.2, 0, Math.PI*2);
+      ctx.fill();
+      ctx.restore();
+    });
+    fgGrass.forEach(g => {
+      const gy = g.y + yo*0.2;
+      ctx.save();
+      ctx.strokeStyle='#1a3a1a'; ctx.lineWidth=1.2;
+      ctx.beginPath();
+      ctx.moveTo(g.x, gy);
+      ctx.quadraticCurveTo(g.x + g.lean*g.h, gy - g.h*0.6, g.x + g.lean*g.h*1.4, gy - g.h);
+      ctx.stroke();
+      ctx.strokeStyle='#24502a'; ctx.lineWidth=0.8;
+      ctx.beginPath();
+      ctx.moveTo(g.x-3, gy);
+      ctx.quadraticCurveTo(g.x-3 + g.lean*g.h*0.8, gy - g.h*0.5, g.x-3 + g.lean*g.h*1.1, gy-g.h*0.85);
+      ctx.stroke();
+      ctx.restore();
+    });
+    const groundGrad = ctx.createLinearGradient(0, H-70, 0, H);
+    groundGrad.addColorStop(0,'rgba(8,16,8,0)');
+    groundGrad.addColorStop(1,'rgba(8,16,8,0.95)');
+    ctx.fillStyle=groundGrad; ctx.fillRect(0,H-70,W,70);
+  }
+
+  function lerpColor(a, b, t){
+    const ah = parseInt(a.slice(1),16), bh = parseInt(b.slice(1),16);
+    const ar=(ah>>16)&255, ag=(ah>>8)&255, ab=ah&255;
+    const br=(bh>>16)&255, bg=(bh>>8)&255, bb=bh&255;
+    const r=Math.round(ar+(br-ar)*t), g=Math.round(ag+(bg-ag)*t), bl=Math.round(ab+(bb-ab)*t);
+    return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${bl.toString(16).padStart(2,'0')}`;
+  }
+
+  function render(){
+    const offset = scrollY;
+    bg.clearRect(0,0,W,H);
+    drawSky(bg, offset);
+    cBg.style.transform = `translateY(${-offset * speeds.bg * 0.3}px)`;
+    cMid.style.transform = `translateY(${-offset * speeds.mid * 0.18}px)`;
+    cFg.style.transform = `translateY(${-offset * speeds.fg * 0.08}px)`;
+    drawMid(mid, offset);
+    drawFg(fg, offset);
+    document.getElementById('hud-bg').textContent = `bg · ${Math.round(speeds.bg*100)}%  Δ${Math.round(offset*speeds.bg*0.3)}px`;
+    document.getElementById('hud-mid').textContent = `mid · ${Math.round(speeds.mid*100)}%  Δ${Math.round(offset*speeds.mid*0.18)}px`;
+    document.getElementById('hud-fg').textContent = `fg · ${Math.round(speeds.fg*100)}%  Δ${Math.round(offset*speeds.fg*0.08)}px`;
+    rafId = null;
+  }
+
+  function schedule(){
+    if(!rafId) rafId = requestAnimationFrame(render);
+  }
+
+  scene.addEventListener('scroll', () => {
+    scrollY = scene.scrollTop;
+    schedule();
+  });
+
+  scene.addEventListener('mouseenter', () => hovering=true);
+  scene.addEventListener('mouseleave', () => hovering=false);
+
+  const slBg = document.getElementById('sl-bg');
+  const slMid = document.getElementById('sl-mid');
+  const slFg = document.getElementById('sl-fg');
+  const svBg = document.getElementById('sv-bg');
+  const svMid = document.getElementById('sv-mid');
+  const svFg = document.getElementById('sv-fg');
+
+  slBg.addEventListener('input', ()=>{ speeds.bg=slBg.value/100; svBg.textContent=slBg.value+'%'; schedule(); });
+  slMid.addEventListener('input', ()=>{ speeds.mid=slMid.value/100; svMid.textContent=slMid.value+'%'; schedule(); });
+  slFg.addEventListener('input', ()=>{ speeds.fg=slFg.value/100; svFg.textContent=slFg.value+'%'; schedule(); });
+
+  const toggleBtn = document.getElementById('toggle-btn');
+  const panel = document.getElementById('speed-panel');
+  toggleBtn.addEventListener('click', ()=>{
+    panel.classList.toggle('open');
+    toggleBtn.textContent = panel.classList.contains('open') ? 'close' : 'adjust speeds';
+  });
+
+  render();
+})();
+</script>

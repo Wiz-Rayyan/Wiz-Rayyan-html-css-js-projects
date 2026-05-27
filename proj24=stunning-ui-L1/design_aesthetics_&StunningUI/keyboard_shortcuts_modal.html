@@ -1,0 +1,140 @@
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans)}
+.app-shell{min-height:480px;background:var(--color-background-tertiary);border-radius:var(--border-radius-lg);overflow:hidden;position:relative;display:flex;flex-direction:column}
+.topbar{background:var(--color-background-primary);border-bottom:0.5px solid var(--color-border-tertiary);padding:10px 16px;display:flex;align-items:center;gap:12px}
+.topbar-title{font-size:14px;font-weight:500;color:var(--color-text-primary);flex:1}
+.topbar-actions{display:flex;gap:6px}
+.tb-btn{background:transparent;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:5px 10px;font-size:12px;color:var(--color-text-secondary);cursor:pointer;display:flex;align-items:center;gap:5px;font-family:var(--font-sans)}
+.tb-btn:hover{background:var(--color-background-secondary)}
+.content{flex:1;padding:24px;display:flex;flex-direction:column;gap:12px}
+.hint-bar{font-size:12px;color:var(--color-text-tertiary);text-align:center;padding-bottom:4px}
+.hint-bar kbd{background:var(--color-background-secondary);border:0.5px solid var(--color-border-secondary);border-radius:4px;padding:1px 5px;font-size:11px;font-family:var(--font-mono);color:var(--color-text-secondary)}
+.doc-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:16px 20px}
+.doc-card h3{font-size:14px;font-weight:500;color:var(--color-text-primary);margin-bottom:6px}
+.doc-card p{font-size:13px;color:var(--color-text-secondary);line-height:1.5}
+
+.overlay{position:absolute;inset:0;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.15s ease;border-radius:var(--border-radius-lg)}
+.overlay.visible{opacity:1;pointer-events:all}
+.modal{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);width:440px;max-width:calc(100% - 32px);padding:20px 24px;transform:translateY(8px);transition:transform 0.15s ease}
+.overlay.visible .modal{transform:translateY(0)}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.modal-header h2{font-size:15px;font-weight:500;color:var(--color-text-primary);display:flex;align-items:center;gap:8px}
+.close-btn{background:transparent;border:none;cursor:pointer;color:var(--color-text-tertiary);padding:4px;border-radius:6px;display:flex;align-items:center;justify-content:center}
+.close-btn:hover{color:var(--color-text-primary);background:var(--color-background-secondary)}
+.section-label{font-size:11px;font-weight:500;color:var(--color-text-tertiary);text-transform:uppercase;letter-spacing:0.06em;margin:14px 0 6px;padding-bottom:4px;border-bottom:0.5px solid var(--color-border-tertiary)}
+.section-label:first-of-type{margin-top:0}
+dl{display:grid;grid-template-columns:1fr auto;gap:0}
+dt{font-size:13px;color:var(--color-text-secondary);padding:5px 0;align-self:center}
+dd{padding:5px 0;display:flex;gap:4px;justify-content:flex-end;align-self:center}
+kbd{background:var(--color-background-secondary);border:0.5px solid var(--color-border-secondary);border-radius:5px;padding:2px 7px;font-size:11px;font-family:var(--font-mono);color:var(--color-text-primary);white-space:nowrap}
+.modal-footer{margin-top:16px;padding-top:12px;border-top:0.5px solid var(--color-border-tertiary);font-size:12px;color:var(--color-text-tertiary);text-align:center}
+.save-toast{position:absolute;bottom:16px;right:16px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:8px 14px;font-size:12px;color:var(--color-text-secondary);display:flex;align-items:center;gap:6px;transform:translateY(60px);opacity:0;transition:all 0.2s ease;pointer-events:none}
+.save-toast.show{transform:translateY(0);opacity:1}
+</style>
+
+<h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Keyboard shortcuts demo — press ? to open the shortcuts modal</h2>
+
+<div class="app-shell" id="shell">
+  <div class="topbar">
+    <span class="topbar-title"><i class="ti ti-file-text" style="font-size:15px;vertical-align:-2px;margin-right:6px" aria-hidden="true"></i>Untitled document</span>
+    <div class="topbar-actions">
+      <button class="tb-btn" id="newBtn" title="New (Cmd+N)"><i class="ti ti-plus" style="font-size:13px" aria-hidden="true"></i> New</button>
+      <button class="tb-btn" id="saveBtn" title="Save (Cmd+S)"><i class="ti ti-device-floppy" style="font-size:13px" aria-hidden="true"></i> Save</button>
+      <button class="tb-btn" id="searchBtn" title="Search (/)"><i class="ti ti-search" style="font-size:13px" aria-hidden="true"></i> Search</button>
+      <button class="tb-btn" id="helpBtn" title="Shortcuts (?)"><i class="ti ti-keyboard" style="font-size:13px" aria-hidden="true"></i> ?</button>
+    </div>
+  </div>
+  <div class="content">
+    <p class="hint-bar">Press <kbd>?</kbd> to open keyboard shortcuts &nbsp;·&nbsp; <kbd>Cmd+S</kbd> to save &nbsp;·&nbsp; <kbd>/</kbd> to search</p>
+    <div class="doc-card">
+      <h3>Getting started</h3>
+      <p>This is a power-user app with full keyboard support. All actions are accessible via hotkeys — no mouse required once you know the shortcuts.</p>
+    </div>
+    <div class="doc-card">
+      <h3>Navigation tip</h3>
+      <p>Use <kbd style="font-size:11px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-secondary);border-radius:4px;padding:1px 5px;font-family:var(--font-mono)">J</kbd> / <kbd style="font-size:11px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-secondary);border-radius:4px;padding:1px 5px;font-family:var(--font-mono)">K</kbd> to move between items. Press <kbd style="font-size:11px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-secondary);border-radius:4px;padding:1px 5px;font-family:var(--font-mono)">G then H</kbd> for the home view.</p>
+    </div>
+  </div>
+
+  <div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts">
+    <div class="modal">
+      <div class="modal-header">
+        <h2><i class="ti ti-keyboard" style="font-size:16px;color:var(--color-text-secondary)" aria-hidden="true"></i> Keyboard shortcuts</h2>
+        <button class="close-btn" id="closeBtn" aria-label="Close"><i class="ti ti-x" style="font-size:16px"></i></button>
+      </div>
+
+      <p class="section-label">File</p>
+      <dl>
+        <dt>New document</dt><dd><kbd>⌘</kbd><kbd>N</kbd></dd>
+        <dt>Save</dt><dd><kbd>⌘</kbd><kbd>S</kbd></dd>
+        <dt>Duplicate</dt><dd><kbd>⌘</kbd><kbd>D</kbd></dd>
+        <dt>Export</dt><dd><kbd>⌘</kbd><kbd>E</kbd></dd>
+      </dl>
+
+      <p class="section-label">Navigation</p>
+      <dl>
+        <dt>Search</dt><dd><kbd>/</kbd></dd>
+        <dt>Go to home</dt><dd><kbd>G</kbd><kbd>H</kbd></dd>
+        <dt>Go to settings</dt><dd><kbd>G</kbd><kbd>S</kbd></dd>
+        <dt>Move down / up</dt><dd><kbd>J</kbd> <span style="font-size:11px;color:var(--color-text-tertiary)">/</span> <kbd>K</kbd></dd>
+      </dl>
+
+      <p class="section-label">Actions</p>
+      <dl>
+        <dt>Delete selected</dt><dd><kbd>⌘</kbd><kbd>⌫</kbd></dd>
+        <dt>Undo</dt><dd><kbd>⌘</kbd><kbd>Z</kbd></dd>
+        <dt>Redo</dt><dd><kbd>⌘</kbd><kbd>⇧</kbd><kbd>Z</kbd></dd>
+        <dt>Select all</dt><dd><kbd>⌘</kbd><kbd>A</kbd></dd>
+      </dl>
+
+      <p class="section-label">Help</p>
+      <dl>
+        <dt>Show this help</dt><dd><kbd>?</kbd></dd>
+        <dt>Close modal</dt><dd><kbd>Esc</kbd></dd>
+      </dl>
+
+      <p class="modal-footer">⌘ = Cmd on Mac &nbsp;·&nbsp; Ctrl on Windows/Linux</p>
+    </div>
+  </div>
+
+  <div class="save-toast" id="toast" aria-live="polite"><i class="ti ti-check" style="font-size:14px;color:var(--color-text-success)" aria-hidden="true"></i> Saved</div>
+</div>
+
+<script>
+const overlay = document.getElementById('overlay');
+const shell = document.getElementById('shell');
+const toast = document.getElementById('toast');
+let toastTimer;
+
+function openModal(){overlay.classList.add('visible')}
+function closeModal(){overlay.classList.remove('visible')}
+
+function showToast(msg){
+  toast.innerHTML = '<i class="ti ti-check" style="font-size:14px;color:var(--color-text-success)" aria-hidden="true"></i> ' + msg;
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>toast.classList.remove('show'), 2000);
+}
+
+document.getElementById('closeBtn').addEventListener('click', closeModal);
+overlay.addEventListener('click', e => { if(e.target === overlay) closeModal(); });
+document.getElementById('helpBtn').addEventListener('click', openModal);
+document.getElementById('saveBtn').addEventListener('click', () => showToast('Saved'));
+document.getElementById('newBtn').addEventListener('click', () => showToast('New document created'));
+document.getElementById('searchBtn').addEventListener('click', () => showToast('Search opened'));
+
+shell.addEventListener('keydown', e => {
+  const tag = document.activeElement.tagName.toLowerCase();
+  if(tag === 'input' || tag === 'textarea') return;
+  const meta = e.metaKey || e.ctrlKey;
+  if(e.key === '?' || (e.shiftKey && e.key === '/')) { e.preventDefault(); openModal(); }
+  else if(e.key === 'Escape') closeModal();
+  else if(meta && e.key === 's') { e.preventDefault(); showToast('Saved'); }
+  else if(meta && e.key === 'n') { e.preventDefault(); showToast('New document created'); }
+  else if(e.key === '/') { e.preventDefault(); showToast('Search opened'); }
+});
+
+shell.setAttribute('tabindex','0');
+shell.focus();
+</script>

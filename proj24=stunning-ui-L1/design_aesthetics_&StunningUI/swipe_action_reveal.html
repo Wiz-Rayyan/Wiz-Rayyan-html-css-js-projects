@@ -1,0 +1,205 @@
+
+<style>
+  .list-wrap { padding: 1.5rem 0; max-width: 480px; margin: 0 auto; }
+  .list-header { display: flex; justify-content: space-between; align-items: center; padding: 0 0 12px; }
+  .list-title { font-size: 16px; font-weight: 500; color: var(--color-text-primary); }
+  .list-hint { font-size: 12px; color: var(--color-text-tertiary); display: flex; align-items: center; gap: 4px; }
+  .swipe-item-wrap { position: relative; overflow: hidden; border-radius: var(--border-radius-lg); margin-bottom: 8px; height: 72px; }
+  .action-bg { position: absolute; inset: 0; display: flex; }
+  .action-left { flex: 1; background: #1D9E75; display: flex; align-items: center; padding-left: 20px; }
+  .action-right { flex: 1; display: flex; align-items: center; justify-content: flex-end; gap: 0; }
+  .action-btn { height: 100%; width: 72px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 11px; font-weight: 500; cursor: pointer; border: none; }
+  .action-btn i { font-size: 20px; }
+  .btn-archive { background: #185FA5; color: #E6F1FB; }
+  .btn-delete  { background: #A32D2D; color: #FCEBEB; }
+  .action-left-label { font-size: 11px; font-weight: 500; color: #E1F5EE; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .item-card { position: absolute; inset: 0; background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); display: flex; align-items: center; gap: 14px; padding: 0 16px; cursor: grab; user-select: none; touch-action: pan-y; transition: box-shadow 0.15s; will-change: transform; }
+  .item-card:active { cursor: grabbing; }
+  .avatar { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; flex-shrink: 0; }
+  .item-body { flex: 1; min-width: 0; }
+  .item-from { font-size: 14px; font-weight: 500; color: var(--color-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .item-preview { font-size: 12px; color: var(--color-text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+  .item-time { font-size: 11px; color: var(--color-text-tertiary); flex-shrink: 0; }
+  .unread-dot { width: 8px; height: 8px; border-radius: 50%; background: #378ADD; flex-shrink: 0; }
+  .item-card.read .unread-dot { opacity: 0; }
+  .item-card.read .item-from { font-weight: 400; color: var(--color-text-secondary); }
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--color-background-primary); border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-lg); padding: 10px 18px; font-size: 13px; color: var(--color-text-primary); display: flex; align-items: center; gap: 8px; transition: transform 0.3s cubic-bezier(.22,1,.36,1); z-index: 100; pointer-events: none; }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .empty-state { text-align: center; padding: 2rem; color: var(--color-text-tertiary); font-size: 14px; display: none; }
+  .progress-bar { height: 3px; background: var(--color-border-tertiary); border-radius: 2px; margin: 0 0 1rem; overflow: hidden; }
+  .progress-fill { height: 100%; background: #1D9E75; border-radius: 2px; transition: width 0.3s; }
+  .legend { display: flex; gap: 16px; margin-bottom: 1.5rem; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--color-text-secondary); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+</style>
+
+<div class="list-wrap">
+  <h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">Swipe action demo — swipe left to reveal archive and delete, swipe right to mark as read</h2>
+
+  <div class="list-header">
+    <span class="list-title">Inbox <span id="count-badge" style="font-size:12px; background:var(--color-background-info); color:var(--color-text-info); padding:2px 8px; border-radius:99px; margin-left:6px; font-weight:400;">5</span></span>
+    <span class="list-hint"><i class="ti ti-arrows-left-right" aria-hidden="true"></i> swipe to act</span>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#1D9E75"></div> swipe right → mark read</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#185FA5"></div> swipe left → archive</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#A32D2D"></div> full left → delete</div>
+  </div>
+
+  <div id="list"></div>
+  <div class="empty-state" id="empty"><i class="ti ti-inbox" style="font-size:32px; display:block; margin-bottom:8px;" aria-hidden="true"></i>All caught up!</div>
+</div>
+
+<div class="toast" id="toast"><i class="ti ti-check" aria-hidden="true"></i><span id="toast-msg">Done</span></div>
+
+<script>
+const items = [
+  { id:1, from:"Priya Sharma", preview:"Re: Q3 design review — looks great overall, just a few nits on the...", time:"9:41", initials:"PS", color:"#EEEDFE", textColor:"#3C3489", unread:true },
+  { id:2, from:"Design System", preview:"[Figma] Aarav commented on 'Component Library v2.4': could we add...", time:"8:55", initials:"DS", color:"#E6F1FB", textColor:"#0C447C", unread:true },
+  { id:3, from:"Rohan Mehta", preview:"Quick question about tomorrow's standup — are we still on for 10am?", time:"8:12", initials:"RM", color:"#E1F5EE", textColor:"#085041", unread:true },
+  { id:4, from:"GitHub", preview:"[PR #847] Design tokens: Merged into main by kavya-p", time:"Yesterday", initials:"GH", color:"#F1EFE8", textColor:"#444441", unread:false },
+  { id:5, from:"Kavya Patel", preview:"Sending over the updated assets now — lmk if you need anything else!", time:"Yesterday", initials:"KP", color:"#FBEAF0", textColor:"#72243E", unread:false },
+];
+
+const list = document.getElementById('list');
+const empty = document.getElementById('empty');
+const toast = document.getElementById('toast');
+const toastMsg = document.getElementById('toast-msg');
+const countBadge = document.getElementById('count-badge');
+
+let activeItems = [...items];
+let toastTimer;
+
+function showToast(msg, icon='ti-check') {
+  toastMsg.textContent = msg;
+  toast.querySelector('i').className = `ti ${icon}`;
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 2200);
+}
+
+function updateCount() {
+  const unread = activeItems.filter(i => i.unread).length;
+  countBadge.textContent = unread;
+  countBadge.style.display = unread ? '' : 'none';
+  if (!activeItems.length) empty.style.display = 'block';
+}
+
+function removeItem(id, msg, icon) {
+  const wrap = document.getElementById(`wrap-${id}`);
+  if (!wrap) return;
+  wrap.style.transition = 'height 0.25s ease, opacity 0.2s, margin 0.25s';
+  wrap.style.height = wrap.offsetHeight + 'px';
+  requestAnimationFrame(() => { wrap.style.height = '0'; wrap.style.opacity = '0'; wrap.style.marginBottom = '0'; });
+  setTimeout(() => { wrap.remove(); activeItems = activeItems.filter(i => i.id !== id); updateCount(); }, 260);
+  showToast(msg, icon);
+}
+
+function markRead(id) {
+  const item = activeItems.find(i => i.id === id);
+  if (!item || !item.unread) return;
+  item.unread = false;
+  const card = document.getElementById(`card-${id}`);
+  if (card) card.classList.add('read');
+  updateCount();
+  showToast('Marked as read', 'ti-mail-opened');
+}
+
+function renderItems() {
+  list.innerHTML = '';
+  activeItems.forEach(item => {
+    const wrap = document.createElement('div');
+    wrap.className = 'swipe-item-wrap';
+    wrap.id = `wrap-${item.id}`;
+
+    wrap.innerHTML = `
+      <div class="action-bg">
+        <div class="action-left">
+          <div class="action-left-label"><i class="ti ti-check" style="font-size:20px" aria-hidden="true"></i>read</div>
+        </div>
+        <div class="action-right">
+          <button class="action-btn btn-archive" data-action="archive" data-id="${item.id}" aria-label="Archive"><i class="ti ti-archive" aria-hidden="true"></i>archive</button>
+          <button class="action-btn btn-delete" data-action="delete" data-id="${item.id}" aria-label="Delete"><i class="ti ti-trash" aria-hidden="true"></i>delete</button>
+        </div>
+      </div>
+      <div class="item-card ${item.unread ? '' : 'read'}" id="card-${item.id}">
+        <div class="unread-dot"></div>
+        <div class="avatar" style="background:${item.color}; color:${item.textColor}">${item.initials}</div>
+        <div class="item-body">
+          <div class="item-from">${item.from}</div>
+          <div class="item-preview">${item.preview}</div>
+        </div>
+        <div class="item-time">${item.time}</div>
+      </div>
+    `;
+    list.appendChild(wrap);
+    initSwipe(wrap, item);
+  });
+  updateCount();
+}
+
+function initSwipe(wrap, item) {
+  const card = wrap.querySelector('.item-card');
+  let startX = 0, startY = 0, currentX = 0, dragging = false, axis = null;
+  const MAX_LEFT = -160, MAX_RIGHT = 80;
+
+  function onStart(x, y) {
+    startX = x; startY = y; currentX = 0; dragging = true; axis = null;
+    card.style.transition = 'none';
+  }
+
+  function onMove(x, y) {
+    if (!dragging) return;
+    const dx = x - startX, dy = y - startY;
+    if (!axis) { axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y'; }
+    if (axis !== 'x') return;
+    currentX = Math.max(MAX_LEFT, Math.min(MAX_RIGHT, dx));
+    card.style.transform = `translateX(${currentX}px)`;
+    const ratio = Math.abs(currentX) / Math.abs(currentX < 0 ? MAX_LEFT : MAX_RIGHT);
+    card.style.boxShadow = `0 2px ${Math.round(8 * ratio)}px rgba(0,0,0,${(0.08 * ratio).toFixed(2)})`;
+  }
+
+  function onEnd() {
+    if (!dragging || axis !== 'x') { dragging = false; return; }
+    dragging = false;
+    const leftThreshold = MAX_LEFT * 0.3;
+    const fullLeftThreshold = MAX_LEFT * 0.75;
+    const rightThreshold = MAX_RIGHT * 0.5;
+
+    card.style.transition = 'transform 0.22s cubic-bezier(.22,1,.36,1), box-shadow 0.22s';
+    card.style.boxShadow = '';
+
+    if (currentX <= fullLeftThreshold) {
+      card.style.transform = `translateX(${MAX_LEFT * 2}px)`;
+      card.style.opacity = '0';
+      setTimeout(() => removeItem(item.id, `Deleted "${item.from}"`, 'ti-trash'), 180);
+    } else if (currentX <= leftThreshold) {
+      card.style.transform = `translateX(${MAX_LEFT}px)`;
+    } else if (currentX >= rightThreshold) {
+      card.style.transform = 'translateX(0)';
+      markRead(item.id);
+    } else {
+      card.style.transform = 'translateX(0)';
+    }
+  }
+
+  card.addEventListener('touchstart', e => { onStart(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
+  card.addEventListener('touchmove', e => { onMove(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
+  card.addEventListener('touchend', onEnd);
+
+  card.addEventListener('mousedown', e => { onStart(e.clientX, e.clientY); });
+  document.addEventListener('mousemove', e => { if (dragging) onMove(e.clientX, e.clientY); });
+  document.addEventListener('mouseup', () => { if (dragging) onEnd(); });
+
+  wrap.addEventListener('click', e => {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    const action = btn.dataset.action;
+    if (action === 'delete') removeItem(item.id, `Deleted "${item.from}"`, 'ti-trash');
+    if (action === 'archive') removeItem(item.id, `Archived "${item.from}"`, 'ti-archive');
+  });
+}
+
+renderItems();
+</script>

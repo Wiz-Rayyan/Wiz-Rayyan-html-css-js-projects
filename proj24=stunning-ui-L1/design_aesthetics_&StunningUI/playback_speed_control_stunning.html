@@ -1,0 +1,189 @@
+
+<h2 class="sr-only">Playback speed control — interactive video player UI with animated speed selector, waveform visualizer, and keyboard shortcuts</h2>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.shell{padding:2rem 0}
+.player{background:#0a0a0f;border-radius:20px;overflow:hidden;border:0.5px solid rgba(255,255,255,0.08)}
+.screen{position:relative;height:200px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#0a0a0f}
+.film-grain{position:absolute;inset:0;opacity:0.03;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:150px}
+.waveform{position:absolute;bottom:0;left:0;right:0;height:64px;display:flex;align-items:flex-end;gap:2px;padding:0 12px}
+.wave-bar{flex:1;border-radius:2px 2px 0 0;background:rgba(127,119,221,0.18);transition:height 0.12s ease}
+.wave-bar.active{background:rgba(127,119,221,0.55)}
+.thumbnail-grid{position:absolute;inset:0;display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(3,1fr);opacity:0.06}
+.thumb-cell{border:0.5px solid rgba(255,255,255,0.3)}
+.center-play{display:flex;align-items:center;justify-content:center;width:64px;height:64px;border-radius:50%;border:1.5px solid rgba(255,255,255,0.15);cursor:pointer;transition:border-color 0.15s,transform 0.15s;z-index:2}
+.center-play:hover{border-color:rgba(255,255,255,0.4);transform:scale(1.06)}
+.center-play:active{transform:scale(0.97)}
+.center-play i{font-size:22px;color:rgba(255,255,255,0.85);margin-left:3px}
+.center-play.playing i{margin-left:0}
+.speed-badge{position:absolute;top:14px;right:14px;padding:5px 11px;border-radius:8px;background:rgba(127,119,221,0.22);border:0.5px solid rgba(127,119,221,0.4);font-size:13px;font-weight:500;color:#AFA9EC;font-variant-numeric:tabular-nums;transition:transform 0.2s cubic-bezier(.34,1.56,.64,1)}
+.speed-badge.pop{animation:spop 0.3s cubic-bezier(.34,1.56,.64,1)}
+@keyframes spop{0%{transform:scale(1)}40%{transform:scale(1.18)}100%{transform:scale(1)}}
+.time-info{position:absolute;bottom:72px;left:14px;font-size:12px;color:rgba(255,255,255,0.35);font-variant-numeric:tabular-nums}
+.progress-wrap{position:relative;height:3px;background:rgba(255,255,255,0.08);cursor:pointer}
+.progress-fill{height:100%;background:rgba(127,119,221,0.7);transition:width 0.1s linear}
+.progress-dot{position:absolute;top:50%;width:10px;height:10px;border-radius:50%;background:#7F77DD;transform:translateY(-50%);transition:left 0.1s linear}
+.controls-bar{display:flex;align-items:center;gap:10px;padding:14px 16px;background:rgba(255,255,255,0.02);border-top:0.5px solid rgba(255,255,255,0.06)}
+.ctrl-btn{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:8px;border:none;background:transparent;cursor:pointer;color:rgba(255,255,255,0.5);transition:background 0.12s,color 0.12s,transform 0.1s;font-size:16px}
+.ctrl-btn:hover{background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.85)}
+.ctrl-btn:active{transform:scale(0.93)}
+.ctrl-sep{width:0.5px;height:20px;background:rgba(255,255,255,0.08);margin:0 2px}
+.speed-pills{display:flex;align-items:center;gap:4px;margin-left:auto}
+.speed-pill{padding:5px 10px;border-radius:7px;border:0.5px solid rgba(255,255,255,0.1);background:transparent;font-size:12px;font-weight:500;color:rgba(255,255,255,0.4);cursor:pointer;transition:all 0.15s;font-variant-numeric:tabular-nums;white-space:nowrap}
+.speed-pill:hover{border-color:rgba(127,119,221,0.4);color:rgba(175,169,236,0.9)}
+.speed-pill.active{background:rgba(127,119,221,0.18);border-color:rgba(127,119,221,0.5);color:#AFA9EC}
+.kbd-strip{display:flex;gap:16px;padding:10px 16px 14px;flex-wrap:wrap}
+.kbd-item{display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(255,255,255,0.3)}
+.kbd{padding:2px 6px;border-radius:4px;background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.1);font-family:var(--font-mono);font-size:11px;color:rgba(255,255,255,0.45)}
+</style>
+
+<div class="shell">
+  <div class="player">
+
+    <div class="screen" id="screen">
+      <div class="thumbnail-grid" aria-hidden="true" id="thumbGrid"></div>
+      <div class="film-grain" aria-hidden="true"></div>
+      <div class="waveform" aria-hidden="true" id="waveform"></div>
+      <div class="time-info" id="timeInfo">0:00 / 3:47</div>
+      <div class="speed-badge" id="badge">1x</div>
+      <button class="center-play" id="centerPlay" aria-label="Play / pause" onclick="togglePlay()">
+        <i class="ti ti-player-play" id="playIcon" aria-hidden="true"></i>
+      </button>
+    </div>
+
+    <div class="progress-wrap" id="progressWrap" onclick="seekTo(event)" role="slider" aria-label="Seek">
+      <div class="progress-fill" id="progressFill" style="width:28%"></div>
+      <div class="progress-dot" id="progressDot" style="left:calc(28% - 5px)"></div>
+    </div>
+
+    <div class="controls-bar">
+      <button class="ctrl-btn" onclick="togglePlay()" aria-label="Play/pause"><i class="ti ti-player-play" id="playIcon2" aria-hidden="true"></i></button>
+      <button class="ctrl-btn" aria-label="Skip back" onclick="nudge(-1)"><i class="ti ti-rewind" aria-hidden="true"></i></button>
+      <button class="ctrl-btn" aria-label="Skip forward" onclick="nudge(1)"><i class="ti ti-fast-forward" aria-hidden="true"></i></button>
+      <button class="ctrl-btn" aria-label="Volume"><i class="ti ti-volume" aria-hidden="true"></i></button>
+      <div class="ctrl-sep" aria-hidden="true"></div>
+      <div class="speed-pills" role="group" aria-label="Playback speed" id="pillsContainer"></div>
+    </div>
+
+    <div class="kbd-strip" aria-label="Keyboard shortcuts">
+      <div class="kbd-item"><kbd class="kbd">Shift+.</kbd><span>faster</span></div>
+      <div class="kbd-item"><kbd class="kbd">Shift+,</kbd><span>slower</span></div>
+      <div class="kbd-item"><kbd class="kbd">Space</kbd><span>play / pause</span></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const SPEEDS=[0.5,0.75,1,1.25,1.5,2];
+let speedIdx=2,playing=false,progress=0.28,raf=null;
+const totalSec=227;
+
+function fmt(s){return s===1?'1x':s+'x';}
+
+function buildGrid(){
+  const g=document.getElementById('thumbGrid');
+  for(let i=0;i<24;i++){const d=document.createElement('div');d.className='thumb-cell';g.appendChild(d);}
+}
+
+function buildWave(){
+  const w=document.getElementById('waveform');
+  for(let i=0;i<54;i++){
+    const b=document.createElement('div');b.className='wave-bar';
+    const h=Math.max(8,Math.round(8+Math.random()*44));
+    b.style.height=h+'px';
+    w.appendChild(b);
+  }
+}
+
+function buildPills(){
+  const c=document.getElementById('pillsContainer');
+  c.innerHTML='';
+  SPEEDS.forEach((s,i)=>{
+    const p=document.createElement('button');
+    p.className='speed-pill'+(i===speedIdx?' active':'');
+    p.textContent=fmt(s);
+    p.setAttribute('aria-pressed',i===speedIdx);
+    p.setAttribute('aria-label','Set speed to '+fmt(s));
+    p.onclick=()=>setSpeed(i);
+    c.appendChild(p);
+  });
+}
+
+function setSpeed(idx){
+  speedIdx=Math.max(0,Math.min(SPEEDS.length-1,idx));
+  const label=fmt(SPEEDS[speedIdx]);
+  const b=document.getElementById('badge');
+  b.textContent=label;
+  b.classList.remove('pop');
+  void b.offsetWidth;
+  b.classList.add('pop');
+  buildPills();
+  animateWave();
+}
+
+function animateWave(){
+  const bars=document.querySelectorAll('.wave-bar');
+  const cx=Math.floor(progress*bars.length);
+  bars.forEach((b,i)=>{
+    b.classList.toggle('active',i<=cx);
+    if(playing){
+      const h=Math.max(8,Math.round(8+Math.random()*44));
+      b.style.height=h+'px';
+    }
+  });
+}
+
+function updateProgress(){
+  const fill=document.getElementById('progressFill');
+  const dot=document.getElementById('progressDot');
+  const pct=(progress*100).toFixed(2)+'%';
+  fill.style.width=pct;
+  dot.style.left='calc('+pct+' - 5px)';
+  const elapsed=Math.round(progress*totalSec);
+  const m=Math.floor(elapsed/60),s=elapsed%60;
+  document.getElementById('timeInfo').textContent=m+':'+(s<10?'0':'')+s+' / 3:47';
+  animateWave();
+}
+
+function togglePlay(){
+  playing=!playing;
+  const icons=[document.getElementById('playIcon'),document.getElementById('playIcon2')];
+  icons.forEach(ic=>{ic.className=playing?'ti ti-player-pause':'ti ti-player-play';});
+  document.getElementById('centerPlay').classList.toggle('playing',playing);
+  if(playing) tick(); else{cancelAnimationFrame(raf);raf=null;}
+}
+
+let last=null;
+function tick(ts){
+  if(!last)last=ts;
+  const dt=(ts-last)/1000;
+  last=ts;
+  progress=Math.min(1,progress+dt*SPEEDS[speedIdx]/totalSec*4);
+  if(progress>=1){playing=false;progress=0;last=null;
+    const icons=[document.getElementById('playIcon'),document.getElementById('playIcon2')];
+    icons.forEach(ic=>{ic.className='ti ti-player-play';});
+    document.getElementById('centerPlay').classList.remove('playing');
+  }
+  updateProgress();
+  if(playing)raf=requestAnimationFrame(tick);
+}
+
+function nudge(dir){progress=Math.max(0,Math.min(1,progress+dir*10/totalSec));updateProgress();}
+
+function seekTo(e){
+  const r=document.getElementById('progressWrap').getBoundingClientRect();
+  progress=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));
+  updateProgress();
+}
+
+document.addEventListener('keydown',e=>{
+  if(e.shiftKey&&e.key==='.'){e.preventDefault();setSpeed(speedIdx+1);}
+  if(e.shiftKey&&e.key===','){e.preventDefault();setSpeed(speedIdx-1);}
+  if(e.key===' '&&document.activeElement.tagName!=='BUTTON'){e.preventDefault();togglePlay();}
+});
+
+buildGrid();buildWave();buildPills();updateProgress();
+
+setInterval(()=>{if(playing)animateWave();},150);
+</script>

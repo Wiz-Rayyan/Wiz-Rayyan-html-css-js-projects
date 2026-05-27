@@ -1,0 +1,151 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans)}
+.chat-bg{background:var(--color-background-secondary);border-radius:var(--border-radius-lg);padding:1.5rem;display:flex;flex-direction:column;gap:12px;min-height:320px}
+.msg-row{display:flex;flex-direction:column;gap:4px}
+.msg-row.out{align-items:flex-end}
+.msg-row.in{align-items:flex-start}
+.bubble{max-width:72%;padding:10px 14px 8px;border-radius:18px;font-size:14px;line-height:1.5;position:relative}
+.bubble.out{background:#3B82F6;color:#fff;border-bottom-right-radius:4px}
+.bubble.in{background:var(--color-background-primary);color:var(--color-text-primary);border:0.5px solid var(--color-border-tertiary);border-bottom-left-radius:4px}
+.meta{display:flex;align-items:center;gap:5px;justify-content:flex-end;margin-top:4px}
+.time{font-size:11px;color:rgba(255,255,255,0.72)}
+.receipt-wrap{position:relative;display:inline-flex;align-items:center;cursor:pointer}
+.checks svg{display:block}
+.tooltip{position:absolute;bottom:calc(100% + 6px);right:0;background:var(--color-background-primary);border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:6px 10px;font-size:12px;color:var(--color-text-secondary);white-space:nowrap;pointer-events:none;opacity:0;transition:opacity 0.15s;z-index:10;box-shadow:0 2px 8px rgba(0,0,0,0.08)}
+.receipt-wrap:hover .tooltip{opacity:1}
+.status-label{font-size:11px;color:rgba(255,255,255,0.65);margin-right:2px}
+
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:100;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--color-background-primary);border-radius:var(--border-radius-lg);border:0.5px solid var(--color-border-tertiary);width:300px;overflow:hidden}
+.modal-header{padding:16px 20px;border-bottom:0.5px solid var(--color-border-tertiary);display:flex;align-items:center;justify-content:space-between}
+.modal-header h3{font-size:15px;font-weight:500;color:var(--color-text-primary)}
+.modal-close{background:none;border:none;cursor:pointer;color:var(--color-text-secondary);font-size:18px;line-height:1;padding:2px}
+.modal-row{display:flex;align-items:center;gap:14px;padding:14px 20px;border-bottom:0.5px solid var(--color-border-tertiary)}
+.modal-row:last-child{border-bottom:none}
+.modal-icon{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.modal-icon.sent{background:#F3F4F6}
+.modal-icon.delivered{background:#E0E7FF}
+.modal-icon.read{background:#DBEAFE}
+.modal-text p{font-size:13px;font-weight:500;color:var(--color-text-primary);margin-bottom:2px}
+.modal-text span{font-size:12px;color:var(--color-text-secondary)}
+
+.legend{display:flex;gap:20px;margin-top:1rem;justify-content:center;flex-wrap:wrap}
+.legend-item{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--color-text-secondary)}
+.legend-bubble{background:#3B82F6;border-radius:12px;padding:4px 10px;display:flex;align-items:center;gap:5px}
+</style>
+
+<h2 class="sr-only">Read receipt demo: three outgoing messages showing sent, delivered, and read states. Hover receipts for timestamp, click for delivery details.</h2>
+
+<div class="chat-bg">
+  <div class="msg-row in">
+    <div class="bubble in">Hey, did you get the brief?</div>
+  </div>
+
+  <div class="msg-row out">
+    <div class="bubble out">
+      Yes just saw it — looks great!
+      <div class="meta">
+        <span class="time">09:41</span>
+        <span class="status-label">Sent</span>
+        <div class="receipt-wrap" onclick="openModal('sent')">
+          <svg class="checks" width="16" height="11" viewBox="0 0 16 11" fill="none">
+            <path d="M1 5.5L4.5 9L10 3" stroke="#9CA3AF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <div class="tooltip">Sent · 09:41</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="msg-row out">
+    <div class="bubble out">
+      I'll send my comments by noon.
+      <div class="meta">
+        <span class="time">09:43</span>
+        <span class="status-label">Delivered</span>
+        <div class="receipt-wrap" onclick="openModal('delivered')">
+          <svg class="checks" width="20" height="11" viewBox="0 0 20 11" fill="none">
+            <path d="M1 5.5L4.5 9L10 3" stroke="#9CA3AF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M5 5.5L8.5 9L14 3" stroke="#9CA3AF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <div class="tooltip">Delivered · 09:43</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="msg-row out">
+    <div class="bubble out">
+      Let me know if you need anything else from me!
+      <div class="meta">
+        <span class="time">09:44</span>
+        <span class="status-label">Read</span>
+        <div class="receipt-wrap" onclick="openModal('read')">
+          <svg class="checks" width="20" height="11" viewBox="0 0 20 11" fill="none">
+            <path d="M1 5.5L4.5 9L10 3" stroke="#3B82F6" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M5 5.5L8.5 9L14 3" stroke="#3B82F6" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <div class="tooltip">Read · 09:46</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="legend">
+  <div class="legend-item">
+    <div class="legend-bubble">
+      <svg width="16" height="11" viewBox="0 0 16 11" fill="none"><path d="M1 5.5L4.5 9L10 3" stroke="#9CA3AF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <span>Sent</span>
+  </div>
+  <div class="legend-item">
+    <div class="legend-bubble">
+      <svg width="20" height="11" viewBox="0 0 20 11" fill="none"><path d="M1 5.5L4.5 9L10 3" stroke="#9CA3AF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 5.5L8.5 9L14 3" stroke="#9CA3AF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <span>Delivered</span>
+  </div>
+  <div class="legend-item">
+    <div class="legend-bubble">
+      <svg width="20" height="11" viewBox="0 0 20 11" fill="none"><path d="M1 5.5L4.5 9L10 3" stroke="#3B82F6" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 5.5L8.5 9L14 3" stroke="#3B82F6" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <span>Read</span>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Delivery info</h3>
+      <button class="modal-close" onclick="closeModal()" aria-label="Close">×</button>
+    </div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+const data={
+  sent:{rows:[{icon:'sent',iconColor:'#9CA3AF',label:'Sent',time:'Wed, May 27 · 09:41 AM',icon_class:'ti-check'}]},
+  delivered:{rows:[{icon:'sent',iconColor:'#9CA3AF',label:'Sent',time:'Wed, May 27 · 09:43 AM',icon_class:'ti-check'},{icon:'delivered',iconColor:'#6366F1',label:'Delivered',time:'Wed, May 27 · 09:43 AM',icon_class:'ti-checks'}]},
+  read:{rows:[{icon:'sent',iconColor:'#9CA3AF',label:'Sent',time:'Wed, May 27 · 09:44 AM',icon_class:'ti-check'},{icon:'delivered',iconColor:'#6366F1',label:'Delivered',time:'Wed, May 27 · 09:44 AM',icon_class:'ti-checks'},{icon:'read',iconColor:'#3B82F6',label:'Read by Jamie',time:'Wed, May 27 · 09:46 AM',icon_class:'ti-eye'}]}
+};
+function openModal(state){
+  const d=data[state];
+  document.getElementById('modal-body').innerHTML=d.rows.map(r=>`
+    <div class="modal-row">
+      <div class="modal-icon ${r.icon}" style="background:${r.icon==='sent'?'var(--color-background-secondary)':r.icon==='delivered'?'#EEF2FF':'#EFF6FF'}">
+        <i class="ti ${r.icon_class}" style="font-size:18px;color:${r.iconColor}" aria-hidden="true"></i>
+      </div>
+      <div class="modal-text">
+        <p>${r.label}</p>
+        <span>${r.time}</span>
+      </div>
+    </div>`).join('');
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal(){document.getElementById('modal').classList.remove('open')}
+document.getElementById('modal').addEventListener('click',function(e){if(e.target===this)closeModal()})
+</script>

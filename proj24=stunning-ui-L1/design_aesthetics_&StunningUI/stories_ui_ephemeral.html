@@ -1,0 +1,196 @@
+
+<style>
+  .story-shell{display:flex;align-items:center;justify-content:center;min-height:580px;background:var(--color-background-secondary);border-radius:var(--border-radius-lg);padding:2rem 1rem;gap:2rem;flex-wrap:wrap}
+  .phone-frame{width:300px;height:540px;border-radius:32px;border:2px solid var(--color-border-secondary);overflow:hidden;position:relative;background:#1a1a2e;flex-shrink:0}
+  .progress-row{position:absolute;top:14px;left:10px;right:10px;display:flex;gap:4px;z-index:10}
+  .seg{height:2.5px;flex:1;background:rgba(255,255,255,0.3);border-radius:2px;overflow:hidden}
+  .seg-fill{height:100%;background:#fff;border-radius:2px;transform-origin:left;width:0}
+  .seg-fill.done{width:100%}
+  .seg-fill.active{animation:fill var(--dur,5s) linear forwards}
+  @keyframes fill{from{width:0}to{width:100%}}
+  .hud{position:absolute;top:26px;left:12px;right:12px;display:flex;align-items:center;gap:8px;z-index:10}
+  .avatar{width:32px;height:32px;border-radius:50%;border:2px solid #fff;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;color:#fff}
+  .av1{background:linear-gradient(135deg,#8B5CF6,#EC4899)}
+  .av2{background:linear-gradient(135deg,#F97316,#EAB308)}
+  .av3{background:linear-gradient(135deg,#06B6D4,#3B82F6)}
+  .meta{flex:1}
+  .meta-name{font-size:12px;font-weight:500;color:#fff;line-height:1.2}
+  .meta-time{font-size:10px;color:rgba(255,255,255,0.65)}
+  .btn-close{color:#fff;font-size:18px;cursor:pointer;padding:2px;line-height:1;opacity:.85}
+  .story-bg{position:absolute;inset:0;object-fit:cover;width:100%;height:100%}
+  .story-bg-div{position:absolute;inset:0}
+  .caption-area{position:absolute;bottom:68px;left:0;right:0;padding:0 16px;z-index:10}
+  .caption{background:rgba(0,0,0,0.45);color:#fff;font-size:13px;line-height:1.5;padding:8px 12px;border-radius:12px;display:inline-block;max-width:100%;backdrop-filter:blur(4px)}
+  .sticker{position:absolute;font-size:13px;font-weight:500;padding:6px 12px;border-radius:20px;z-index:10;transform:rotate(-6deg);cursor:default;user-select:none}
+  .s1{background:#FDE68A;color:#92400E;top:180px;right:20px;transform:rotate(5deg)}
+  .s2{background:#A7F3D0;color:#065F46;top:240px;left:16px;transform:rotate(-4deg)}
+  .reply-row{position:absolute;bottom:10px;left:10px;right:10px;display:flex;align-items:center;gap:8px;z-index:10}
+  .reply-input{flex:1;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.4);border-radius:20px;padding:8px 14px;font-size:12px;color:#fff;outline:none}
+  .reply-input::placeholder{color:rgba(255,255,255,0.55)}
+  .reply-send{color:#fff;font-size:18px;cursor:pointer;opacity:.8}
+  .tap-left{position:absolute;left:0;top:0;width:35%;height:100%;z-index:8;cursor:pointer}
+  .tap-right{position:absolute;right:0;top:0;width:35%;height:100%;z-index:8;cursor:pointer}
+  .skip-hint{position:absolute;top:50%;transform:translateY(-50%);color:rgba(255,255,255,0.55);font-size:22px;pointer-events:none;z-index:9}
+  .skip-hint.left{left:8px}
+  .skip-hint.right{right:8px}
+  .panel{width:220px;flex-shrink:0}
+  .panel-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1rem;margin-bottom:12px}
+  .panel-title{font-size:12px;font-weight:500;color:var(--color-text-secondary);margin:0 0 10px;text-transform:uppercase;letter-spacing:.5px}
+  .anatomy-row{display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;font-size:12px;color:var(--color-text-primary)}
+  .anatomy-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:3px}
+  .d-prog{background:#8B5CF6}
+  .d-hud{background:#F97316}
+  .d-media{background:#06B6D4}
+  .d-sticker{background:#10B981}
+  .d-reply{background:#EC4899}
+  .d-tap{background:#EF4444}
+  .state-btn{display:block;width:100%;text-align:left;font-size:12px;padding:7px 10px;border-radius:8px;border:0.5px solid var(--color-border-tertiary);background:transparent;color:var(--color-text-primary);cursor:pointer;margin-bottom:6px}
+  .state-btn:hover{background:var(--color-background-secondary)}
+  .state-btn.active{border-color:var(--color-border-info);color:var(--color-text-info);background:var(--color-background-info)}
+</style>
+
+<h2 class="sr-only">Interactive Stories UI mockup — a full-screen story viewer with segmented progress bars, user avatar, media, caption overlay, and reply input.</h2>
+
+<div class="story-shell">
+
+  <div class="phone-frame" id="phone">
+
+    <div class="progress-row" id="progress-row"></div>
+
+    <div class="hud">
+      <div class="avatar" id="av-circle"></div>
+      <div class="meta">
+        <div class="meta-name" id="av-name"></div>
+        <div class="meta-time" id="av-time"></div>
+      </div>
+      <div class="btn-close" onclick="goStory(0)" aria-label="Close"><i class="ti ti-x" aria-hidden="true"></i></div>
+    </div>
+
+    <div class="story-bg-div" id="story-bg"></div>
+
+    <div class="sticker s1" id="s1"></div>
+    <div class="sticker s2" id="s2"></div>
+
+    <div class="caption-area"><div class="caption" id="caption"></div></div>
+
+    <div class="tap-left" onclick="prevStory()" aria-label="Previous story">
+      <i class="ti ti-chevron-left skip-hint left" aria-hidden="true"></i>
+    </div>
+    <div class="tap-right" onclick="nextStory()" aria-label="Next story">
+      <i class="ti ti-chevron-right skip-hint right" aria-hidden="true"></i>
+    </div>
+
+    <div class="reply-row">
+      <input class="reply-input" type="text" placeholder="Send a reply…" id="reply-box" aria-label="Reply to story" />
+      <span class="reply-send" aria-label="Send"><i class="ti ti-send" aria-hidden="true"></i></span>
+    </div>
+
+  </div>
+
+  <div class="panel">
+    <div class="panel-card">
+      <p class="panel-title">Anatomy</p>
+      <div class="anatomy-row"><span class="anatomy-dot d-prog"></span><span>Segmented progress bars</span></div>
+      <div class="anatomy-row"><span class="anatomy-dot d-hud"></span><span>Avatar + name + timestamp</span></div>
+      <div class="anatomy-row"><span class="anatomy-dot d-media"></span><span>Full-bleed media background</span></div>
+      <div class="anatomy-row"><span class="anatomy-dot d-sticker"></span><span>Caption / sticker overlays</span></div>
+      <div class="anatomy-row"><span class="anatomy-dot d-reply"></span><span>Bottom reply input</span></div>
+      <div class="anatomy-row"><span class="anatomy-dot d-tap"></span><span>Edge tap zones (skip / prev)</span></div>
+    </div>
+    <div class="panel-card">
+      <p class="panel-title">Stories</p>
+      <button class="state-btn active" id="btn0" onclick="goStory(0)">📸 &nbsp;Maya · Morning walk</button>
+      <button class="state-btn" id="btn1" onclick="goStory(1)">🌆 &nbsp;Alex · City sunset</button>
+      <button class="state-btn" id="btn2" onclick="goStory(2)">🎵 &nbsp;Sam · Studio session</button>
+    </div>
+    <div class="panel-card" style="font-size:12px;color:var(--color-text-secondary);line-height:1.6">
+      Tap the <strong style="color:var(--color-text-primary);font-weight:500">left / right edges</strong> of the phone to skip or go back. Each story auto-advances after 5s.
+    </div>
+  </div>
+
+</div>
+
+<script>
+const stories = [
+  {
+    avClass:'av1', avText:'M', name:'maya_r', time:'2 min ago',
+    bg:'linear-gradient(160deg,#1a1a2e 0%,#16213e 30%,#0F3460 60%,#533483 100%)',
+    s1:'🌿 Morning vibes', s2:'📍 Bandra, Mumbai',
+    caption:'Golden hour walk before the city wakes up ✨',
+    segCount:3
+  },
+  {
+    avClass:'av2', avText:'A', name:'alex_goes', time:'15 min ago',
+    bg:'linear-gradient(160deg,#1a0533 0%,#4a1942 40%,#c85a11 70%,#f4a261 100%)',
+    s1:'🌅 Sunset mode', s2:'🔥 35°C out here',
+    caption:'Can\'t believe this sky is real — no filter!',
+    segCount:4
+  },
+  {
+    avClass:'av3', avText:'S', name:'sam.wav', time:'1 hr ago',
+    bg:'linear-gradient(160deg,#0d0d1a 0%,#0a2342 40%,#0e4d6e 70%,#1a7a9a 100%)',
+    s1:'🎧 New track dropping', s2:'💿 Friday release',
+    caption:'Been in the studio for 6 hours. Almost there.',
+    segCount:2
+  }
+];
+
+let current = 0;
+let timer = null;
+
+function buildProgress(count, activeIdx) {
+  const row = document.getElementById('progress-row');
+  row.innerHTML = '';
+  for (let i = 0; i < count; i++) {
+    const seg = document.createElement('div');
+    seg.className = 'seg';
+    const fill = document.createElement('div');
+    fill.className = 'seg-fill';
+    if (i < activeIdx) fill.classList.add('done');
+    if (i === activeIdx) {
+      fill.classList.add('active');
+      fill.style.setProperty('--dur','5s');
+    }
+    seg.appendChild(fill);
+    row.appendChild(seg);
+  }
+}
+
+function render(idx) {
+  if (idx < 0) idx = 0;
+  if (idx >= stories.length) idx = stories.length - 1;
+  current = idx;
+
+  const s = stories[idx];
+  const av = document.getElementById('av-circle');
+  av.className = 'avatar ' + s.avClass;
+  av.textContent = s.avText;
+  document.getElementById('av-name').textContent = s.name;
+  document.getElementById('av-time').textContent = s.time;
+  document.getElementById('story-bg').style.background = s.bg;
+  document.getElementById('s1').textContent = s.s1;
+  document.getElementById('s2').textContent = s.s2;
+  document.getElementById('caption').textContent = s.caption;
+
+  document.querySelectorAll('.state-btn').forEach((b,i) => b.classList.toggle('active', i===idx));
+
+  buildProgress(s.segCount, 0);
+
+  if (timer) clearTimeout(timer);
+  timer = setTimeout(() => nextStory(), 5000);
+}
+
+function nextStory() {
+  if (current < stories.length - 1) render(current + 1);
+  else render(0);
+}
+
+function prevStory() {
+  if (current > 0) render(current - 1);
+  else render(stories.length - 1);
+}
+
+function goStory(idx) { render(idx); }
+
+render(0);
+</script>

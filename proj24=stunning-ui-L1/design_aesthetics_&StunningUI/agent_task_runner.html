@@ -1,0 +1,349 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans);color:var(--color-text-primary)}
+.shell{padding:1rem 0}
+.topbar{display:flex;align-items:center;gap:10px;margin-bottom:1.25rem}
+.topbar h2{font-size:15px;font-weight:500;flex:1}
+.badge-live{font-size:11px;background:#EAF3DE;color:#3B6D11;border:0.5px solid #97C459;border-radius:20px;padding:3px 10px;font-weight:500}
+.task-input-row{display:flex;gap:8px;margin-bottom:1.25rem}
+.task-input-row input{flex:1;padding:9px 12px;font-size:14px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:var(--color-background-primary);color:var(--color-text-primary);font-family:var(--font-sans)}
+.task-input-row button{padding:9px 18px;font-size:13px;font-weight:500;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:var(--color-background-secondary);color:var(--color-text-primary);cursor:pointer;white-space:nowrap}
+.task-input-row button:hover{background:var(--color-background-tertiary)}
+.cols{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:12px}
+.panel{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);overflow:hidden}
+.panel-hd{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:0.5px solid var(--color-border-tertiary);font-size:12px;font-weight:500;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.04em}
+.panel-hd i{font-size:14px}
+.timeline{padding:10px 14px;display:flex;flex-direction:column;gap:6px}
+.step{border:1px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);overflow:hidden}
+.step-hd{display:flex;align-items:center;gap:10px;padding:8px 12px;cursor:pointer;background:var(--color-background-primary);user-select:none}
+.step-hd:hover{background:var(--color-background-secondary)}
+.step-icon{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+.s-done .step-icon{background:#EAF3DE;color:#3B6D11}
+.s-running .step-icon{background:#E6F1FB;color:#185FA5}
+.s-waiting .step-icon{background:var(--color-background-secondary);color:var(--color-text-tertiary)}
+.s-approval .step-icon{background:#FAEEDA;color:#854F0B}
+.step-label{font-size:13px;font-weight:500;flex:1}
+.s-done .step-label{color:var(--color-text-primary)}
+.s-running .step-label{color:#185FA5}
+.s-waiting .step-label{color:var(--color-text-tertiary)}
+.s-approval .step-label{color:#854F0B}
+.step-time{font-size:11px;color:var(--color-text-tertiary)}
+.chevron{font-size:13px;color:var(--color-text-tertiary);transition:transform .2s}
+.step-body{display:none;padding:0 12px 10px;border-top:0.5px solid var(--color-border-tertiary);background:var(--color-background-secondary)}
+.step.open .step-body{display:block}
+.step.open .chevron{transform:rotate(180deg)}
+.tool-card{margin:8px 0;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);overflow:hidden;background:var(--color-background-primary)}
+.tool-card-hd{display:flex;align-items:center;gap:8px;padding:7px 10px;border-bottom:0.5px solid var(--color-border-tertiary);background:var(--color-background-secondary)}
+.tool-name{font-size:12px;font-weight:500;font-family:var(--font-mono)}
+.tool-badge{font-size:10px;padding:2px 8px;border-radius:20px;margin-left:auto}
+.tb-ok{background:#EAF3DE;color:#3B6D11;border:0.5px solid #97C459}
+.tb-run{background:#E6F1FB;color:#185FA5;border:0.5px solid #85B7EB}
+.tb-wait{background:var(--color-background-tertiary);color:var(--color-text-tertiary);border:0.5px solid var(--color-border-tertiary)}
+.tool-card-body{padding:8px 10px;display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.tc-label{font-size:10px;font-weight:500;color:var(--color-text-tertiary);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px}
+.tc-code{font-size:11px;font-family:var(--font-mono);color:var(--color-text-secondary);background:var(--color-background-secondary);border-radius:4px;padding:4px 6px;white-space:pre-wrap;word-break:break-all;max-height:60px;overflow:auto}
+.approval-banner{background:#FEF3C7;border:1px solid #EF9F27;border-radius:var(--border-radius-md);padding:10px 12px;margin:8px 0;display:flex;align-items:center;gap:10px}
+.approval-text{flex:1;font-size:12px;color:#633806}
+.approval-text strong{font-weight:500}
+.btn-confirm{padding:5px 12px;font-size:12px;font-weight:500;background:#3B6D11;color:#EAF3DE;border:none;border-radius:var(--border-radius-md);cursor:pointer}
+.btn-cancel{padding:5px 12px;font-size:12px;font-weight:500;background:transparent;color:#A32D2D;border:0.5px solid #A32D2D;border-radius:var(--border-radius-md);cursor:pointer;margin-left:4px}
+.btn-confirm:hover{background:#27500A}
+.btn-cancel:hover{background:#FCEBEB}
+.result-box{margin:8px 0;padding:10px;border-left:3px solid #1D9E75;background:var(--color-background-secondary);border-radius:0 var(--border-radius-md) var(--border-radius-md) 0}
+.result-box p{font-size:13px;line-height:1.6;color:var(--color-text-primary)}
+.right-col{display:flex;flex-direction:column;gap:12px}
+.log-panel{flex:1}
+.log-body{padding:10px 12px;font-family:var(--font-mono);font-size:11px;line-height:1.7;color:var(--color-text-secondary);max-height:220px;overflow-y:auto}
+.log-line{display:flex;gap:8px}
+.log-ts{color:var(--color-text-tertiary);flex-shrink:0}
+.log-ok{color:#3B6D11}.log-info{color:#185FA5}.log-warn{color:#854F0B}.log-err{color:#A32D2D}
+.hist-body{padding:8px 12px}
+.hist-item{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:0.5px solid var(--color-border-tertiary);cursor:pointer}
+.hist-item:last-child{border:none}
+.hist-item:hover .hist-label{color:var(--color-text-info)}
+.hist-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.hd-green{background:#1D9E75}.hd-blue{background:#378ADD}.hd-amber{background:#EF9F27}
+.hist-label{font-size:12px;flex:1;color:var(--color-text-secondary)}
+.hist-time{font-size:11px;color:var(--color-text-tertiary)}
+.spinner{display:inline-block;width:12px;height:12px;border:2px solid #85B7EB;border-top-color:#185FA5;border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+.running-pulse{animation:pulse 1.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+</style>
+
+<h2 class="sr-only">AI Agent Task Runner — task input, execution timeline with tool calls, approval requests, result display, logs, and session history</h2>
+
+<div class="shell">
+  <div class="topbar">
+    <i class="ti ti-robot" style="font-size:18px" aria-hidden="true"></i>
+    <h2>Agent Task Runner</h2>
+    <span class="badge-live"><i class="ti ti-circle-filled" style="font-size:8px;vertical-align:1px"></i> Live</span>
+  </div>
+
+  <div class="task-input-row">
+    <input id="taskInput" type="text" placeholder="Describe a task for the agent… e.g. &quot;Research competitors and summarize pricing&quot;" value="Research top 3 AI code assistants and compare pricing" />
+    <button onclick="runTask()"><i class="ti ti-player-play" style="font-size:13px;vertical-align:-1px"></i> Run</button>
+    <button onclick="clearAll()" style="color:var(--color-text-tertiary)"><i class="ti ti-trash" style="font-size:13px;vertical-align:-1px"></i></button>
+  </div>
+
+  <div class="cols">
+    <div class="panel">
+      <div class="panel-hd"><i class="ti ti-timeline"></i> Execution timeline</div>
+      <div class="timeline" id="timeline">
+
+        <div class="step s-done open" id="step1">
+          <div class="step-hd" onclick="toggleStep(this)">
+            <div class="step-icon"><i class="ti ti-check"></i></div>
+            <span class="step-label">Searching web…</span>
+            <span class="step-time">1.2s</span>
+            <i class="ti ti-chevron-down chevron"></i>
+          </div>
+          <div class="step-body">
+            <div class="tool-card">
+              <div class="tool-card-hd">
+                <i class="ti ti-world" style="font-size:13px;color:var(--color-text-secondary)"></i>
+                <span class="tool-name">web_search</span>
+                <span class="tool-badge tb-ok">200 OK</span>
+              </div>
+              <div class="tool-card-body">
+                <div>
+                  <div class="tc-label">Parameters</div>
+                  <div class="tc-code">query: "best AI code
+assistants 2025
+pricing comparison"</div>
+                </div>
+                <div>
+                  <div class="tc-label">Response</div>
+                  <div class="tc-code">results: [
+  {url: "github.blog/..."},
+  {url: "techcrunch.com/..."},
+  {url: "vercel.com/..."}
+]</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="step s-done" id="step2">
+          <div class="step-hd" onclick="toggleStep(this)">
+            <div class="step-icon"><i class="ti ti-check"></i></div>
+            <span class="step-label">Reading documents…</span>
+            <span class="step-time">2.8s</span>
+            <i class="ti ti-chevron-down chevron"></i>
+          </div>
+          <div class="step-body">
+            <div class="tool-card">
+              <div class="tool-card-hd">
+                <i class="ti ti-file-text" style="font-size:13px;color:var(--color-text-secondary)"></i>
+                <span class="tool-name">web_fetch</span>
+                <span class="tool-badge tb-ok">200 OK</span>
+              </div>
+              <div class="tool-card-body">
+                <div>
+                  <div class="tc-label">Parameters</div>
+                  <div class="tc-code">url: "github.blog/
+copilot-pricing"
+max_tokens: 2000</div>
+                </div>
+                <div>
+                  <div class="tc-label">Response</div>
+                  <div class="tc-code">content: "GitHub Copilot
+Individual: $10/mo
+Business: $19/mo
+Enterprise: $39/mo"</div>
+                </div>
+              </div>
+            </div>
+            <div class="tool-card">
+              <div class="tool-card-hd">
+                <i class="ti ti-file-text" style="font-size:13px;color:var(--color-text-secondary)"></i>
+                <span class="tool-name">web_fetch</span>
+                <span class="tool-badge tb-ok">200 OK</span>
+              </div>
+              <div class="tool-card-body">
+                <div>
+                  <div class="tc-label">Parameters</div>
+                  <div class="tc-code">url: "cursor.sh/
+pricing"
+max_tokens: 2000</div>
+                </div>
+                <div>
+                  <div class="tc-label">Response</div>
+                  <div class="tc-code">content: "Cursor
+Hobby: Free
+Pro: $20/mo
+Business: $40/mo"</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="step s-approval" id="step3">
+          <div class="step-hd" onclick="toggleStep(this)">
+            <div class="step-icon"><i class="ti ti-alert-triangle"></i></div>
+            <span class="step-label">Approval required</span>
+            <span class="step-time">—</span>
+            <i class="ti ti-chevron-down chevron"></i>
+          </div>
+          <div class="step-body" style="display:block">
+            <div class="approval-banner">
+              <i class="ti ti-shield-exclamation" style="font-size:18px;color:#854F0B;flex-shrink:0"></i>
+              <div class="approval-text"><strong>Send email summary?</strong> The agent wants to send a summary report to team@company.com using your connected Gmail account.</div>
+              <button class="btn-confirm" onclick="approve()"><i class="ti ti-check" style="font-size:12px"></i> Confirm</button>
+              <button class="btn-cancel" onclick="deny()"><i class="ti ti-x" style="font-size:12px"></i> Cancel</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="step s-running" id="step4">
+          <div class="step-hd" onclick="toggleStep(this)">
+            <div class="step-icon"><span class="spinner"></span></div>
+            <span class="step-label running-pulse">Analyzing results…</span>
+            <span class="step-time">—</span>
+            <i class="ti ti-chevron-down chevron"></i>
+          </div>
+          <div class="step-body">
+            <div class="tool-card">
+              <div class="tool-card-hd">
+                <i class="ti ti-brain" style="font-size:13px;color:var(--color-text-secondary)"></i>
+                <span class="tool-name">claude_analyze</span>
+                <span class="tool-badge tb-run">Running…</span>
+              </div>
+              <div class="tool-card-body">
+                <div>
+                  <div class="tc-label">Parameters</div>
+                  <div class="tc-code">task: "compare and
+summarize pricing
+tiers + features"</div>
+                </div>
+                <div>
+                  <div class="tc-label">Response</div>
+                  <div class="tc-code tc-wait" style="color:var(--color-text-tertiary)">Awaiting…</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="step s-waiting" id="step5">
+          <div class="step-hd" onclick="toggleStep(this)">
+            <div class="step-icon"><i class="ti ti-clock"></i></div>
+            <span class="step-label">Generating report…</span>
+            <span class="step-time">—</span>
+            <i class="ti ti-chevron-down chevron"></i>
+          </div>
+          <div class="step-body">
+            <div style="padding:8px 0;font-size:12px;color:var(--color-text-tertiary)">Waiting for previous step…</div>
+          </div>
+        </div>
+
+      </div>
+
+      <div style="padding:0 14px 12px">
+        <div class="panel-hd" style="border:none;padding:8px 0 6px;margin-bottom:6px"><i class="ti ti-flag-3"></i> Final result</div>
+        <div class="result-box" id="resultBox">
+          <p>Partial results available: <strong>GitHub Copilot</strong> starts at $10/mo (Individual), <strong>Cursor</strong> at $20/mo (Pro). Waiting for Tabnine data before completing comparison…</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="right-col">
+      <div class="panel log-panel">
+        <div class="panel-hd"><i class="ti ti-terminal-2"></i> Execution logs</div>
+        <div class="log-body" id="logBody">
+          <div class="log-line"><span class="log-ts">09:41:02</span><span class="log-ok">[OK]</span><span>Agent initialized</span></div>
+          <div class="log-line"><span class="log-ts">09:41:02</span><span class="log-info">[→]</span><span>Task parsed: research + compare</span></div>
+          <div class="log-line"><span class="log-ts">09:41:03</span><span class="log-info">[→]</span><span>Tool: web_search (query dispatched)</span></div>
+          <div class="log-line"><span class="log-ts">09:41:04</span><span class="log-ok">[OK]</span><span>web_search → 3 results</span></div>
+          <div class="log-line"><span class="log-ts">09:41:04</span><span class="log-info">[→]</span><span>Tool: web_fetch × 2 (parallel)</span></div>
+          <div class="log-line"><span class="log-ts">09:41:06</span><span class="log-ok">[OK]</span><span>web_fetch ← github.blog</span></div>
+          <div class="log-line"><span class="log-ts">09:41:07</span><span class="log-ok">[OK]</span><span>web_fetch ← cursor.sh</span></div>
+          <div class="log-line"><span class="log-ts">09:41:07</span><span class="log-warn">[!]</span><span>Approval required: send_email</span></div>
+          <div class="log-line"><span class="log-ts">09:41:07</span><span class="log-info">[…]</span><span>Awaiting user decision…</span></div>
+          <div class="log-line"><span class="log-ts">09:41:08</span><span class="log-info">[→]</span><span>Tool: claude_analyze (running)</span></div>
+          <div class="log-line" id="logTail"><span class="log-ts">09:41:08</span><span class="log-info">[…]</span><span>Processing tokens 0–320 of ~800</span></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-hd"><i class="ti ti-history"></i> Session history</div>
+        <div class="hist-body">
+          <div class="hist-item" onclick="sendPrompt('Rerun the competitor pricing research task')">
+            <div class="hist-dot hd-green"></div>
+            <span class="hist-label">Competitor pricing research</span>
+            <span class="hist-time">Now</span>
+          </div>
+          <div class="hist-item" onclick="sendPrompt('Show results from the API documentation scrape task')">
+            <div class="hist-dot hd-blue"></div>
+            <span class="hist-label">API docs scrape + summary</span>
+            <span class="hist-time">14m ago</span>
+          </div>
+          <div class="hist-item" onclick="sendPrompt('Show the GitHub issues triage report')">
+            <div class="hist-dot hd-blue"></div>
+            <span class="hist-label">GitHub issues triage</span>
+            <span class="hist-time">1h ago</span>
+          </div>
+          <div class="hist-item" onclick="sendPrompt('Show the onboarding email draft task')">
+            <div class="hist-dot hd-amber"></div>
+            <span class="hist-label">Onboarding email draft</span>
+            <span class="hist-time">3h ago</span>
+          </div>
+          <div class="hist-item" onclick="sendPrompt('Show the product changelog task from yesterday')">
+            <div class="hist-dot hd-green"></div>
+            <span class="hist-label">Product changelog generation</span>
+            <span class="hist-time">Yesterday</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleStep(hd){
+  const step = hd.closest('.step');
+  step.classList.toggle('open');
+}
+
+function approve(){
+  const banner = document.querySelector('.approval-banner');
+  banner.innerHTML = '<i class="ti ti-check-circle" style="font-size:18px;color:#3B6D11;flex-shrink:0"></i><div class="approval-text" style="color:#3B6D11"><strong>Approved.</strong> Email will be sent after task completes.</div>';
+  banner.style.background = '#EAF3DE';
+  banner.style.borderColor = '#97C459';
+  addLog('09:41:09','ok','User approved: send_email');
+}
+
+function deny(){
+  const banner = document.querySelector('.approval-banner');
+  banner.innerHTML = '<i class="ti ti-ban" style="font-size:18px;color:#A32D2D;flex-shrink:0"></i><div class="approval-text" style="color:#A32D2D"><strong>Cancelled.</strong> Email step skipped.</div>';
+  banner.style.background = '#FCEBEB';
+  banner.style.borderColor = '#E24B4A';
+  addLog('09:41:09','err','User denied: send_email (skipping step)');
+}
+
+function addLog(ts, type, msg){
+  const body = document.getElementById('logBody');
+  const line = document.createElement('div');
+  line.className = 'log-line';
+  const map = {ok:'log-ok',err:'log-err',info:'log-info',warn:'log-warn'};
+  const tag = {ok:'[OK]',err:'[✗]',info:'[→]',warn:'[!]'};
+  line.innerHTML = `<span class="log-ts">${ts}</span><span class="${map[type]}">${tag[type]}</span><span>${msg}</span>`;
+  body.appendChild(line);
+  body.scrollTop = body.scrollHeight;
+}
+
+function runTask(){
+  const val = document.getElementById('taskInput').value.trim();
+  if(!val) return;
+  addLog('09:41:10','info','New task queued: ' + val.substring(0,40));
+  sendPrompt('Run this agent task: ' + val);
+}
+
+function clearAll(){
+  document.getElementById('taskInput').value = '';
+  addLog('09:41:11','warn','Session cleared by user');
+}
+</script>

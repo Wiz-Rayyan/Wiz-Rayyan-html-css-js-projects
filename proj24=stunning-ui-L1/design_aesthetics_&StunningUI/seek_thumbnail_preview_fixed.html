@@ -1,0 +1,382 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+#player-wrap {
+  background: #0a0a0a;
+  border-radius: var(--border-radius-lg);
+  overflow: visible;
+  position: relative;
+  user-select: none;
+  display: flex;
+  flex-direction: column;
+}
+#video-area {
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: #0a0a0a;
+  border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  cursor: pointer;
+  overflow: hidden;
+}
+#canvas-bg { position: absolute; inset: 0; width: 100%; height: 100%; }
+#play-overlay {
+  position: absolute;
+  width: 64px; height: 64px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.12);
+  display: flex; align-items: center; justify-content: center;
+  transition: opacity 0.2s;
+  pointer-events: none;
+  z-index: 2;
+}
+#play-overlay i { font-size: 28px; color: #fff; margin-left: 3px; }
+#player-wrap.playing #play-overlay { opacity: 0; }
+#player-wrap.playing:hover #play-overlay { opacity: 1; }
+
+#controls {
+  padding: 8px 14px 14px;
+  background: #111;
+  border-radius: 0 0 var(--border-radius-lg) var(--border-radius-lg);
+  flex-shrink: 0;
+}
+
+#progress-wrap {
+  position: relative;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  margin-bottom: 2px;
+}
+#track {
+  width: 100%;
+  height: 4px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 2px;
+  position: relative;
+}
+#buffered-bar {
+  position: absolute; left: 0; top: 0; height: 100%;
+  background: rgba(255,255,255,0.25);
+  border-radius: 2px;
+  width: 72%;
+}
+#progress-bar {
+  position: absolute; left: 0; top: 0; height: 100%;
+  background: #e53;
+  border-radius: 2px;
+  width: 0%;
+}
+#scrubber {
+  position: absolute;
+  width: 14px; height: 14px;
+  background: #fff;
+  border-radius: 50%;
+  top: 50%; transform: translate(-50%, -50%);
+  left: 0%;
+  box-shadow: 0 0 0 2px rgba(0,0,0,0.4);
+  transition: transform 0.15s;
+  pointer-events: none;
+}
+#progress-wrap:hover #scrubber { transform: translate(-50%, -50%) scale(1.3); }
+
+#thumbnail-tooltip {
+  position: absolute;
+  bottom: 42px;
+  pointer-events: none;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  transform: translateX(-50%);
+  z-index: 20;
+  gap: 5px;
+}
+#thumb-canvas {
+  width: 160px; height: 90px;
+  border-radius: 4px;
+  border: 2px solid rgba(255,255,255,0.25);
+  display: block;
+}
+#thumb-time {
+  background: rgba(0,0,0,0.85);
+  color: #fff;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-variant-numeric: tabular-nums;
+}
+
+#bottom-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ctrl-btn {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.75);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  transition: color 0.15s;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+.ctrl-btn:hover { color: #fff; }
+#time-display {
+  font-size: 13px;
+  color: rgba(255,255,255,0.55);
+  font-variant-numeric: tabular-nums;
+  flex: 1;
+  white-space: nowrap;
+}
+#vol-wrap { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+#vol-slider {
+  -webkit-appearance: none;
+  width: 60px; height: 3px;
+  background: rgba(255,255,255,0.2);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+#vol-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 11px; height: 11px;
+  border-radius: 50%;
+  background: #fff;
+  cursor: pointer;
+}
+#fullscreen-btn { margin-left: auto; }
+</style>
+
+<h2 class="sr-only">Video player with seek thumbnail preview.</h2>
+
+<div style="padding: 0 0 4px;">
+  <div id="player-wrap">
+    <div id="video-area">
+      <canvas id="canvas-bg"></canvas>
+      <div id="play-overlay"><i class="ti ti-player-play" aria-hidden="true"></i></div>
+    </div>
+    <div id="controls">
+      <div id="progress-wrap">
+        <div id="track">
+          <div id="buffered-bar"></div>
+          <div id="progress-bar"></div>
+        </div>
+        <div id="scrubber"></div>
+        <div id="thumbnail-tooltip">
+          <canvas id="thumb-canvas" width="320" height="180"></canvas>
+          <span id="thumb-time">0:00</span>
+        </div>
+      </div>
+      <div id="bottom-row">
+        <button class="ctrl-btn" id="play-btn" aria-label="Play"><i class="ti ti-player-play" aria-hidden="true"></i></button>
+        <button class="ctrl-btn" aria-label="Skip back"><i class="ti ti-player-skip-back" aria-hidden="true"></i></button>
+        <button class="ctrl-btn" aria-label="Skip forward"><i class="ti ti-player-skip-forward" aria-hidden="true"></i></button>
+        <div id="vol-wrap">
+          <button class="ctrl-btn" aria-label="Volume"><i class="ti ti-volume" aria-hidden="true"></i></button>
+          <input type="range" id="vol-slider" min="0" max="100" value="80" aria-label="Volume">
+        </div>
+        <span id="time-display">0:00 / 4:32</span>
+        <button class="ctrl-btn" id="fullscreen-btn" aria-label="Fullscreen"><i class="ti ti-arrows-maximize" aria-hidden="true"></i></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const DURATION = 272;
+const wrap = document.getElementById('player-wrap');
+const canvasBg = document.getElementById('canvas-bg');
+const ctxBg = canvasBg.getContext('2d');
+const progressWrap = document.getElementById('progress-wrap');
+const progressBar = document.getElementById('progress-bar');
+const scrubber = document.getElementById('scrubber');
+const tooltip = document.getElementById('thumbnail-tooltip');
+const thumbCanvas = document.getElementById('thumb-canvas');
+const thumbCtx = thumbCanvas.getContext('2d');
+const thumbTime = document.getElementById('thumb-time');
+const timeDisplay = document.getElementById('time-display');
+const playBtn = document.getElementById('play-btn');
+const videoArea = document.getElementById('video-area');
+
+let currentTime = 38;
+let playing = false;
+let raf, last = null, dragging = false;
+
+function fmt(s) {
+  const m = Math.floor(s / 60);
+  return m + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+}
+
+const scenes = [
+  { start: 0,   hue: 200, label: 'Open Sea' },
+  { start: 60,  hue: 30,  label: 'Desert' },
+  { start: 120, hue: 140, label: 'Forest' },
+  { start: 180, hue: 270, label: 'Night City' },
+  { start: 240, hue: 10,  label: 'Sunset' },
+];
+
+function getScene(t) {
+  let s = scenes[0];
+  for (const sc of scenes) { if (t >= sc.start) s = sc; }
+  return s;
+}
+function lerp(a, b, t) { return a + (b - a) * t; }
+
+function drawFrame(ctx, w, h, t) {
+  const si = scenes.findIndex(sc => t < sc.start) - 1;
+  const scene = scenes[Math.max(si, 0)] || scenes[scenes.length - 1];
+  const next = scenes[scenes.indexOf(scene) + 1] || scene;
+  const prog = next !== scene ? (t - scene.start) / (next.start - scene.start) : 1;
+  const hue = lerp(scene.hue, next.hue, Math.min(prog * 1.3, 1));
+
+  const g = ctx.createLinearGradient(0, 0, 0, h);
+  g.addColorStop(0, `hsl(${hue},55%,${14 + Math.sin(t * 0.05) * 4}%)`);
+  g.addColorStop(0.6, `hsl(${hue + 20},60%,${28 + Math.sin(t * 0.04) * 7}%)`);
+  g.addColorStop(1, `hsl(${hue + 40},45%,18%)`);
+  ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+
+  ctx.save(); ctx.globalAlpha = 0.11;
+  const off = (t * 0.3) % (w * 1.5);
+  for (let i = -1; i < 4; i++) {
+    const x = (i * w * 0.4 + off) % (w * 1.3) - w * 0.1;
+    const y = h * 0.55 + Math.sin(t * 0.8 + i) * h * 0.04;
+    ctx.beginPath(); ctx.moveTo(x, y);
+    ctx.bezierCurveTo(x+w*0.08, y-h*0.06, x+w*0.16, y-h*0.06, x+w*0.22, y);
+    ctx.strokeStyle = `hsl(${hue},80%,80%)`; ctx.lineWidth = 2; ctx.stroke();
+  }
+  ctx.restore();
+
+  const shapeMap = {
+    0:   [[0.5,0.55,'wave'],[0.2,0.28,'bird'],[0.78,0.24,'bird']],
+    60:  [[0.28,0.68,'dune'],[0.68,0.63,'dune'],[0.5,0.28,'sun']],
+    120: [[0.2,0.78,'tree'],[0.5,0.73,'tree'],[0.8,0.76,'tree']],
+    180: [[0.25,0.58,'building'],[0.6,0.48,'building'],[0.8,0.63,'building']],
+    240: [[0.5,0.48,'orb'],[0.12,0.58,'cloud'],[0.83,0.53,'cloud']],
+  };
+  const shapes = shapeMap[scene.start] || [];
+  for (const [rx, ry, type] of shapes) {
+    const x = rx * w, y = ry * h;
+    ctx.save(); ctx.globalAlpha = 0.7;
+    if (type === 'sun' || type === 'orb') {
+      ctx.beginPath(); ctx.arc(x, y + Math.sin(t*0.5)*h*0.02, w*0.07, 0, Math.PI*2);
+      ctx.fillStyle = `hsl(${hue+30},90%,70%)`; ctx.fill();
+    } else if (type === 'building') {
+      const bw = w*0.12, bh = h*(0.18+rx*0.3);
+      ctx.fillStyle = `hsl(${hue},20%,14%)`; ctx.fillRect(x-bw/2, h-bh, bw, bh);
+      ctx.fillStyle = `hsl(${hue+20},80%,65%)`;
+      for (let r=0;r<3;r++) for(let c=0;c<2;c++)
+        if (Math.sin(t+r*1.3+c*2.1)>0.1) ctx.fillRect(x-bw/2+6+c*10, h-bh+10+r*14, 5, 8);
+    } else if (type === 'tree') {
+      ctx.fillStyle = `hsl(${hue},60%,22%)`; ctx.fillRect(x-3, y-h*0.04, 6, h*0.14);
+      ctx.beginPath(); ctx.arc(x, y-h*0.07, w*0.053, 0, Math.PI*2);
+      ctx.fillStyle = `hsl(${hue},55%,28%)`; ctx.fill();
+    } else if (type === 'dune') {
+      ctx.beginPath(); ctx.moveTo(x-w*0.2, h);
+      ctx.quadraticCurveTo(x, y, x+w*0.2, h);
+      ctx.fillStyle = `hsl(${hue},38%,43%)`; ctx.fill();
+    } else if (type === 'cloud') {
+      ctx.beginPath();
+      ctx.arc(x+Math.sin(t*0.2)*w*0.02, y, w*0.055, 0, Math.PI*2);
+      ctx.arc(x+w*0.06, y+h*0.02, w*0.035, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(255,255,255,0.13)'; ctx.fill();
+    } else if (type === 'bird') {
+      ctx.strokeStyle = `rgba(255,255,255,0.5)`; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.quadraticCurveTo(x+8, y-5, x+16, y);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  ctx.save();
+  ctx.font = `500 ${Math.max(11, Math.round(w*0.042))}px sans-serif`;
+  ctx.fillStyle = 'rgba(255,255,255,0.09)';
+  ctx.fillText(scene.label, w*0.04, h*0.1);
+  ctx.restore();
+}
+
+function resize() {
+  const w = canvasBg.offsetWidth, h = canvasBg.offsetHeight;
+  canvasBg.width = w; canvasBg.height = h;
+  render();
+}
+function render() { drawFrame(ctxBg, canvasBg.width, canvasBg.height, currentTime); }
+
+function updateUI() {
+  const pct = (currentTime / DURATION) * 100;
+  progressBar.style.width = pct + '%';
+  scrubber.style.left = pct + '%';
+  timeDisplay.textContent = fmt(currentTime) + ' / ' + fmt(DURATION);
+  render();
+}
+
+function drawThumbnail(t) {
+  thumbCtx.clearRect(0, 0, 320, 180);
+  drawFrame(thumbCtx, 320, 180, t);
+}
+
+function getHoverX(e) {
+  const rect = progressWrap.getBoundingClientRect();
+  return Math.max(0, Math.min(e.clientX - rect.left, rect.width));
+}
+
+function showTooltip(e) {
+  const rect = progressWrap.getBoundingClientRect();
+  const x = getHoverX(e);
+  const t = (x / rect.width) * DURATION;
+  const tipW = 160;
+  const cx = Math.max(tipW/2, Math.min(x, rect.width - tipW/2));
+  tooltip.style.display = 'flex';
+  tooltip.style.left = cx + 'px';
+  thumbTime.textContent = fmt(Math.round(t));
+  drawThumbnail(t);
+}
+
+progressWrap.addEventListener('mouseenter', showTooltip);
+progressWrap.addEventListener('mousemove', showTooltip);
+progressWrap.addEventListener('mouseleave', () => { if (!dragging) tooltip.style.display = 'none'; });
+
+progressWrap.addEventListener('mousedown', (e) => {
+  dragging = true;
+  const rect = progressWrap.getBoundingClientRect();
+  currentTime = (getHoverX(e) / rect.width) * DURATION;
+  updateUI(); showTooltip(e);
+});
+window.addEventListener('mousemove', (e) => {
+  if (!dragging) return;
+  const rect = progressWrap.getBoundingClientRect();
+  currentTime = Math.max(0, Math.min((e.clientX - rect.left) / rect.width, 1)) * DURATION;
+  updateUI(); showTooltip(e);
+});
+window.addEventListener('mouseup', () => { if (dragging) { dragging = false; tooltip.style.display = 'none'; } });
+
+videoArea.addEventListener('click', togglePlay);
+playBtn.addEventListener('click', togglePlay);
+
+function togglePlay() {
+  playing = !playing;
+  playBtn.querySelector('i').className = playing ? 'ti ti-player-pause' : 'ti ti-player-play';
+  wrap.classList.toggle('playing', playing);
+  if (playing) { last = null; raf = requestAnimationFrame(tick); }
+  else cancelAnimationFrame(raf);
+}
+
+function tick(ts) {
+  if (last != null) {
+    currentTime = Math.min(currentTime + (ts - last) / 1000, DURATION);
+    updateUI();
+    if (currentTime >= DURATION) { currentTime = 0; playing = false; playBtn.querySelector('i').className = 'ti ti-player-play'; wrap.classList.remove('playing'); return; }
+  }
+  last = ts;
+  if (playing) raf = requestAnimationFrame(tick);
+}
+
+new ResizeObserver(resize).observe(canvasBg);
+setTimeout(() => { resize(); updateUI(); }, 60);
+</script>

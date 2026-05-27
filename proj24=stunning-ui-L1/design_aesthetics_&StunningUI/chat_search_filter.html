@@ -1,0 +1,203 @@
+<div style="background:var(--color-background-secondary);border-radius:var(--border-radius-lg);padding:16px;display:flex;gap:0;height:540px;font-family:var(--font-sans)">
+
+<h2 class="sr-only">Chat search filter demo — type to filter conversations by name or message content</h2>
+
+<div style="width:280px;background:var(--color-background-primary);border-radius:var(--border-radius-lg);border:0.5px solid var(--color-border-tertiary);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0">
+  <div style="padding:12px;border-bottom:0.5px solid var(--color-border-tertiary)">
+    <div style="display:flex;align-items:center;gap:8px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:8px 10px">
+      <i class="ti ti-search" style="font-size:15px;color:var(--color-text-tertiary)" aria-hidden="true"></i>
+      <input id="search-input" type="text" placeholder="Search…" style="border:none;background:transparent;outline:none;flex:1;font-size:13px;color:var(--color-text-primary);font-family:var(--font-sans)" aria-label="Search conversations">
+      <button id="clear-btn" onclick="clearSearch()" aria-label="Clear search" style="display:none;background:none;border:none;cursor:pointer;padding:0;color:var(--color-text-tertiary);line-height:1">
+        <i class="ti ti-x" style="font-size:14px" aria-hidden="true"></i>
+      </button>
+    </div>
+  </div>
+  <div id="list-container" style="flex:1;overflow-y:auto;padding:6px 0"></div>
+</div>
+
+<div id="chat-panel" style="flex:1;display:flex;flex-direction:column;margin-left:12px;background:var(--color-background-primary);border-radius:var(--border-radius-lg);border:0.5px solid var(--color-border-tertiary);overflow:hidden">
+  <div id="chat-header" style="padding:12px 16px;border-bottom:0.5px solid var(--color-border-tertiary);display:flex;align-items:center;gap:10px">
+    <div id="header-avatar" style="width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;background:var(--color-background-info);color:var(--color-text-info);flex-shrink:0">SA</div>
+    <div>
+      <p id="header-name" style="margin:0;font-size:14px;font-weight:500;color:var(--color-text-primary)">Sarah Anderson</p>
+      <p id="header-status" style="margin:0;font-size:11px;color:var(--color-text-tertiary)">online</p>
+    </div>
+  </div>
+  <div id="messages-container" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px"></div>
+</div>
+
+</div>
+
+<style>
+.conv-item{padding:10px 12px;cursor:pointer;border-radius:6px;margin:2px 6px;transition:background 0.1s}
+.conv-item:hover{background:var(--color-background-secondary)}
+.conv-item.active{background:var(--color-background-info)}
+.conv-item .name{font-size:13px;font-weight:500;color:var(--color-text-primary);margin:0 0 2px}
+.conv-item.active .name{color:var(--color-text-info)}
+.conv-item .preview{font-size:11px;color:var(--color-text-secondary);margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px}
+.conv-item.active .preview{color:var(--color-text-info);opacity:0.8}
+.section-label{font-size:10px;font-weight:500;color:var(--color-text-tertiary);text-transform:uppercase;letter-spacing:0.06em;padding:8px 12px 4px}
+.bubble{max-width:68%;padding:8px 12px;border-radius:12px;font-size:13px;line-height:1.5}
+.bubble.them{background:var(--color-background-secondary);color:var(--color-text-primary);align-self:flex-start;border-bottom-left-radius:3px}
+.bubble.me{background:var(--color-background-info);color:var(--color-text-info);align-self:flex-end;border-bottom-right-radius:3px}
+.bubble mark{background:#fde68a;color:#78350f;border-radius:2px;padding:0 1px}
+.bubble.highlight-match{outline:2px solid #fbbf24;outline-offset:2px;animation:pulse 0.6s ease}
+@keyframes pulse{0%{outline-color:#f59e0b}50%{outline-color:#fcd34d}100%{outline-color:#fbbf24}}
+.avatar-circle{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;flex-shrink:0}
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:8px;color:var(--color-text-tertiary);font-size:13px}
+</style>
+
+<script>
+const conversations = [
+  {id:1,name:"Sarah Anderson",initials:"SA",color:"info",status:"online",messages:[
+    {id:1,from:"them",text:"Hey! Did you finish the design mockups?"},
+    {id:2,from:"me",text:"Almost done! Working on the dashboard layout now."},
+    {id:3,from:"them",text:"Great, can you share them by 3pm? The client presentation is at 4."},
+    {id:4,from:"me",text:"Sure, I'll send the Figma link shortly."},
+  ]},
+  {id:2,name:"Marcus Webb",initials:"MW",color:"success",status:"away",messages:[
+    {id:1,from:"them",text:"The API integration is finally working 🎉"},
+    {id:2,from:"me",text:"Awesome! Any issues with the authentication flow?"},
+    {id:3,from:"them",text:"One small bug with token refresh, but I've already pushed a fix."},
+    {id:4,from:"me",text:"Perfect, I'll pull the latest and test it out."},
+  ]},
+  {id:3,name:"Priya Sharma",initials:"PS",color:"warning",status:"offline",messages:[
+    {id:1,from:"me",text:"Hey Priya, can you review the quarterly report?"},
+    {id:2,from:"them",text:"Of course! Send it over whenever you're ready."},
+    {id:3,from:"me",text:"Just shared it on Google Drive. Let me know your thoughts."},
+    {id:4,from:"them",text:"Got it. I'll have feedback for you by end of day."},
+  ]},
+  {id:4,name:"Team Announcements",initials:"TA",color:"danger",status:"channel",messages:[
+    {id:1,from:"them",text:"Reminder: all-hands meeting tomorrow at 10am."},
+    {id:2,from:"them",text:"Please review the new design system guidelines before Friday."},
+    {id:3,from:"them",text:"Office will be closed on Monday for the public holiday."},
+  ]},
+  {id:5,name:"Jake Torres",initials:"JT",color:"info",status:"online",messages:[
+    {id:1,from:"them",text:"Did you see the feedback on the landing page?"},
+    {id:2,from:"me",text:"Not yet, what did they say?"},
+    {id:3,from:"them",text:"They loved the hero section but want to change the color palette."},
+    {id:4,from:"me",text:"I can update the design system tokens this afternoon."},
+  ]},
+];
+
+let activeId = 1;
+let searchQuery = "";
+let debounceTimer = null;
+let highlightMsgId = null;
+
+const colorMap = {info:"#185FA5",success:"#0F6E56",warning:"#854F0B",danger:"#A32D2D"};
+const bgMap = {info:"#E6F1FB",success:"#E1F5EE",warning:"#FAEEDA",danger:"#FCEBEB"};
+
+function hi(text, q) {
+  if (!q) return text;
+  const re = new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'gi');
+  return text.replace(re, '<mark>$1</mark>');
+}
+
+function renderList(query) {
+  const container = document.getElementById('list-container');
+  if (!query) {
+    container.innerHTML = '';
+    conversations.forEach(c => {
+      const last = c.messages[c.messages.length-1];
+      container.appendChild(makeConvItem(c, last.text, null));
+    });
+    return;
+  }
+  const q = query.toLowerCase();
+  const contactMatches = conversations.filter(c => c.name.toLowerCase().includes(q));
+  const msgMatches = [];
+  conversations.forEach(c => {
+    if(contactMatches.find(x=>x.id===c.id)) return;
+    const m = c.messages.find(msg => msg.text.toLowerCase().includes(q));
+    if(m) msgMatches.push({conv:c, msg:m});
+  });
+
+  if(contactMatches.length===0 && msgMatches.length===0) {
+    container.innerHTML = `<div class="empty-state"><i class="ti ti-mood-sad" style="font-size:28px" aria-hidden="true"></i><span>No results for "${query}"</span></div>`;
+    return;
+  }
+  container.innerHTML = '';
+  if(contactMatches.length>0){
+    const lbl = document.createElement('div'); lbl.className='section-label'; lbl.textContent='Contacts';
+    container.appendChild(lbl);
+    contactMatches.forEach(c => {
+      const last = c.messages[c.messages.length-1];
+      container.appendChild(makeConvItem(c, last.text, query));
+    });
+  }
+  if(msgMatches.length>0){
+    const lbl = document.createElement('div'); lbl.className='section-label'; lbl.textContent='Messages';
+    container.appendChild(lbl);
+    msgMatches.forEach(({conv,msg}) => container.appendChild(makeConvItem(conv, msg.text, query, msg.id)));
+  }
+}
+
+function makeConvItem(c, previewText, query, targetMsgId) {
+  const div = document.createElement('div');
+  div.className = 'conv-item' + (c.id===activeId?' active':'');
+  const hiName = query ? hi(c.name, query) : c.name;
+  const hiPreview = query ? hi(previewText.length>38?previewText.slice(0,38)+'…':previewText, query) : (previewText.length>38?previewText.slice(0,38)+'…':previewText);
+  div.innerHTML = `<div style="display:flex;align-items:center;gap:8px"><div class="avatar-circle" style="background:${bgMap[c.color]};color:${colorMap[c.color]};width:28px;height:28px;font-size:10px">${c.initials}</div><div style="min-width:0"><p class="name">${hiName}</p><p class="preview">${hiPreview}</p></div></div>`;
+  div.onclick = () => openChat(c.id, query, targetMsgId);
+  return div;
+}
+
+function openChat(id, query, targetMsgId) {
+  activeId = id;
+  highlightMsgId = targetMsgId || null;
+  const conv = conversations.find(c=>c.id===id);
+  document.getElementById('header-name').textContent = conv.name;
+  document.getElementById('header-status').textContent = conv.status;
+  const av = document.getElementById('header-avatar');
+  av.textContent = conv.initials;
+  av.style.background = bgMap[conv.color];
+  av.style.color = colorMap[conv.color];
+  renderMessages(conv, query);
+  renderList(query);
+}
+
+function renderMessages(conv, query) {
+  const container = document.getElementById('messages-container');
+  container.innerHTML = '';
+  conv.messages.forEach(msg => {
+    const div = document.createElement('div');
+    div.dataset.msgId = msg.id;
+    div.className = 'bubble ' + msg.from;
+    const isHighlight = highlightMsgId && msg.id===highlightMsgId;
+    if(isHighlight) div.classList.add('highlight-match');
+    div.innerHTML = query ? hi(msg.text, query) : msg.text;
+    container.appendChild(div);
+  });
+  if(highlightMsgId) {
+    setTimeout(() => {
+      const el = container.querySelector(`[data-msg-id="${highlightMsgId}"]`);
+      if(el) el.scrollIntoView({behavior:'smooth', block:'center'});
+    }, 50);
+  }
+}
+
+function clearSearch() {
+  document.getElementById('search-input').value = '';
+  document.getElementById('clear-btn').style.display = 'none';
+  searchQuery = '';
+  highlightMsgId = null;
+  renderList('');
+  const conv = conversations.find(c=>c.id===activeId);
+  renderMessages(conv, '');
+}
+
+document.getElementById('search-input').addEventListener('input', function() {
+  clearTimeout(debounceTimer);
+  const q = this.value.trim();
+  document.getElementById('clear-btn').style.display = q ? 'block' : 'none';
+  debounceTimer = setTimeout(() => {
+    searchQuery = q;
+    renderList(q);
+    const conv = conversations.find(c=>c.id===activeId);
+    renderMessages(conv, q);
+  }, 300);
+});
+
+openChat(1, '', null);
+</script>

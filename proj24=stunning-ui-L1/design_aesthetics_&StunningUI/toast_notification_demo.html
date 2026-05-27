@@ -1,0 +1,257 @@
+
+<style>
+  .demo-shell {
+    background: var(--color-background-secondary);
+    border-radius: var(--border-radius-lg);
+    padding: 0;
+    min-height: 480px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .topbar {
+    background: var(--color-background-primary);
+    border-bottom: 0.5px solid var(--color-border-tertiary);
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .topbar-dot { width:10px; height:10px; border-radius:50%; }
+  .topbar-title { font-size:13px; font-weight:500; color:var(--color-text-secondary); margin-left:4px; }
+  .chat-area {
+    flex: 1;
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    position: relative;
+  }
+  .msg-bubble {
+    max-width: 60%;
+    padding: 9px 13px;
+    border-radius: 14px;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .msg-in {
+    background: var(--color-background-primary);
+    border: 0.5px solid var(--color-border-tertiary);
+    color: var(--color-text-primary);
+    align-self: flex-start;
+  }
+  .msg-out {
+    background: #4F46E5;
+    color: #fff;
+    align-self: flex-end;
+  }
+  .msg-highlighted {
+    outline: 2px solid #4F46E5;
+    outline-offset: 2px;
+  }
+  .msg-label {
+    font-size: 11px;
+    color: var(--color-text-tertiary);
+    align-self: flex-start;
+    margin-bottom: -6px;
+    margin-left: 2px;
+  }
+  .msg-label-right {
+    align-self: flex-end;
+    margin-right: 2px;
+  }
+  .toast-zone {
+    position: absolute;
+    bottom: 16px;
+    right: 16px;
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 8px;
+    width: 260px;
+    pointer-events: none;
+  }
+  .toast {
+    background: #1F1F1F;
+    color: #fff;
+    border-radius: 12px;
+    padding: 11px 14px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    pointer-events: all;
+    cursor: pointer;
+    box-sizing: border-box;
+    transform: translateX(110%);
+    opacity: 0;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+  }
+  .toast.visible {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  .toast.dismissing {
+    transform: translateX(110%);
+    opacity: 0;
+  }
+  .toast-avatar {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 500;
+    flex-shrink: 0;
+  }
+  .toast-body { flex: 1; min-width: 0; }
+  .toast-sender { font-size: 13px; font-weight: 500; margin-bottom: 2px; color: #fff; }
+  .toast-preview { font-size: 12px; color: rgba(255,255,255,0.65); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .toast-close {
+    font-size: 14px;
+    color: rgba(255,255,255,0.45);
+    cursor: pointer;
+    flex-shrink: 0;
+    line-height: 1;
+    margin-top: 1px;
+  }
+  .toast-bar {
+    height: 3px;
+    border-radius: 0 0 12px 12px;
+    margin: 6px -14px -11px;
+    background: rgba(255,255,255,0.15);
+    overflow: hidden;
+  }
+  .toast-bar-fill {
+    height: 100%;
+    background: rgba(255,255,255,0.4);
+    border-radius: inherit;
+    transition: width linear;
+  }
+  .controls {
+    background: var(--color-background-primary);
+    border-top: 0.5px solid var(--color-border-tertiary);
+    padding: 12px 16px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .btn-trigger {
+    font-size: 12px;
+    padding: 7px 13px;
+    border-radius: 20px;
+    border: 0.5px solid var(--color-border-secondary);
+    background: transparent;
+    color: var(--color-text-primary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.15s;
+  }
+  .btn-trigger:hover { background: var(--color-background-secondary); }
+  .btn-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+  }
+</style>
+
+<h2 class="sr-only">Toast notification component demo — shows animated slide-in toasts in the bottom-right corner of a simulated chat window</h2>
+
+<div class="demo-shell">
+  <div class="topbar">
+    <div class="topbar-dot" style="background:#FF5F57"></div>
+    <div class="topbar-dot" style="background:#FFBD2E"></div>
+    <div class="topbar-dot" style="background:#28C840"></div>
+    <span class="topbar-title"># general — Acme Workspace</span>
+  </div>
+  <div class="chat-area" id="chatArea">
+    <span class="msg-label">Alex K.</span>
+    <div class="msg-bubble msg-in">Hey, did the deploy finish?</div>
+    <div class="msg-bubble msg-out">Yep, just went live 🎉</div>
+    <span class="msg-label msg-label-right">You</span>
+    <div class="toast-zone" id="toastZone" aria-live="polite" aria-label="Notifications"></div>
+  </div>
+  <div class="controls">
+    <button class="btn-trigger" onclick="sendToast(0)" aria-label="Simulate message from Priya">
+      <div class="btn-dot" style="background:#7F77DD"></div> Priya
+    </button>
+    <button class="btn-trigger" onclick="sendToast(1)" aria-label="Simulate message from Marcus">
+      <div class="btn-dot" style="background:#1D9E75"></div> Marcus
+    </button>
+    <button class="btn-trigger" onclick="sendToast(2)" aria-label="Simulate message from Jamie">
+      <div class="btn-dot" style="background:#D85A30"></div> Jamie
+    </button>
+    <button class="btn-trigger" onclick="sendToast(3)" aria-label="Simulate multiple messages at once">
+      <i class="ti ti-stack-2" aria-hidden="true" style="font-size:14px"></i> Stack all
+    </button>
+  </div>
+</div>
+
+<script>
+const senders = [
+  { name:'Priya S.', initials:'PS', preview:'Can you review my PR before EOD?', color:'#7F77DD', light:'#EEEDFE', msg:'Can you review my PR before EOD? I left comments on the last 3 files.' },
+  { name:'Marcus L.', initials:'ML', preview:'Standup is in 5 mins!', color:'#1D9E75', light:'#E1F5EE', msg:'Standup is in 5 mins! Are you joining from the office?' },
+  { name:'Jamie T.', initials:'JT', preview:'The client loved the demo 🔥', color:'#D85A30', light:'#FAECE7', msg:'The client loved the demo 🔥 They want to move forward!' },
+  { name:'Priya S.', initials:'PS', preview:'Also — coffee run? ☕', color:'#7F77DD', light:'#EEEDFE', msg:'Also — coffee run? ☕' },
+];
+
+let toastCount = 0;
+const MAX_TOASTS = 4;
+const DURATION = 5000;
+
+function sendToast(idx) {
+  if (idx === 3) { [0,1,2,3].forEach((i,d) => setTimeout(()=>sendToast(i<3?i:3),d*350)); return; }
+  const s = senders[idx];
+  const zone = document.getElementById('toastZone');
+  const existing = zone.querySelectorAll('.toast:not(.dismissing)');
+  if (existing.length >= MAX_TOASTS) dismissToast(existing[0]);
+
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.setAttribute('role','alert');
+  el.innerHTML = `
+    <div class="toast-avatar" style="background:${s.light};color:${s.color}">${s.initials}</div>
+    <div class="toast-body">
+      <div class="toast-sender">${s.name}</div>
+      <div class="toast-preview">${s.preview}</div>
+      <div class="toast-bar"><div class="toast-bar-fill" id="bar-${++toastCount}" style="width:100%"></div></div>
+    </div>
+    <span class="toast-close" aria-label="Dismiss"><i class="ti ti-x" aria-hidden="true"></i></span>`;
+
+  zone.appendChild(el);
+  requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('visible')));
+
+  const barId = `bar-${toastCount}`;
+  setTimeout(() => {
+    const bar = document.getElementById(barId);
+    if (bar) { bar.style.transitionDuration = DURATION + 'ms'; bar.style.width = '0%'; }
+  }, 50);
+
+  const timer = setTimeout(() => dismissToast(el), DURATION);
+
+  el.querySelector('.toast-close').onclick = (e) => { e.stopPropagation(); clearTimeout(timer); dismissToast(el); };
+  el.onclick = () => { clearTimeout(timer); highlightMessage(s, el); dismissToast(el); };
+}
+
+function dismissToast(el) {
+  el.classList.add('dismissing');
+  el.classList.remove('visible');
+  setTimeout(() => el.remove(), 320);
+}
+
+function highlightMessage(s, el) {
+  const area = document.getElementById('chatArea');
+  const zone = document.getElementById('toastZone');
+  const lbl = document.createElement('span');
+  lbl.className = 'msg-label';
+  lbl.textContent = s.name;
+  const bubble = document.createElement('div');
+  bubble.className = 'msg-bubble msg-in msg-highlighted';
+  bubble.textContent = s.msg;
+  area.insertBefore(bubble, zone);
+  area.insertBefore(lbl, bubble);
+  bubble.scrollIntoView({ behavior:'smooth', block:'nearest' });
+  setTimeout(() => bubble.classList.remove('msg-highlighted'), 2000);
+}
+</script>

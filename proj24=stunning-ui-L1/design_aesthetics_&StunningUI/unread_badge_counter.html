@@ -1,0 +1,244 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font-sans); }
+  .app { display: flex; height: 520px; border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); overflow: hidden; background: var(--color-background-primary); }
+  .sidebar { width: 240px; border-right: 0.5px solid var(--color-border-tertiary); display: flex; flex-direction: column; background: var(--color-background-secondary); }
+  .sidebar-header { padding: 16px; border-bottom: 0.5px solid var(--color-border-tertiary); display: flex; align-items: center; gap: 10px; }
+  .sidebar-header span { font-size: 14px; font-weight: 500; color: var(--color-text-primary); }
+  .tab-icon { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; }
+  .chat-list { flex: 1; overflow-y: auto; }
+  .chat-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; cursor: pointer; border-bottom: 0.5px solid var(--color-border-tertiary); transition: background 0.15s; position: relative; }
+  .chat-item:hover { background: var(--color-background-primary); }
+  .chat-item.active { background: var(--color-background-primary); }
+  .avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; flex-shrink: 0; }
+  .chat-info { flex: 1; min-width: 0; }
+  .chat-name { font-size: 13px; font-weight: 500; color: var(--color-text-primary); }
+  .chat-preview { font-size: 12px; color: var(--color-text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+  .badge { background: #E24B4A; color: #fff; font-size: 11px; font-weight: 600; min-width: 18px; height: 18px; border-radius: 99px; display: flex; align-items: center; justify-content: center; padding: 0 5px; flex-shrink: 0; cursor: default; transition: transform 0.2s; }
+  .badge:hover { transform: scale(1.1); }
+  .global-badge { position: absolute; top: -8px; right: -8px; background: #E24B4A; color: #fff; font-size: 11px; font-weight: 600; min-width: 18px; height: 18px; border-radius: 99px; display: flex; align-items: center; justify-content: center; padding: 0 5px; cursor: default; transition: all 0.2s; }
+  .global-badge.hidden { display: none; }
+  .chat-area { flex: 1; display: flex; flex-direction: column; }
+  .chat-header { padding: 14px 16px; border-bottom: 0.5px solid var(--color-border-tertiary); display: flex; align-items: center; gap: 10px; }
+  .chat-header .avatar { width: 32px; height: 32px; font-size: 12px; }
+  .chat-header-name { font-size: 14px; font-weight: 500; color: var(--color-text-primary); }
+  .messages { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+  .msg { max-width: 68%; padding: 8px 12px; border-radius: 12px; font-size: 13px; line-height: 1.5; }
+  .msg.received { background: var(--color-background-secondary); color: var(--color-text-primary); align-self: flex-start; border-bottom-left-radius: 3px; }
+  .msg.sent { background: #378ADD; color: #fff; align-self: flex-end; border-bottom-right-radius: 3px; }
+  .msg-time { font-size: 11px; opacity: 0.6; margin-top: 3px; }
+  .input-bar { padding: 12px 14px; border-top: 0.5px solid var(--color-border-tertiary); display: flex; gap: 8px; align-items: center; }
+  .input-bar input { flex: 1; height: 34px; padding: 0 12px; font-size: 13px; background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); border-radius: 99px; color: var(--color-text-primary); outline: none; }
+  .input-bar input:focus { border-color: var(--color-border-secondary); }
+  .send-btn { width: 34px; height: 34px; border-radius: 50%; background: #378ADD; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 16px; flex-shrink: 0; }
+  .send-btn:hover { background: #185FA5; }
+  .sim-btn { font-size: 12px; padding: 5px 12px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-secondary); background: transparent; color: var(--color-text-secondary); cursor: pointer; }
+  .sim-btn:hover { background: var(--color-background-secondary); }
+  .tab-bar { padding: 8px 14px; border-bottom: 0.5px solid var(--color-border-tertiary); display: flex; align-items: center; justify-content: space-between; }
+  .tab-title { font-size: 11px; color: var(--color-text-tertiary); }
+  .browser-tab { display: flex; align-items: center; gap: 6px; background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); padding: 4px 10px; font-size: 12px; color: var(--color-text-secondary); max-width: 180px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .tooltip { position: fixed; background: #2C2C2A; color: #F1EFE8; font-size: 11px; padding: 4px 8px; border-radius: 6px; pointer-events: none; z-index: 999; white-space: nowrap; display: none; }
+  .unread-dot { width: 8px; height: 8px; border-radius: 50%; background: #E24B4A; flex-shrink: 0; }
+</style>
+
+<h2 class="sr-only">Unread badge counter — interactive chat UI demo with real-time badge updates</h2>
+
+<div class="tooltip" id="tooltip"></div>
+
+<div style="padding: 12px 0 8px;">
+  <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; padding: 0 2px;">
+    <div class="browser-tab" id="browser-tab">
+      <i class="ti ti-message-2" style="font-size:14px; flex-shrink:0;" aria-hidden="true"></i>
+      <span id="tab-title">Chat App</span>
+    </div>
+    <div style="display: flex; gap: 6px; margin-left: auto;">
+      <button class="sim-btn" id="sim-btn">Simulate new message</button>
+    </div>
+  </div>
+
+  <div class="app">
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <div class="tab-icon">
+          <i class="ti ti-message-2" style="font-size:20px; color: var(--color-text-secondary);" aria-hidden="true"></i>
+          <div class="global-badge hidden" id="global-badge">0</div>
+        </div>
+        <span>Messages</span>
+      </div>
+      <div class="chat-list" id="chat-list"></div>
+    </div>
+
+    <div class="chat-area">
+      <div class="chat-header" id="chat-header"></div>
+      <div class="messages" id="messages"></div>
+      <div class="input-bar">
+        <input type="text" placeholder="Type a message…" id="msg-input" />
+        <button class="send-btn" id="send-btn" aria-label="Send message"><i class="ti ti-send" aria-hidden="true"></i></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const chats = [
+  { id: 1, name: "Alice Chen", initials: "AC", color: "#B5D4F4", textColor: "#0C447C", messages: [
+    { text: "Hey, did you see the new design?", from: "them", time: "9:12 AM" },
+    { text: "Looks great! I'll review it today.", from: "me", time: "9:15 AM" }
+  ]},
+  { id: 2, name: "Dev Team", initials: "DT", color: "#9FE1CB", textColor: "#085041", messages: [
+    { text: "PR #42 is ready for review", from: "them", time: "10:02 AM" },
+    { text: "Tests are passing ✓", from: "them", time: "10:04 AM" }
+  ]},
+  { id: 3, name: "Raj Patel", initials: "RP", color: "#F5C4B3", textColor: "#712B13", messages: [
+    { text: "Can we push the meeting to 3pm?", from: "them", time: "11:30 AM" }
+  ]},
+  { id: 4, name: "Marketing", initials: "MK", color: "#F4C0D1", textColor: "#72243E", messages: [
+    { text: "Campaign brief is attached", from: "them", time: "2:00 PM" }
+  ]}
+];
+
+const unread = { 1: 0, 2: 0, 3: 0, 4: 0 };
+let activeChat = 1;
+
+const simMessages = [
+  ["Alice Chen", 1, "Can you check the latest mockup?"],
+  ["Dev Team", 2, "Build failed on main branch!"],
+  ["Raj Patel", 3, "No worries, 3pm works for me too"],
+  ["Marketing", 4, "Need the copy by EOD please"],
+  ["Alice Chen", 1, "Also the spacing looks off on mobile"],
+  ["Dev Team", 2, "Fixed! Merging now."],
+];
+let simIdx = 0;
+
+function totalUnread() { return Object.values(unread).reduce((a,b) => a+b, 0); }
+
+function updateTitle() {
+  const t = totalUnread();
+  document.getElementById('tab-title').textContent = t > 0 ? `(${t}) Chat App` : 'Chat App';
+}
+
+function updateGlobalBadge() {
+  const t = totalUnread();
+  const el = document.getElementById('global-badge');
+  if (t > 0) { el.textContent = t > 99 ? '99+' : t; el.classList.remove('hidden'); }
+  else { el.classList.add('hidden'); }
+}
+
+function renderChatList() {
+  const list = document.getElementById('chat-list');
+  list.innerHTML = '';
+  chats.forEach(c => {
+    const item = document.createElement('div');
+    item.className = 'chat-item' + (c.id === activeChat ? ' active' : '');
+    item.dataset.id = c.id;
+    const lastMsg = c.messages[c.messages.length - 1];
+    item.innerHTML = `
+      <div class="avatar" style="background:${c.color}; color:${c.textColor}">${c.initials}</div>
+      <div class="chat-info">
+        <div class="chat-name">${c.name}</div>
+        <div class="chat-preview">${lastMsg ? lastMsg.text : ''}</div>
+      </div>
+      ${unread[c.id] > 0 ? `<div class="badge" data-count="${unread[c.id]}" data-chat="${c.id}">${unread[c.id]}</div>` : ''}
+    `;
+    item.addEventListener('click', () => selectChat(c.id));
+    list.appendChild(item);
+  });
+
+  document.querySelectorAll('.badge').forEach(badge => {
+    badge.addEventListener('mouseenter', e => showTooltip(e, badge.dataset.count, badge.dataset.chat));
+    badge.addEventListener('mouseleave', hideTooltip);
+  });
+
+  const gb = document.getElementById('global-badge');
+  gb.addEventListener('mouseenter', e => showTooltip(e, totalUnread(), null));
+  gb.addEventListener('mouseleave', hideTooltip);
+}
+
+function showTooltip(e, count, chatId) {
+  const tip = document.getElementById('tooltip');
+  const name = chatId ? chats.find(c=>c.id==chatId)?.name : null;
+  tip.textContent = name ? `${count} unread in ${name}` : `${count} unread message${count!=1?'s':''}`;
+  tip.style.display = 'block';
+  posTooltip(e);
+}
+
+function posTooltip(e) {
+  const tip = document.getElementById('tooltip');
+  tip.style.left = (e.clientX + 10) + 'px';
+  tip.style.top = (e.clientY - 28) + 'px';
+}
+
+function hideTooltip() { document.getElementById('tooltip').style.display = 'none'; }
+document.addEventListener('mousemove', e => { if(document.getElementById('tooltip').style.display==='block') posTooltip(e); });
+
+function renderMessages() {
+  const chat = chats.find(c => c.id === activeChat);
+  const header = document.getElementById('chat-header');
+  header.innerHTML = `
+    <div class="avatar" style="background:${chat.color}; color:${chat.textColor}; width:32px; height:32px; font-size:12px;">${chat.initials}</div>
+    <span class="chat-header-name">${chat.name}</span>
+  `;
+  const msgs = document.getElementById('messages');
+  msgs.innerHTML = '';
+  chat.messages.forEach(m => {
+    const el = document.createElement('div');
+    el.className = 'msg ' + (m.from === 'me' ? 'sent' : 'received');
+    el.innerHTML = `${m.text}<div class="msg-time">${m.time}</div>`;
+    msgs.appendChild(el);
+  });
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function selectChat(id) {
+  activeChat = id;
+  unread[id] = 0;
+  renderChatList();
+  renderMessages();
+  updateTitle();
+  updateGlobalBadge();
+}
+
+function addMessage(chatId, text, from) {
+  const chat = chats.find(c => c.id === chatId);
+  const now = new Date();
+  const t = now.toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit'});
+  chat.messages.push({ text, from, time: t });
+  if (chatId !== activeChat) {
+    unread[chatId]++;
+  }
+  if (chatId === activeChat) renderMessages();
+  renderChatList();
+  updateTitle();
+  updateGlobalBadge();
+  animateBadge(chatId);
+}
+
+function animateBadge(chatId) {
+  setTimeout(() => {
+    const badges = document.querySelectorAll('.badge');
+    badges.forEach(b => { if (b.dataset.chat == chatId) { b.style.transform='scale(1.4)'; setTimeout(()=>b.style.transform='',200); }});
+  }, 50);
+}
+
+document.getElementById('sim-btn').addEventListener('click', () => {
+  const [, chatId, text] = simMessages[simIdx % simMessages.length];
+  simIdx++;
+  addMessage(chatId, text, 'them');
+});
+
+document.getElementById('send-btn').addEventListener('click', sendMsg);
+document.getElementById('msg-input').addEventListener('keydown', e => { if(e.key==='Enter') sendMsg(); });
+
+function sendMsg() {
+  const input = document.getElementById('msg-input');
+  const text = input.value.trim();
+  if (!text) return;
+  addMessage(activeChat, text, 'me');
+  input.value = '';
+}
+
+renderChatList();
+renderMessages();
+updateTitle();
+</script>

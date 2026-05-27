@@ -1,0 +1,229 @@
+
+<h2 class="sr-only">Interactive Picture-in-Picture video player demo with draggable floating window</h2>
+<style>
+  .page-content { padding: 1.5rem 0; }
+  .video-container { position: relative; width: 100%; aspect-ratio: 16/9; background: #1a1a2e; border-radius: var(--border-radius-lg); overflow: hidden; display: flex; align-items: center; justify-content: center; }
+  .video-mock { width: 100%; height: 100%; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; }
+  .video-bg { position: absolute; inset: 0; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); }
+  .video-waves { position: absolute; bottom: 0; left: 0; right: 0; height: 60px; opacity: 0.3; }
+  .video-title { position: relative; z-index: 1; color: #e2e8f0; font-size: 14px; font-weight: 500; opacity: 0.9; }
+  .video-time { position: relative; z-index: 1; color: #94a3b8; font-size: 12px; }
+  .play-icon { position: relative; z-index: 1; width: 56px; height: 56px; border-radius: 50%; background: rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; border: 1.5px solid rgba(255,255,255,0.3); }
+  .play-icon i { font-size: 22px; color: white; margin-left: 3px; }
+  .progress-bar { position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: rgba(255,255,255,0.15); }
+  .progress-fill { height: 100%; background: #6366f1; width: 35%; transition: width 0.1s; }
+  .controls-bar { display: flex; align-items: center; gap: 8px; padding: 12px 0 0; }
+  .ctrl-btn { display: flex; align-items: center; gap: 6px; padding: 7px 14px; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); background: var(--color-background-primary); font-size: 13px; font-weight: 500; cursor: pointer; color: var(--color-text-primary); transition: background 0.15s, border-color 0.15s; }
+  .ctrl-btn:hover { background: var(--color-background-secondary); }
+  .ctrl-btn i { font-size: 15px; }
+  .pip-btn { border-color: #6366f1; color: #6366f1; }
+  .pip-btn:hover { background: rgba(99,102,241,0.08); }
+  .page-text { margin-top: 2rem; }
+  .page-text h3 { font-size: 16px; font-weight: 500; color: var(--color-text-primary); margin: 0 0 8px; }
+  .page-text p { font-size: 14px; color: var(--color-text-secondary); line-height: 1.7; margin: 0 0 16px; }
+  .pip-window { position: fixed; bottom: 24px; right: 24px; width: 300px; height: 185px; background: #1a1a2e; border-radius: 10px; border: 1.5px solid rgba(99,102,241,0.5); overflow: hidden; z-index: 999; display: none; box-shadow: 0 8px 32px rgba(0,0,0,0.35); }
+  .pip-window.active { display: block; }
+  .pip-header { position: absolute; top: 0; left: 0; right: 0; height: 28px; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: space-between; padding: 0 8px; z-index: 10; cursor: move; user-select: none; }
+  .pip-label { font-size: 11px; color: rgba(255,255,255,0.7); font-weight: 500; }
+  .pip-actions { display: flex; gap: 4px; }
+  .pip-action-btn { width: 20px; height: 20px; border-radius: 4px; border: none; background: rgba(255,255,255,0.1); color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 12px; padding: 0; }
+  .pip-action-btn:hover { background: rgba(255,255,255,0.22); }
+  .pip-action-btn.close-btn:hover { background: rgba(220,38,38,0.6); }
+  .pip-video-mock { position: absolute; inset: 0; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); display: flex; align-items: center; justify-content: center; }
+  .pip-play-icon { width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.25); }
+  .pip-play-icon i { font-size: 15px; color: white; margin-left: 2px; }
+  .pip-progress { position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: rgba(255,255,255,0.15); }
+  .pip-progress-fill { height: 100%; background: #6366f1; width: 35%; }
+  .resize-handle { position: absolute; bottom: 4px; left: 4px; width: 12px; height: 12px; cursor: nw-resize; z-index: 20; display: flex; align-items: center; justify-content: center; }
+  .resize-handle i { font-size: 11px; color: rgba(255,255,255,0.4); }
+  .orig-placeholder { display: none; width: 100%; aspect-ratio: 16/9; border-radius: var(--border-radius-lg); border: 1.5px dashed var(--color-border-secondary); align-items: center; justify-content: center; flex-direction: column; gap: 8px; }
+  .orig-placeholder.visible { display: flex; }
+  .orig-placeholder span { font-size: 13px; color: var(--color-text-secondary); }
+  .orig-placeholder i { font-size: 22px; color: var(--color-text-secondary); }
+  .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #22c55e; margin-right: 5px; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+</style>
+
+<div class="page-content">
+  <div id="main-video" class="video-container">
+    <div class="video-mock">
+      <div class="video-bg"></div>
+      <div class="play-icon"><i class="ti ti-player-pause"></i></div>
+      <div class="video-title"><span class="dot"></span>Nature Documentary — Episode 4</div>
+      <div class="video-time">12:34 / 45:21</div>
+      <div class="progress-bar"><div class="progress-fill" id="main-progress"></div></div>
+    </div>
+  </div>
+
+  <div id="orig-placeholder" class="orig-placeholder">
+    <i class="ti ti-picture-in-picture" aria-hidden="true"></i>
+    <span>Video is playing in Picture-in-Picture</span>
+  </div>
+
+  <div class="controls-bar">
+    <button class="ctrl-btn pip-btn" id="pip-toggle-btn" onclick="togglePip()">
+      <i class="ti ti-picture-in-picture" aria-hidden="true"></i> Enter PiP
+    </button>
+    <button class="ctrl-btn" onclick="togglePlay()">
+      <i class="ti ti-player-pause" id="play-icon-btn" aria-hidden="true"></i> <span id="play-label">Pause</span>
+    </button>
+  </div>
+
+  <div class="page-text">
+    <h3>About this episode</h3>
+    <p>Explore the hidden world of deep-sea ecosystems, where bioluminescent creatures light up the dark ocean floor. Follow researchers as they deploy remote-operated vehicles to discover species never before seen by human eyes.</p>
+    <h3>Up next</h3>
+    <p>Episode 5: The Arctic Thaw — Scientists race to document ice-shelf ecosystems before irreversible change alters them forever. A landmark study reveals migration patterns shifting decades ahead of projections.</p>
+    <h3>More from this series</h3>
+    <p>The full eight-part series follows field researchers across seven continents, capturing footage in environments ranging from hydrothermal vents to cloud-forest canopies. Available to stream with any subscription tier.</p>
+  </div>
+</div>
+
+<div class="pip-window" id="pip-window">
+  <div class="pip-header" id="pip-header">
+    <span class="pip-label"><span class="dot"></span>Now playing</span>
+    <div class="pip-actions">
+      <button class="pip-action-btn" onclick="restorePip()" title="Restore to page" aria-label="Restore video to page"><i class="ti ti-arrows-maximize"></i></button>
+      <button class="pip-action-btn close-btn" onclick="closePip()" title="Close PiP" aria-label="Close PiP"><i class="ti ti-x"></i></button>
+    </div>
+  </div>
+  <div class="pip-video-mock">
+    <div class="pip-play-icon"><i class="ti ti-player-pause"></i></div>
+  </div>
+  <div class="pip-progress"><div class="pip-progress-fill" id="pip-progress"></div></div>
+  <div class="resize-handle" id="resize-handle"><i class="ti ti-arrows-diagonal-2" aria-hidden="true"></i></div>
+</div>
+
+<script>
+  let pipActive = false;
+  let playing = true;
+  let progressVal = 35;
+  let dragState = null;
+  let resizeState = null;
+
+  const pipWin = document.getElementById('pip-window');
+  const pipHeader = document.getElementById('pip-header');
+  const mainVideo = document.getElementById('main-video');
+  const origPlaceholder = document.getElementById('orig-placeholder');
+  const pipToggleBtn = document.getElementById('pip-toggle-btn');
+  const mainProgress = document.getElementById('main-progress');
+  const pipProgress = document.getElementById('pip-progress');
+
+  setInterval(() => {
+    if (playing) {
+      progressVal = Math.min(100, progressVal + 0.05);
+      if (progressVal >= 100) progressVal = 0;
+      mainProgress.style.width = progressVal + '%';
+      pipProgress.style.width = progressVal + '%';
+    }
+  }, 100);
+
+  function togglePip() {
+    if (!pipActive) {
+      pipActive = true;
+      mainVideo.style.display = 'none';
+      origPlaceholder.classList.add('visible');
+      pipWin.classList.add('active');
+      pipToggleBtn.innerHTML = '<i class="ti ti-picture-in-picture" aria-hidden="true"></i> Exit PiP';
+      pipToggleBtn.style.color = '';
+      pipToggleBtn.style.borderColor = '';
+    } else {
+      restorePip();
+    }
+  }
+
+  function restorePip() {
+    pipActive = false;
+    pipWin.classList.remove('active');
+    mainVideo.style.display = '';
+    origPlaceholder.classList.remove('visible');
+    pipToggleBtn.innerHTML = '<i class="ti ti-picture-in-picture" aria-hidden="true"></i> Enter PiP';
+    pipWin.style.left = '';
+    pipWin.style.top = '';
+    pipWin.style.bottom = '24px';
+    pipWin.style.right = '24px';
+    pipWin.style.width = '300px';
+    pipWin.style.height = '185px';
+  }
+
+  function closePip() {
+    pipActive = false;
+    playing = false;
+    pipWin.classList.remove('active');
+    mainVideo.style.display = 'none';
+    origPlaceholder.classList.add('visible');
+    origPlaceholder.querySelector('span').textContent = 'Video stopped';
+    pipToggleBtn.innerHTML = '<i class="ti ti-picture-in-picture" aria-hidden="true"></i> Enter PiP';
+    document.getElementById('play-icon-btn').className = 'ti ti-player-play';
+    document.getElementById('play-label').textContent = 'Play';
+  }
+
+  function togglePlay() {
+    playing = !playing;
+    const icon = document.getElementById('play-icon-btn');
+    const label = document.getElementById('play-label');
+    if (playing) {
+      icon.className = 'ti ti-player-pause';
+      label.textContent = 'Pause';
+    } else {
+      icon.className = 'ti ti-player-play';
+      label.textContent = 'Play';
+    }
+  }
+
+  pipHeader.addEventListener('mousedown', (e) => {
+    if (e.target.closest('.pip-actions')) return;
+    const rect = pipWin.getBoundingClientRect();
+    dragState = { startX: e.clientX, startY: e.clientY, winX: rect.left, winY: rect.top };
+    pipWin.style.bottom = 'auto';
+    pipWin.style.right = 'auto';
+    pipWin.style.left = rect.left + 'px';
+    pipWin.style.top = rect.top + 'px';
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (dragState) {
+      const dx = e.clientX - dragState.startX;
+      const dy = e.clientY - dragState.startY;
+      pipWin.style.left = (dragState.winX + dx) + 'px';
+      pipWin.style.top = (dragState.winY + dy) + 'px';
+    }
+    if (resizeState) {
+      const dx = resizeState.startX - e.clientX;
+      const dy = resizeState.startY - e.clientY;
+      const newW = Math.max(200, resizeState.startW + dx);
+      const newH = Math.max(130, resizeState.startH + dy);
+      pipWin.style.width = newW + 'px';
+      pipWin.style.height = newH + 'px';
+    }
+  });
+
+  document.addEventListener('mouseup', () => { dragState = null; resizeState = null; });
+
+  document.getElementById('resize-handle').addEventListener('mousedown', (e) => {
+    resizeState = { startX: e.clientX, startY: e.clientY, startW: pipWin.offsetWidth, startH: pipWin.offsetHeight };
+    e.preventDefault();
+    e.stopPropagation();
+  });
+
+  pipHeader.addEventListener('touchstart', (e) => {
+    if (e.target.closest('.pip-actions')) return;
+    const rect = pipWin.getBoundingClientRect();
+    const t = e.touches[0];
+    dragState = { startX: t.clientX, startY: t.clientY, winX: rect.left, winY: rect.top };
+    pipWin.style.bottom = 'auto';
+    pipWin.style.right = 'auto';
+    pipWin.style.left = rect.left + 'px';
+    pipWin.style.top = rect.top + 'px';
+  }, { passive: true });
+
+  document.addEventListener('touchmove', (e) => {
+    if (!dragState) return;
+    const t = e.touches[0];
+    pipWin.style.left = (dragState.winX + t.clientX - dragState.startX) + 'px';
+    pipWin.style.top = (dragState.winY + t.clientY - dragState.startY) + 'px';
+  }, { passive: true });
+
+  document.addEventListener('touchend', () => { dragState = null; });
+</script>

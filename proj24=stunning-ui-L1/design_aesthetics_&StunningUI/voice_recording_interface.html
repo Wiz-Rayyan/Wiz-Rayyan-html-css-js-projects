@@ -1,0 +1,243 @@
+<h2 class="sr-only">Voice recording interface — hold mic button to record, slide up to cancel, release to send</h2>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans)}
+.phone{width:360px;margin:2rem auto;background:var(--color-background-primary);border-radius:var(--border-radius-xl);border:0.5px solid var(--color-border-tertiary);overflow:hidden;user-select:none}
+.chat-header{padding:14px 16px;border-bottom:0.5px solid var(--color-border-tertiary);display:flex;align-items:center;gap:10px}
+.avatar{width:36px;height:36px;border-radius:50%;background:var(--color-background-info);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;color:var(--color-text-info)}
+.chat-name{font-size:15px;font-weight:500;color:var(--color-text-primary)}
+.chat-status{font-size:12px;color:var(--color-text-secondary)}
+.messages{padding:16px;min-height:320px;display:flex;flex-direction:column;gap:10px;background:var(--color-background-secondary)}
+.msg{max-width:70%;padding:9px 13px;border-radius:16px;font-size:14px;line-height:1.45}
+.msg.in{background:var(--color-background-primary);color:var(--color-text-primary);border-bottom-left-radius:4px;align-self:flex-start;border:0.5px solid var(--color-border-tertiary)}
+.msg.out{background:#0a84ff;color:#fff;border-bottom-right-radius:4px;align-self:flex-end}
+.voice-msg{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:20px;max-width:200px;align-self:flex-end}
+.vm-play{width:28px;height:28px;border-radius:50%;background:#0a84ff;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer}
+.vm-wave{flex:1;height:24px}
+.vm-dur{font-size:12px;color:var(--color-text-secondary);white-space:nowrap}
+.input-bar{padding:10px 12px;border-top:0.5px solid var(--color-border-tertiary);display:flex;align-items:center;gap:8px;background:var(--color-background-primary);position:relative}
+.text-input{flex:1;padding:8px 14px;border-radius:20px;border:0.5px solid var(--color-border-secondary);background:var(--color-background-secondary);color:var(--color-text-primary);font-size:14px;outline:none}
+.mic-btn{width:40px;height:40px;border-radius:50%;border:0.5px solid var(--color-border-secondary);background:var(--color-background-secondary);color:var(--color-text-primary);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;transition:transform .1s,background .15s;touch-action:none;flex-shrink:0}
+.mic-btn:active{transform:scale(.95)}
+.mic-btn.recording{background:#0a84ff;color:#fff;border-color:#0a84ff}
+.recording-bar{display:none;position:absolute;left:0;right:0;bottom:60px;background:var(--color-background-primary);border-top:0.5px solid var(--color-border-tertiary);padding:10px 16px;align-items:center;gap:12px;animation:slideUp .2s ease}
+.recording-bar.active{display:flex}
+@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+.rec-dot{width:8px;height:8px;border-radius:50%;background:#e24b4a;animation:blink 1s infinite;flex-shrink:0}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.rec-timer{font-size:14px;font-weight:500;color:var(--color-text-primary);min-width:40px}
+.rec-wave-wrap{flex:1;height:32px}
+.rec-hint{font-size:11px;color:var(--color-text-tertiary);white-space:nowrap}
+.cancel-zone{position:absolute;left:0;right:0;bottom:0;height:0;background:rgba(226,75,74,.12);border-top:2px dashed rgba(226,75,74,.4);display:flex;align-items:center;justify-content:center;overflow:hidden;transition:height .2s,opacity .2s;opacity:0;border-radius:var(--border-radius-lg) var(--border-radius-lg) 0 0}
+.cancel-zone.visible{height:72px;opacity:1}
+.cancel-zone.triggered{background:rgba(226,75,74,.22)}
+.cancel-label{font-size:13px;color:#a32d2d;display:flex;align-items:center;gap:6px;font-weight:500}
+.toast{position:absolute;top:12px;left:50%;transform:translateX(-50%);background:var(--color-background-primary);border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:7px 14px;font-size:13px;color:var(--color-text-secondary);white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .25s;z-index:10}
+.toast.show{opacity:1}
+.preview-bar{display:none;position:absolute;left:0;right:0;bottom:60px;background:var(--color-background-primary);border-top:0.5px solid var(--color-border-tertiary);padding:10px 16px;align-items:center;gap:10px}
+.preview-bar.active{display:flex}
+.prev-play{width:32px;height:32px;border-radius:50%;background:var(--color-background-secondary);border:0.5px solid var(--color-border-secondary);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;color:var(--color-text-primary);flex-shrink:0}
+.prev-wave{flex:1;height:28px}
+.prev-dur{font-size:13px;color:var(--color-text-secondary);min-width:36px}
+.send-btn{width:34px;height:34px;border-radius:50%;background:#0a84ff;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;font-size:16px;flex-shrink:0}
+.discard-btn{width:34px;height:34px;border-radius:50%;background:var(--color-background-secondary);border:0.5px solid var(--color-border-secondary);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--color-text-secondary);font-size:16px;flex-shrink:0}
+</style>
+
+<div class="phone">
+  <div class="chat-header">
+    <div class="avatar">JL</div>
+    <div><div class="chat-name">Jamie L.</div><div class="chat-status">online</div></div>
+  </div>
+  <div class="messages" id="msgs">
+    <div class="msg in">Hey, got a sec?</div>
+    <div class="msg out">Yeah what's up</div>
+    <div class="msg in">Can you record a quick voice note?</div>
+    <div class="voice-msg" id="sample-vm" style="display:none">
+      <div class="vm-play"><i class="ti ti-player-play" style="font-size:13px;color:#fff" aria-hidden="true"></i></div>
+      <canvas class="vm-wave" id="vm-canvas"></canvas>
+      <span class="vm-dur" id="vm-dur-label">0:00</span>
+    </div>
+    <div class="toast" id="toast"></div>
+  </div>
+
+  <div style="position:relative">
+    <div class="cancel-zone" id="cancelZone">
+      <div class="cancel-label"><i class="ti ti-x" style="font-size:14px" aria-hidden="true"></i> slide up to cancel</div>
+    </div>
+
+    <div class="recording-bar" id="recBar">
+      <div class="rec-dot"></div>
+      <span class="rec-timer" id="recTimer">0:00</span>
+      <canvas class="rec-wave-wrap" id="recWave"></canvas>
+      <span class="rec-hint">slide ↑ cancel</span>
+    </div>
+
+    <div class="preview-bar" id="prevBar">
+      <button class="discard-btn" id="discardBtn" aria-label="Discard"><i class="ti ti-trash" aria-hidden="true"></i></button>
+      <canvas class="prev-wave" id="prevWave"></canvas>
+      <span class="prev-dur" id="prevDur">0:00</span>
+      <button class="prev-play" id="prevPlay" aria-label="Play preview"><i class="ti ti-player-play" aria-hidden="true"></i></button>
+      <button class="send-btn" id="sendBtn" aria-label="Send"><i class="ti ti-send" aria-hidden="true" style="font-size:14px"></i></button>
+    </div>
+
+    <div class="input-bar">
+      <input class="text-input" placeholder="Message…" id="textIn" />
+      <button class="mic-btn" id="micBtn" aria-label="Hold to record voice message"><i class="ti ti-microphone" aria-hidden="true"></i></button>
+    </div>
+  </div>
+</div>
+
+<script>
+const micBtn=document.getElementById('micBtn');
+const recBar=document.getElementById('recBar');
+const recTimer=document.getElementById('recTimer');
+const recWave=document.getElementById('recWave');
+const cancelZone=document.getElementById('cancelZone');
+const prevBar=document.getElementById('prevBar');
+const prevWave=document.getElementById('prevWave');
+const prevDur=document.getElementById('prevDur');
+const prevPlay=document.getElementById('prevPlay');
+const sendBtn=document.getElementById('sendBtn');
+const discardBtn=document.getElementById('discardBtn');
+const msgs=document.getElementById('msgs');
+const textIn=document.getElementById('textIn');
+const toast=document.getElementById('toast');
+
+let isRecording=false, isCancelling=false, startY=0, elapsed=0, timerInt=null;
+let waveAnim=null, wavePhase=0, barsData=[], previewBars=[];
+let recordedDuration=0;
+
+function fmt(s){const m=Math.floor(s/60),ss=s%60;return m+':'+(ss<10?'0':'')+ss}
+
+function drawWave(canvas, bars, color='#0a84ff', animate=false, phase=0){
+  const W=canvas.width=canvas.offsetWidth||200, H=canvas.height=canvas.offsetHeight||32;
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,W,H);
+  const n=Math.floor(W/5), bw=3, gap=2;
+  for(let i=0;i<n;i++){
+    let h;
+    if(bars.length>0){
+      const idx=Math.floor(i*bars.length/n);
+      h=bars[idx]*H*0.8+H*0.08;
+    } else {
+      h=animate?(Math.abs(Math.sin(i*0.45+phase))*H*0.65+H*0.1):(H*0.15);
+    }
+    const x=i*(bw+gap), y=(H-h)/2;
+    ctx.fillStyle=color;
+    ctx.beginPath();
+    ctx.roundRect?ctx.roundRect(x,y,bw,h,1.5):ctx.rect(x,y,bw,h);
+    ctx.fill();
+  }
+}
+
+function startWaveAnim(){
+  wavePhase=0;
+  function loop(){
+    wavePhase+=0.12;
+    drawWave(recWave,[],getComputedStyle(document.body).getPropertyValue('--color-text-primary')||'#888',true,wavePhase);
+    waveAnim=requestAnimationFrame(loop);
+  }
+  loop();
+}
+function stopWaveAnim(){if(waveAnim)cancelAnimationFrame(waveAnim);waveAnim=null;}
+
+function startRecording(){
+  isRecording=true; isCancelling=false;
+  elapsed=0; barsData=[];
+  micBtn.classList.add('recording');
+  recBar.classList.add('active');
+  cancelZone.classList.add('visible');
+  cancelZone.classList.remove('triggered');
+  recTimer.textContent='0:00';
+  timerInt=setInterval(()=>{elapsed++;recTimer.textContent=fmt(elapsed);},1000);
+  startWaveAnim();
+}
+
+function stopRecording(cancelled){
+  if(!isRecording)return;
+  isRecording=false;
+  clearInterval(timerInt);
+  stopWaveAnim();
+  micBtn.classList.remove('recording');
+  recBar.classList.remove('active');
+  cancelZone.classList.remove('visible');
+  cancelZone.classList.remove('triggered');
+
+  if(cancelled){
+    showToast('Recording cancelled');
+    return;
+  }
+  if(elapsed===0){return;}
+  recordedDuration=elapsed;
+  previewBars=Array.from({length:60},()=>Math.random()*0.85+0.1);
+  prevDur.textContent=fmt(recordedDuration);
+  drawWave(prevWave,previewBars,'#0a84ff');
+  prevBar.classList.add('active');
+  textIn.style.display='none';
+  micBtn.style.display='none';
+}
+
+function showToast(msg){
+  toast.textContent=msg;
+  toast.classList.add('show');
+  setTimeout(()=>toast.classList.remove('show'),2200);
+}
+
+function sendVoice(){
+  prevBar.classList.remove('active');
+  textIn.style.display='';
+  micBtn.style.display='';
+  const vm=document.createElement('div');
+  vm.className='voice-msg';
+  const dur=recordedDuration;
+  vm.innerHTML=`<div class="vm-play"><i class="ti ti-player-play" style="font-size:13px;color:#fff" aria-hidden="true"></i></div><canvas class="vm-wave" style="flex:1;height:24px"></canvas><span class="vm-dur">${fmt(dur)}</span>`;
+  msgs.appendChild(vm);
+  const c=vm.querySelector('.vm-wave');
+  setTimeout(()=>drawWave(c,previewBars,'#0a84ff'),50);
+  msgs.scrollTop=msgs.scrollHeight;
+  showToast('Voice message sent ✓');
+  elapsed=0;
+}
+
+function discardVoice(){
+  prevBar.classList.remove('active');
+  textIn.style.display='';
+  micBtn.style.display='';
+  showToast('Recording discarded');
+}
+
+micBtn.addEventListener('mousedown',(e)=>{startY=e.clientY;startRecording();e.preventDefault();});
+micBtn.addEventListener('touchstart',(e)=>{startY=e.touches[0].clientY;startRecording();e.preventDefault();},{passive:false});
+
+document.addEventListener('mousemove',(e)=>{
+  if(!isRecording)return;
+  const dy=startY-e.clientY;
+  const inCancel=dy>50;
+  isCancelling=inCancel;
+  cancelZone.classList.toggle('triggered',inCancel);
+});
+document.addEventListener('touchmove',(e)=>{
+  if(!isRecording)return;
+  const dy=startY-e.touches[0].clientY;
+  const inCancel=dy>50;
+  isCancelling=inCancel;
+  cancelZone.classList.toggle('triggered',inCancel);
+},{passive:false});
+
+document.addEventListener('mouseup',()=>{if(isRecording)stopRecording(isCancelling);});
+document.addEventListener('touchend',()=>{if(isRecording)stopRecording(isCancelling);});
+
+sendBtn.addEventListener('click',sendVoice);
+discardBtn.addEventListener('click',discardVoice);
+
+prevPlay.addEventListener('click',()=>{
+  showToast('▶ Playing preview…');
+  prevPlay.innerHTML='<i class="ti ti-player-pause" aria-hidden="true"></i>';
+  setTimeout(()=>{prevPlay.innerHTML='<i class="ti ti-player-play" aria-hidden="true"></i>';},2200);
+});
+
+requestAnimationFrame(()=>{
+  drawWave(recWave,[],'#888',false,0);
+  drawWave(prevWave,[],getComputedStyle(document.documentElement).getPropertyValue('--color-text-secondary')||'#888');
+});
+</script>

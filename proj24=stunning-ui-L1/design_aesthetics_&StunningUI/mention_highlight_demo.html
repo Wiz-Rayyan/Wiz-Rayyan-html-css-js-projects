@@ -1,0 +1,147 @@
+
+<style>
+  .chat-wrap { max-width: 580px; margin: 0 auto; padding: 1.5rem 1rem; font-size: 14px; }
+  .channel-header { display: flex; align-items: center; gap: 8px; padding-bottom: 12px; border-bottom: 0.5px solid var(--color-border-tertiary); margin-bottom: 16px; color: var(--color-text-primary); font-weight: 500; font-size: 15px; }
+  .msg { display: flex; gap: 10px; padding: 6px 8px; border-radius: var(--border-radius-md); margin-bottom: 2px; cursor: pointer; transition: background 1.5s ease; border: 1.5px solid transparent; }
+  .msg.highlight { background: #FEF3C7; border-color: #F59E0B; animation: pulse-border 1s ease-in-out 3; transition: none; }
+  .msg.highlight .mention { color: #92400E; background: #FDE68A; }
+  .msg.fading { background: transparent; border-color: transparent; transition: background 1.5s ease, border-color 1.5s ease; }
+  @keyframes pulse-border { 0%,100% { border-color: #F59E0B; } 50% { border-color: #D97706; } }
+  .avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 500; font-size: 12px; flex-shrink: 0; margin-top: 2px; }
+  .av-a { background: #EEEDFE; color: #3C3489; }
+  .av-b { background: #E1F5EE; color: #085041; }
+  .av-c { background: #FAECE7; color: #712B13; }
+  .av-d { background: #E6F1FB; color: #0C447C; }
+  .msg-body { flex: 1; min-width: 0; }
+  .msg-meta { display: flex; align-items: baseline; gap: 8px; margin-bottom: 2px; }
+  .msg-name { font-weight: 500; font-size: 13px; color: var(--color-text-primary); }
+  .msg-time { font-size: 11px; color: var(--color-text-tertiary); }
+  .msg-text { color: var(--color-text-secondary); line-height: 1.5; }
+  .mention { background: #DBEAFE; color: #185FA5; border-radius: 3px; padding: 0 3px; font-weight: 500; transition: background 0.3s, color 0.3s; }
+  .msg-indicator { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #D97706; margin-top: 4px; }
+  .you-badge { background: #FDE68A; color: #92400E; font-size: 10px; font-weight: 500; padding: 1px 6px; border-radius: 20px; }
+  .controls { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .ctrl-btn { font-size: 12px; padding: 5px 12px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-secondary); background: var(--color-background-primary); color: var(--color-text-primary); cursor: pointer; display: flex; align-items: center; gap: 5px; }
+  .ctrl-btn:hover { background: var(--color-background-secondary); }
+  .ctrl-btn.active { background: #FEF3C7; border-color: #F59E0B; color: #92400E; }
+  .status-bar { font-size: 12px; color: var(--color-text-tertiary); margin-bottom: 12px; height: 16px; }
+  .unread-dot { width: 8px; height: 8px; background: #F59E0B; border-radius: 50%; display: inline-block; margin-right: 4px; }
+</style>
+
+<div class="chat-wrap">
+  <h2 class="sr-only">Mention highlight demo — see how @mention notifications highlight and animate in a chat interface</h2>
+
+  <div class="channel-header">
+    <i class="ti ti-hash" style="font-size:18px; color:var(--color-text-secondary)" aria-hidden="true"></i>
+    <span>design-team</span>
+    <span style="font-size:12px;color:var(--color-text-tertiary);margin-left:auto">4 members online</span>
+  </div>
+
+  <div class="controls">
+    <button class="ctrl-btn" id="btn-mention" onclick="triggerMention()">
+      <i class="ti ti-at" aria-hidden="true"></i> Simulate @mention
+    </button>
+    <button class="ctrl-btn" id="btn-clear" onclick="clearAll()" style="display:none">
+      <i class="ti ti-x" aria-hidden="true"></i> Clear highlights
+    </button>
+  </div>
+
+  <div class="status-bar" id="status"></div>
+
+  <div id="msg-1" class="msg" onclick="clearMsg('msg-1')">
+    <div class="avatar av-a">AL</div>
+    <div class="msg-body">
+      <div class="msg-meta"><span class="msg-name">Alex L.</span><span class="msg-time">10:14 AM</span></div>
+      <div class="msg-text">The new design tokens look clean. Good call on switching to semantic naming.</div>
+    </div>
+  </div>
+
+  <div id="msg-2" class="msg" onclick="clearMsg('msg-2')">
+    <div class="avatar av-b">SK</div>
+    <div class="msg-body">
+      <div class="msg-meta"><span class="msg-name">Sara K.</span><span class="msg-time">10:17 AM</span></div>
+      <div class="msg-text">Agreed. <span class="mention">@Alex L.</span> can you share the Figma link when you get a chance?</div>
+    </div>
+  </div>
+
+  <div id="msg-3" class="msg" onclick="clearMsg('msg-3')">
+    <div class="avatar av-c">MR</div>
+    <div class="msg-body">
+      <div class="msg-meta"><span class="msg-name">Maya R.</span><span class="msg-time">10:21 AM</span></div>
+      <div class="msg-text">Heads up — the spec review is tomorrow at 2pm. <span class="mention" id="target-mention">@you</span> should probably take a look at section 3 first.</div>
+      <div class="msg-indicator" id="mention-badge" style="display:none">
+        <span class="unread-dot"></span><span class="you-badge">@ mentioned you</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="msg-4" class="msg" onclick="clearMsg('msg-4')">
+    <div class="avatar av-d">JT</div>
+    <div class="msg-body">
+      <div class="msg-meta"><span class="msg-name">Jake T.</span><span class="msg-time">10:24 AM</span></div>
+      <div class="msg-text">Section 3 has the edge case stuff. Worth a read for sure.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let fadeTimer = null;
+  let highlighted = null;
+
+  function triggerMention() {
+    if (fadeTimer) clearTimeout(fadeTimer);
+    const msg = document.getElementById('msg-3');
+    const badge = document.getElementById('mention-badge');
+    const btn = document.getElementById('btn-mention');
+    const clearBtn = document.getElementById('btn-clear');
+    const status = document.getElementById('status');
+
+    if (highlighted) {
+      const prev = document.getElementById(highlighted);
+      if (prev) { prev.classList.remove('highlight','fading'); }
+    }
+
+    msg.classList.remove('fading');
+    msg.classList.add('highlight');
+    badge.style.display = 'flex';
+    highlighted = 'msg-3';
+
+    msg.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    status.innerHTML = '<i class="ti ti-bell" style="font-size:13px;vertical-align:-1px" aria-hidden="true"></i> You were mentioned — message highlighted. Click to dismiss.';
+    btn.classList.add('active');
+    clearBtn.style.display = 'flex';
+
+    fadeTimer = setTimeout(() => {
+      msg.classList.remove('highlight');
+      msg.classList.add('fading');
+      badge.style.display = 'none';
+      status.textContent = 'Highlight faded after 3s. Click the message anytime to dismiss early.';
+      btn.classList.remove('active');
+    }, 3000);
+  }
+
+  function clearMsg(id) {
+    const msg = document.getElementById(id);
+    if (!msg) return;
+    msg.classList.remove('highlight','fading');
+    if (id === 'msg-3') {
+      document.getElementById('mention-badge').style.display = 'none';
+      document.getElementById('status').textContent = 'Highlight cleared by click.';
+      document.getElementById('btn-mention').classList.remove('active');
+      if (fadeTimer) { clearTimeout(fadeTimer); fadeTimer = null; }
+    }
+  }
+
+  function clearAll() {
+    ['msg-1','msg-2','msg-3','msg-4'].forEach(id => {
+      const m = document.getElementById(id);
+      m.classList.remove('highlight','fading');
+    });
+    document.getElementById('mention-badge').style.display = 'none';
+    document.getElementById('status').textContent = 'All highlights cleared.';
+    document.getElementById('btn-mention').classList.remove('active');
+    document.getElementById('btn-clear').style.display = 'none';
+    if (fadeTimer) { clearTimeout(fadeTimer); fadeTimer = null; }
+  }
+</script>

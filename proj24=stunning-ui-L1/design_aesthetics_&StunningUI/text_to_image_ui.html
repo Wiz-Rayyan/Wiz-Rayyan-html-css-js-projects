@@ -1,0 +1,280 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0}
+  .app{display:flex;height:680px;background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);overflow:hidden;font-family:var(--font-sans)}
+  .sidebar{width:220px;flex-shrink:0;border-right:0.5px solid var(--color-border-tertiary);display:flex;flex-direction:column;background:var(--color-background-secondary)}
+  .sidebar-header{padding:16px 16px 12px;border-bottom:0.5px solid var(--color-border-tertiary)}
+  .sidebar-title{font-size:11px;font-weight:500;color:var(--color-text-secondary);letter-spacing:.08em;text-transform:uppercase}
+  .history-list{flex:1;overflow-y:auto;padding:8px}
+  .history-item{padding:8px 10px;border-radius:var(--border-radius-md);cursor:pointer;margin-bottom:4px;display:flex;gap:8px;align-items:flex-start;transition:background .15s}
+  .history-item:hover{background:var(--color-background-primary)}
+  .history-item.active{background:var(--color-background-primary);border:0.5px solid var(--color-border-secondary)}
+  .history-thumb{width:36px;height:36px;border-radius:6px;flex-shrink:0;overflow:hidden}
+  .history-thumb canvas{width:36px;height:36px}
+  .history-meta{flex:1;min-width:0}
+  .history-prompt{font-size:12px;color:var(--color-text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.4}
+  .history-time{font-size:11px;color:var(--color-text-tertiary);margin-top:2px}
+  .history-badge{font-size:10px;padding:2px 7px;border-radius:20px;margin-top:4px;display:inline-block;font-weight:500}
+  .badge-done{background:var(--color-background-success);color:var(--color-text-success)}
+  .badge-gen{background:var(--color-background-warning);color:var(--color-text-warning)}
+  .main{flex:1;display:flex;flex-direction:column;min-width:0}
+  .top-bar{padding:14px 20px 12px;border-bottom:0.5px solid var(--color-border-tertiary);display:flex;align-items:center;justify-content:space-between}
+  .brand{font-family:'DM Serif Display',serif;font-size:18px;color:var(--color-text-primary)}
+  .brand em{font-style:italic;color:var(--color-text-secondary)}
+  .model-pill{font-size:11px;padding:4px 10px;border-radius:20px;border:0.5px solid var(--color-border-secondary);color:var(--color-text-secondary);font-family:'DM Mono',monospace}
+  .prompt-zone{padding:16px 20px;border-bottom:0.5px solid var(--color-border-tertiary)}
+  .prompt-wrap{position:relative}
+  textarea{width:100%;height:90px;resize:none;padding:12px 14px;font-size:14px;font-family:var(--font-sans);border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-background-secondary);color:var(--color-text-primary);line-height:1.6;outline:none;transition:border-color .15s}
+  textarea:focus{border-color:var(--color-border-primary)}
+  .controls-row{display:flex;gap:8px;margin-top:10px;align-items:center}
+  .ctrl-group{display:flex;flex-direction:column;gap:4px}
+  .ctrl-label{font-size:10px;color:var(--color-text-tertiary);font-weight:500;letter-spacing:.06em;text-transform:uppercase}
+  select{font-size:13px;padding:6px 10px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-background-secondary);color:var(--color-text-primary);cursor:pointer;outline:none;font-family:var(--font-sans)}
+  .ratio-group{display:flex;gap:4px}
+  .ratio-btn{padding:5px 9px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);font-size:12px;cursor:pointer;background:var(--color-background-secondary);color:var(--color-text-secondary);transition:all .15s;line-height:1.2}
+  .ratio-btn.sel{background:var(--color-background-primary);border-color:var(--color-border-primary);color:var(--color-text-primary);font-weight:500}
+  .spacer{flex:1}
+  .gen-btn{padding:8px 20px;border-radius:var(--border-radius-md);border:none;background:#2c2c2a;color:#f1efe8;font-size:14px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:7px;font-family:var(--font-sans);transition:opacity .15s;white-space:nowrap}
+  .gen-btn:hover{opacity:.85}
+  .gen-btn:active{transform:scale(.98)}
+  .gen-btn.generating{opacity:.6;cursor:not-allowed}
+  .results-area{flex:1;overflow-y:auto;padding:16px 20px}
+  .results-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .img-card{position:relative;border-radius:12px;overflow:hidden;border:0.5px solid var(--color-border-tertiary);aspect-ratio:1;cursor:pointer;background:var(--color-background-secondary)}
+  .img-card canvas{width:100%;height:100%;display:block}
+  .img-overlay{position:absolute;inset:0;background:rgba(0,0,0,.55);opacity:0;transition:opacity .18s;display:flex;align-items:flex-end;padding:10px;gap:6px}
+  .img-card:hover .img-overlay{opacity:1}
+  .ov-btn{flex:1;padding:6px;border-radius:8px;border:none;background:rgba(255,255,255,.15);color:#fff;font-size:12px;font-family:var(--font-sans);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;backdrop-filter:blur(4px);transition:background .15s}
+  .ov-btn:hover{background:rgba(255,255,255,.28)}
+  .skeleton{background:var(--color-background-secondary);border-radius:12px;aspect-ratio:1;border:0.5px solid var(--color-border-tertiary);overflow:hidden;position:relative}
+  .skeleton::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent 0%,rgba(128,128,128,.08) 50%,transparent 100%);animation:shimmer 1.5s infinite;transform:translateX(-100%)}
+  @keyframes shimmer{to{transform:translateX(200%)}}
+  .empty-state{grid-column:1/-1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 0;color:var(--color-text-tertiary);gap:12px}
+  .empty-icon{font-size:40px;opacity:.4}
+  .empty-text{font-size:14px}
+  .status-row{display:flex;align-items:center;gap:8px;padding:6px 0 12px;font-size:12px;color:var(--color-text-secondary)}
+  .dot{width:6px;height:6px;border-radius:50%;background:var(--color-text-success)}
+  .dot.pulsing{animation:pulse 1s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  .count-badge{font-size:11px;padding:2px 8px;border-radius:20px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);color:var(--color-text-secondary)}
+</style>
+
+<h2 class="sr-only">Text-to-image generation interface with prompt controls, style options, results grid, and history sidebar</h2>
+
+<div class="app">
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-title">History</div>
+    </div>
+    <div class="history-list" id="historyList">
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="top-bar">
+      <div class="brand">ima<em>ge</em>craft</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <div class="model-pill">SDXL 1.0</div>
+        <div class="model-pill">4× generate</div>
+      </div>
+    </div>
+
+    <div class="prompt-zone">
+      <div class="prompt-wrap">
+        <textarea id="promptInput" placeholder="Describe your image in detail… e.g. a serene Japanese garden at dusk, soft lantern light, koi pond, cherry blossoms floating, cinematic depth of field"></textarea>
+      </div>
+      <div class="controls-row">
+        <div class="ctrl-group">
+          <div class="ctrl-label">Style</div>
+          <select id="styleSelect">
+            <option>Photorealistic</option>
+            <option>Anime</option>
+            <option>Oil painting</option>
+            <option>Watercolor</option>
+            <option>Concept art</option>
+            <option>3D render</option>
+          </select>
+        </div>
+        <div class="ctrl-group">
+          <div class="ctrl-label">Quality</div>
+          <select id="qualitySelect">
+            <option>Standard</option>
+            <option>HD</option>
+            <option>Ultra</option>
+          </select>
+        </div>
+        <div class="ctrl-group">
+          <div class="ctrl-label">Ratio</div>
+          <div class="ratio-group" id="ratioGroup">
+            <button class="ratio-btn sel" data-r="1:1">1:1</button>
+            <button class="ratio-btn" data-r="4:3">4:3</button>
+            <button class="ratio-btn" data-r="16:9">16:9</button>
+            <button class="ratio-btn" data-r="9:16">9:16</button>
+          </div>
+        </div>
+        <div class="spacer"></div>
+        <button class="gen-btn" id="genBtn" onclick="generate()">
+          <i class="ti ti-sparkles" aria-hidden="true" style="font-size:15px"></i>
+          Generate
+        </button>
+      </div>
+    </div>
+
+    <div class="results-area">
+      <div id="statusRow" class="status-row" style="display:none">
+        <div class="dot pulsing" id="statusDot"></div>
+        <span id="statusText">Generating 4 images…</span>
+      </div>
+      <div class="results-grid" id="resultsGrid">
+        <div class="empty-state">
+          <i class="ti ti-photo empty-icon" aria-hidden="true"></i>
+          <div class="empty-text">Your generated images will appear here</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const PALETTES=[
+  ['#e8d5b7','#c9a96e','#8b6914','#f5e6c8'],
+  ['#b8d4e8','#6ba3c9','#1a5f8e','#e8f4f8'],
+  ['#d4e8b8','#8ec96a','#3a8e1a','#eef8e0'],
+  ['#e8b8d4','#c96aa0','#8e1a5f','#f8e0ee'],
+  ['#b8b8e8','#6a6ac9','#1a1a8e','#e0e0f8'],
+  ['#e8c9b8','#c98e6a','#8e4a1a','#f8ede0'],
+];
+
+function makeCanvas(palette,w,h,type){
+  const c=document.createElement('canvas');c.width=w;c.height=h;
+  const ctx=c.getContext('2d');
+  const g=ctx.createLinearGradient(0,0,w,h);
+  g.addColorStop(0,palette[0]);g.addColorStop(1,palette[1]);
+  ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
+  for(let i=0;i<18;i++){
+    ctx.beginPath();
+    const x=Math.random()*w,y=Math.random()*h,r=10+Math.random()*60;
+    const cg=ctx.createRadialGradient(x,y,0,x,y,r);
+    cg.addColorStop(0,palette[2]+'55');cg.addColorStop(1,palette[3]+'00');
+    ctx.fillStyle=cg;ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();
+  }
+  return c;
+}
+
+let historyItems=[];
+let selectedRatio='1:1';
+let generating=false;
+
+document.querySelectorAll('.ratio-btn').forEach(btn=>{
+  btn.onclick=()=>{
+    document.querySelectorAll('.ratio-btn').forEach(b=>b.classList.remove('sel'));
+    btn.classList.add('sel');
+    selectedRatio=btn.dataset.r;
+  };
+});
+
+function getAR(){
+  const m={'1:1':[1,1],'4:3':[4,3],'16:9':[16,9],'9:16':[9,16]};
+  return m[selectedRatio]||[1,1];
+}
+
+function addHistoryItem(prompt,style,palette){
+  const item={prompt,style,time:'Just now',palette,id:Date.now()};
+  historyItems.unshift(item);
+  renderHistory();
+}
+
+function renderHistory(){
+  const list=document.getElementById('historyList');
+  if(historyItems.length===0){
+    list.innerHTML='<div style="padding:16px;font-size:12px;color:var(--color-text-tertiary);text-align:center">No history yet</div>';
+    return;
+  }
+  list.innerHTML=historyItems.map((item,i)=>`
+    <div class="history-item${i===0?' active':''}">
+      <div class="history-thumb"><canvas id="ht-${item.id}" width="36" height="36"></canvas></div>
+      <div class="history-meta">
+        <div class="history-prompt">${item.prompt}</div>
+        <div class="history-time">${item.time}</div>
+        <span class="history-badge ${i===0&&generating?'badge-gen':'badge-done'}">${i===0&&generating?'Generating':'Done'}</span>
+      </div>
+    </div>
+  `).join('');
+  historyItems.forEach(item=>{
+    const el=document.getElementById('ht-'+item.id);
+    if(el){const c=makeCanvas(item.palette,36,36);el.getContext('2d').drawImage(c,0,0);}
+  });
+}
+
+function generate(){
+  if(generating)return;
+  const prompt=document.getElementById('promptInput').value.trim();
+  if(!prompt)return;
+  const style=document.getElementById('styleSelect').value;
+  const palette=PALETTES[Math.floor(Math.random()*PALETTES.length)];
+  generating=true;
+  const btn=document.getElementById('genBtn');
+  btn.classList.add('generating');
+  btn.innerHTML='<i class="ti ti-loader-2" aria-hidden="true" style="font-size:15px;animation:spin 1s linear infinite"></i> Generating…';
+  const style2=document.createElement('style');
+  style2.textContent='@keyframes spin{to{transform:rotate(360deg)}}';
+  document.head.appendChild(style2);
+  const sr=document.getElementById('statusRow');
+  sr.style.display='flex';
+  document.getElementById('statusDot').className='dot pulsing';
+  document.getElementById('statusText').textContent='Generating 4 images…';
+  addHistoryItem(prompt.length>32?prompt.slice(0,32)+'…':prompt,style,palette);
+  const grid=document.getElementById('resultsGrid');
+  grid.innerHTML=Array(4).fill('<div class="skeleton"></div>').join('');
+  const [aw,ah]=getAR();
+  const delays=[800,1400,2000,2600];
+  delays.forEach((delay,i)=>{
+    setTimeout(()=>{
+      const skels=grid.querySelectorAll('.skeleton');
+      if(skels[i]){
+        const card=document.createElement('div');
+        card.className='img-card';
+        const cv=makeCanvas(palette,300,300);
+        cv.style.width='100%';cv.style.height='100%';
+        card.appendChild(cv);
+        const ov=document.createElement('div');
+        ov.className='img-overlay';
+        ov.innerHTML=`
+          <button class="ov-btn" onclick="event.stopPropagation()"><i class="ti ti-download" aria-hidden="true" style="font-size:13px"></i> Save</button>
+          <button class="ov-btn" onclick="regen(this,${i})"><i class="ti ti-refresh" aria-hidden="true" style="font-size:13px"></i> Redo</button>
+        `;
+        card.appendChild(ov);
+        skels[i].replaceWith(card);
+      }
+      if(i===3){
+        generating=false;
+        btn.classList.remove('generating');
+        btn.innerHTML='<i class="ti ti-sparkles" aria-hidden="true" style="font-size:15px"></i> Generate';
+        document.getElementById('statusDot').className='dot';
+        document.getElementById('statusText').textContent='4 images generated';
+        renderHistory();
+      }
+    },delay);
+  });
+}
+
+function regen(el,idx){
+  const card=el.closest('.img-card');
+  const skel=document.createElement('div');
+  skel.className='skeleton';
+  card.replaceWith(skel);
+  const palette=PALETTES[Math.floor(Math.random()*PALETTES.length)];
+  setTimeout(()=>{
+    const nc=document.createElement('div');nc.className='img-card';
+    const cv=makeCanvas(palette,300,300);
+    cv.style.width='100%';cv.style.height='100%';
+    nc.appendChild(cv);
+    const ov=document.createElement('div');ov.className='img-overlay';
+    ov.innerHTML=`<button class="ov-btn"><i class="ti ti-download" aria-hidden="true" style="font-size:13px"></i> Save</button><button class="ov-btn" onclick="regen(this,${idx})"><i class="ti ti-refresh" aria-hidden="true" style="font-size:13px"></i> Redo</button>`;
+    nc.appendChild(ov);skel.replaceWith(nc);
+  },900);
+}
+
+renderHistory();
+</script>

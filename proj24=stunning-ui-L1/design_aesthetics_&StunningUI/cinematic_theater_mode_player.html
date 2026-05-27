@@ -1,0 +1,248 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans)}
+.page-wrap{padding:2rem;min-height:520px;background:var(--color-background-tertiary);border-radius:var(--border-radius-lg);transition:filter 0.35s ease,opacity 0.35s ease;position:relative}
+.page-wrap.dimmed .dim-mask{opacity:1;pointer-events:all}
+.dim-mask{position:fixed;inset:0;background:rgba(0,0,0,0.92);opacity:0;pointer-events:none;transition:opacity 0.35s ease;z-index:10}
+.page-content{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem}
+.page-block{background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:1rem;height:72px;opacity:1;transition:opacity 0.35s ease}
+.page-block.text-block{grid-column:span 2}
+.page-block-line{height:8px;background:var(--color-border-secondary);border-radius:4px;margin-bottom:8px;width:80%}
+.page-block-line.short{width:50%}
+.video-container{position:relative;width:100%;border-radius:var(--border-radius-lg);overflow:hidden;background:#000;aspect-ratio:16/9;cursor:pointer;transition:all 0.35s ease;z-index:1}
+.video-container.theater{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:min(90vw,calc(90vh * 16/9));aspect-ratio:16/9;z-index:20;border-radius:var(--border-radius-lg)}
+.video-bg{width:100%;height:100%;background:linear-gradient(135deg,#0a0a1a 0%,#1a0a2e 40%,#0a1a0a 100%);position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.film-grain{position:absolute;inset:0;opacity:0.03;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")}
+.video-scene{position:relative;z-index:1;text-align:center;user-select:none}
+.video-scene .scene-title{color:rgba(255,255,255,0.7);font-size:clamp(11px,2vw,15px);letter-spacing:0.12em;text-transform:uppercase;font-weight:400;margin-bottom:8px}
+.video-scene .scene-time{color:rgba(255,255,255,0.3);font-size:clamp(9px,1.5vw,12px);letter-spacing:0.08em}
+.star{position:absolute;width:2px;height:2px;background:white;border-radius:50%;opacity:0.4}
+.big-play{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:5;cursor:pointer;transition:opacity 0.2s}
+.big-play:hover .play-circle{transform:scale(1.08);background:rgba(255,255,255,0.18)}
+.play-circle{width:clamp(48px,8vw,64px);height:clamp(48px,8vw,64px);border-radius:50%;background:rgba(255,255,255,0.12);border:1.5px solid rgba(255,255,255,0.4);display:flex;align-items:center;justify-content:center;transition:transform 0.2s,background 0.2s;backdrop-filter:blur(4px)}
+.play-circle i{color:white;font-size:clamp(18px,3vw,26px);margin-left:3px}
+.controls{position:absolute;bottom:0;left:0;right:0;padding:clamp(8px,2%,16px);background:linear-gradient(transparent,rgba(0,0,0,0.85));z-index:6;transition:opacity 0.25s ease;opacity:0}
+.controls.visible{opacity:1}
+.progress-wrap{position:relative;height:4px;background:rgba(255,255,255,0.2);border-radius:2px;margin-bottom:10px;cursor:pointer}
+.progress-fill{height:100%;background:rgba(255,255,255,0.85);border-radius:2px;width:0%;transition:width 0.1s linear}
+.progress-dot{position:absolute;top:50%;width:12px;height:12px;background:white;border-radius:50%;transform:translateY(-50%);left:0%;margin-left:-6px;transition:left 0.1s linear;box-shadow:0 0 4px rgba(0,0,0,0.5)}
+.ctrl-row{display:flex;align-items:center;gap:clamp(6px,1.5%,12px)}
+.ctrl-btn{background:none;border:none;color:white;cursor:pointer;padding:4px;opacity:0.85;transition:opacity 0.15s;display:flex;align-items:center;line-height:1}
+.ctrl-btn:hover{opacity:1}
+.ctrl-btn i{font-size:clamp(14px,2.5vw,18px)}
+.time-label{color:rgba(255,255,255,0.75);font-size:clamp(10px,1.6vw,12px);letter-spacing:0.04em;font-weight:500;margin-left:4px}
+.vol-slider{-webkit-appearance:none;appearance:none;width:clamp(48px,8%,72px);height:3px;background:rgba(255,255,255,0.35);border-radius:2px;outline:none;cursor:pointer}
+.vol-slider::-webkit-slider-thumb{-webkit-appearance:none;width:10px;height:10px;border-radius:50%;background:white;cursor:pointer}
+.spacer{flex:1}
+.theater-badge{position:absolute;top:12px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.6);color:rgba(255,255,255,0.7);font-size:11px;letter-spacing:0.1em;padding:4px 12px;border-radius:20px;border:0.5px solid rgba(255,255,255,0.15);opacity:0;transition:opacity 0.3s;pointer-events:none;white-space:nowrap;z-index:22}
+.theater-badge.show{opacity:1}
+.escape-hint{position:fixed;top:clamp(16px,3vh,28px);right:clamp(16px,3vw,28px);background:rgba(0,0,0,0.55);color:rgba(255,255,255,0.65);font-size:12px;letter-spacing:0.05em;padding:6px 14px;border-radius:20px;border:0.5px solid rgba(255,255,255,0.15);z-index:25;opacity:0;transition:opacity 0.3s;pointer-events:none;backdrop-filter:blur(6px)}
+.escape-hint.show{opacity:1}
+.dbl-flash{position:absolute;inset:0;background:rgba(255,255,255,0.12);z-index:7;opacity:0;border-radius:var(--border-radius-lg);pointer-events:none;transition:opacity 0.15s}
+</style>
+
+<h2 class="sr-only">Theater mode video player — click play to enter cinematic mode, Escape to exit</h2>
+
+<div class="page-wrap" id="pageWrap">
+  <div class="dim-mask" id="dimMask"></div>
+
+  <div class="page-content" id="pageContent">
+    <div class="page-block text-block">
+      <div class="page-block-line"></div>
+      <div class="page-block-line short"></div>
+    </div>
+    <div class="page-block"><div class="page-block-line"></div></div>
+    <div class="page-block"><div class="page-block-line"></div></div>
+  </div>
+
+  <div class="video-container" id="videoContainer">
+    <div class="video-bg" id="videoBg">
+      <div class="film-grain"></div>
+      <div id="starsLayer"></div>
+      <div class="video-scene">
+        <div class="scene-title">Interstellar — IMAX Preview</div>
+        <div class="scene-time" id="sceneTimecode">00:00</div>
+      </div>
+      <div class="dbl-flash" id="dblFlash"></div>
+    </div>
+
+    <div class="big-play" id="bigPlay" title="Play">
+      <div class="play-circle">
+        <i class="ti ti-player-play" aria-hidden="true"></i>
+      </div>
+    </div>
+
+    <div class="controls" id="controls">
+      <div class="progress-wrap" id="progressWrap">
+        <div class="progress-fill" id="progressFill"></div>
+        <div class="progress-dot" id="progressDot"></div>
+      </div>
+      <div class="ctrl-row">
+        <button class="ctrl-btn" id="playBtn" title="Play/Pause" aria-label="Play/Pause">
+          <i class="ti ti-player-pause" id="playIcon" aria-hidden="true"></i>
+        </button>
+        <button class="ctrl-btn" id="skipBack" title="Rewind 10s" aria-label="Rewind 10 seconds">
+          <i class="ti ti-rotate-clockwise" style="transform:scaleX(-1);display:inline-block" aria-hidden="true"></i>
+        </button>
+        <button class="ctrl-btn" id="skipFwd" title="Forward 10s" aria-label="Forward 10 seconds">
+          <i class="ti ti-rotate-clockwise" aria-hidden="true"></i>
+        </button>
+        <button class="ctrl-btn" id="volBtn" title="Mute/Unmute" aria-label="Mute/Unmute">
+          <i class="ti ti-volume" id="volIcon" aria-hidden="true"></i>
+        </button>
+        <input type="range" class="vol-slider" min="0" max="100" value="80" id="volSlider" aria-label="Volume">
+        <span class="time-label" id="timeLabel">0:00 / 2:47</span>
+        <div class="spacer"></div>
+        <button class="ctrl-btn" id="theaterBtn" title="Theater mode" aria-label="Toggle theater mode">
+          <i class="ti ti-brand-netflix" aria-hidden="true"></i>
+        </button>
+        <button class="ctrl-btn" id="fsBtn" title="Fullscreen" aria-label="Toggle fullscreen">
+          <i class="ti ti-maximize" aria-hidden="true"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="theater-badge" id="theaterBadge">Theater mode</div>
+  </div>
+</div>
+
+<div class="escape-hint" id="escapeHint">Press <strong>Esc</strong> to exit theater mode</div>
+
+<script>
+const totalDur = 167;
+let elapsed = 0, playing = false, theater = false, hideTimer, progressTimer, muted = false;
+
+const vc = document.getElementById('videoContainer');
+const bigPlay = document.getElementById('bigPlay');
+const playBtn = document.getElementById('playBtn');
+const playIcon = document.getElementById('playIcon');
+const controls = document.getElementById('controls');
+const progressFill = document.getElementById('progressFill');
+const progressDot = document.getElementById('progressDot');
+const timeLabel = document.getElementById('timeLabel');
+const dimMask = document.getElementById('dimMask');
+const escHint = document.getElementById('escapeHint');
+const theaterBadge = document.getElementById('theaterBadge');
+const dblFlash = document.getElementById('dblFlash');
+const sceneTimecode = document.getElementById('sceneTimecode');
+const pageContent = document.getElementById('pageContent');
+const pageBlocks = document.querySelectorAll('.page-block');
+
+(function makeStars(){
+  const layer = document.getElementById('starsLayer');
+  for(let i=0;i<60;i++){
+    const s=document.createElement('div');
+    s.className='star';
+    s.style.left=Math.random()*100+'%';
+    s.style.top=Math.random()*100+'%';
+    s.style.opacity=(0.1+Math.random()*0.5).toFixed(2);
+    s.style.width=s.style.height=(1+Math.random()*2).toFixed(1)+'px';
+    layer.appendChild(s);
+  }
+})();
+
+function fmt(s){const m=Math.floor(s/60);const sec=Math.floor(s%60);return m+':'+(sec<10?'0':'')+sec}
+
+function setPlaying(v){
+  playing=v;
+  playIcon.className=v?'ti ti-player-pause':'ti ti-player-play';
+  bigPlay.style.opacity=v?'0':'1';
+  bigPlay.style.pointerEvents=v?'none':'all';
+  if(v){
+    clearInterval(progressTimer);
+    progressTimer=setInterval(()=>{
+      if(elapsed<totalDur){elapsed+=0.25;updateProgress();}
+      else{elapsed=0;setPlaying(false);}
+    },250);
+  } else {
+    clearInterval(progressTimer);
+  }
+}
+
+function updateProgress(){
+  const pct=(elapsed/totalDur)*100;
+  progressFill.style.width=pct+'%';
+  progressDot.style.left=pct+'%';
+  timeLabel.textContent=fmt(elapsed)+' / '+fmt(totalDur);
+  const mm=Math.floor(elapsed/60);const ss=Math.floor(elapsed%60);
+  sceneTimecode.textContent=(mm<10?'0':'')+mm+':'+(ss<10?'0':'')+ss;
+}
+
+function showControls(){
+  controls.classList.add('visible');
+  clearTimeout(hideTimer);
+  if(playing)hideTimer=setTimeout(()=>controls.classList.remove('visible'),3000);
+}
+
+function enterTheater(){
+  theater=true;
+  vc.classList.add('theater');
+  dimMask.style.opacity='1';
+  dimMask.style.pointerEvents='all';
+  pageBlocks.forEach(b=>{b.style.opacity='0.05';b.style.filter='blur(2px)'});
+  escHint.classList.add('show');
+  theaterBadge.classList.add('show');
+  setTimeout(()=>theaterBadge.classList.remove('show'),2000);
+  if(!playing)setPlaying(true);
+  showControls();
+}
+
+function exitTheater(){
+  theater=false;
+  vc.classList.remove('theater');
+  dimMask.style.opacity='0';
+  dimMask.style.pointerEvents='none';
+  pageBlocks.forEach(b=>{b.style.opacity='1';b.style.filter=''});
+  escHint.classList.remove('show');
+  controls.classList.remove('visible');
+}
+
+bigPlay.addEventListener('click',e=>{e.stopPropagation();enterTheater()});
+playBtn.addEventListener('click',()=>setPlaying(!playing));
+
+vc.addEventListener('mousemove',showControls);
+vc.addEventListener('mouseleave',()=>{if(playing)hideTimer=setTimeout(()=>controls.classList.remove('visible'),1000)});
+
+let lastClick=0;
+vc.addEventListener('click',e=>{
+  if(e.target.closest('.controls')||e.target===bigPlay||bigPlay.contains(e.target))return;
+  const now=Date.now();
+  if(now-lastClick<300){
+    dblFlash.style.opacity='1';setTimeout(()=>dblFlash.style.opacity='0',180);
+    if(document.fullscreenElement){document.exitFullscreen();}
+    else{vc.requestFullscreen&&vc.requestFullscreen();}
+  } else {
+    setTimeout(()=>{if(Date.now()-lastClick>=280)setPlaying(!playing)},300);
+  }
+  lastClick=now;
+});
+
+document.getElementById('theaterBtn').addEventListener('click',e=>{e.stopPropagation();theater?exitTheater():enterTheater()});
+document.getElementById('fsBtn').addEventListener('click',e=>{e.stopPropagation();vc.requestFullscreen&&vc.requestFullscreen()});
+document.getElementById('skipBack').addEventListener('click',e=>{e.stopPropagation();elapsed=Math.max(0,elapsed-10);updateProgress()});
+document.getElementById('skipFwd').addEventListener('click',e=>{e.stopPropagation();elapsed=Math.min(totalDur,elapsed+10);updateProgress()});
+
+document.getElementById('volBtn').addEventListener('click',e=>{
+  e.stopPropagation();
+  muted=!muted;
+  document.getElementById('volIcon').className=muted?'ti ti-volume-off':'ti ti-volume';
+});
+
+document.getElementById('progressWrap').addEventListener('click',e=>{
+  const rect=e.currentTarget.getBoundingClientRect();
+  const pct=(e.clientX-rect.left)/rect.width;
+  elapsed=pct*totalDur;
+  updateProgress();
+});
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&theater)exitTheater();
+  if(e.key===' '){e.preventDefault();setPlaying(!playing);}
+});
+
+dimMask.addEventListener('click',exitTheater);
+updateProgress();
+showControls();
+setTimeout(()=>controls.classList.remove('visible'),2500);
+</script>

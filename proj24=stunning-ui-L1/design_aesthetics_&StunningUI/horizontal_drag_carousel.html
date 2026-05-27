@@ -1,0 +1,250 @@
+<h2 class="sr-only">Horizontal drag-to-scroll carousel with snap, momentum, and expandable cards</h2>
+
+<style>
+.carousel-wrap { padding: 1.5rem 0 2rem; }
+.carousel-label { font-size: 13px; color: var(--color-text-secondary); margin: 0 0 12px 4px; letter-spacing: 0.04em; }
+.track {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  cursor: grab;
+  user-select: none;
+  padding: 8px 4px 20px;
+  scrollbar-width: none;
+}
+.track::-webkit-scrollbar { display: none; }
+.track.is-dragging { cursor: grabbing; }
+.card {
+  flex: 0 0 240px;
+  scroll-snap-align: center;
+  background: var(--color-background-primary);
+  border: 0.5px solid var(--color-border-tertiary);
+  border-radius: var(--border-radius-lg);
+  padding: 1.25rem;
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+  position: relative;
+  overflow: hidden;
+}
+.card:hover { transform: translateY(-4px); border-color: var(--color-border-secondary); }
+.card.expanded { flex: 0 0 360px; }
+.card-accent {
+  position: absolute; top: 0; left: 0; right: 0; height: 3px;
+}
+.card-icon {
+  width: 40px; height: 40px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+  margin-bottom: 12px;
+}
+.card-title { font-size: 15px; font-weight: 500; color: var(--color-text-primary); margin: 0 0 4px; }
+.card-sub { font-size: 13px; color: var(--color-text-secondary); margin: 0 0 12px; }
+.card-stat { font-size: 22px; font-weight: 500; color: var(--color-text-primary); margin: 0 0 2px; }
+.card-stat-label { font-size: 12px; color: var(--color-text-tertiary); }
+.card-detail {
+  max-height: 0; overflow: hidden;
+  transition: max-height 0.3s ease, opacity 0.3s ease, margin 0.3s ease;
+  opacity: 0;
+}
+.card.expanded .card-detail { max-height: 120px; opacity: 1; margin-top: 14px; }
+.card-detail p { font-size: 13px; color: var(--color-text-secondary); line-height: 1.6; margin: 0 0 10px; }
+.card-btn { font-size: 12px; padding: 5px 12px; cursor: pointer; }
+.expand-hint {
+  font-size: 12px; color: var(--color-text-tertiary);
+  text-align: center; margin-top: 10px;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.snap-dots {
+  display: flex; gap: 6px; justify-content: center; margin-top: 4px;
+}
+.dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--color-border-secondary);
+  transition: background 0.2s, transform 0.2s;
+}
+.dot.active { background: var(--color-text-secondary); transform: scale(1.4); }
+</style>
+
+<div class="carousel-wrap">
+  <p class="carousel-label">Drag to scroll · Click to expand</p>
+  <div class="track" id="track">
+
+    <div class="card" data-index="0" onclick="toggleCard(this)">
+      <div class="card-accent" style="background:#7F77DD"></div>
+      <div class="card-icon" style="background:#EEEDFE; color:#534AB7"><i class="ti ti-chart-line" aria-hidden="true"></i></div>
+      <p class="card-title">Revenue</p>
+      <p class="card-sub">Q4 2024</p>
+      <p class="card-stat">$2.4M</p>
+      <p class="card-stat-label">+18% vs last quarter</p>
+      <div class="card-detail">
+        <p>Strong growth driven by enterprise deals. SaaS subscriptions account for 72% of total revenue with average contract value up 31%.</p>
+        <button class="card-btn" onclick="event.stopPropagation(); sendPrompt('Tell me more about Q4 revenue trends')">Deep dive ↗</button>
+      </div>
+    </div>
+
+    <div class="card" data-index="1" onclick="toggleCard(this)">
+      <div class="card-accent" style="background:#1D9E75"></div>
+      <div class="card-icon" style="background:#E1F5EE; color:#0F6E56"><i class="ti ti-users" aria-hidden="true"></i></div>
+      <p class="card-title">Users</p>
+      <p class="card-sub">Active monthly</p>
+      <p class="card-stat">84K</p>
+      <p class="card-stat-label">+6.2K this month</p>
+      <div class="card-detail">
+        <p>Retention is at an all-time high of 89%. Mobile users surpassed desktop for the first time, making up 54% of active sessions.</p>
+        <button class="card-btn" onclick="event.stopPropagation(); sendPrompt('Analyze our user growth and retention data')">Deep dive ↗</button>
+      </div>
+    </div>
+
+    <div class="card" data-index="2" onclick="toggleCard(this)">
+      <div class="card-accent" style="background:#D85A30"></div>
+      <div class="card-icon" style="background:#FAECE7; color:#993C1D"><i class="ti ti-bolt" aria-hidden="true"></i></div>
+      <p class="card-title">Performance</p>
+      <p class="card-sub">Avg. response time</p>
+      <p class="card-stat">142ms</p>
+      <p class="card-stat-label">↓ 23ms from last week</p>
+      <div class="card-detail">
+        <p>P99 latency dropped after infra migration. API endpoints now average under 200ms globally. CDN cache hit rate reached 94%.</p>
+        <button class="card-btn" onclick="event.stopPropagation(); sendPrompt('What caused the performance improvements this week?')">Deep dive ↗</button>
+      </div>
+    </div>
+
+    <div class="card" data-index="3" onclick="toggleCard(this)">
+      <div class="card-accent" style="background:#378ADD"></div>
+      <div class="card-icon" style="background:#E6F1FB; color:#185FA5"><i class="ti ti-ticket" aria-hidden="true"></i></div>
+      <p class="card-title">Support</p>
+      <p class="card-sub">Open tickets</p>
+      <p class="card-stat">37</p>
+      <p class="card-stat-label">8 critical · 29 normal</p>
+      <div class="card-detail">
+        <p>Median resolution time is 4.2 hours, down from 7 hours last month. Customer satisfaction score sits at 4.6 out of 5 stars.</p>
+        <button class="card-btn" onclick="event.stopPropagation(); sendPrompt('Summarize the critical support tickets')">Deep dive ↗</button>
+      </div>
+    </div>
+
+    <div class="card" data-index="4" onclick="toggleCard(this)">
+      <div class="card-accent" style="background:#BA7517"></div>
+      <div class="card-icon" style="background:#FAEEDA; color:#854F0B"><i class="ti ti-cube" aria-hidden="true"></i></div>
+      <p class="card-title">Storage</p>
+      <p class="card-sub">Total used</p>
+      <p class="card-stat">1.8TB</p>
+      <p class="card-stat-label">61% of 3TB capacity</p>
+      <div class="card-detail">
+        <p>At current growth rate, capacity limit is reached in ~5 months. New tiered storage policy could reduce costs by 40%.</p>
+        <button class="card-btn" onclick="event.stopPropagation(); sendPrompt('What are options to reduce storage costs?')">Deep dive ↗</button>
+      </div>
+    </div>
+
+    <div class="card" data-index="5" onclick="toggleCard(this)">
+      <div class="card-accent" style="background:#D4537E"></div>
+      <div class="card-icon" style="background:#FBEAF0; color:#993556"><i class="ti ti-heart" aria-hidden="true"></i></div>
+      <p class="card-title">NPS Score</p>
+      <p class="card-sub">Net Promoter</p>
+      <p class="card-stat">+71</p>
+      <p class="card-stat-label">World class threshold</p>
+      <div class="card-detail">
+        <p>Promoters make up 78% of respondents. Top drivers are reliability, speed, and onboarding experience. Detractors cite pricing concerns.</p>
+        <button class="card-btn" onclick="event.stopPropagation(); sendPrompt('How can we improve our NPS score further?')">Deep dive ↗</button>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="snap-dots" id="dots"></div>
+  <p class="expand-hint"><i class="ti ti-hand-move" aria-hidden="true"></i> Drag to scroll &nbsp;·&nbsp; <i class="ti ti-click" aria-hidden="true"></i> Click card to expand</p>
+</div>
+
+<script>
+const track = document.getElementById('track');
+const cards = Array.from(track.querySelectorAll('.card'));
+const dotsWrap = document.getElementById('dots');
+
+cards.forEach((_, i) => {
+  const d = document.createElement('div');
+  d.className = 'dot' + (i === 0 ? ' active' : '');
+  dotsWrap.appendChild(d);
+});
+const dots = Array.from(dotsWrap.querySelectorAll('.dot'));
+
+function updateDots() {
+  const center = track.scrollLeft + track.clientWidth / 2;
+  let closest = 0, minDist = Infinity;
+  cards.forEach((c, i) => {
+    const cardCenter = c.offsetLeft + c.offsetWidth / 2;
+    const dist = Math.abs(cardCenter - center);
+    if (dist < minDist) { minDist = dist; closest = i; }
+  });
+  dots.forEach((d, i) => d.classList.toggle('active', i === closest));
+}
+
+track.addEventListener('scroll', updateDots, { passive: true });
+
+function toggleCard(card) {
+  const wasExpanded = card.classList.contains('expanded');
+  cards.forEach(c => c.classList.remove('expanded'));
+  if (!wasExpanded) card.classList.add('expanded');
+}
+
+let isDragging = false, startX = 0, scrollStart = 0, velX = 0, lastX = 0, lastT = 0, rafId = null;
+
+track.addEventListener('mousedown', e => {
+  if (e.button !== 0) return;
+  isDragging = true;
+  startX = e.clientX;
+  scrollStart = track.scrollLeft;
+  velX = 0; lastX = e.clientX; lastT = Date.now();
+  track.classList.add('is-dragging');
+  cancelAnimationFrame(rafId);
+});
+
+window.addEventListener('mousemove', e => {
+  if (!isDragging) return;
+  const now = Date.now();
+  const dt = now - lastT || 1;
+  velX = (e.clientX - lastX) / dt;
+  lastX = e.clientX; lastT = now;
+  track.scrollLeft = scrollStart - (e.clientX - startX);
+});
+
+window.addEventListener('mouseup', e => {
+  if (!isDragging) return;
+  isDragging = false;
+  track.classList.remove('is-dragging');
+  const moved = Math.abs(e.clientX - startX);
+  if (moved < 5) return;
+  let momentum = velX * 120;
+  function glide() {
+    if (Math.abs(momentum) < 0.5) return;
+    track.scrollLeft -= momentum;
+    momentum *= 0.88;
+    rafId = requestAnimationFrame(glide);
+  }
+  glide();
+});
+
+track.addEventListener('touchstart', e => {
+  startX = e.touches[0].clientX;
+  scrollStart = track.scrollLeft;
+  velX = 0; lastX = startX; lastT = Date.now();
+  cancelAnimationFrame(rafId);
+}, { passive: true });
+
+track.addEventListener('touchmove', e => {
+  const now = Date.now(), dt = now - lastT || 1;
+  velX = (e.touches[0].clientX - lastX) / dt;
+  lastX = e.touches[0].clientX; lastT = now;
+  track.scrollLeft = scrollStart - (e.touches[0].clientX - startX);
+}, { passive: true });
+
+track.addEventListener('touchend', () => {
+  let momentum = velX * 120;
+  function glide() {
+    if (Math.abs(momentum) < 0.5) return;
+    track.scrollLeft -= momentum;
+    momentum *= 0.88;
+    rafId = requestAnimationFrame(glide);
+  }
+  glide();
+});
+</script>

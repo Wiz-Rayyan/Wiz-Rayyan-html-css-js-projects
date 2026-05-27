@@ -1,0 +1,210 @@
+
+<style>
+  .wrap { display: flex; gap: 16px; padding: 1rem 0; font-family: var(--font-sans); }
+  .panel { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); overflow: hidden; flex: 1; }
+  .panel-header { padding: 12px 14px; border-bottom: 0.5px solid var(--color-border-tertiary); font-size: 13px; font-weight: 500; color: var(--color-text-secondary); display: flex; align-items: center; gap: 6px; }
+  .member-row { display: flex; align-items: center; gap: 10px; padding: 9px 14px; cursor: pointer; transition: background 0.15s; position: relative; user-select: none; }
+  .member-row:hover { background: var(--color-background-secondary); }
+  .member-row.pressed { background: var(--color-background-tertiary); }
+  .avatar { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 500; flex-shrink: 0; }
+  .av-amber { background: #FAEEDA; color: #633806; }
+  .av-teal  { background: #E1F5EE; color: #085041; }
+  .av-blue  { background: #E6F1FB; color: #0C447C; }
+  .av-pink  { background: #FBEAF0; color: #72243E; }
+  .av-gray  { background: #F1EFE8; color: #444441; }
+  .name-row { display: flex; align-items: center; gap: 0; flex: 1; min-width: 0; }
+  .name { font-size: 14px; color: var(--color-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .badge-wrap { position: relative; display: inline-flex; align-items: center; margin-left: 4px; }
+  .crown { font-size: 13px; color: #F59E0B; margin-left: 0; cursor: pointer; line-height: 1; }
+  .badge-label { font-size: 11px; font-weight: 500; color: #F59E0B; margin-left: 2px; }
+  .tooltip { position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); background: #1c1c1e; color: #fff; font-size: 11px; padding: 4px 8px; border-radius: 6px; white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity 0.15s; z-index: 10; }
+  .tooltip::after { content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border: 4px solid transparent; border-top-color: #1c1c1e; }
+  .badge-wrap:hover .tooltip, .badge-wrap.show-tip .tooltip { opacity: 1; }
+  .role-pill { font-size: 11px; padding: 2px 7px; border-radius: 99px; margin-left: 6px; }
+  .role-admin { background: #FAEEDA; color: #633806; font-weight: 500; }
+  .role-member { background: var(--color-background-secondary); color: var(--color-text-secondary); }
+  .online-dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; margin-left: auto; flex-shrink: 0; }
+  .offline-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--color-border-secondary); margin-left: auto; flex-shrink: 0; }
+  .action-menu { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: var(--color-background-primary); border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); overflow: hidden; z-index: 20; box-shadow: none; display: none; min-width: 160px; }
+  .action-menu.visible { display: block; }
+  .action-item { padding: 8px 12px; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 8px; color: var(--color-text-primary); }
+  .action-item:hover { background: var(--color-background-secondary); }
+  .action-item.danger { color: var(--color-text-danger); }
+  .action-sep { height: 0.5px; background: var(--color-border-tertiary); }
+  .section-label { padding: 6px 14px 4px; font-size: 11px; font-weight: 500; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: 0.04em; }
+  .press-hint { font-size: 11px; color: var(--color-text-tertiary); text-align: center; padding: 8px 0 10px; }
+</style>
+
+<h2 class="sr-only">Admin badge UI mockup — group member list with crown badges, tooltips, and long-press admin actions</h2>
+
+<div class="wrap">
+  <div class="panel" style="max-width: 320px;">
+    <div class="panel-header">
+      <i class="ti ti-users" style="font-size:15px;" aria-hidden="true"></i>
+      Design Team · 5 members
+    </div>
+
+    <div class="section-label">Admins</div>
+
+    <div class="member-row" id="row-sarah" onmousedown="startPress('sarah')" onmouseup="endPress('sarah')" onmouseleave="cancelPress('sarah')">
+      <div class="avatar av-amber">SL</div>
+      <div class="name-row">
+        <span class="name">Sarah Lin</span>
+        <div class="badge-wrap" id="badge-sarah">
+          <span class="crown">👑</span>
+          <span class="badge-label">Admin</span>
+          <div class="tooltip">Group Admin</div>
+        </div>
+      </div>
+      <div class="online-dot" title="Online"></div>
+      <div class="action-menu" id="menu-sarah">
+        <div class="action-item"><i class="ti ti-shield-off" style="font-size:15px;" aria-hidden="true"></i>Remove admin</div>
+        <div class="action-sep"></div>
+        <div class="action-item danger"><i class="ti ti-user-minus" style="font-size:15px;" aria-hidden="true"></i>Remove from group</div>
+      </div>
+    </div>
+
+    <div class="member-row" id="row-james" onmousedown="startPress('james')" onmouseup="endPress('james')" onmouseleave="cancelPress('james')">
+      <div class="avatar av-teal">JK</div>
+      <div class="name-row">
+        <span class="name">James Kim</span>
+        <div class="badge-wrap" id="badge-james">
+          <span class="crown">👑</span>
+          <span class="badge-label">Admin</span>
+          <div class="tooltip">Group Admin</div>
+        </div>
+      </div>
+      <div class="online-dot" title="Online"></div>
+      <div class="action-menu" id="menu-james">
+        <div class="action-item"><i class="ti ti-shield-off" style="font-size:15px;" aria-hidden="true"></i>Remove admin</div>
+        <div class="action-sep"></div>
+        <div class="action-item danger"><i class="ti ti-user-minus" style="font-size:15px;" aria-hidden="true"></i>Remove from group</div>
+      </div>
+    </div>
+
+    <div class="section-label" style="margin-top:4px;">Members</div>
+
+    <div class="member-row" id="row-priya" onmousedown="startPress('priya')" onmouseup="endPress('priya')" onmouseleave="cancelPress('priya')">
+      <div class="avatar av-blue">PR</div>
+      <div class="name-row"><span class="name">Priya Rajan</span></div>
+      <div class="online-dot" title="Online"></div>
+      <div class="action-menu" id="menu-priya">
+        <div class="action-item"><i class="ti ti-shield" style="font-size:15px;" aria-hidden="true"></i>Make admin</div>
+        <div class="action-sep"></div>
+        <div class="action-item danger"><i class="ti ti-user-minus" style="font-size:15px;" aria-hidden="true"></i>Remove from group</div>
+      </div>
+    </div>
+
+    <div class="member-row" id="row-tom" onmousedown="startPress('tom')" onmouseup="endPress('tom')" onmouseleave="cancelPress('tom')">
+      <div class="avatar av-pink">TC</div>
+      <div class="name-row"><span class="name">Tom Chen</span></div>
+      <div class="offline-dot" title="Offline"></div>
+      <div class="action-menu" id="menu-tom">
+        <div class="action-item"><i class="ti ti-shield" style="font-size:15px;" aria-hidden="true"></i>Make admin</div>
+        <div class="action-sep"></div>
+        <div class="action-item danger"><i class="ti ti-user-minus" style="font-size:15px;" aria-hidden="true"></i>Remove from group</div>
+      </div>
+    </div>
+
+    <div class="member-row" id="row-alex" onmousedown="startPress('alex')" onmouseup="endPress('alex')" onmouseleave="cancelPress('alex')">
+      <div class="avatar av-gray">AM</div>
+      <div class="name-row"><span class="name">Alex M.</span></div>
+      <div class="offline-dot" title="Offline"></div>
+      <div class="action-menu" id="menu-alex">
+        <div class="action-item"><i class="ti ti-shield" style="font-size:15px;" aria-hidden="true"></i>Make admin</div>
+        <div class="action-sep"></div>
+        <div class="action-item danger"><i class="ti ti-user-minus" style="font-size:15px;" aria-hidden="true"></i>Remove from group</div>
+      </div>
+    </div>
+
+    <div class="press-hint">Long-press any member to see admin actions</div>
+  </div>
+
+  <div style="flex: 1; display: flex; flex-direction: column; gap: 14px; justify-content: flex-start; padding-top: 1rem;">
+
+    <div style="background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 14px 16px;">
+      <p style="font-size: 12px; font-weight: 500; color: var(--color-text-secondary); margin: 0 0 10px; text-transform: uppercase; letter-spacing: 0.04em;">Badge anatomy</p>
+      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+        <div class="avatar av-amber" style="width:30px;height:30px;font-size:11px;">SL</div>
+        <span style="font-size:14px; color: var(--color-text-primary);">Sarah Lin</span>
+        <span style="font-size:13px; color:#F59E0B;">👑</span>
+        <span style="font-size:11px; font-weight:500; color:#F59E0B;">Admin</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--color-text-secondary);">
+        <div style="display:flex;align-items:center;gap:6px;"><span style="width:8px;height:8px;border-radius:50%;background:#F59E0B;display:inline-block;flex-shrink:0;"></span>Crown icon — 13px, color #F59E0B</div>
+        <div style="display:flex;align-items:center;gap:6px;"><span style="width:8px;height:8px;border-radius:50%;background:#F59E0B;display:inline-block;flex-shrink:0;"></span>"Admin" label — 11px, font-weight 500</div>
+        <div style="display:flex;align-items:center;gap:6px;"><span style="width:8px;height:8px;border-radius:50%;background:#F59E0B;display:inline-block;flex-shrink:0;"></span>margin-left: 4px from name</div>
+      </div>
+    </div>
+
+    <div style="background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 14px 16px;">
+      <p style="font-size: 12px; font-weight: 500; color: var(--color-text-secondary); margin: 0 0 10px; text-transform: uppercase; letter-spacing: 0.04em;">Tooltip on badge click</p>
+      <div style="display: inline-flex; align-items: center; gap: 6px; background: var(--color-background-secondary); padding: 8px 12px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-tertiary);">
+        <span style="font-size:13px; color:#F59E0B;">👑</span>
+        <span style="font-size: 12px; color: var(--color-text-primary);">Group Admin</span>
+      </div>
+    </div>
+
+    <div style="background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 14px 16px;">
+      <p style="font-size: 12px; font-weight: 500; color: var(--color-text-secondary); margin: 0 0 10px; text-transform: uppercase; letter-spacing: 0.04em;">Long-press actions</p>
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-tertiary);font-size:13px;color:var(--color-text-primary);">
+          <i class="ti ti-shield" style="font-size:15px;color:#378ADD;" aria-hidden="true"></i> Make admin
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-tertiary);font-size:13px;color:var(--color-text-primary);">
+          <i class="ti ti-shield-off" style="font-size:15px;color:#F59E0B;" aria-hidden="true"></i> Remove admin
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-tertiary);font-size:13px;color:var(--color-text-danger);">
+          <i class="ti ti-user-minus" style="font-size:15px;" aria-hidden="true"></i> Remove from group
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  let pressTimers = {};
+  let activeMenu = null;
+
+  function startPress(id) {
+    document.querySelectorAll('.action-menu.visible').forEach(m => m.classList.remove('visible'));
+    activeMenu = null;
+    pressTimers[id] = setTimeout(() => {
+      const menu = document.getElementById('menu-' + id);
+      const row = document.getElementById('row-' + id);
+      if (menu) { menu.classList.add('visible'); activeMenu = id; row.classList.add('pressed'); }
+    }, 500);
+  }
+  function endPress(id) {
+    clearTimeout(pressTimers[id]);
+    const row = document.getElementById('row-' + id);
+    if (row) row.classList.remove('pressed');
+  }
+  function cancelPress(id) {
+    clearTimeout(pressTimers[id]);
+    const row = document.getElementById('row-' + id);
+    if (row) row.classList.remove('pressed');
+    if (activeMenu === id) {
+      const menu = document.getElementById('menu-' + id);
+      if (menu) menu.classList.remove('visible');
+      activeMenu = null;
+    }
+  }
+
+  document.addEventListener('click', (e) => {
+    if (activeMenu && !e.target.closest('.action-menu') && !e.target.closest('.member-row')) {
+      const menu = document.getElementById('menu-' + activeMenu);
+      if (menu) menu.classList.remove('visible');
+      activeMenu = null;
+    }
+  });
+
+  document.querySelectorAll('.action-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+      e.stopPropagation();
+      document.querySelectorAll('.action-menu.visible').forEach(m => m.classList.remove('visible'));
+      activeMenu = null;
+    });
+  });
+</script>

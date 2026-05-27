@@ -1,0 +1,279 @@
+
+<style>
+  .scene { padding: 2rem 1.5rem; font-family: var(--font-sans); }
+  .section-label { font-size: 12px; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: 0.06em; margin: 0 0 12px; }
+  .variants { display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-start; margin-bottom: 2rem; }
+  .variant { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .variant-name { font-size: 12px; color: var(--color-text-secondary); }
+
+  /* --- Avatar base --- */
+  .av { border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 500; color: #fff; flex-shrink: 0; user-select: none; }
+
+  /* --- Grid collage (2x2) --- */
+  .av-group-grid { position: relative; width: 56px; height: 56px; cursor: pointer; }
+  .av-group-grid .grid-inner { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; width: 100%; height: 100%; border-radius: 50%; overflow: hidden; border: 2px solid var(--color-background-primary); box-sizing: border-box; }
+  .av-group-grid .cell { display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 500; color: #fff; }
+
+  /* --- Stack collage --- */
+  .av-group-stack { position: relative; height: 44px; cursor: pointer; }
+  .av-group-stack .stack-wrap { display: flex; align-items: center; }
+  .av-group-stack .av { width: 44px; height: 44px; font-size: 14px; border: 2.5px solid var(--color-background-primary); margin-left: -12px; transition: transform 0.15s; }
+  .av-group-stack .av:first-child { margin-left: 0; }
+  .av-group-stack:hover .av { transform: translateX(0); }
+
+  /* --- Tooltip --- */
+  .tooltip-wrap { position: relative; display: inline-flex; }
+  .tooltip-wrap .tt { position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); background: var(--color-background-primary); border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); padding: 5px 10px; font-size: 12px; white-space: nowrap; color: var(--color-text-primary); pointer-events: none; opacity: 0; transition: opacity 0.15s; z-index: 10; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+  .tooltip-wrap:hover .tt { opacity: 1; }
+
+  /* --- 2-member half-split --- */
+  .av-group-2 { position: relative; width: 56px; height: 56px; border-radius: 50%; overflow: hidden; border: 2px solid var(--color-background-primary); cursor: pointer; box-sizing: border-box; }
+  .av-group-2 .half { position: absolute; top: 0; height: 100%; width: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; color: #fff; }
+  .av-group-2 .half.left { left: 0; }
+  .av-group-2 .half.right { right: 0; }
+
+  /* --- 3-member --- */
+  .av-group-3 { position: relative; width: 56px; height: 56px; border-radius: 50%; overflow: hidden; border: 2px solid var(--color-background-primary); cursor: pointer; box-sizing: border-box; }
+  .av-group-3 .top-half { display: flex; height: 50%; }
+  .av-group-3 .top-half .cell { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #fff; font-weight: 500; }
+  .av-group-3 .bot-half { height: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; color: #fff; font-weight: 500; }
+
+  /* --- Fallback group icon --- */
+  .av-group-fallback { width: 56px; height: 56px; border-radius: 50%; background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+
+  /* --- Chat list preview --- */
+  .chat-list { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); overflow: hidden; max-width: 360px; }
+  .chat-row { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 0.5px solid var(--color-border-tertiary); cursor: pointer; transition: background 0.1s; }
+  .chat-row:last-child { border-bottom: none; }
+  .chat-row:hover { background: var(--color-background-secondary); }
+  .chat-meta { flex: 1; min-width: 0; }
+  .chat-name { font-size: 14px; font-weight: 500; color: var(--color-text-primary); margin: 0 0 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .chat-preview { font-size: 12px; color: var(--color-text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin: 0; }
+  .chat-time { font-size: 11px; color: var(--color-text-tertiary); flex-shrink: 0; }
+  .badge { background: #3B6D11; color: #fff; font-size: 10px; font-weight: 500; border-radius: 999px; padding: 2px 6px; min-width: 16px; text-align: center; flex-shrink: 0; }
+
+  /* --- Modal overlay (normal-flow faux viewport) --- */
+  .modal-faux { display: none; min-height: 340px; background: rgba(0,0,0,0.38); border-radius: var(--border-radius-lg); align-items: center; justify-content: center; margin-top: 1.5rem; }
+  .modal-faux.open { display: flex; }
+  .modal-box { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); width: 300px; overflow: hidden; }
+  .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 12px; border-bottom: 0.5px solid var(--color-border-tertiary); }
+  .modal-title { font-size: 15px; font-weight: 500; color: var(--color-text-primary); margin: 0; }
+  .modal-close { background: none; border: none; cursor: pointer; color: var(--color-text-secondary); font-size: 18px; padding: 0; line-height: 1; display: flex; }
+  .modal-member { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 0.5px solid var(--color-border-tertiary); }
+  .modal-member:last-of-type { border-bottom: none; }
+  .modal-info { flex: 1; }
+  .modal-name { font-size: 13px; font-weight: 500; color: var(--color-text-primary); margin: 0 0 1px; }
+  .modal-role { font-size: 11px; color: var(--color-text-secondary); margin: 0; }
+  .modal-remove { background: none; border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); padding: 4px 8px; font-size: 11px; color: var(--color-text-secondary); cursor: pointer; }
+  .modal-remove:hover { background: var(--color-background-danger); color: var(--color-text-danger); border-color: var(--color-border-danger); }
+  .modal-footer { padding: 10px 16px; border-top: 0.5px solid var(--color-border-tertiary); }
+  .modal-add { width: 100%; background: none; border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); padding: 8px 12px; font-size: 13px; color: var(--color-text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .modal-add:hover { background: var(--color-background-secondary); }
+</style>
+
+<div class="scene">
+  <h2 class="sr-only">Group avatar collage component — variants, chat list, and member modal</h2>
+
+  <p class="section-label">Avatar variants</p>
+  <div class="variants">
+
+    <div class="variant">
+      <div class="tooltip-wrap">
+        <div class="av-group-2 chat-trigger" data-group="design">
+          <div class="half left" style="background:#534AB7;">A</div>
+          <div class="half right" style="background:#0F6E56;">B</div>
+        </div>
+        <span class="tt">2 members</span>
+      </div>
+      <span class="variant-name">2 members</span>
+    </div>
+
+    <div class="variant">
+      <div class="tooltip-wrap">
+        <div class="av-group-3 chat-trigger" data-group="design">
+          <div class="top-half">
+            <div class="cell" style="background:#534AB7;">A</div>
+            <div class="cell" style="background:#0F6E56;">B</div>
+          </div>
+          <div class="bot-half" style="background:#993C1D;">C</div>
+        </div>
+        <span class="tt">3 members</span>
+      </div>
+      <span class="variant-name">3 members</span>
+    </div>
+
+    <div class="variant">
+      <div class="tooltip-wrap">
+        <div class="av-group-grid chat-trigger" data-group="design">
+          <div class="grid-inner">
+            <div class="cell" style="background:#534AB7;">A</div>
+            <div class="cell" style="background:#0F6E56;">B</div>
+            <div class="cell" style="background:#993C1D;">C</div>
+            <div class="cell" style="background:#185FA5;">D</div>
+          </div>
+        </div>
+        <span class="tt">4 members</span>
+      </div>
+      <span class="variant-name">4 members (grid)</span>
+    </div>
+
+    <div class="variant">
+      <div class="tooltip-wrap">
+        <div class="av-group-stack chat-trigger" data-group="eng" style="width:92px;">
+          <div class="stack-wrap">
+            <div class="av" style="background:#534AB7; font-size:14px;">MR</div>
+            <div class="av" style="background:#0F6E56; font-size:14px;">JS</div>
+            <div class="av" style="background:#993C1D; font-size:14px;">AP</div>
+          </div>
+        </div>
+        <span class="tt">3 members</span>
+      </div>
+      <span class="variant-name">stacked</span>
+    </div>
+
+    <div class="variant">
+      <div class="tooltip-wrap">
+        <div class="av-group-fallback chat-trigger" data-group="ops">
+          <i class="ti ti-users" style="font-size:24px; color:var(--color-text-secondary);" aria-hidden="true"></i>
+        </div>
+        <span class="tt">Group</span>
+      </div>
+      <span class="variant-name">fallback</span>
+    </div>
+
+  </div>
+
+  <p class="section-label">In context — chat list</p>
+  <div class="chat-list">
+
+    <div class="chat-row chat-trigger" data-group="design">
+      <div class="tooltip-wrap">
+        <div class="av-group-grid" style="width:48px;height:48px;">
+          <div class="grid-inner">
+            <div class="cell" style="background:#534AB7;">A</div>
+            <div class="cell" style="background:#0F6E56;">B</div>
+            <div class="cell" style="background:#993C1D;">C</div>
+            <div class="cell" style="background:#185FA5;">D</div>
+          </div>
+        </div>
+        <span class="tt">4 members</span>
+      </div>
+      <div class="chat-meta">
+        <p class="chat-name">Design team</p>
+        <p class="chat-preview">Aiko: updated the Figma components 🎨</p>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+        <span class="chat-time">11:42</span>
+        <span class="badge">3</span>
+      </div>
+    </div>
+
+    <div class="chat-row chat-trigger" data-group="eng">
+      <div class="tooltip-wrap">
+        <div class="av-group-stack" style="width:80px;height:40px;">
+          <div class="stack-wrap">
+            <div class="av" style="background:#534AB7;width:40px;height:40px;font-size:12px;">MR</div>
+            <div class="av" style="background:#0F6E56;width:40px;height:40px;font-size:12px;">JS</div>
+            <div class="av" style="background:#993C1D;width:40px;height:40px;font-size:12px;">AP</div>
+          </div>
+        </div>
+        <span class="tt">3 members</span>
+      </div>
+      <div class="chat-meta">
+        <p class="chat-name">Eng standup</p>
+        <p class="chat-preview">Jordan: PR is ready for review</p>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+        <span class="chat-time">10:15</span>
+      </div>
+    </div>
+
+    <div class="chat-row chat-trigger" data-group="ops">
+      <div class="tooltip-wrap">
+        <div class="av-group-fallback" style="width:48px;height:48px;">
+          <i class="ti ti-users" style="font-size:20px;color:var(--color-text-secondary);" aria-hidden="true"></i>
+        </div>
+        <span class="tt">Group</span>
+      </div>
+      <div class="chat-meta">
+        <p class="chat-name">Ops channel</p>
+        <p class="chat-preview">You: meeting rescheduled to 3pm</p>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+        <span class="chat-time">09:00</span>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="modal-faux" id="modal-faux">
+    <div class="modal-box">
+      <div class="modal-header">
+        <p class="modal-title" id="modal-title">Group members</p>
+        <button class="modal-close" id="modal-close" aria-label="Close"><i class="ti ti-x"></i></button>
+      </div>
+      <div id="modal-members"></div>
+      <div class="modal-footer">
+        <button class="modal-add"><i class="ti ti-plus" aria-hidden="true"></i> Add member</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const groups = {
+  design: {
+    title: "Design team · 4 members",
+    members: [
+      { initials: "A", name: "Aiko Tanaka", role: "Lead designer", color: "#534AB7" },
+      { initials: "B", name: "Ben Carter", role: "UX researcher", color: "#0F6E56" },
+      { initials: "C", name: "Clara Osei", role: "Visual designer", color: "#993C1D" },
+      { initials: "D", name: "Dev Sharma", role: "Design engineer", color: "#185FA5" },
+    ]
+  },
+  eng: {
+    title: "Eng standup · 3 members",
+    members: [
+      { initials: "MR", name: "Maya Rodriguez", role: "Backend engineer", color: "#534AB7" },
+      { initials: "JS", name: "Jordan Sato", role: "Frontend engineer", color: "#0F6E56" },
+      { initials: "AP", name: "Alex Park", role: "DevOps", color: "#993C1D" },
+    ]
+  },
+  ops: {
+    title: "Ops channel",
+    members: [
+      { initials: "YO", name: "You", role: "Admin", color: "#888780" },
+    ]
+  }
+};
+
+function openModal(groupKey) {
+  const g = groups[groupKey];
+  if (!g) return;
+  document.getElementById('modal-title').textContent = g.title;
+  const container = document.getElementById('modal-members');
+  container.innerHTML = g.members.map(m => `
+    <div class="modal-member">
+      <div class="av" style="width:36px;height:36px;font-size:12px;background:${m.color};">${m.initials}</div>
+      <div class="modal-info">
+        <p class="modal-name">${m.name}</p>
+        <p class="modal-role">${m.role}</p>
+      </div>
+      <button class="modal-remove">Remove</button>
+    </div>
+  `).join('');
+  document.getElementById('modal-faux').classList.add('open');
+}
+
+document.querySelectorAll('.chat-trigger').forEach(el => {
+  el.addEventListener('click', e => {
+    const key = el.dataset.group || (el.closest('[data-group]') && el.closest('[data-group]').dataset.group);
+    if (key) openModal(key);
+  });
+});
+
+document.getElementById('modal-close').addEventListener('click', () => {
+  document.getElementById('modal-faux').classList.remove('open');
+});
+</script>

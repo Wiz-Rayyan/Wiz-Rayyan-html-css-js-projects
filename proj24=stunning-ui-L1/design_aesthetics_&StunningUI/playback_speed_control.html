@@ -1,0 +1,171 @@
+
+<h2 class="sr-only">Playback speed control demo — interactive widget showing speed cycling, badge display, and keyboard shortcuts</h2>
+
+<style>
+  .ps-wrap { padding: 2rem 0; display: flex; flex-direction: column; gap: 2rem; }
+  .ps-player { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1.5rem; }
+  .ps-video-mock { background: var(--color-background-tertiary); border-radius: var(--border-radius-md); height: 140px; display: flex; align-items: center; justify-content: center; margin-bottom: 1rem; position: relative; overflow: hidden; }
+  .ps-scanlines { position: absolute; inset: 0; background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.03) 3px, rgba(0,0,0,0.03) 4px); pointer-events: none; }
+  .ps-play-icon { color: var(--color-text-secondary); font-size: 40px; }
+  .ps-badge { position: absolute; top: 10px; right: 10px; font-size: 13px; font-weight: 500; padding: 4px 10px; border-radius: var(--border-radius-md); background: rgba(0,0,0,0.55); color: #fff; transition: transform 0.15s cubic-bezier(.34,1.56,.64,1), opacity 0.15s; }
+  .ps-badge.pop { animation: badgepop 0.25s cubic-bezier(.34,1.56,.64,1); }
+  @keyframes badgepop { 0%{transform:scale(1)} 50%{transform:scale(1.22)} 100%{transform:scale(1)} }
+  .ps-controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .ps-btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); font-size: 14px; font-weight: 500; cursor: pointer; background: transparent; color: var(--color-text-primary); transition: background 0.12s, transform 0.1s; }
+  .ps-btn:hover { background: var(--color-background-secondary); }
+  .ps-btn:active { transform: scale(0.97); }
+  .ps-btn.active { background: var(--color-background-secondary); border-color: var(--color-border-primary); }
+  .ps-speed-btn { min-width: 58px; justify-content: center; font-variant-numeric: tabular-nums; }
+  .ps-speed-btn.active { background: var(--color-background-secondary); }
+  .ps-divider { width: 1px; height: 28px; background: var(--color-border-tertiary); }
+  .ps-dropdown-wrap { position: relative; }
+  .ps-dropdown { position: absolute; bottom: calc(100% + 8px); left: 0; background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); overflow: hidden; min-width: 110px; z-index: 10; }
+  .ps-dropdown.hidden { display: none; }
+  .ps-option { display: flex; align-items: center; justify-content: space-between; padding: 8px 14px; font-size: 14px; cursor: pointer; color: var(--color-text-primary); transition: background 0.1s; gap: 12px; }
+  .ps-option:hover { background: var(--color-background-secondary); }
+  .ps-option.selected { font-weight: 500; color: var(--color-text-primary); }
+  .ps-option .ps-check { font-size: 14px; color: var(--color-text-secondary); }
+  .ps-option.selected .ps-check { color: var(--color-text-primary); }
+  .ps-info { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 1rem 1.25rem; }
+  .ps-info-row { display: flex; gap: 2rem; flex-wrap: wrap; }
+  .ps-info-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--color-text-secondary); }
+  .ps-kbd { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: 4px; padding: 2px 7px; font-family: var(--font-mono); font-size: 12px; color: var(--color-text-primary); }
+  .ps-label { font-size: 13px; color: var(--color-text-secondary); }
+  .ps-speed-track { display: flex; align-items: center; gap: 4px; }
+  .ps-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--color-border-tertiary); transition: background 0.15s; }
+  .ps-dot.lit { background: var(--color-text-primary); }
+  .ps-cycle-note { font-size: 12px; color: var(--color-text-secondary); margin-left: auto; }
+</style>
+
+<div class="ps-wrap">
+
+  <div class="ps-player">
+    <div class="ps-video-mock" id="videoMock">
+      <div class="ps-scanlines"></div>
+      <i class="ti ti-player-play ps-play-icon" aria-hidden="true"></i>
+      <div class="ps-badge" id="badge">1x</div>
+    </div>
+
+    <div class="ps-controls">
+      <button class="ps-btn" id="playBtn" aria-label="Play / pause" onclick="togglePlay()">
+        <i class="ti ti-player-play" id="playIcon" aria-hidden="true"></i>
+      </button>
+
+      <div class="ps-divider" aria-hidden="true"></div>
+
+      <div class="ps-dropdown-wrap" id="ddWrap">
+        <button class="ps-btn ps-speed-btn" id="cycleBtn" onclick="toggleDropdown(event)" aria-haspopup="listbox" aria-label="Playback speed">
+          <i class="ti ti-player-track-next" aria-hidden="true"></i>
+          <span id="cycleBtnLabel">1x</span>
+          <i class="ti ti-chevron-up" style="font-size:12px" aria-hidden="true"></i>
+        </button>
+        <div class="ps-dropdown hidden" id="dropdown" role="listbox" aria-label="Speed options"></div>
+      </div>
+
+      <div class="ps-divider" aria-hidden="true"></div>
+
+      <button class="ps-btn" onclick="changeSpeed(-1)" aria-label="Decrease speed">
+        <i class="ti ti-rewind" aria-hidden="true"></i> Slower
+      </button>
+      <button class="ps-btn" onclick="changeSpeed(1)" aria-label="Increase speed">
+        Faster <i class="ti ti-fast-forward" aria-hidden="true"></i>
+      </button>
+
+      <div class="ps-speed-track" aria-hidden="true" id="dots"></div>
+    </div>
+  </div>
+
+  <div class="ps-info">
+    <div class="ps-info-row">
+      <div class="ps-info-item"><span class="ps-kbd">Shift + .</span><span>Speed up</span></div>
+      <div class="ps-info-item"><span class="ps-kbd">Shift + ,</span><span>Slow down</span></div>
+      <div class="ps-info-item"><span class="ps-kbd">Space</span><span>Play / pause</span></div>
+      <span class="ps-cycle-note">Click speed button to cycle • persists across videos</span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
+let speedIdx = 2;
+let playing = false;
+let dropdownOpen = false;
+
+function fmt(s) { return s % 1 === 0 ? s + 'x' : s + 'x'; }
+
+function renderDots() {
+  const el = document.getElementById('dots');
+  el.innerHTML = SPEEDS.map((s, i) =>
+    `<div class="ps-dot ${i === speedIdx ? 'lit' : ''}" title="${fmt(s)}"></div>`
+  ).join('');
+}
+
+function renderDropdown() {
+  const el = document.getElementById('dropdown');
+  el.innerHTML = SPEEDS.map((s, i) => `
+    <div class="ps-option ${i === speedIdx ? 'selected' : ''}" role="option" aria-selected="${i === speedIdx}" onclick="selectSpeed(${i})">
+      <span>${fmt(s)}${s === 1 ? ' <span style="font-size:11px;color:var(--color-text-secondary)">(normal)</span>' : ''}</span>
+      <i class="ti ${i === speedIdx ? 'ti-check' : 'ti-minus'} ps-check" aria-hidden="true"></i>
+    </div>
+  `).join('');
+}
+
+function showBadge(label) {
+  const b = document.getElementById('badge');
+  b.textContent = label;
+  b.classList.remove('pop');
+  void b.offsetWidth;
+  b.classList.add('pop');
+}
+
+function applySpeed(idx) {
+  speedIdx = Math.max(0, Math.min(SPEEDS.length - 1, idx));
+  const label = fmt(SPEEDS[speedIdx]);
+  document.getElementById('cycleBtnLabel').textContent = label;
+  showBadge(label);
+  renderDots();
+  renderDropdown();
+}
+
+function changeSpeed(dir) {
+  applySpeed(speedIdx + dir);
+}
+
+function selectSpeed(idx) {
+  applySpeed(idx);
+  closeDropdown();
+}
+
+function toggleDropdown(e) {
+  e.stopPropagation();
+  dropdownOpen ? closeDropdown() : openDropdown();
+}
+
+function openDropdown() {
+  dropdownOpen = true;
+  document.getElementById('dropdown').classList.remove('hidden');
+}
+
+function closeDropdown() {
+  dropdownOpen = false;
+  document.getElementById('dropdown').classList.add('hidden');
+}
+
+function togglePlay() {
+  playing = !playing;
+  const icon = document.getElementById('playIcon');
+  icon.className = playing ? 'ti ti-player-pause' : 'ti ti-player-play';
+}
+
+document.addEventListener('click', () => { if (dropdownOpen) closeDropdown(); });
+
+document.addEventListener('keydown', (e) => {
+  if (e.shiftKey && e.key === '.') { e.preventDefault(); changeSpeed(1); }
+  if (e.shiftKey && e.key === ',') { e.preventDefault(); changeSpeed(-1); }
+  if (e.key === ' ' && document.activeElement.tagName !== 'BUTTON') { e.preventDefault(); togglePlay(); }
+});
+
+renderDots();
+renderDropdown();
+</script>

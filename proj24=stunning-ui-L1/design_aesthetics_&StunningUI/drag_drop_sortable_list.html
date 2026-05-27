@@ -1,0 +1,151 @@
+
+<style>
+.board{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;padding:1.5rem 0}
+.col{background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:12px;min-height:320px}
+.col-header{font-size:13px;font-weight:500;color:var(--color-text-secondary);margin-bottom:12px;padding:0 4px;display:flex;align-items:center;justify-content:space-between}
+.col-count{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:99px;font-size:11px;padding:1px 7px;color:var(--color-text-secondary)}
+.item{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:10px 12px;margin-bottom:8px;display:flex;align-items:flex-start;gap:8px;cursor:default;user-select:none;transition:opacity 0.15s,transform 0.15s,box-shadow 0.15s}
+.item:last-child{margin-bottom:0}
+.item.dragging{opacity:0.4;transform:scale(0.97)}
+.item.ghost{opacity:0.5;border:1.5px dashed var(--color-border-secondary)}
+.handle{cursor:grab;color:var(--color-text-tertiary);font-size:16px;padding-top:1px;flex-shrink:0;touch-action:none}
+.handle:active{cursor:grabbing}
+.item-body{flex:1;min-width:0}
+.item-title{font-size:14px;font-weight:500;color:var(--color-text-primary);line-height:1.35;margin-bottom:3px}
+.item-meta{font-size:12px;color:var(--color-text-secondary)}
+.tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:99px;margin-right:4px}
+.tag-p{background:#E6F1FB;color:#0C447C}
+.tag-d{background:#FAECE7;color:#993C1D}
+.tag-b{background:#EAF3DE;color:#3B6D11}
+.tag-y{background:#FAEEDA;color:#854F0B}
+.placeholder{border:1.5px dashed var(--color-border-secondary);border-radius:var(--border-radius-md);background:var(--color-background-secondary);margin-bottom:8px;transition:height 0.1s}
+</style>
+
+<h2 class="sr-only">Drag and drop kanban board — drag items between columns to reorder them.</h2>
+
+<div id="board" class="board"></div>
+
+<script>
+const data = {
+  todo: [
+    {id:'t1',title:'Redesign onboarding flow',meta:'Design',tag:'p'},
+    {id:'t2',title:'Fix navigation bug',meta:'Engineering',tag:'d'},
+    {id:'t3',title:'Write API docs',meta:'Docs',tag:'b'},
+  ],
+  inprogress: [
+    {id:'p1',title:'Dashboard analytics',meta:'Engineering',tag:'d'},
+    {id:'p2',title:'User testing sessions',meta:'Research',tag:'y'},
+  ],
+  done: [
+    {id:'d1',title:'Brand refresh',meta:'Design',tag:'p'},
+    {id:'d2',title:'Migrate to new DB',meta:'Engineering',tag:'d'},
+    {id:'d3',title:'Q3 retrospective',meta:'All',tag:'b'},
+  ]
+};
+const colLabels = {todo:'To do',inprogress:'In progress',done:'Done'};
+const tagLabel = {p:'design',d:'engineering',b:'docs',y:'research'};
+const tagClass = {p:'tag-p',d:'tag-d',b:'tag-b',y:'tag-y'};
+
+let dragSrc = null, dragItem = null, phEl = null;
+
+function makeItem(item, col){
+  const el = document.createElement('div');
+  el.className = 'item';
+  el.dataset.id = item.id;
+  el.dataset.col = col;
+  el.draggable = true;
+  el.innerHTML = `<i class="ti ti-grip-vertical handle" aria-hidden="true"></i><div class="item-body"><div class="item-title">${item.title}</div><div class="item-meta"><span class="tag ${tagClass[item.tag]}">${tagLabel[item.tag]}</span>${item.meta}</div></div>`;
+  el.addEventListener('dragstart', onDragStart);
+  el.addEventListener('dragend', onDragEnd);
+  return el;
+}
+
+function makePlaceholder(h){
+  const p = document.createElement('div');
+  p.className = 'placeholder';
+  p.style.height = (h||52)+'px';
+  return p;
+}
+
+function onDragStart(e){
+  dragSrc = this;
+  dragItem = {id:this.dataset.id, col:this.dataset.col};
+  this.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', this.dataset.id);
+}
+
+function onDragEnd(){
+  this.classList.remove('dragging');
+  if(phEl && phEl.parentNode) phEl.parentNode.removeChild(phEl);
+  phEl = null;
+  dragSrc = null;
+  dragItem = null;
+  render();
+}
+
+function bindCol(colEl, colId){
+  colEl.addEventListener('dragover', e=>{
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if(!dragSrc) return;
+    const h = dragSrc.offsetHeight||52;
+    if(!phEl){ phEl = makePlaceholder(h); }
+    const items = [...colEl.querySelectorAll('.item:not(.dragging)')];
+    let after = null;
+    for(const it of items){
+      const r = it.getBoundingClientRect();
+      if(e.clientY < r.top + r.height/2){ after = it; break; }
+    }
+    if(after){ colEl.insertBefore(phEl, after); }
+    else { colEl.appendChild(phEl); }
+  });
+  colEl.addEventListener('dragleave', e=>{
+    if(!colEl.contains(e.relatedTarget) && phEl && phEl.parentNode===colEl){
+      colEl.removeChild(phEl);
+    }
+  });
+  colEl.addEventListener('drop', e=>{
+    e.preventDefault();
+    if(!dragSrc || !dragItem) return;
+    const srcCol = dragItem.col;
+    const srcId = dragItem.id;
+    const srcArr = data[srcCol];
+    const idx = srcArr.findIndex(x=>x.id===srcId);
+    const [moved] = srcArr.splice(idx,1);
+    const destArr = data[colId];
+    if(phEl && phEl.parentNode===colEl){
+      const items=[...colEl.querySelectorAll('.item')];
+      const phIdx=items.indexOf(phEl);
+      destArr.splice(phIdx,0,moved);
+    } else {
+      destArr.push(moved);
+    }
+    moved.col = colId;
+    if(phEl && phEl.parentNode) phEl.parentNode.removeChild(phEl);
+    phEl = null;
+    render();
+  });
+}
+
+function countBadge(n){ return `<span class="col-count">${n}</span>`; }
+
+function render(){
+  const board = document.getElementById('board');
+  board.innerHTML='';
+  for(const [colId, label] of Object.entries(colLabels)){
+    const col = document.createElement('div');
+    col.className='col';
+    col.dataset.col=colId;
+    col.innerHTML=`<div class="col-header">${label}${countBadge(data[colId].length)}</div>`;
+    for(const item of data[colId]){
+      item.col=colId;
+      col.appendChild(makeItem(item,colId));
+    }
+    bindCol(col,colId);
+    board.appendChild(col);
+  }
+}
+
+render();
+</script>

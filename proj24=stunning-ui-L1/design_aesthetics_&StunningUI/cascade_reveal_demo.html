@@ -1,0 +1,142 @@
+
+<style>
+  .section-label { font-size: 11px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text-tertiary); margin: 0 0 1.5rem; }
+  .cascade-item {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.4s ease, transform 0.4s ease, border-color 0.15s ease, background 0.15s ease;
+  }
+  .cascade-item.visible { opacity: 1; transform: translateY(0); }
+  .cascade-item.selected {
+    border-color: var(--color-border-primary) !important;
+    background: var(--color-background-secondary);
+  }
+  .cascade-item:hover { background: var(--color-background-secondary); cursor: pointer; }
+  .tag { display: inline-block; font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 4px; letter-spacing: 0.03em; }
+</style>
+
+<h2 class="sr-only">Cascade reveal demo — grid and list items animate in sequentially on scroll</h2>
+
+<div style="padding: 1rem 0 0;">
+
+  <div id="controls" style="display:flex; gap:10px; align-items:center; margin-bottom:2rem; flex-wrap:wrap;">
+    <button onclick="replayAll()" style="font-size:13px;"><i class="ti ti-refresh" aria-hidden="true"></i> Replay</button>
+    <button onclick="setLayout('grid')" id="btn-grid" style="font-size:13px;">Grid</button>
+    <button onclick="setLayout('list')" id="btn-list" style="font-size:13px;">List</button>
+    <span style="font-size:13px; color:var(--color-text-secondary);">Stagger delay:</span>
+    <input type="range" min="30" max="150" value="60" id="stagger-slider" step="10" style="width:100px;" oninput="document.getElementById('stagger-val').textContent=this.value+'ms'">
+    <span id="stagger-val" style="font-size:13px; color:var(--color-text-secondary); min-width:38px;">60ms</span>
+  </div>
+
+  <p class="section-label">Features</p>
+
+  <div id="grid-container" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:12px; margin-bottom:2.5rem;"></div>
+
+  <p class="section-label" style="margin-top:2rem;">Changelog</p>
+  <div id="list-container" style="display:flex; flex-direction:column; gap:8px;"></div>
+
+</div>
+
+<script>
+const gridItems = [
+  { icon: 'ti-bolt', title: 'Instant deploys', desc: 'Push and go live in seconds', tag: 'Performance', tagColor: '#5DCAA5', tagText: '#085041' },
+  { icon: 'ti-shield-check', title: 'Zero-trust security', desc: 'Every request authenticated', tag: 'Security', tagColor: '#AFA9EC', tagText: '#3C3489' },
+  { icon: 'ti-chart-bar', title: 'Live analytics', desc: 'Real-time dashboards', tag: 'Insights', tagColor: '#FAC775', tagText: '#633806' },
+  { icon: 'ti-arrow-merge', title: 'Git workflows', desc: 'Branch, merge, preview', tag: 'Dev', tagColor: '#B5D4F4', tagText: '#0C447C' },
+  { icon: 'ti-world', title: 'Global CDN', desc: 'Edge nodes in 30+ regions', tag: 'Performance', tagColor: '#5DCAA5', tagText: '#085041' },
+  { icon: 'ti-code', title: 'API-first', desc: 'Everything is programmable', tag: 'Dev', tagColor: '#B5D4F4', tagText: '#0C447C' },
+];
+
+const listItems = [
+  { date: 'May 2026', title: 'Stagger animations now configurable', desc: 'Set delay per-component via data attribute.', type: 'Feature' },
+  { date: 'Apr 2026', title: 'IntersectionObserver threshold tuning', desc: 'Fine-grained visibility percentage control.', type: 'Improvement' },
+  { date: 'Apr 2026', title: 'Fixed jank on Safari 17', desc: 'Transform compositing bug resolved.', type: 'Fix' },
+  { date: 'Mar 2026', title: 'Click-to-highlight on grid items', desc: 'Persists selection across re-renders.', type: 'Feature' },
+  { date: 'Feb 2026', title: 'Reduced motion support', desc: 'Respects prefers-reduced-motion media query.', type: 'Accessibility' },
+];
+
+const typeColors = {
+  'Feature':      { bg: '#AFA9EC', text: '#3C3489' },
+  'Improvement':  { bg: '#5DCAA5', text: '#085041' },
+  'Fix':          { bg: '#F0997B', text: '#993C1D' },
+  'Accessibility':{ bg: '#FAC775', text: '#633806' },
+};
+
+let currentLayout = 'grid';
+
+function buildGrid() {
+  const c = document.getElementById('grid-container');
+  c.innerHTML = '';
+  gridItems.forEach((item, i) => {
+    const el = document.createElement('div');
+    el.className = 'cascade-item';
+    el.style.cssText = `background:var(--color-background-primary); border:0.5px solid var(--color-border-tertiary); border-radius:var(--border-radius-lg); padding:1rem 1.25rem; min-height:130px;`;
+    el.innerHTML = `
+      <div style="margin-bottom:10px;"><i class="ti ${item.icon}" style="font-size:20px; color:var(--color-text-secondary);" aria-hidden="true"></i></div>
+      <p style="font-size:14px; font-weight:500; color:var(--color-text-primary); margin:0 0 4px;">${item.title}</p>
+      <p style="font-size:13px; color:var(--color-text-secondary); margin:0 0 10px; line-height:1.5;">${item.desc}</p>
+      <span class="tag" style="background:${item.tagColor}; color:${item.tagText};">${item.tag}</span>`;
+    el.addEventListener('click', () => toggleSelect(el));
+    c.appendChild(el);
+  });
+}
+
+function buildList() {
+  const c = document.getElementById('list-container');
+  c.innerHTML = '';
+  listItems.forEach((item, i) => {
+    const el = document.createElement('div');
+    el.className = 'cascade-item';
+    el.style.cssText = `background:var(--color-background-primary); border:0.5px solid var(--color-border-tertiary); border-radius:var(--border-radius-md); padding:0.75rem 1rem; display:flex; align-items:flex-start; gap:12px;`;
+    const tc = typeColors[item.type] || typeColors['Feature'];
+    el.innerHTML = `
+      <span style="font-size:11px; color:var(--color-text-tertiary); min-width:52px; padding-top:2px;">${item.date}</span>
+      <div style="flex:1;">
+        <p style="font-size:14px; font-weight:500; color:var(--color-text-primary); margin:0 0 2px;">${item.title}</p>
+        <p style="font-size:13px; color:var(--color-text-secondary); margin:0;">${item.desc}</p>
+      </div>
+      <span class="tag" style="background:${tc.bg}; color:${tc.text}; white-space:nowrap;">${item.type}</span>`;
+    el.addEventListener('click', () => toggleSelect(el));
+    c.appendChild(el);
+  });
+}
+
+function toggleSelect(el) {
+  const was = el.classList.contains('selected');
+  document.querySelectorAll('.cascade-item.selected').forEach(e => e.classList.remove('selected'));
+  if (!was) el.classList.add('selected');
+}
+
+function getStagger() { return parseInt(document.getElementById('stagger-slider').value); }
+
+function revealItems(container) {
+  const items = container.querySelectorAll('.cascade-item');
+  items.forEach((item, i) => {
+    item.classList.remove('visible');
+    const delay = i * getStagger();
+    setTimeout(() => item.classList.add('visible'), 80 + delay);
+  });
+}
+
+function replayAll() {
+  revealItems(document.getElementById('grid-container'));
+  revealItems(document.getElementById('list-container'));
+}
+
+function setLayout(mode) {
+  currentLayout = mode;
+  const gc = document.getElementById('grid-container');
+  document.getElementById('btn-grid').style.fontWeight = mode === 'grid' ? '500' : '400';
+  document.getElementById('btn-list').style.fontWeight = mode === 'list' ? '500' : '400';
+  if (mode === 'grid') {
+    gc.style.gridTemplateColumns = 'repeat(auto-fit, minmax(180px, 1fr))';
+  } else {
+    gc.style.gridTemplateColumns = '1fr';
+  }
+  replayAll();
+}
+
+buildGrid();
+buildList();
+setTimeout(replayAll, 200);
+</script>

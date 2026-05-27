@@ -1,0 +1,163 @@
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+#wrap{padding:2rem;max-width:600px;margin:0 auto;font-family:var(--font-sans)}
+#label{font-size:13px;font-weight:500;color:var(--color-text-secondary);margin-bottom:8px;letter-spacing:.04em;text-transform:uppercase}
+#input-row{position:relative;display:flex;align-items:center}
+#search-input{width:100%;height:44px;padding:0 40px 0 40px;font-size:15px;border:1.5px solid var(--color-border-secondary);border-radius:var(--border-radius-lg);background:var(--color-background-primary);color:var(--color-text-primary);outline:none;transition:border-color .15s}
+#search-input:focus{border-color:#378ADD}
+.icon-search{position:absolute;left:13px;font-size:18px;color:var(--color-text-tertiary);pointer-events:none}
+#clear-btn{position:absolute;right:10px;background:none;border:none;cursor:pointer;padding:4px;display:none;color:var(--color-text-secondary);font-size:16px;line-height:1;border-radius:4px}
+#clear-btn:hover{color:var(--color-text-primary)}
+#dropdown{position:relative;margin-top:4px;background:var(--color-background-primary);border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-lg);overflow:hidden;display:none}
+.result-item{display:flex;align-items:center;gap:12px;padding:10px 14px;cursor:pointer;transition:background .1s;font-size:14px;color:var(--color-text-primary)}
+.result-item:not(:last-child){border-bottom:0.5px solid var(--color-border-tertiary)}
+.result-item.active,.result-item:hover{background:var(--color-background-secondary)}
+.result-icon{font-size:16px;color:var(--color-text-tertiary);flex-shrink:0}
+.result-text{flex:1;min-width:0}
+.result-title{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.result-sub{font-size:12px;color:var(--color-text-secondary);margin-top:1px}
+mark{background:#B5D4F4;color:#042C53;border-radius:3px;padding:0 2px;font-weight:500}
+.skeleton-item{padding:10px 14px;display:flex;align-items:center;gap:12px}
+.skel{background:var(--color-background-secondary);border-radius:4px;animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.6}50%{opacity:1}}
+.skel-icon{width:18px;height:18px;border-radius:4px;flex-shrink:0}
+.skel-text{flex:1;display:flex;flex-direction:column;gap:6px}
+.skel-line{height:12px;border-radius:3px}
+#hint{font-size:12px;color:var(--color-text-tertiary);margin-top:8px;display:none;padding:0 2px}
+#no-results{padding:1.25rem 14px;font-size:14px;color:var(--color-text-secondary);text-align:center}
+#kbd-hint{margin-top:1.25rem;display:flex;gap:10px;flex-wrap:wrap}
+kbd{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--color-text-secondary);background:var(--color-background-secondary);border:0.5px solid var(--color-border-secondary);border-radius:5px;padding:3px 8px;font-family:var(--font-mono)}
+</style>
+<h2 class="sr-only">Typeahead live search demo — type to see results, use arrow keys to navigate, Enter to select, Escape to close</h2>
+<div id="wrap">
+  <div id="label">search</div>
+  <div id="input-row">
+    <i class="ti ti-search icon-search" aria-hidden="true"></i>
+    <input id="search-input" type="text" placeholder="e.g. payments, API, webhooks…" autocomplete="off" aria-label="Search" aria-autocomplete="list" aria-controls="dropdown" aria-expanded="false" role="combobox" />
+    <button id="clear-btn" aria-label="Clear search"><i class="ti ti-x" aria-hidden="true"></i></button>
+  </div>
+  <div id="dropdown" role="listbox" aria-label="Search results"></div>
+  <div id="hint">Press ↑↓ to navigate, Enter to select, Esc to close</div>
+  <div id="kbd-hint">
+    <kbd><i class="ti ti-arrow-up" style="font-size:12px"></i><i class="ti ti-arrow-down" style="font-size:12px"></i> navigate</kbd>
+    <kbd>↩ select</kbd>
+    <kbd>Esc close</kbd>
+  </div>
+</div>
+<script>
+const DATA=[
+  {icon:"ti-credit-card",title:"Payment intents",sub:"Core Payments API",cat:"Payments"},
+  {icon:"ti-credit-card",title:"Payment methods",sub:"Cards, wallets, bank accounts",cat:"Payments"},
+  {icon:"ti-credit-card",title:"Payouts",sub:"Send funds to bank accounts",cat:"Payments"},
+  {icon:"ti-webhook",title:"Webhook endpoints",sub:"Listen to Stripe events",cat:"Developers"},
+  {icon:"ti-webhook",title:"Webhook signatures",sub:"Verify event authenticity",cat:"Developers"},
+  {icon:"ti-code",title:"API keys",sub:"Authentication & secrets",cat:"Developers"},
+  {icon:"ti-code",title:"API versions",sub:"Upgrades & changelog",cat:"Developers"},
+  {icon:"ti-users",title:"Customers",sub:"Store payment info & history",cat:"Billing"},
+  {icon:"ti-file-invoice",title:"Invoices",sub:"Create & send invoices",cat:"Billing"},
+  {icon:"ti-repeat",title:"Subscriptions",sub:"Recurring billing",cat:"Billing"},
+  {icon:"ti-shield-check",title:"Radar rules",sub:"Fraud prevention",cat:"Fraud"},
+  {icon:"ti-lock",title:"3D Secure",sub:"Strong Customer Authentication",cat:"Security"},
+  {icon:"ti-currency-dollar",title:"Refunds",sub:"Reverse a charge",cat:"Payments"},
+  {icon:"ti-building-bank",title:"Bank transfers",sub:"ACH, SEPA, BACS",cat:"Payments"},
+  {icon:"ti-chart-line",title:"Dashboard analytics",sub:"Revenue & metrics",cat:"Reporting"},
+  {icon:"ti-file-text",title:"Reports",sub:"Download financial reports",cat:"Reporting"},
+  {icon:"ti-link",title:"Payment links",sub:"No-code checkout pages",cat:"No-code"},
+  {icon:"ti-shopping-cart",title:"Checkout sessions",sub:"Hosted payment page",cat:"Checkout"},
+];
+
+const input=document.getElementById("search-input");
+const dropdown=document.getElementById("dropdown");
+const clearBtn=document.getElementById("clear-btn");
+const hint=document.getElementById("hint");
+let timer=null,activeIdx=-1,currentResults=[];
+
+function highlight(text,query){
+  if(!query)return text;
+  const re=new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")})`,"gi");
+  return text.replace(re,"<mark>$1</mark>");
+}
+
+function skeletons(){
+  return [0,1,2].map(()=>`<div class="skeleton-item"><div class="skel skel-icon"></div><div class="skel-text"><div class="skel-line" style="width:${55+Math.random()*30|0}%"></div><div class="skel-line" style="width:${35+Math.random()*20|0}%"></div></div></div>`).join("");
+}
+
+function render(results,query){
+  activeIdx=-1;
+  currentResults=results;
+  if(!results.length){
+    dropdown.innerHTML=`<div id="no-results"><i class="ti ti-mood-sad" style="font-size:20px;display:block;margin-bottom:6px;color:var(--color-text-tertiary)"></i>No results for "<strong>${query}</strong>"</div>`;
+    return;
+  }
+  dropdown.innerHTML=results.map((r,i)=>`
+    <div class="result-item" role="option" data-idx="${i}" tabindex="-1">
+      <i class="ti ${r.icon} result-icon" aria-hidden="true"></i>
+      <div class="result-text">
+        <div class="result-title">${highlight(r.title,query)}</div>
+        <div class="result-sub">${r.sub}</div>
+      </div>
+    </div>`).join("");
+  dropdown.querySelectorAll(".result-item").forEach(el=>{
+    el.addEventListener("mouseenter",()=>setActive(+el.dataset.idx));
+    el.addEventListener("click",()=>selectIdx(+el.dataset.idx));
+  });
+}
+
+function setActive(idx){
+  activeIdx=idx;
+  dropdown.querySelectorAll(".result-item").forEach((el,i)=>el.classList.toggle("active",i===idx));
+  if(idx>=0)dropdown.querySelectorAll(".result-item")[idx]?.scrollIntoView({block:"nearest"});
+}
+
+function selectIdx(idx){
+  const r=currentResults[idx];
+  if(!r)return;
+  input.value=r.title;
+  clearBtn.style.display="flex";
+  closeDropdown();
+}
+
+function openDropdown(){
+  dropdown.style.display="block";
+  hint.style.display="block";
+  input.setAttribute("aria-expanded","true");
+}
+function closeDropdown(){
+  dropdown.style.display="none";
+  hint.style.display="none";
+  input.setAttribute("aria-expanded","false");
+  activeIdx=-1;
+}
+
+function search(query){
+  const q=query.trim().toLowerCase();
+  if(!q){closeDropdown();clearBtn.style.display="none";return;}
+  clearBtn.style.display="flex";
+  openDropdown();
+  dropdown.innerHTML=skeletons();
+  clearTimeout(timer);
+  timer=setTimeout(()=>{
+    const res=DATA.filter(r=>r.title.toLowerCase().includes(q)||r.sub.toLowerCase().includes(q)||r.cat.toLowerCase().includes(q));
+    render(res.slice(0,6),query.trim());
+  },300);
+}
+
+input.addEventListener("input",e=>search(e.target.value));
+
+input.addEventListener("keydown",e=>{
+  if(dropdown.style.display==="none")return;
+  if(e.key==="ArrowDown"){e.preventDefault();setActive(Math.min(activeIdx+1,currentResults.length-1));}
+  else if(e.key==="ArrowUp"){e.preventDefault();setActive(Math.max(activeIdx-1,0));}
+  else if(e.key==="Enter"){if(activeIdx>=0)selectIdx(activeIdx);}
+  else if(e.key==="Escape"){closeDropdown();input.focus();}
+});
+
+clearBtn.addEventListener("click",()=>{
+  input.value="";
+  clearBtn.style.display="none";
+  closeDropdown();
+  input.focus();
+});
+
+document.addEventListener("click",e=>{if(!e.target.closest("#wrap"))closeDropdown();});
+</script>

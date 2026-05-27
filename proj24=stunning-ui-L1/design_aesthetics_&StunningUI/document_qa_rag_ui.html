@@ -1,0 +1,258 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font-sans); }
+  .app { display: grid; grid-template-columns: 1fr 280px; height: 640px; border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); overflow: hidden; background: var(--color-background-primary); }
+  .main { display: flex; flex-direction: column; border-right: 0.5px solid var(--color-border-tertiary); }
+  .topbar { padding: 12px 16px; border-bottom: 0.5px solid var(--color-border-tertiary); display: flex; align-items: center; gap: 10px; }
+  .topbar-title { font-size: 14px; font-weight: 500; color: var(--color-text-primary); }
+  .topbar-sub { font-size: 12px; color: var(--color-text-secondary); }
+  .chat-area { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+  .dropzone { border: 2px dashed var(--color-border-secondary); border-radius: var(--border-radius-lg); padding: 24px 16px; text-align: center; cursor: pointer; transition: background 0.15s; }
+  .dropzone:hover, .dropzone.drag-over { background: var(--color-background-secondary); }
+  .dropzone i { font-size: 28px; color: var(--color-text-tertiary); display: block; margin-bottom: 8px; }
+  .dropzone p { font-size: 13px; color: var(--color-text-secondary); }
+  .dropzone span { font-size: 12px; color: var(--color-text-tertiary); display: block; margin-top: 4px; }
+  .file-list { display: flex; flex-direction: column; gap: 6px; }
+  .file-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: var(--color-background-secondary); border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-tertiary); }
+  .file-icon { font-size: 16px; }
+  .file-icon.pdf { color: #E24B4A; }
+  .file-icon.doc { color: #378ADD; }
+  .file-icon.txt { color: #888780; }
+  .file-name { font-size: 13px; color: var(--color-text-primary); flex: 1; font-weight: 500; }
+  .file-size { font-size: 11px; color: var(--color-text-tertiary); }
+  .file-remove { font-size: 16px; color: var(--color-text-tertiary); cursor: pointer; padding: 2px; border-radius: 4px; border: none; background: none; }
+  .file-remove:hover { color: var(--color-text-danger); background: var(--color-background-danger); }
+  .msg-user { align-self: flex-end; background: var(--color-background-info); color: var(--color-text-info); padding: 9px 14px; border-radius: 14px 14px 3px 14px; font-size: 13px; max-width: 75%; }
+  .msg-ai { align-self: flex-start; max-width: 90%; }
+  .msg-ai-bubble { font-size: 13px; color: var(--color-text-primary); line-height: 1.6; }
+  .cite { background: #FAC77533; border-bottom: 1.5px solid #EF9F27; cursor: pointer; border-radius: 2px; padding: 0 2px; position: relative; transition: background 0.15s; }
+  .cite:hover { background: #FAC77566; }
+  .cite-badge { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; background: #EF9F27; color: #412402; font-size: 9px; font-weight: 500; border-radius: 3px; vertical-align: middle; margin-left: 2px; }
+  .response-card { border-left: 3px solid #378ADD; padding: 10px 12px; background: var(--color-background-secondary); border-radius: 0 var(--border-radius-md) var(--border-radius-md) 0; }
+  .response-card-label { font-size: 11px; color: var(--color-text-secondary); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+  .response-card-label i { font-size: 14px; }
+  .source-pills { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .source-pill { font-size: 11px; padding: 3px 8px; border-radius: 99px; border: 0.5px solid var(--color-border-tertiary); color: var(--color-text-secondary); background: var(--color-background-primary); cursor: pointer; display: flex; align-items: center; gap: 4px; }
+  .source-pill:hover { background: var(--color-background-info); color: var(--color-text-info); border-color: var(--color-border-info); }
+  .source-pill i { font-size: 13px; }
+  .input-bar { padding: 10px 12px; border-top: 0.5px solid var(--color-border-tertiary); display: flex; align-items: center; gap: 8px; }
+  .input-bar input { flex: 1; font-size: 13px; padding: 8px 12px; border-radius: 20px; border: 0.5px solid var(--color-border-secondary); background: var(--color-background-secondary); color: var(--color-text-primary); outline: none; }
+  .input-bar input:focus { border-color: var(--color-border-info); box-shadow: 0 0 0 2px #378ADD22; }
+  .send-btn { width: 34px; height: 34px; border-radius: 50%; background: var(--color-background-info); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--color-text-info); font-size: 18px; }
+  .send-btn:hover { opacity: 0.8; }
+  .sidebar { display: flex; flex-direction: column; background: var(--color-background-primary); }
+  .sidebar-header { padding: 12px 14px; border-bottom: 0.5px solid var(--color-border-tertiary); display: flex; align-items: center; justify-content: space-between; }
+  .sidebar-title { font-size: 13px; font-weight: 500; color: var(--color-text-primary); }
+  .page-tabs { display: flex; gap: 4px; padding: 8px; border-bottom: 0.5px solid var(--color-border-tertiary); }
+  .page-tab { font-size: 11px; padding: 3px 8px; border-radius: var(--border-radius-md); cursor: pointer; border: 0.5px solid transparent; color: var(--color-text-secondary); }
+  .page-tab.active { border-color: var(--color-border-info); background: var(--color-background-info); color: var(--color-text-info); }
+  .preview-area { flex: 1; overflow-y: auto; padding: 10px; }
+  .doc-page { background: var(--color-background-secondary); border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-tertiary); padding: 12px; position: relative; font-size: 11px; line-height: 1.6; color: var(--color-text-secondary); margin-bottom: 8px; }
+  .doc-page::before { content: attr(data-page); position: absolute; top: -1px; right: 8px; background: var(--color-background-tertiary); border: 0.5px solid var(--color-border-tertiary); border-top: none; font-size: 10px; color: var(--color-text-tertiary); padding: 1px 6px; border-radius: 0 0 4px 4px; }
+  .chunk-highlight { background: #FAC77555; border-radius: 2px; }
+  .chunk-highlight.active { background: #FAC775AA; outline: 1.5px solid #EF9F27; }
+  .thinking { display: flex; align-items: center; gap: 8px; padding: 8px 0; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--color-text-tertiary); animation: pulse 1.2s ease-in-out infinite; }
+  .dot:nth-child(2) { animation-delay: 0.2s; }
+  .dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes pulse { 0%,80%,100%{opacity:.3;transform:scale(1)} 40%{opacity:1;transform:scale(1.2)} }
+  .tooltip { display: none; position: absolute; bottom: calc(100% + 6px); left: 0; background: var(--color-background-primary); border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); padding: 8px 10px; font-size: 12px; color: var(--color-text-secondary); width: 220px; z-index: 10; line-height: 1.5; box-shadow: none; }
+  .cite:hover .tooltip { display: block; }
+  .empty-state { text-align: center; padding: 20px; color: var(--color-text-tertiary); font-size: 12px; }
+  .empty-state i { font-size: 28px; display: block; margin-bottom: 8px; }
+</style>
+
+<h2 class="sr-only">Document Q&A interface with file upload, chat, and document preview sidebar</h2>
+
+<div class="app">
+  <div class="main">
+    <div class="topbar">
+      <i class="ti ti-files" aria-hidden="true" style="font-size:18px;color:var(--color-text-secondary)"></i>
+      <div>
+        <div class="topbar-title">Document Q&A</div>
+        <div class="topbar-sub" id="doc-count">2 documents loaded</div>
+      </div>
+    </div>
+
+    <div class="chat-area" id="chat-area">
+      <div class="file-list" id="file-list">
+        <div class="file-item" data-id="0">
+          <i class="ti ti-file-type-pdf file-icon pdf" aria-hidden="true"></i>
+          <span class="file-name">Q3_Report_2024.pdf</span>
+          <span class="file-size">2.4 MB</span>
+          <button class="file-remove" onclick="removeFile(0)" aria-label="Remove file"><i class="ti ti-x"></i></button>
+        </div>
+        <div class="file-item" data-id="1">
+          <i class="ti ti-file-type-doc file-icon doc" aria-hidden="true"></i>
+          <span class="file-name">Meeting_Notes_Oct.docx</span>
+          <span class="file-size">148 KB</span>
+          <button class="file-remove" onclick="removeFile(1)" aria-label="Remove file"><i class="ti ti-x"></i></button>
+        </div>
+      </div>
+
+      <div id="dropzone-wrap">
+        <div class="dropzone" id="dropzone" onclick="triggerUpload()" ondragover="onDrag(event,true)" ondragleave="onDrag(event,false)" ondrop="onDrop(event)">
+          <i class="ti ti-cloud-upload" aria-hidden="true"></i>
+          <p>Drop files here or click to upload</p>
+          <span>PDF, DOC, DOCX, TXT supported</span>
+        </div>
+      </div>
+
+      <div class="msg-user">What were the key revenue highlights in Q3?</div>
+
+      <div class="msg-ai">
+        <div class="response-card">
+          <div class="response-card-label"><i class="ti ti-robot" aria-hidden="true"></i> Based on 2 sources</div>
+          <div class="msg-ai-bubble">
+            The Q3 report shows strong performance across business lines. <span class="cite" data-chunk="0">Total revenue reached <strong>$4.2B</strong>, a 17% year-over-year increase driven by cloud services<span class="cite-badge">1</span><span class="tooltip">Q3_Report_2024.pdf · p.3 — "Total revenue for Q3 reached $4.2B representing a 17% YoY increase, primarily driven by cloud segment growth..."</span></span>. Enterprise subscriptions were the top contributor. <span class="cite" data-chunk="1">The CFO noted in the meeting notes that <strong>APAC growth outpaced</strong> all other regions at 31%<span class="cite-badge">2</span><span class="tooltip">Meeting_Notes_Oct.docx · p.1 — "CFO highlighted APAC region growth of 31%, significantly outpacing EMEA (12%) and Americas (14%)..."</span></span>, citing new partnership deals.
+          </div>
+          <div class="source-pills">
+            <div class="source-pill" onclick="setPage(1)"><i class="ti ti-file-type-pdf" aria-hidden="true"></i> Q3_Report · p.3</div>
+            <div class="source-pill" onclick="setPage(2)"><i class="ti ti-file-type-doc" aria-hidden="true"></i> Meeting_Notes · p.1</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="msg-user">Any risks mentioned?</div>
+
+      <div class="msg-ai" id="thinking-msg" style="display:none">
+        <div class="thinking"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+      </div>
+
+      <div class="msg-ai" id="risk-msg" style="display:none">
+        <div class="response-card" style="border-left-color:#E24B4A">
+          <div class="response-card-label" style="color:var(--color-text-danger)"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Risk factors identified</div>
+          <div class="msg-ai-bubble">
+            Two key risks were flagged. <span class="cite" data-chunk="2">Supply chain disruptions are expected to <strong>impact margins by 2–3%</strong> in Q4 per the executive summary<span class="cite-badge">1</span><span class="tooltip">Q3_Report_2024.pdf · p.7 — "Management expects supply chain headwinds to compress gross margins by 200–300bps in Q4 2024..."</span></span>. Additionally, <span class="cite" data-chunk="3">the team agreed to monitor <strong>FX headwinds in EMEA</strong>, with exposure noted in the action items<span class="cite-badge">2</span><span class="tooltip">Meeting_Notes_Oct.docx · p.2 — "Action item: Finance to model FX sensitivity scenarios for EUR/USD at 1.05 and 1.10 levels by EOQ."</span></span>.
+          </div>
+          <div class="source-pills">
+            <div class="source-pill" onclick="setPage(1)"><i class="ti ti-file-type-pdf" aria-hidden="true"></i> Q3_Report · p.7</div>
+            <div class="source-pill" onclick="setPage(2)"><i class="ti ti-file-type-doc" aria-hidden="true"></i> Meeting_Notes · p.2</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="input-bar">
+      <input type="text" id="question-input" placeholder="Ask a question about your documents…" onkeydown="handleKey(event)" />
+      <button class="send-btn" onclick="askQuestion()" aria-label="Send"><i class="ti ti-send" aria-hidden="true"></i></button>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <span class="sidebar-title">Document preview</span>
+      <i class="ti ti-eye" aria-hidden="true" style="font-size:15px;color:var(--color-text-tertiary)"></i>
+    </div>
+    <div class="page-tabs">
+      <div class="page-tab active" id="tab-0" onclick="setPage(0)">All</div>
+      <div class="page-tab" id="tab-1" onclick="setPage(1)">PDF</div>
+      <div class="page-tab" id="tab-2" onclick="setPage(2)">DOCX</div>
+    </div>
+    <div class="preview-area" id="preview-area">
+      <div class="doc-page" data-page="p.3" id="chunk-0">
+        <strong style="font-size:10px;color:var(--color-text-primary)">Q3 Financial Summary</strong><br>
+        Revenue overview for the quarter ending September 30, 2024. <span class="chunk-highlight active" id="h0">Total revenue for Q3 reached $4.2B representing a 17% YoY increase, primarily driven by cloud segment growth and enterprise subscription renewals.</span> Operating margin expanded 180bps to 24.3%.
+      </div>
+      <div class="doc-page" data-page="p.7" id="chunk-2">
+        <strong style="font-size:10px;color:var(--color-text-primary)">Risk Factors</strong><br>
+        The following risks have been identified for Q4. <span class="chunk-highlight" id="h2">Management expects supply chain headwinds to compress gross margins by 200–300bps in Q4 2024,</span> which will be monitored closely by the finance committee.
+      </div>
+      <div class="doc-page" data-page="p.1" id="chunk-1">
+        <strong style="font-size:10px;color:var(--color-text-primary)">Meeting Notes — Oct 14</strong><br>
+        Attendees: CEO, CFO, VP Sales, VP Engineering. <span class="chunk-highlight active" id="h1">CFO highlighted APAC region growth of 31%, significantly outpacing EMEA (12%) and Americas (14%) for the quarter.</span> New partnerships cited as primary driver.
+      </div>
+      <div class="doc-page" data-page="p.2" id="chunk-3">
+        <strong style="font-size:10px;color:var(--color-text-primary)">Action Items</strong><br>
+        Follow-ups assigned after the October meeting. <span class="chunk-highlight" id="h3">Action item: Finance to model FX sensitivity scenarios for EUR/USD at 1.05 and 1.10 levels by EOQ.</span> Owner: CFO. Due: Nov 1.
+      </div>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="file-input" accept=".pdf,.doc,.docx,.txt" multiple style="display:none" onchange="handleFiles(event)" />
+
+<script>
+let pageFilter = 0;
+
+function triggerUpload() { document.getElementById('file-input').click(); }
+
+function onDrag(e, over) { e.preventDefault(); document.getElementById('dropzone').classList.toggle('drag-over', over); }
+
+function onDrop(e) {
+  e.preventDefault();
+  document.getElementById('dropzone').classList.remove('drag-over');
+  const files = Array.from(e.dataTransfer.files);
+  files.forEach(f => addFileItem(f.name, (f.size/1024).toFixed(0) + ' KB'));
+}
+
+function handleFiles(e) {
+  Array.from(e.target.files).forEach(f => addFileItem(f.name, (f.size/1024).toFixed(0) + ' KB'));
+}
+
+let fileIdCounter = 10;
+function addFileItem(name, size) {
+  const id = fileIdCounter++;
+  const ext = name.split('.').pop().toLowerCase();
+  const iconClass = ext === 'pdf' ? 'pdf' : ext === 'txt' ? 'txt' : 'doc';
+  const iconName = ext === 'pdf' ? 'ti-file-type-pdf' : ext === 'txt' ? 'ti-file-description' : 'ti-file-type-doc';
+  const el = document.createElement('div');
+  el.className = 'file-item'; el.dataset.id = id;
+  el.innerHTML = `<i class="ti ${iconName} file-icon ${iconClass}" aria-hidden="true"></i><span class="file-name">${name}</span><span class="file-size">${size}</span><button class="file-remove" onclick="removeFile(${id})" aria-label="Remove file"><i class="ti ti-x"></i></button>`;
+  document.getElementById('file-list').appendChild(el);
+  updateDocCount();
+}
+
+function removeFile(id) {
+  const el = document.querySelector(`[data-id="${id}"]`);
+  if (el) { el.style.opacity='0'; el.style.transition='opacity 0.2s'; setTimeout(()=>{el.remove();updateDocCount();},200); }
+}
+
+function updateDocCount() {
+  const n = document.querySelectorAll('#file-list .file-item').length;
+  document.getElementById('doc-count').textContent = n + ' document' + (n!==1?'s':'') + ' loaded';
+}
+
+function setPage(p) {
+  pageFilter = p;
+  document.querySelectorAll('.page-tab').forEach((t,i)=>t.classList.toggle('active', i===p));
+  const pages = document.querySelectorAll('.doc-page');
+  pages.forEach(pg => {
+    if (p === 0) pg.style.display = '';
+    else if (p === 1) pg.style.display = ['chunk-0','chunk-2'].includes(pg.id) ? '' : 'none';
+    else pg.style.display = ['chunk-1','chunk-3'].includes(pg.id) ? '' : 'none';
+  });
+  document.getElementById('preview-area').scrollTop = 0;
+}
+
+function handleKey(e) { if (e.key === 'Enter') askQuestion(); }
+
+function askQuestion() {
+  const input = document.getElementById('question-input');
+  const q = input.value.trim();
+  if (!q) return;
+  input.value = '';
+  const chat = document.getElementById('chat-area');
+  const userMsg = document.createElement('div');
+  userMsg.className = 'msg-user';
+  userMsg.textContent = q;
+  chat.appendChild(userMsg);
+  const thinkMsg = document.getElementById('thinking-msg');
+  const riskMsg = document.getElementById('risk-msg');
+  if (thinkMsg.style.display === 'none' && riskMsg.style.display === 'none') {
+    thinkMsg.style.display = '';
+    chat.scrollTop = chat.scrollHeight;
+    setTimeout(() => {
+      thinkMsg.style.display = 'none';
+      riskMsg.style.display = '';
+      document.getElementById('h2').classList.add('active');
+      document.getElementById('h3').classList.add('active');
+      chat.scrollTop = chat.scrollHeight;
+    }, 1600);
+  } else {
+    sendPrompt(q);
+  }
+  chat.scrollTop = chat.scrollHeight;
+}
+</script>

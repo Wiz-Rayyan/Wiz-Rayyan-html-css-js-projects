@@ -1,0 +1,181 @@
+<h2 class="sr-only">Interactive 3D peel/lift card gallery with hover tilt and cursor tracking</h2>
+<style>
+.gallery{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;padding:2rem 1.5rem;perspective:1000px}
+.card{position:relative;border-radius:20px;overflow:hidden;cursor:pointer;transition:box-shadow .2s ease;transform-style:preserve-3d;will-change:transform;user-select:none;border:0.5px solid var(--color-border-tertiary)}
+.card-inner{position:relative;width:100%;padding-bottom:130%;background:var(--color-background-primary);border-radius:20px;overflow:hidden}
+.card-media{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:64px}
+.card-body{position:absolute;bottom:0;left:0;right:0;padding:16px;background:var(--color-background-primary)}
+.card-label{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--color-text-secondary);margin:0 0 4px}
+.card-title{font-size:15px;font-weight:500;color:var(--color-text-primary);margin:0 0 4px}
+.card-sub{font-size:13px;color:var(--color-text-secondary);margin:0}
+.chip{display:inline-block;font-size:11px;font-weight:500;padding:3px 10px;border-radius:20px;margin-top:8px}
+.chip-a{background:var(--color-background-info);color:var(--color-text-info)}
+.chip-b{background:var(--color-background-success);color:var(--color-text-success)}
+.chip-c{background:var(--color-background-warning);color:var(--color-text-warning)}
+.shine{position:absolute;inset:0;border-radius:20px;pointer-events:none;opacity:0;transition:opacity .2s;background:radial-gradient(circle at 50% 50%,rgba(255,255,255,.18) 0%,transparent 70%)}
+</style>
+
+<div class="gallery" id="gallery">
+  <div class="card" data-tilt>
+    <div class="card-inner" style="background:linear-gradient(135deg,#e9e4fe 0%,#c8c0f6 100%)">
+      <div class="card-media">🎧</div>
+      <div class="shine" id="s0"></div>
+    </div>
+    <div class="card-body">
+      <p class="card-label">Audio</p>
+      <p class="card-title">AirPods Pro 3</p>
+      <p class="card-sub">Adaptive transparency</p>
+      <span class="chip chip-a">New</span>
+    </div>
+  </div>
+
+  <div class="card" data-tilt>
+    <div class="card-inner" style="background:linear-gradient(135deg,#d6f0e8 0%,#9fdfc8 100%)">
+      <div class="card-media">⌚</div>
+      <div class="shine" id="s1"></div>
+    </div>
+    <div class="card-body">
+      <p class="card-label">Wearable</p>
+      <p class="card-title">Watch Ultra 3</p>
+      <p class="card-sub">72‑hour battery</p>
+      <span class="chip chip-b">In stock</span>
+    </div>
+  </div>
+
+  <div class="card" data-tilt>
+    <div class="card-inner" style="background:linear-gradient(135deg,#faeee2 0%,#f5c99e 100%)">
+      <div class="card-media">💻</div>
+      <div class="shine" id="s2"></div>
+    </div>
+    <div class="card-body">
+      <p class="card-label">Computer</p>
+      <p class="card-title">MacBook Pro 16</p>
+      <p class="card-sub">M5 Pro chip</p>
+      <span class="chip chip-c">Pre-order</span>
+    </div>
+  </div>
+
+  <div class="card" data-tilt>
+    <div class="card-inner" style="background:linear-gradient(135deg,#fce8ec 0%,#f5b3c4 100%)">
+      <div class="card-media">📱</div>
+      <div class="shine" id="s3"></div>
+    </div>
+    <div class="card-body">
+      <p class="card-label">Mobile</p>
+      <p class="card-title">iPhone 17 Pro</p>
+      <p class="card-sub">Periscope zoom</p>
+      <span class="chip chip-a">New</span>
+    </div>
+  </div>
+
+  <div class="card" data-tilt>
+    <div class="card-inner" style="background:linear-gradient(135deg,#e2ecf7 0%,#a8c8ef 100%)">
+      <div class="card-media">🖥️</div>
+      <div class="shine" id="s4"></div>
+    </div>
+    <div class="card-body">
+      <p class="card-label">Display</p>
+      <p class="card-title">Studio Display 6K</p>
+      <p class="card-sub">120Hz ProMotion</p>
+      <span class="chip chip-b">In stock</span>
+    </div>
+  </div>
+
+  <div class="card" data-tilt>
+    <div class="card-inner" style="background:linear-gradient(135deg,#eef7de 0%,#bfdc98 100%)">
+      <div class="card-media">🎮</div>
+      <div class="shine" id="s5"></div>
+    </div>
+    <div class="card-body">
+      <p class="card-label">Gaming</p>
+      <p class="card-title">Vision Pro 2</p>
+      <p class="card-sub">Spatial computing</p>
+      <span class="chip chip-c">Pre-order</span>
+    </div>
+  </div>
+</div>
+
+<script>
+const cards = document.querySelectorAll('.card[data-tilt]');
+const shines = document.querySelectorAll('.shine');
+const MAX_ROT = 12;
+const LIFT = 18;
+
+cards.forEach((card, i) => {
+  let animId = null;
+  let targetX = 0, targetY = 0, currentX = 0, currentY = 0;
+  let hovering = false;
+
+  function lerp(a, b, t){ return a + (b - a) * t; }
+
+  function animate(){
+    currentX = lerp(currentX, targetX, 0.12);
+    currentY = lerp(currentY, targetY, 0.12);
+    const dx = Math.abs(currentX - targetX);
+    const dy = Math.abs(currentY - targetY);
+
+    const scale = card.dataset.pressed === '1' ? 0.97 : hovering ? 1.03 : 1;
+    const tz = hovering && card.dataset.pressed !== '1' ? LIFT : 0;
+    const shadowBlur = hovering && card.dataset.pressed !== '1' ? 28 : 6;
+    const shadowAlpha = hovering && card.dataset.pressed !== '1' ? 0.18 : 0.07;
+
+    card.style.transform = `perspective(900px) rotateX(${currentX}deg) rotateY(${currentY}deg) translateZ(${tz}px) scale(${scale})`;
+    card.style.boxShadow = `0 ${shadowBlur}px ${shadowBlur * 2}px rgba(0,0,0,${shadowAlpha})`;
+
+    const si = shines[i];
+    if(hovering){
+      const px = ((-currentY / MAX_ROT) * 0.5 + 0.5) * 100;
+      const py = ((currentX / MAX_ROT) * 0.5 + 0.5) * 100;
+      si.style.background = `radial-gradient(circle at ${px}% ${py}%,rgba(255,255,255,.22) 0%,transparent 65%)`;
+      si.style.opacity = '1';
+    } else {
+      si.style.opacity = '0';
+    }
+
+    if(dx > 0.01 || dy > 0.01){
+      animId = requestAnimationFrame(animate);
+    } else {
+      animId = null;
+    }
+  }
+
+  function startAnim(){
+    if(!animId) animId = requestAnimationFrame(animate);
+  }
+
+  card.addEventListener('mousemove', e => {
+    const r = card.getBoundingClientRect();
+    const cx = r.left + r.width / 2;
+    const cy = r.top + r.height / 2;
+    const nx = (e.clientX - cx) / (r.width / 2);
+    const ny = (e.clientY - cy) / (r.height / 2);
+    targetY = nx * MAX_ROT;
+    targetX = -ny * MAX_ROT;
+    startAnim();
+  });
+
+  card.addEventListener('mouseenter', () => {
+    hovering = true;
+    startAnim();
+  });
+
+  card.addEventListener('mouseleave', () => {
+    hovering = false;
+    targetX = 0;
+    targetY = 0;
+    startAnim();
+  });
+
+  card.addEventListener('mousedown', () => {
+    card.dataset.pressed = '1';
+    startAnim();
+  });
+
+  document.addEventListener('mouseup', () => {
+    if(card.dataset.pressed === '1'){
+      card.dataset.pressed = '0';
+      startAnim();
+    }
+  });
+});
+</script>

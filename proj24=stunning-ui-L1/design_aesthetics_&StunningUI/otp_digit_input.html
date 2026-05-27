@@ -1,0 +1,168 @@
+
+<style>
+.otp-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 3rem 1rem; gap: 2rem; }
+.otp-header { text-align: center; }
+.otp-header h2 { font-size: 20px; font-weight: 500; margin: 0 0 6px; color: var(--color-text-primary); }
+.otp-header p { font-size: 14px; color: var(--color-text-secondary); margin: 0; }
+.otp-inputs { display: flex; gap: 10px; }
+.otp-input {
+  width: 52px; height: 60px;
+  text-align: center; font-size: 24px; font-weight: 500;
+  border: 1.5px solid var(--color-border-secondary);
+  border-radius: var(--border-radius-md);
+  background: var(--color-background-primary);
+  color: var(--color-text-primary);
+  outline: none;
+  caret-color: transparent;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  -moz-appearance: textfield;
+}
+.otp-input::-webkit-outer-spin-button,
+.otp-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+.otp-input:focus {
+  border-color: #7F77DD;
+  box-shadow: 0 0 0 3px rgba(127,119,221,0.18);
+}
+.otp-input.filled {
+  border-color: var(--color-border-primary);
+  background: var(--color-background-secondary);
+}
+.otp-input.error { border-color: #E24B4A; box-shadow: 0 0 0 3px rgba(226,75,74,0.15); animation: shake 0.35s ease; }
+.otp-input.success { border-color: #1D9E75; background: #E1F5EE; color: #085041; box-shadow: 0 0 0 3px rgba(29,158,117,0.15); }
+@keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-5px)} 40%{transform:translateX(5px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }
+.otp-actions { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.btn-verify {
+  padding: 0 28px; height: 40px; border-radius: var(--border-radius-md);
+  border: 0.5px solid var(--color-border-secondary);
+  background: var(--color-background-primary); color: var(--color-text-primary);
+  font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 6px;
+  transition: background 0.12s;
+}
+.btn-verify:hover { background: var(--color-background-secondary); }
+.btn-verify:active { transform: scale(0.98); }
+.status { font-size: 13px; height: 18px; text-align: center; }
+.status.err { color: #E24B4A; }
+.status.ok { color: #1D9E75; }
+.hint { font-size: 12px; color: var(--color-text-tertiary); }
+.hint span { color: #7F77DD; cursor: pointer; }
+.hint span:hover { text-decoration: underline; }
+</style>
+
+<h2 class="sr-only">6-digit OTP verification input. Type or paste your code.</h2>
+
+<div class="otp-wrap">
+  <div class="otp-header">
+    <h2>Verify your identity</h2>
+    <p>Enter the 6-digit code sent to +91 98765 43210</p>
+  </div>
+
+  <div class="otp-inputs" id="otpBox" role="group" aria-label="One-time password digits">
+    <input class="otp-input" type="number" maxlength="1" inputmode="numeric" pattern="[0-9]" aria-label="Digit 1">
+    <input class="otp-input" type="number" maxlength="1" inputmode="numeric" pattern="[0-9]" aria-label="Digit 2">
+    <input class="otp-input" type="number" maxlength="1" inputmode="numeric" pattern="[0-9]" aria-label="Digit 3">
+    <input class="otp-input" type="number" maxlength="1" inputmode="numeric" pattern="[0-9]" aria-label="Digit 4">
+    <input class="otp-input" type="number" maxlength="1" inputmode="numeric" pattern="[0-9]" aria-label="Digit 5">
+    <input class="otp-input" type="number" maxlength="1" inputmode="numeric" pattern="[0-9]" aria-label="Digit 6">
+  </div>
+
+  <div class="otp-actions">
+    <p class="status" id="status" aria-live="polite"></p>
+    <button class="btn-verify" id="verifyBtn">
+      <i class="ti ti-shield-check" aria-hidden="true"></i> Verify code
+    </button>
+    <p class="hint">Didn't get a code? <span id="resend">Resend</span></p>
+  </div>
+</div>
+
+<script>
+const box = document.getElementById('otpBox');
+const inputs = [...box.querySelectorAll('.otp-input')];
+const statusEl = document.getElementById('status');
+const DEMO_CODE = '123456';
+
+function val(i) { return inputs[i].value; }
+function setStatus(msg, type) { statusEl.textContent = msg; statusEl.className = 'status ' + (type||''); }
+function clearStatus() { statusEl.textContent = ''; statusEl.className = 'status'; }
+
+function toNext(i) { if (i < inputs.length - 1) inputs[i+1].focus(); }
+function toPrev(i) { if (i > 0) inputs[i-1].focus(); }
+
+inputs.forEach((inp, i) => {
+  inp.addEventListener('focus', () => { inp.select(); clearStatus(); });
+
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'Backspace') {
+      e.preventDefault();
+      if (inp.value) {
+        inp.value = '';
+        inp.classList.remove('filled','success','error');
+      } else {
+        toPrev(i);
+        inputs[Math.max(0,i-1)].value = '';
+        inputs[Math.max(0,i-1)].classList.remove('filled','success','error');
+      }
+    }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); toPrev(i); }
+    if (e.key === 'ArrowRight') { e.preventDefault(); toNext(i); }
+  });
+
+  inp.addEventListener('input', e => {
+    const raw = inp.value.replace(/\D/g,'');
+    inp.value = raw ? raw[raw.length-1] : '';
+    if (inp.value) {
+      inp.classList.add('filled');
+      inp.classList.remove('error','success');
+      toNext(i);
+    } else {
+      inp.classList.remove('filled');
+    }
+    if (inputs.every(x => x.value)) autoCheck();
+  });
+
+  inp.addEventListener('paste', e => {
+    e.preventDefault();
+    const text = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g,'');
+    if (!text) return;
+    inputs.forEach((box, j) => {
+      box.value = text[j] || '';
+      box.classList.toggle('filled', !!box.value);
+    });
+    const next = Math.min(text.length, inputs.length - 1);
+    inputs[next].focus();
+    if (text.length >= inputs.length) autoCheck();
+  });
+});
+
+function autoCheck() {
+  const code = inputs.map(x => x.value).join('');
+  if (code === DEMO_CODE) {
+    inputs.forEach(x => { x.classList.add('success'); x.classList.remove('error','filled'); });
+    setStatus('✓ Code verified successfully', 'ok');
+  } else {
+    inputs.forEach(x => { x.classList.add('error'); x.classList.remove('success','filled'); });
+    setStatus('Incorrect code. Try again.', 'err');
+    setTimeout(() => {
+      inputs.forEach(x => x.classList.remove('error'));
+      inputs[0].focus();
+      inputs.forEach(x => { x.value = ''; x.classList.remove('filled'); });
+      clearStatus();
+    }, 1400);
+  }
+}
+
+document.getElementById('verifyBtn').addEventListener('click', () => {
+  const code = inputs.map(x => x.value).join('');
+  if (code.length < 6) { setStatus('Please enter all 6 digits.', 'err'); inputs.find(x => !x.value)?.focus(); return; }
+  autoCheck();
+});
+
+document.getElementById('resend').addEventListener('click', () => {
+  inputs.forEach(x => { x.value=''; x.classList.remove('filled','success','error'); });
+  clearStatus();
+  inputs[0].focus();
+  setStatus('Code resent!', 'ok');
+  setTimeout(clearStatus, 2000);
+});
+
+inputs[0].focus();
+</script>

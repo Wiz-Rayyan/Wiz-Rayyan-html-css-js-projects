@@ -1,0 +1,277 @@
+
+<style>
+  .demo-wrap { padding: 1.5rem 0; font-family: var(--font-sans); }
+  .chat-header { display: flex; align-items: center; gap: 10px; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 0.5px solid var(--color-border-tertiary); }
+  .ch-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--color-background-info); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 500; color: var(--color-text-info); flex-shrink: 0; }
+  .ch-name { font-size: 14px; font-weight: 500; color: var(--color-text-primary); }
+  .ch-sub { font-size: 12px; color: var(--color-text-secondary); }
+  .compose-area { background: var(--color-background-secondary); border-radius: var(--border-radius-lg); border: 0.5px solid var(--color-border-tertiary); padding: 0; overflow: hidden; }
+  .msg-list { padding: 16px; display: flex; flex-direction: column; gap: 14px; min-height: 120px; }
+  .msg { display: flex; gap: 10px; align-items: flex-start; }
+  .m-avatar { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; flex-shrink: 0; margin-top: 2px; }
+  .m-av-a { background: #E6F1FB; color: #185FA5; }
+  .m-av-b { background: #E1F5EE; color: #0F6E56; }
+  .m-body { font-size: 13.5px; color: var(--color-text-primary); line-height: 1.5; }
+  .m-name { font-size: 11px; font-weight: 500; color: var(--color-text-secondary); margin-bottom: 2px; }
+  .pill { display: inline-flex; align-items: center; background: #378ADD; color: #fff; border-radius: 999px; padding: 1px 8px 1px 6px; font-size: 13px; font-weight: 500; gap: 3px; cursor: pointer; white-space: nowrap; }
+  .pill:hover { background: #185FA5; }
+  .pill-dot { width: 5px; height: 5px; border-radius: 50%; background: rgba(255,255,255,0.7); }
+  .input-row { display: flex; align-items: flex-end; gap: 8px; padding: 10px 12px; border-top: 0.5px solid var(--color-border-tertiary); background: var(--color-background-primary); position: relative; }
+  #editor { flex: 1; min-height: 38px; max-height: 100px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-secondary); padding: 9px 12px; font-size: 14px; font-family: var(--font-sans); color: var(--color-text-primary); background: var(--color-background-primary); outline: none; overflow-y: auto; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+  #editor:focus { border-color: #378ADD; box-shadow: 0 0 0 2px rgba(55,138,221,0.18); }
+  #editor:empty:before { content: attr(data-placeholder); color: var(--color-text-tertiary); pointer-events: none; }
+  .send-btn { width: 36px; height: 36px; border-radius: var(--border-radius-md); background: #378ADD; border: none; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background 0.15s; }
+  .send-btn:hover { background: #185FA5; }
+  .send-btn:active { transform: scale(0.96); }
+  .dropdown { position: absolute; left: 12px; bottom: calc(100% + 4px); background: var(--color-background-primary); border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-lg); box-shadow: 0 4px 16px rgba(0,0,0,0.10); width: 260px; overflow: hidden; z-index: 10; display: none; }
+  .dd-header { padding: 8px 12px 6px; font-size: 11px; color: var(--color-text-secondary); font-weight: 500; border-bottom: 0.5px solid var(--color-border-tertiary); }
+  .dd-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; cursor: pointer; transition: background 0.1s; }
+  .dd-item:hover, .dd-item.active { background: var(--color-background-secondary); }
+  .dd-item.active { background: #E6F1FB; }
+  .u-avatar { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; flex-shrink: 0; }
+  .dd-meta { flex: 1; min-width: 0; }
+  .dd-name { font-size: 13px; font-weight: 500; color: var(--color-text-primary); }
+  .dd-handle { font-size: 11px; color: var(--color-text-secondary); }
+  .dd-notif { width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid var(--color-background-primary); flex-shrink: 0; }
+  .notif-toast { display: none; position: absolute; right: 0; top: -42px; background: var(--color-background-primary); border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); padding: 6px 12px; font-size: 12px; color: var(--color-text-primary); white-space: nowrap; align-items: center; gap: 6px; }
+  .notif-toast.show { display: flex; animation: slideIn 0.2s ease; }
+  @keyframes slideIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  .hint { font-size: 12px; color: var(--color-text-tertiary); padding: 6px 12px 10px; }
+  .backspace-hint { font-size: 11.5px; color: var(--color-text-secondary); padding: 4px 12px; background: var(--color-background-secondary); border-top: 0.5px solid var(--color-border-tertiary); display: flex; align-items: center; gap: 6px; }
+  kbd { background: var(--color-background-primary); border: 0.5px solid var(--color-border-secondary); border-radius: 4px; padding: 1px 5px; font-size: 11px; font-family: var(--font-mono); color: var(--color-text-secondary); }
+</style>
+
+<div class="demo-wrap">
+  <h2 class="sr-only">Mention / Autocomplete interactive demo — type @ to trigger user dropdown</h2>
+
+  <div class="compose-area">
+    <div class="chat-header" style="padding: 12px 16px 0;">
+      <div class="ch-avatar">GS</div>
+      <div>
+        <div class="ch-name">General — design team</div>
+        <div class="ch-sub">12 members online</div>
+      </div>
+    </div>
+
+    <div class="msg-list" id="msgList">
+      <div class="msg">
+        <div class="m-avatar m-av-a">JL</div>
+        <div>
+          <div class="m-name">Jordan Lee</div>
+          <div class="m-body">Hey team, anyone free to review the new onboarding flow?</div>
+        </div>
+      </div>
+      <div class="msg">
+        <div class="m-avatar m-av-b">SR</div>
+        <div>
+          <div class="m-name">Sam Rivera</div>
+          <div class="m-body">I can take a look — <span class="pill" title="Open profile"><span class="pill-dot"></span>@maya</span> you had some notes on this earlier, right?</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="input-row" id="inputRow">
+      <div class="notif-toast" id="toast">
+        <i class="ti ti-bell" style="font-size:14px; color: #378ADD;" aria-hidden="true"></i>
+        <span id="toastMsg"></span>
+      </div>
+      <div class="dropdown" id="dropdown">
+        <div class="dd-header">Team members</div>
+        <div id="ddItems"></div>
+        <div class="backspace-hint">
+          <kbd>↑↓</kbd> navigate &nbsp;·&nbsp; <kbd>↵</kbd> select &nbsp;·&nbsp; <kbd>Esc</kbd> dismiss
+        </div>
+      </div>
+      <div id="editor" contenteditable="true" spellcheck="false" data-placeholder="Message #general — type @ to mention"></div>
+      <button class="send-btn" id="sendBtn" aria-label="Send message">
+        <i class="ti ti-send" style="font-size:16px;" aria-hidden="true"></i>
+      </button>
+    </div>
+    <div class="hint">Try typing <strong>@</strong> to open the mention dropdown, or <strong>@ja</strong> to filter</div>
+  </div>
+</div>
+
+<script>
+const users = [
+  { id: 1, name: 'Maya Chen',     handle: 'maya',    initials: 'MC', bg: '#E6F1FB', fg: '#185FA5' },
+  { id: 2, name: 'Jordan Lee',    handle: 'jordan',  initials: 'JL', bg: '#EAF3DE', fg: '#3B6D11' },
+  { id: 3, name: 'Sam Rivera',    handle: 'sam',     initials: 'SR', bg: '#EEEDFE', fg: '#534AB7' },
+  { id: 4, name: 'Priya Sharma',  handle: 'priya',   initials: 'PS', bg: '#FAEEDA', fg: '#854F0B' },
+  { id: 5, name: 'Jake Müller',   handle: 'jake',    initials: 'JM', bg: '#FBEAF0', fg: '#993556' },
+];
+
+const editor   = document.getElementById('editor');
+const dropdown = document.getElementById('dropdown');
+const ddItems  = document.getElementById('ddItems');
+const toast    = document.getElementById('toast');
+const toastMsg = document.getElementById('toastMsg');
+const sendBtn  = document.getElementById('sendBtn');
+const msgList  = document.getElementById('msgList');
+
+let activeIdx   = 0;
+let mentionStart = null;
+let filtered    = [];
+let toastTimer  = null;
+
+function showToast(msg) {
+  toastMsg.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 2800);
+}
+
+function renderItems(list) {
+  ddItems.innerHTML = '';
+  list.forEach((u, i) => {
+    const el = document.createElement('div');
+    el.className = 'dd-item' + (i === activeIdx ? ' active' : '');
+    el.innerHTML = `
+      <div class="u-avatar" style="background:${u.bg}; color:${u.fg};">${u.initials}</div>
+      <div class="dd-meta">
+        <div class="dd-name">${u.name}</div>
+        <div class="dd-handle">@${u.handle}</div>
+      </div>
+      <div class="dd-notif" style="background:${u.bg};"></div>`;
+    el.addEventListener('mousedown', e => { e.preventDefault(); selectMention(u); });
+    ddItems.appendChild(el);
+  });
+}
+
+function openDropdown(query) {
+  filtered = users.filter(u =>
+    u.name.toLowerCase().includes(query.toLowerCase()) ||
+    u.handle.toLowerCase().includes(query.toLowerCase())
+  );
+  if (!filtered.length) { closeDropdown(); return; }
+  activeIdx = 0;
+  renderItems(filtered);
+  dropdown.style.display = 'block';
+}
+
+function closeDropdown() {
+  dropdown.style.display = 'none';
+  mentionStart = null;
+  filtered = [];
+}
+
+function getMentionQuery() {
+  const sel = window.getSelection();
+  if (!sel.rangeCount) return null;
+  const range = sel.getRangeAt(0);
+  const node  = range.startContainer;
+  if (node.nodeType !== Node.TEXT_NODE) return null;
+  const text  = node.textContent.slice(0, range.startOffset);
+  const idx   = text.lastIndexOf('@');
+  if (idx === -1) return null;
+  const before = text[idx - 1];
+  if (before && !/\s/.test(before)) return null;
+  return { query: text.slice(idx + 1), node, atOffset: idx };
+}
+
+function selectMention(user) {
+  const info = getMentionQuery();
+  if (!info) { closeDropdown(); return; }
+
+  const { node, atOffset } = info;
+  const range = document.createRange();
+  range.setStart(node, atOffset);
+  range.setEnd(node, node.textContent.length);
+  range.deleteContents();
+
+  const pill = document.createElement('span');
+  pill.className = 'pill';
+  pill.contentEditable = 'false';
+  pill.dataset.mentionId = user.id;
+  pill.dataset.handle    = user.handle;
+  pill.title             = 'Open profile';
+  pill.innerHTML = `<span class="pill-dot"></span>@${user.handle}`;
+  pill.addEventListener('click', () => showToast(`Opened @${user.handle}'s profile`));
+
+  const after = document.createTextNode('\u00A0');
+  range.insertNode(after);
+  range.insertNode(pill);
+
+  const sel = window.getSelection();
+  const cur = document.createRange();
+  cur.setStartAfter(after);
+  cur.collapse(true);
+  sel.removeAllRanges();
+  sel.addRange(cur);
+
+  showToast(`@${user.name} was notified`);
+  closeDropdown();
+  editor.focus();
+}
+
+editor.addEventListener('input', () => {
+  const info = getMentionQuery();
+  if (info) { mentionStart = info.atOffset; openDropdown(info.query); }
+  else closeDropdown();
+});
+
+editor.addEventListener('keydown', e => {
+  if (dropdown.style.display === 'block') {
+    if (e.key === 'ArrowDown') { e.preventDefault(); activeIdx = (activeIdx + 1) % filtered.length; renderItems(filtered); return; }
+    if (e.key === 'ArrowUp')   { e.preventDefault(); activeIdx = (activeIdx - 1 + filtered.length) % filtered.length; renderItems(filtered); return; }
+    if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); if (filtered[activeIdx]) selectMention(filtered[activeIdx]); return; }
+    if (e.key === 'Escape')    { closeDropdown(); return; }
+  }
+  if (e.key === 'Backspace') {
+    const sel = window.getSelection();
+    if (!sel.rangeCount) return;
+    const range = sel.getRangeAt(0);
+    if (range.collapsed) {
+      const prev = range.startContainer.nodeType === Node.TEXT_NODE
+        ? null
+        : range.startContainer.childNodes[range.startOffset - 1];
+      if (!prev && range.startContainer.nodeType === Node.ELEMENT_NODE) {
+        const ch = range.startContainer.childNodes[range.startOffset - 1];
+        if (ch && ch.dataset && ch.dataset.mentionId) { e.preventDefault(); ch.remove(); return; }
+      }
+      if (range.startContainer.nodeType === Node.TEXT_NODE && range.startOffset === 0) {
+        const prevSib = range.startContainer.previousSibling;
+        if (prevSib && prevSib.dataset && prevSib.dataset.mentionId) { e.preventDefault(); prevSib.remove(); return; }
+      }
+      const curRange = document.createRange();
+      curRange.setStart(range.startContainer, Math.max(0, range.startOffset - 1));
+      curRange.setEnd(range.startContainer, range.startOffset);
+      const prevNode = range.startContainer.previousSibling;
+      if (prevNode && prevNode.dataset && prevNode.dataset.mentionId) { e.preventDefault(); prevNode.remove(); }
+    }
+  }
+});
+
+editor.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && dropdown.style.display !== 'block' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+});
+
+sendBtn.addEventListener('click', sendMessage);
+
+function sendMessage() {
+  const clone = editor.cloneNode(true);
+  if (!clone.textContent.trim() && !clone.querySelector('[data-mention-id]')) return;
+
+  const msg = document.createElement('div');
+  msg.className = 'msg';
+  msg.style.animation = 'slideIn 0.18s ease';
+  msg.innerHTML = `
+    <div class="m-avatar" style="background:#FAEEDA; color:#854F0B; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:500; flex-shrink:0; margin-top:2px;">YO</div>
+    <div>
+      <div class="m-name">You</div>
+      <div class="m-body"></div>
+    </div>`;
+  const body = msg.querySelector('.m-body');
+  body.appendChild(clone);
+  msgList.appendChild(msg);
+  msgList.scrollTop = msgList.scrollHeight;
+  editor.innerHTML = '';
+  closeDropdown();
+}
+
+document.addEventListener('click', e => {
+  if (!dropdown.contains(e.target) && e.target !== editor) closeDropdown();
+});
+</script>

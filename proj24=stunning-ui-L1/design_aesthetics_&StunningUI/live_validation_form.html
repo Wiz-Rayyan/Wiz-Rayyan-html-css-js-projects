@@ -1,0 +1,180 @@
+<h2 class="sr-only">Live validation signup form — fields validate as you type with instant feedback</h2>
+<div style="max-width:480px; margin:2rem auto; padding:0 1rem 2rem;">
+  <p style="font-size:22px; font-weight:500; color:var(--color-text-primary); margin:0 0 0.25rem;">Create your account</p>
+  <p style="font-size:14px; color:var(--color-text-secondary); margin:0 0 2rem;">All fields validate as you type.</p>
+
+  <div class="field" id="f-name">
+    <label>Full name</label>
+    <div class="input-wrap">
+      <input type="text" id="name" placeholder="Jane Doe" autocomplete="name" oninput="validate('name')">
+      <span class="status-icon" id="si-name"></span>
+    </div>
+    <p class="hint" id="h-name"></p>
+  </div>
+
+  <div class="field" id="f-email">
+    <label>Email address</label>
+    <div class="input-wrap">
+      <input type="email" id="email" placeholder="jane@example.com" autocomplete="email" oninput="validate('email')">
+      <span class="status-icon" id="si-email"></span>
+    </div>
+    <p class="hint" id="h-email"></p>
+  </div>
+
+  <div class="field" id="f-password">
+    <label>Password</label>
+    <div class="input-wrap">
+      <input type="password" id="password" placeholder="Min. 8 chars" autocomplete="new-password" oninput="validate('password')">
+      <span class="status-icon" id="si-password"></span>
+    </div>
+    <div id="strength-bar" style="display:none; margin:8px 0 4px; height:4px; border-radius:2px; background:var(--color-border-tertiary); overflow:hidden;">
+      <div id="strength-fill" style="height:100%; width:0%; border-radius:2px; transition:width .3s, background .3s;"></div>
+    </div>
+    <p class="hint" id="h-password"></p>
+  </div>
+
+  <div class="field" id="f-confirm">
+    <label>Confirm password</label>
+    <div class="input-wrap">
+      <input type="password" id="confirm" placeholder="Repeat password" autocomplete="new-password" oninput="validate('confirm')">
+      <span class="status-icon" id="si-confirm"></span>
+    </div>
+    <p class="hint" id="h-confirm"></p>
+  </div>
+
+  <div class="field" id="f-username">
+    <label>Username</label>
+    <div class="input-wrap">
+      <input type="text" id="username" placeholder="letters, numbers, underscores" autocomplete="username" oninput="validate('username')">
+      <span class="status-icon" id="si-username"></span>
+    </div>
+    <p class="hint" id="h-username"></p>
+  </div>
+
+  <button id="submit-btn" disabled onclick="handleSubmit()" style="width:100%; margin-top:0.5rem; padding:11px; font-size:15px; font-weight:500; border-radius:var(--border-radius-md); border:none; cursor:not-allowed; background:var(--color-border-tertiary); color:var(--color-text-tertiary); transition:background .2s, color .2s, transform .1s;">
+    Create account
+  </button>
+  <p id="submit-msg" style="text-align:center; font-size:13px; margin:0.75rem 0 0; min-height:20px; color:var(--color-text-success);"></p>
+</div>
+
+<style>
+.field { margin-bottom:1.25rem; }
+.field label { display:block; font-size:13px; font-weight:500; color:var(--color-text-secondary); margin-bottom:6px; }
+.input-wrap { position:relative; }
+.input-wrap input { width:100%; box-sizing:border-box; padding-right:36px; transition:border-color .15s, box-shadow .15s; }
+.input-wrap input.valid { border-color:var(--color-border-success) !important; }
+.input-wrap input.invalid { border-color:var(--color-border-danger) !important; box-shadow:0 0 0 3px var(--color-background-danger); }
+.input-wrap input.valid:focus { box-shadow:0 0 0 3px var(--color-background-success); }
+.status-icon { position:absolute; right:10px; top:50%; transform:translateY(-50%); font-size:17px; pointer-events:none; transition:opacity .15s; }
+.hint { font-size:12px; margin:5px 0 0; min-height:16px; transition:color .15s; line-height:1.4; }
+.hint.error { color:var(--color-text-danger); }
+.hint.success { color:var(--color-text-success); }
+</style>
+
+<script>
+const rules = {
+  name: {
+    validate(v) {
+      if (!v.trim()) return { ok: false, msg: 'Name is required' };
+      if (v.trim().split(/\s+/).length < 2) return { ok: false, msg: 'Enter your full name (first + last)' };
+      return { ok: true, msg: 'Looks good!' };
+    }
+  },
+  email: {
+    validate(v) {
+      if (!v) return { ok: false, msg: 'Email is required' };
+      const re = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+      if (!re.test(v)) return { ok: false, msg: 'Enter a valid email address' };
+      return { ok: true, msg: 'Valid email address' };
+    }
+  },
+  password: {
+    validate(v) {
+      if (!v) return { ok: false, msg: 'Password is required', strength: 0 };
+      const checks = [v.length >= 8, /[A-Z]/.test(v), /[0-9]/.test(v), /[^A-Za-z0-9]/.test(v)];
+      const score = checks.filter(Boolean).length;
+      if (score < 2) return { ok: false, msg: 'Too weak — add uppercase, numbers, or symbols', strength: score };
+      if (score === 2) return { ok: false, msg: 'Fair — try adding a number or symbol', strength: score };
+      if (score === 3) return { ok: true, msg: 'Good password', strength: score };
+      return { ok: true, msg: 'Strong password!', strength: score };
+    }
+  },
+  confirm: {
+    validate(v) {
+      if (!v) return { ok: false, msg: 'Please confirm your password' };
+      const pw = document.getElementById('password').value;
+      if (v !== pw) return { ok: false, msg: 'Passwords do not match' };
+      return { ok: true, msg: 'Passwords match' };
+    }
+  },
+  username: {
+    validate(v) {
+      if (!v) return { ok: false, msg: 'Username is required' };
+      if (v.length < 3) return { ok: false, msg: 'At least 3 characters required' };
+      if (!/^[a-zA-Z0-9_]+$/.test(v)) return { ok: false, msg: 'Only letters, numbers, and underscores' };
+      return { ok: true, msg: '@' + v + ' is available' };
+    }
+  }
+};
+
+const state = { name: false, email: false, password: false, confirm: false, username: false };
+
+function validate(field) {
+  const input = document.getElementById(field);
+  const hint = document.getElementById('h-' + field);
+  const icon = document.getElementById('si-' + field);
+  const result = rules[field].validate(input.value);
+
+  state[field] = result.ok;
+
+  input.classList.toggle('valid', result.ok);
+  input.classList.toggle('invalid', !result.ok && input.value.length > 0);
+
+  hint.textContent = input.value.length > 0 ? result.msg : '';
+  hint.className = 'hint ' + (input.value.length > 0 ? (result.ok ? 'success' : 'error') : '');
+
+  if (input.value.length > 0) {
+    icon.innerHTML = result.ok
+      ? '<i class="ti ti-circle-check" style="color:var(--color-text-success)" aria-hidden="true"></i>'
+      : '<i class="ti ti-circle-x" style="color:var(--color-text-danger)" aria-hidden="true"></i>';
+  } else {
+    icon.innerHTML = '';
+  }
+
+  if (field === 'password') {
+    const bar = document.getElementById('strength-bar');
+    const fill = document.getElementById('strength-fill');
+    if (input.value.length > 0) {
+      bar.style.display = 'block';
+      const pct = (result.strength / 4) * 100;
+      fill.style.width = pct + '%';
+      const colors = ['#E24B4A','#EF9F27','#EF9F27','#1D9E75','#1D9E75'];
+      fill.style.background = colors[result.strength];
+    } else {
+      bar.style.display = 'none';
+    }
+    if (document.getElementById('confirm').value) validate('confirm');
+  }
+
+  updateSubmit();
+}
+
+function updateSubmit() {
+  const btn = document.getElementById('submit-btn');
+  const allValid = Object.values(state).every(Boolean);
+  btn.disabled = !allValid;
+  btn.style.cursor = allValid ? 'pointer' : 'not-allowed';
+  btn.style.background = allValid ? 'var(--color-text-primary)' : 'var(--color-border-tertiary)';
+  btn.style.color = allValid ? 'var(--color-background-primary)' : 'var(--color-text-tertiary)';
+}
+
+function handleSubmit() {
+  const msg = document.getElementById('submit-msg');
+  msg.textContent = '✓ Account created! Welcome aboard.';
+  ['name','email','password','confirm','username'].forEach(f => {
+    document.getElementById(f).disabled = true;
+  });
+  document.getElementById('submit-btn').disabled = true;
+  document.getElementById('submit-btn').textContent = 'Account created';
+}
+</script>

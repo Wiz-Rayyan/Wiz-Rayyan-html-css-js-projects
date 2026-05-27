@@ -1,0 +1,603 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+#app{background:#1E1E2E;color:#CDD6F4;font-family:'Inter',sans-serif;font-size:13px;height:620px;display:grid;grid-template-rows:36px 28px 1fr;grid-template-columns:200px 1fr 220px;border-radius:10px;overflow:hidden;border:1px solid #313244}
+#titlebar{grid-column:1/-1;background:#181825;border-bottom:1px solid #313244;display:flex;align-items:center;gap:8px;padding:0 12px}
+.dot{width:12px;height:12px;border-radius:50%}
+.dot-r{background:#F38BA8}.dot-y{background:#F9E2AF}.dot-g{background:#A6E3A1}
+#breadcrumb{grid-column:1/-1;background:#181825;border-bottom:1px solid #313244;display:flex;align-items:center;padding:0 10px;gap:4px;font-size:11px;color:#6C7086}
+.bc-sep{color:#45475A}.bc-link{color:#89B4FA;cursor:pointer}.bc-link:hover{color:#CDD6F4}
+#left-panel{background:#181825;border-right:1px solid #313244;display:flex;flex-direction:column;overflow:hidden}
+#left-panel-tabs{display:flex;border-bottom:1px solid #313244}
+.lpt{flex:1;padding:6px 0;text-align:center;font-size:11px;color:#6C7086;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
+.lpt.active{color:#CBA6F7;border-bottom-color:#CBA6F7}
+.lpt:hover:not(.active){color:#BAC2DE}
+#left-panel-body{flex:1;overflow-y:auto;padding:6px 0}
+.tree-item{display:flex;align-items:center;gap:5px;padding:3px 10px;font-size:11px;color:#6C7086;cursor:pointer;border-radius:4px;margin:1px 4px;transition:background .1s,color .1s}
+.tree-item:hover{background:#313244;color:#CDD6F4}
+.tree-item.active{background:#313244;color:#89B4FA}
+.tree-item i{font-size:12px;flex-shrink:0}
+.tree-folder{font-weight:500;color:#BAC2DE}
+.tree-indent{padding-left:24px}
+#main-area{overflow:hidden;position:relative;display:flex;flex-direction:column}
+#tab-bar{background:#181825;border-bottom:1px solid #313244;display:flex;align-items:center;gap:0;overflow-x:auto;min-height:32px}
+.file-tab{display:flex;align-items:center;gap:6px;padding:0 12px;height:32px;font-size:11px;color:#6C7086;cursor:pointer;border-right:1px solid #313244;white-space:nowrap;transition:background .1s,color .1s;flex-shrink:0}
+.file-tab.active{background:#1E1E2E;color:#CDD6F4}
+.file-tab:hover:not(.active){background:#26263a;color:#BAC2DE}
+.file-tab i{font-size:11px}
+.tab-close{color:#45475A;font-size:10px;margin-left:2px;border-radius:3px;width:14px;height:14px;display:flex;align-items:center;justify-content:center}
+.tab-close:hover{background:#45475A;color:#CDD6F4}
+#content-area{flex:1;overflow-y:auto;position:relative}
+#view-editor{padding:20px 28px;line-height:1.7}
+#view-canvas{display:none;padding:16px;position:relative;height:100%}
+#view-daily{display:none;padding:20px 28px}
+#view-search{display:none;padding:16px}
+.canvas-board{background:#13131d;border:1px solid #313244;border-radius:8px;position:relative;height:360px;overflow:hidden;cursor:grab}
+.canvas-card{position:absolute;background:#1E1E2E;border:1px solid #45475A;border-radius:8px;padding:10px 12px;font-size:11px;cursor:move;min-width:120px;transition:border-color .15s}
+.canvas-card:hover{border-color:#CBA6F7}
+.canvas-card-title{font-size:12px;font-weight:500;color:#CDD6F4;margin-bottom:4px;display:flex;align-items:center;gap:5px}
+.canvas-card-body{color:#7F849C;font-size:11px;line-height:1.5}
+.canvas-card-tag{display:inline-block;background:#313244;color:#CBA6F7;font-size:9px;padding:1px 6px;border-radius:8px;margin-top:5px}
+.canvas-arrow{position:absolute;pointer-events:none}
+.md-h1{font-size:21px;font-weight:600;color:#CDD6F4;margin-bottom:10px;border-bottom:1px solid #313244;padding-bottom:8px}
+.md-h2{font-size:15px;font-weight:500;color:#CDD6F4;margin:14px 0 5px}
+.md-p{font-size:13px;color:#BAC2DE;margin-bottom:7px;line-height:1.7}
+.md-link{color:#89B4FA;text-decoration:none;border-bottom:1px solid #3B4261;cursor:pointer}
+.md-link:hover{color:#CDD6F4;border-bottom-color:#89B4FA}
+.md-code{font-family:'JetBrains Mono',monospace;background:#313244;color:#F38BA8;padding:1px 5px;border-radius:4px;font-size:11px}
+.md-bullet{color:#BAC2DE;margin-bottom:3px;font-size:13px;padding-left:14px;position:relative}
+.md-bullet::before{content:"•";color:#585B70;position:absolute;left:0}
+.md-task{display:flex;align-items:flex-start;gap:7px;margin-bottom:4px;font-size:13px;color:#BAC2DE;cursor:pointer}
+.md-task input[type=checkbox]{accent-color:#CBA6F7;margin-top:2px;cursor:pointer}
+.md-task.done{color:#585B70;text-decoration:line-through}
+.callout{border:1px solid #313244;border-left:3px solid #89DCEB;border-radius:6px;padding:9px 12px;margin:10px 0}
+.callout-title{font-size:11px;font-weight:600;color:#89DCEB;letter-spacing:.5px;text-transform:uppercase;margin-bottom:3px;display:flex;align-items:center;gap:5px}
+.callout-body{font-size:12px;color:#7F849C}
+.daily-date{font-size:18px;font-weight:600;color:#CDD6F4;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.daily-nav{background:none;border:1px solid #313244;color:#6C7086;padding:2px 8px;border-radius:4px;cursor:pointer;font-size:11px;font-family:'Inter',sans-serif}
+.daily-nav:hover{background:#313244;color:#CDD6F4}
+.habit-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.habit-label{font-size:12px;color:#BAC2DE;width:100px;flex-shrink:0}
+.habit-dots{display:flex;gap:4px}
+.habit-dot{width:14px;height:14px;border-radius:3px;background:#313244;cursor:pointer;transition:background .15s}
+.habit-dot.done{background:#A6E3A1}
+.habit-dot.skip{background:#45475A}
+.mood-row{display:flex;gap:8px;margin:10px 0}
+.mood-btn{width:32px;height:32px;border-radius:6px;background:#313244;border:1px solid #45475A;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:background .15s}
+.mood-btn.active{background:#45475A;border-color:#CBA6F7}
+.search-input-wrap{display:flex;align-items:center;gap:8px;background:#13131d;border:1px solid #313244;border-radius:6px;padding:6px 10px;margin-bottom:12px}
+.search-input-wrap input{background:transparent;border:none;outline:none;color:#CDD6F4;font-size:13px;width:100%;font-family:'Inter',sans-serif}
+.search-input-wrap i{color:#6C7086;font-size:14px;flex-shrink:0}
+.search-result{padding:8px 10px;border-radius:6px;border:1px solid #313244;margin-bottom:6px;cursor:pointer;transition:background .1s}
+.search-result:hover{background:#26263a}
+.search-result-title{font-size:12px;font-weight:500;color:#89B4FA;margin-bottom:2px;display:flex;align-items:center;gap:5px}
+.search-result-snippet{font-size:11px;color:#6C7086;line-height:1.5}
+.search-result-snippet mark{background:#4B3F2A;color:#F9E2AF;border-radius:2px;padding:0 2px}
+#right-panel{background:#181825;border-left:1px solid #313244;display:flex;flex-direction:column;overflow:hidden}
+#right-tabs{display:flex;border-bottom:1px solid #313244}
+.rt{flex:1;padding:6px 0;text-align:center;font-size:11px;color:#6C7086;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
+.rt.active{color:#CBA6F7;border-bottom-color:#CBA6F7}
+.rt:hover:not(.active){color:#BAC2DE}
+#right-body{flex:1;overflow-y:auto;padding:8px}
+.section-label{font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:#6C7086;margin:10px 0 6px;display:flex;align-items:center;gap:5px}
+.section-label i{font-size:12px}
+.backlink-item{padding:4px 6px;border-radius:4px;cursor:pointer;font-size:12px;color:#89B4FA;display:flex;align-items:center;gap:5px;margin-bottom:2px}
+.backlink-item:hover{background:#313244}
+.backlink-item i{color:#585B70;font-size:11px}
+.backlink-ctx{font-size:11px;color:#585B70;padding-left:18px;margin-bottom:5px;line-height:1.4}
+.outline-item{font-size:11px;color:#6C7086;padding:2px 4px;cursor:pointer;border-radius:3px;display:flex;align-items:center;gap:5px}
+.outline-item:hover{color:#BAC2DE;background:#313244}
+.outline-item.h1{font-weight:500;color:#BAC2DE}
+.outline-item.h2{padding-left:10px}
+.outline-item.h3{padding-left:20px;color:#45475A}
+.tag-pill{display:inline-block;background:#313244;color:#CBA6F7;font-size:10px;padding:2px 7px;border-radius:10px;margin:2px 2px 2px 0;cursor:pointer}
+.tag-pill:hover{background:#45475A}
+.prop-row{display:flex;justify-content:space-between;align-items:center;font-size:11px;padding:2px 0;color:#6C7086}
+.prop-val{color:#A6E3A1;font-family:'JetBrains Mono',monospace;font-size:11px}
+#cmd-overlay{display:none;position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.55);z-index:100;align-items:flex-start;justify-content:center;padding-top:60px}
+#cmd-overlay.show{display:flex}
+#cmd-box{background:#24273A;border:1px solid #45475A;border-radius:10px;width:440px;overflow:hidden}
+#cmd-input-wrap{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid #313244}
+#cmd-input-wrap i{color:#6C7086;font-size:16px}
+#cmd-input{background:transparent;border:none;outline:none;color:#CDD6F4;font-size:14px;width:100%;font-family:'Inter',sans-serif}
+#cmd-input::placeholder{color:#45475A}
+.cmd-item{display:flex;align-items:center;gap:10px;padding:8px 14px;cursor:pointer;transition:background .1s}
+.cmd-item:hover,.cmd-item.selected{background:#313244}
+.cmd-item i{color:#CBA6F7;font-size:15px;width:20px;text-align:center}
+.cmd-item-label{font-size:13px;color:#CDD6F4}
+.cmd-item-kbd{margin-left:auto;font-size:10px;color:#585B70;font-family:'JetBrains Mono',monospace;background:#181825;padding:2px 6px;border-radius:4px}
+.cmd-section{font-size:10px;color:#45475A;padding:8px 14px 4px;letter-spacing:.8px;text-transform:uppercase}
+.statusbar{height:22px;background:#181825;border-top:1px solid #313244;display:flex;align-items:center;padding:0 10px;gap:12px;font-size:10px;color:#45475A;grid-column:1/-1}
+.status-item{display:flex;align-items:center;gap:4px;cursor:pointer}
+.status-item:hover{color:#6C7086}
+.status-item i{font-size:11px}
+.status-right{margin-left:auto;display:flex;gap:12px}
+.toolbar-row{display:flex;align-items:center;gap:2px;padding:0 8px;height:28px;background:#181825;border-bottom:1px solid #313244}
+.tbtn{width:24px;height:24px;border-radius:4px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#6C7086;font-size:13px;transition:background .12s,color .12s}
+.tbtn:hover{background:#313244;color:#CDD6F4}
+.tbtn.active{background:#313244;color:#CBA6F7}
+.tbtn-sep{width:1px;height:16px;background:#313244;margin:0 3px}
+.progress-bar{height:3px;background:#313244;border-radius:2px;margin-top:6px;overflow:hidden}
+.progress-fill{height:100%;background:#A6E3A1;border-radius:2px;transition:width .3s}
+.word-count-badge{background:#313244;color:#6C7086;font-size:10px;padding:2px 6px;border-radius:10px;margin-left:auto}
+#titlebar-name{margin-left:8px;font-size:12px;color:#6C7086;font-family:'JetBrains Mono',monospace;letter-spacing:.5px}
+.tab-dots{display:flex;gap:3px;margin-left:6px}
+</style>
+
+<div id="app">
+  <div id="titlebar">
+    <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+    <span id="titlebar-name">~/vault — Obsidian</span>
+    <div class="tab-dots" style="margin-left:auto">
+      <div class="tbtn" onclick="toggleCmd()" title="Command palette" aria-label="Command palette"><i class="ti ti-terminal" aria-hidden="true"></i></div>
+      <div class="tbtn" title="Toggle left panel" aria-label="Toggle left panel" onclick="toggleLeft()"><i class="ti ti-layout-sidebar" aria-hidden="true"></i></div>
+      <div class="tbtn" title="Toggle right panel" aria-label="Toggle right panel" onclick="toggleRight()"><i class="ti ti-layout-sidebar-right" aria-hidden="true"></i></div>
+    </div>
+  </div>
+
+  <div id="breadcrumb">
+    <span class="bc-link">vault</span><span class="bc-sep">/</span>
+    <span class="bc-link">Notes</span><span class="bc-sep">/</span>
+    <span style="color:#BAC2DE" id="bc-current">Spaced Repetition</span>
+    <span class="word-count-badge" id="wc-badge">312 words</span>
+  </div>
+
+  <div id="left-panel">
+    <div id="left-panel-tabs">
+      <div class="lpt active" onclick="setLeftTab(0,this)"><i class="ti ti-files" aria-hidden="true"></i></div>
+      <div class="lpt" onclick="setLeftTab(1,this)"><i class="ti ti-search" aria-hidden="true"></i></div>
+      <div class="lpt" onclick="setLeftTab(2,this)"><i class="ti ti-bookmark" aria-hidden="true"></i></div>
+      <div class="lpt" onclick="setLeftTab(3,this)"><i class="ti ti-history" aria-hidden="true"></i></div>
+    </div>
+    <div id="left-panel-body">
+      <div id="lp0">
+        <div class="tree-item tree-folder"><i class="ti ti-chevron-down" aria-hidden="true"></i><i class="ti ti-folder" aria-hidden="true"></i> vault</div>
+        <div class="tree-item tree-indent" onclick="openTab('Spaced Repetition','ti-file-text',true)"><i class="ti ti-file-text" aria-hidden="true"></i> Spaced Repetition</div>
+        <div class="tree-item tree-indent" onclick="openTab('Atomic Notes','ti-file-text',true)"><i class="ti ti-file-text" aria-hidden="true"></i> Atomic Notes</div>
+        <div class="tree-item tree-indent" onclick="openTab('Zettelkasten','ti-file-text',true)"><i class="ti ti-file-text" aria-hidden="true"></i> Zettelkasten</div>
+        <div class="tree-item tree-folder tree-indent" style="margin-top:4px"><i class="ti ti-chevron-down" aria-hidden="true"></i><i class="ti ti-folder" aria-hidden="true"></i> Projects</div>
+        <div class="tree-item" style="padding-left:36px" onclick="openTab('Canvas','ti-layout-board',false)"><i class="ti ti-layout-board" aria-hidden="true"></i> Canvas</div>
+        <div class="tree-item tree-folder tree-indent" style="margin-top:4px"><i class="ti ti-chevron-down" aria-hidden="true"></i><i class="ti ti-folder" aria-hidden="true"></i> Daily</div>
+        <div class="tree-item" style="padding-left:36px" onclick="openTab('2024-04-01','ti-calendar',false)"><i class="ti ti-calendar" aria-hidden="true"></i> 2024-04-01</div>
+        <div class="tree-item" style="padding-left:36px" onclick="openTab('2024-03-31','ti-calendar',false)"><i class="ti ti-calendar" aria-hidden="true"></i> 2024-03-31</div>
+      </div>
+      <div id="lp1" style="display:none;padding:6px">
+        <div class="search-input-wrap"><i class="ti ti-search" aria-hidden="true"></i><input type="text" placeholder="Search vault…" oninput="liveSearch(this.value)" id="left-search"/></div>
+        <div id="left-results"></div>
+      </div>
+      <div id="lp2" style="display:none">
+        <div style="padding:8px 10px;font-size:11px;color:#6C7086">
+          <div class="tree-item"><i class="ti ti-star" aria-hidden="true"></i><span style="color:#F9E2AF">Spaced Repetition</span></div>
+          <div class="tree-item"><i class="ti ti-star" aria-hidden="true"></i><span style="color:#F9E2AF">Zettelkasten MOC</span></div>
+          <div class="tree-item"><i class="ti ti-star" aria-hidden="true"></i><span style="color:#F9E2AF">Research Index</span></div>
+        </div>
+      </div>
+      <div id="lp3" style="display:none">
+        <div style="padding:8px 10px;font-size:11px;color:#6C7086">
+          <div style="font-size:10px;letter-spacing:.8px;text-transform:uppercase;margin-bottom:6px;color:#45475A">Recent</div>
+          <div class="tree-item"><i class="ti ti-clock" aria-hidden="true"></i> Spaced Repetition</div>
+          <div class="tree-item"><i class="ti ti-clock" aria-hidden="true"></i> Atomic Notes</div>
+          <div class="tree-item"><i class="ti ti-clock" aria-hidden="true"></i> Canvas</div>
+          <div class="tree-item"><i class="ti ti-clock" aria-hidden="true"></i> 2024-04-01</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="main-area">
+    <div id="tab-bar">
+      <div class="file-tab active" id="tab-Spaced Repetition" onclick="switchTab('Spaced Repetition')">
+        <i class="ti ti-file-text" aria-hidden="true"></i> Spaced Repetition <span class="tab-close" onclick="event.stopPropagation();closeTab('Spaced Repetition')">×</span>
+      </div>
+    </div>
+    <div class="toolbar-row">
+      <div class="tbtn active" title="Edit mode" aria-label="Edit mode"><i class="ti ti-pencil" aria-hidden="true"></i></div>
+      <div class="tbtn" title="Preview mode" aria-label="Preview mode"><i class="ti ti-eye" aria-hidden="true"></i></div>
+      <div class="tbtn-sep"></div>
+      <div class="tbtn" title="Bold" aria-label="Bold"><i class="ti ti-bold" aria-hidden="true"></i></div>
+      <div class="tbtn" title="Italic" aria-label="Italic"><i class="ti ti-italic" aria-hidden="true"></i></div>
+      <div class="tbtn" title="Link" aria-label="Link"><i class="ti ti-link" aria-hidden="true"></i></div>
+      <div class="tbtn" title="Code block" aria-label="Code block"><i class="ti ti-code" aria-hidden="true"></i></div>
+      <div class="tbtn-sep"></div>
+      <div class="tbtn" title="Insert table" aria-label="Insert table"><i class="ti ti-table" aria-hidden="true"></i></div>
+      <div class="tbtn" title="Insert callout" aria-label="Insert callout"><i class="ti ti-alert-circle" aria-hidden="true"></i></div>
+      <div class="tbtn" title="Embed" aria-label="Embed"><i class="ti ti-paperclip" aria-hidden="true"></i></div>
+      <div class="tbtn-sep"></div>
+      <div class="tbtn" title="Graph view" aria-label="Graph view" onclick="openTab('Canvas','ti-layout-board',false)"><i class="ti ti-chart-dots" aria-hidden="true"></i></div>
+    </div>
+    <div id="content-area">
+      <div id="view-editor">
+        <div class="md-h1">Spaced Repetition</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;font-size:11px;color:#45475A">
+          <i class="ti ti-calendar" aria-hidden="true"></i> 2024-03-15
+          <i class="ti ti-clock" aria-hidden="true"></i> 5 min read
+          <i class="ti ti-link" aria-hidden="true"></i> 9 links
+        </div>
+        <div class="callout">
+          <div class="callout-title"><i class="ti ti-brain" aria-hidden="true"></i> concept</div>
+          <div class="callout-body">Reviewing information at increasing intervals to exploit the <strong style="color:#CDD6F4">forgetting curve</strong> — the rate at which memory decays without reinforcement.</div>
+        </div>
+        <div class="md-h2">How it works</div>
+        <p class="md-p">The <span class="md-link">[[Ebbinghaus Forgetting Curve]]</span> shows that without review, ~70% of new information is lost within 24 hours. <span class="md-link">[[SRS algorithms]]</span> like SM-2 schedule reviews just before forgetting occurs.</p>
+        <div class="md-h2">Tasks</div>
+        <label class="md-task" id="task1"><input type="checkbox" onchange="toggleTask('task1',this)"> Read Anki documentation</label>
+        <label class="md-task done" id="task2"><input type="checkbox" checked onchange="toggleTask('task2',this)"> Set up daily review deck</label>
+        <label class="md-task" id="task3"><input type="checkbox" onchange="toggleTask('task3',this)"> Link to <span class="md-link">[[Atomic Notes]]</span></label>
+        <label class="md-task" id="task4"><input type="checkbox" onchange="toggleTask('task4',this)"> Write literature note from Supermemo</label>
+        <div style="margin-top:4px">
+          <div style="font-size:11px;color:#6C7086;margin-bottom:3px">Task progress</div>
+          <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:25%"></div></div>
+          <div style="font-size:10px;color:#6C7086;margin-top:3px" id="progress-label">1 / 4 done</div>
+        </div>
+        <div class="md-h2">Related</div>
+        <p class="md-p"><span class="md-link">[[Atomic Notes]]</span> · <span class="md-link">[[Zettelkasten]]</span> · <span class="md-link">[[Active Recall]]</span> · <span class="md-link">[[Anki]]</span> · <span class="md-link">[[Memory Palace]]</span></p>
+      </div>
+      <div id="view-canvas">
+        <div style="font-size:11px;color:#6C7086;margin-bottom:8px;display:flex;align-items:center;gap:6px"><i class="ti ti-layout-board" aria-hidden="true"></i> Canvas — drag cards to rearrange ideas</div>
+        <div class="canvas-board" id="canvas-board">
+          <svg style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none" id="canvas-svg"></svg>
+          <div class="canvas-card" id="cc0" style="left:20px;top:30px;min-width:130px" onmousedown="startDrag(event,'cc0')">
+            <div class="canvas-card-title"><i class="ti ti-brain" aria-hidden="true" style="color:#CBA6F7"></i> Spaced Repetition</div>
+            <div class="canvas-card-body">Review at increasing intervals to fight forgetting</div>
+            <span class="canvas-card-tag">#memory</span>
+          </div>
+          <div class="canvas-card" id="cc1" style="left:190px;top:20px;min-width:110px" onmousedown="startDrag(event,'cc1')">
+            <div class="canvas-card-title"><i class="ti ti-chart-line" aria-hidden="true" style="color:#89DCEB"></i> Forgetting Curve</div>
+            <div class="canvas-card-body">Ebbinghaus 1885 — exponential decay model</div>
+          </div>
+          <div class="canvas-card" id="cc2" style="left:190px;top:155px;min-width:110px" onmousedown="startDrag(event,'cc2')">
+            <div class="canvas-card-title"><i class="ti ti-cards" aria-hidden="true" style="color:#A6E3A1"></i> Anki</div>
+            <div class="canvas-card-body">SRS flashcard app, SM-2 algorithm</div>
+            <span class="canvas-card-tag">#tool</span>
+          </div>
+          <div class="canvas-card" id="cc3" style="left:350px;top:80px;min-width:120px" onmousedown="startDrag(event,'cc3')">
+            <div class="canvas-card-title"><i class="ti ti-bulb" aria-hidden="true" style="color:#F9E2AF"></i> Active Recall</div>
+            <div class="canvas-card-body">Retrieval practice strengthens memory traces</div>
+          </div>
+          <div class="canvas-card" id="cc4" style="left:20px;top:200px;min-width:130px" onmousedown="startDrag(event,'cc4')">
+            <div class="canvas-card-title"><i class="ti ti-atom" aria-hidden="true" style="color:#89B4FA"></i> Atomic Notes</div>
+            <div class="canvas-card-body">One idea per card — pairs with SRS</div>
+          </div>
+        </div>
+      </div>
+      <div id="view-daily">
+        <div class="daily-date">
+          <button class="daily-nav" onclick="changeDay(-1)" aria-label="Previous day">‹</button>
+          <span id="daily-date-label">Monday, April 1 2024</span>
+          <button class="daily-nav" onclick="changeDay(1)" aria-label="Next day">›</button>
+        </div>
+        <div style="font-size:11px;color:#6C7086;margin-bottom:12px">Daily Note</div>
+        <div class="md-h2">Mood</div>
+        <div class="mood-row">
+          <div class="mood-btn" onclick="setMood(0,this)" title="awful">😞</div>
+          <div class="mood-btn" onclick="setMood(1,this)" title="meh">😐</div>
+          <div class="mood-btn active" onclick="setMood(2,this)" title="okay">🙂</div>
+          <div class="mood-btn" onclick="setMood(3,this)" title="good">😄</div>
+          <div class="mood-btn" onclick="setMood(4,this)" title="great">🤩</div>
+        </div>
+        <div class="md-h2" style="margin-top:12px">Habits</div>
+        <div id="habits-container">
+          <div class="habit-row"><span class="habit-label">Read</span><div class="habit-dots" id="h0"></div></div>
+          <div class="habit-row"><span class="habit-label">Exercise</span><div class="habit-dots" id="h1"></div></div>
+          <div class="habit-row"><span class="habit-label">Anki review</span><div class="habit-dots" id="h2"></div></div>
+          <div class="habit-row"><span class="habit-label">Journaling</span><div class="habit-dots" id="h3"></div></div>
+        </div>
+        <div class="md-h2" style="margin-top:12px">Today's notes</div>
+        <p class="md-p">Reviewed <span class="md-link">[[Spaced Repetition]]</span> flashcards — retention improving. Started reading <span class="md-link">[[How to Take Smart Notes]]</span>.</p>
+        <div class="md-h2" style="margin-top:12px">Tasks</div>
+        <label class="md-task"><input type="checkbox"> Morning review</label>
+        <label class="md-task done"><input type="checkbox" checked> Write 3 atomic notes</label>
+        <label class="md-task"><input type="checkbox"> Update <span class="md-link">[[MOC]]</span></label>
+      </div>
+      <div id="view-search">
+        <div class="search-input-wrap" style="margin-bottom:10px"><i class="ti ti-search" aria-hidden="true"></i><input type="text" placeholder="Search entire vault…" id="main-search" oninput="mainSearch(this.value)"/></div>
+        <div id="search-results-main"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="right-panel">
+    <div id="right-tabs">
+      <div class="rt active" onclick="setRightTab(0,this)" title="Backlinks"><i class="ti ti-arrow-back-up" aria-hidden="true"></i></div>
+      <div class="rt" onclick="setRightTab(1,this)" title="Outline"><i class="ti ti-list" aria-hidden="true"></i></div>
+      <div class="rt" onclick="setRightTab(2,this)" title="Tags"><i class="ti ti-tag" aria-hidden="true"></i></div>
+      <div class="rt" onclick="setRightTab(3,this)" title="Properties"><i class="ti ti-info-circle" aria-hidden="true"></i></div>
+    </div>
+    <div id="right-body">
+      <div id="rp0">
+        <div class="section-label"><i class="ti ti-arrow-back-up" aria-hidden="true"></i> Backlinks (3)</div>
+        <div class="backlink-item"><i class="ti ti-file-text" aria-hidden="true"></i> Atomic Notes</div>
+        <div class="backlink-ctx">…pairs well with <strong style="color:#CDD6F4">[[Spaced Repetition]]</strong> for long-term retention…</div>
+        <div class="backlink-item"><i class="ti ti-file-text" aria-hidden="true"></i> 2024-04-01</div>
+        <div class="backlink-ctx">…reviewed <strong style="color:#CDD6F4">[[Spaced Repetition]]</strong> deck today…</div>
+        <div class="backlink-item"><i class="ti ti-file-text" aria-hidden="true"></i> Memory Palace</div>
+        <div class="backlink-ctx">…contrast with <strong style="color:#CDD6F4">[[Spaced Repetition]]</strong> for encoding…</div>
+        <div class="section-label" style="margin-top:12px"><i class="ti ti-link" aria-hidden="true"></i> Outgoing (5)</div>
+        <div class="backlink-item"><i class="ti ti-file-text" aria-hidden="true"></i> Ebbinghaus Forgetting Curve</div>
+        <div class="backlink-item"><i class="ti ti-file-text" aria-hidden="true"></i> SRS algorithms</div>
+        <div class="backlink-item"><i class="ti ti-file-text" aria-hidden="true"></i> Anki</div>
+        <div class="backlink-item"><i class="ti ti-file-text" aria-hidden="true"></i> Active Recall</div>
+        <div class="backlink-item"><i class="ti ti-file-text" aria-hidden="true"></i> Atomic Notes</div>
+      </div>
+      <div id="rp1" style="display:none">
+        <div class="section-label"><i class="ti ti-list" aria-hidden="true"></i> Outline</div>
+        <div class="outline-item h1"><i class="ti ti-hash" aria-hidden="true"></i> Spaced Repetition</div>
+        <div class="outline-item h2"><i class="ti ti-hash" aria-hidden="true"></i> How it works</div>
+        <div class="outline-item h2"><i class="ti ti-hash" aria-hidden="true"></i> Tasks</div>
+        <div class="outline-item h2"><i class="ti ti-hash" aria-hidden="true"></i> Related</div>
+      </div>
+      <div id="rp2" style="display:none">
+        <div class="section-label"><i class="ti ti-tag" aria-hidden="true"></i> Tags in vault</div>
+        <span class="tag-pill">#memory</span><span class="tag-pill">#pkm</span><span class="tag-pill">#zettelkasten</span><span class="tag-pill">#atomic</span><span class="tag-pill">#tool</span><span class="tag-pill">#daily</span><span class="tag-pill">#project</span><span class="tag-pill">#learning</span><span class="tag-pill">#anki</span><span class="tag-pill">#notes</span>
+        <div class="section-label" style="margin-top:14px"><i class="ti ti-tag" aria-hidden="true"></i> This note</div>
+        <span class="tag-pill">#memory</span><span class="tag-pill">#learning</span><span class="tag-pill">#pkm</span>
+      </div>
+      <div id="rp3" style="display:none">
+        <div class="section-label"><i class="ti ti-info-circle" aria-hidden="true"></i> Properties</div>
+        <div class="prop-row"><span>Created</span><span class="prop-val">2024-03-15</span></div>
+        <div class="prop-row"><span>Modified</span><span class="prop-val">2024-04-01</span></div>
+        <div class="prop-row"><span>Words</span><span class="prop-val">312</span></div>
+        <div class="prop-row"><span>Links</span><span class="prop-val">9</span></div>
+        <div class="prop-row"><span>Backlinks</span><span class="prop-val">3</span></div>
+        <div class="prop-row"><span>Tasks</span><span class="prop-val">1/4 done</span></div>
+        <div class="section-label" style="margin-top:12px"><i class="ti ti-code" aria-hidden="true"></i> Frontmatter</div>
+        <div style="background:#13131d;border-radius:5px;padding:8px;font-family:'JetBrains Mono',monospace;font-size:10px;color:#A6E3A1;border:1px solid #313244">
+          <div style="color:#6C7086">---</div>
+          <div><span style="color:#89DCEB">aliases</span>: <span style="color:#F9E2AF">[SRS]</span></div>
+          <div><span style="color:#89DCEB">status</span>: <span style="color:#F9E2AF">in-progress</span></div>
+          <div><span style="color:#89DCEB">source</span>: <span style="color:#F9E2AF">Ebbinghaus 1885</span></div>
+          <div style="color:#6C7086">---</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="statusbar" style="grid-column:1/-1">
+    <div class="status-item"><i class="ti ti-plug" aria-hidden="true"></i> 12 plugins</div>
+    <div class="status-item"><i class="ti ti-files" aria-hidden="true"></i> 84 notes</div>
+    <div class="status-item" onclick="openTab('2024-04-01','ti-calendar',false)"><i class="ti ti-calendar" aria-hidden="true"></i> Daily note</div>
+    <div class="status-right">
+      <div class="status-item"><i class="ti ti-keyboard" aria-hidden="true"></i> <span onclick="toggleCmd()" style="cursor:pointer">⌘K palette</span></div>
+      <div class="status-item" id="sync-status"><i class="ti ti-cloud-check" aria-hidden="true"></i> synced</div>
+      <div class="status-item"><i class="ti ti-moon" aria-hidden="true"></i> Catppuccin</div>
+    </div>
+  </div>
+
+  <div id="cmd-overlay" onclick="if(event.target===this)toggleCmd()">
+    <div id="cmd-box">
+      <div id="cmd-input-wrap"><i class="ti ti-terminal" aria-hidden="true"></i><input id="cmd-input" type="text" placeholder="Type a command or search…" oninput="filterCmd(this.value)" onkeydown="cmdKey(event)" autocomplete="off"/></div>
+      <div id="cmd-list">
+        <div class="cmd-section">Commands</div>
+        <div class="cmd-item selected" onclick="cmdAction('new')"><i class="ti ti-file-plus" aria-hidden="true"></i><span class="cmd-item-label">New note</span><span class="cmd-item-kbd">⌘N</span></div>
+        <div class="cmd-item" onclick="cmdAction('daily')"><i class="ti ti-calendar" aria-hidden="true"></i><span class="cmd-item-label">Open today's daily note</span><span class="cmd-item-kbd">⌘D</span></div>
+        <div class="cmd-item" onclick="cmdAction('graph')"><i class="ti ti-chart-dots" aria-hidden="true"></i><span class="cmd-item-label">Open graph view</span><span class="cmd-item-kbd">⌘G</span></div>
+        <div class="cmd-item" onclick="cmdAction('canvas')"><i class="ti ti-layout-board" aria-hidden="true"></i><span class="cmd-item-label">New canvas</span></div>
+        <div class="cmd-item" onclick="cmdAction('search')"><i class="ti ti-search" aria-hidden="true"></i><span class="cmd-item-label">Search vault</span><span class="cmd-item-kbd">⌘F</span></div>
+        <div class="cmd-section">Recent</div>
+        <div class="cmd-item" onclick="cmdAction('spaced')"><i class="ti ti-file-text" aria-hidden="true"></i><span class="cmd-item-label">Spaced Repetition</span></div>
+        <div class="cmd-item" onclick="cmdAction('atomic')"><i class="ti ti-file-text" aria-hidden="true"></i><span class="cmd-item-label">Atomic Notes</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const TABS = {};
+let activeName = 'Spaced Repetition';
+const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+let currentDate = new Date(2024,3,1);
+
+function openTab(name, icon, isNote) {
+  if (!TABS[name]) {
+    TABS[name] = {name, icon, isNote};
+    const tb = document.getElementById('tab-bar');
+    const d = document.createElement('div');
+    d.className = 'file-tab';
+    d.id = 'tab-'+name;
+    d.innerHTML = `<i class="ti ${icon}" aria-hidden="true"></i> ${name} <span class="tab-close" onclick="event.stopPropagation();closeTab('${name}')">×</span>`;
+    d.onclick = () => switchTab(name);
+    tb.appendChild(d);
+  }
+  switchTab(name);
+}
+
+function switchTab(name) {
+  activeName = name;
+  document.querySelectorAll('.file-tab').forEach(t => t.classList.remove('active'));
+  const t = document.getElementById('tab-'+name);
+  if (t) t.classList.add('active');
+  document.getElementById('bc-current').textContent = name;
+  document.querySelectorAll('.tree-item').forEach(i => i.classList.remove('active'));
+
+  const ve = document.getElementById('view-editor');
+  const vc = document.getElementById('view-canvas');
+  const vd = document.getElementById('view-daily');
+  const vs = document.getElementById('view-search');
+  ve.style.display = 'none'; vc.style.display = 'none'; vd.style.display = 'none'; vs.style.display = 'none';
+
+  if (name === 'Canvas') { vc.style.display = 'block'; drawCanvasArrows(); }
+  else if (name === '2024-04-01' || name === '2024-03-31') { vd.style.display = 'block'; renderHabits(); }
+  else if (name === '__search') { vs.style.display = 'block'; }
+  else { ve.style.display = 'block'; }
+}
+
+function closeTab(name) {
+  const el = document.getElementById('tab-'+name);
+  if (el) el.remove();
+  delete TABS[name];
+  if (activeName === name) switchTab('Spaced Repetition');
+}
+
+function toggleLeft() {
+  const lp = document.getElementById('left-panel');
+  lp.style.display = lp.style.display === 'none' ? '' : 'none';
+}
+function toggleRight() {
+  const rp = document.getElementById('right-panel');
+  rp.style.display = rp.style.display === 'none' ? '' : 'none';
+}
+
+function setLeftTab(i, el) {
+  document.querySelectorAll('.lpt').forEach((t,j) => {
+    t.classList.toggle('active', j === i);
+    document.getElementById('lp'+j).style.display = j === i ? '' : 'none';
+  });
+}
+
+function setRightTab(i, el) {
+  document.querySelectorAll('.rt').forEach((t,j) => {
+    t.classList.toggle('active', j === i);
+    document.getElementById('rp'+j).style.display = j === i ? '' : 'none';
+  });
+}
+
+function toggleTask(id, cb) {
+  const row = document.getElementById(id);
+  if (cb.checked) row.classList.add('done'); else row.classList.remove('done');
+  updateProgress();
+}
+
+function updateProgress() {
+  const tasks = ['task1','task2','task3','task4'];
+  const done = tasks.filter(id => document.getElementById(id) && document.getElementById(id).classList.contains('done')).length;
+  const pct = Math.round(done/tasks.length*100);
+  document.getElementById('progress-fill').style.width = pct+'%';
+  document.getElementById('progress-label').textContent = done+' / '+tasks.length+' done';
+}
+
+const searchDocs = [
+  {title:'Spaced Repetition', body:'Review at increasing intervals to exploit the forgetting curve and SRS algorithms like SM-2'},
+  {title:'Atomic Notes', body:'Contains exactly one idea, making it linkable, reusable, and composable in your Zettelkasten'},
+  {title:'Zettelkasten', body:'Slip-box method for knowledge management — atomic notes densely connected'},
+  {title:'Memory Palace', body:'Method of loci — associating information with spatial locations for memorization'},
+  {title:'Anki', body:'SRS flashcard app using the SM-2 spaced repetition algorithm'},
+];
+
+function highlight(text, q) {
+  if (!q) return text;
+  const re = new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi');
+  return text.replace(re,'<mark>$1</mark>');
+}
+
+function liveSearch(q) {
+  const el = document.getElementById('left-results');
+  if (!q) { el.innerHTML = ''; return; }
+  const hits = searchDocs.filter(d => d.title.toLowerCase().includes(q.toLowerCase()) || d.body.toLowerCase().includes(q.toLowerCase()));
+  el.innerHTML = hits.map(d => `<div class="search-result" onclick="openTab('${d.title}','ti-file-text',true)"><div class="search-result-title"><i class="ti ti-file-text" aria-hidden="true"></i> ${highlight(d.title,q)}</div><div class="search-result-snippet">${highlight(d.body,q).slice(0,80)}…</div></div>`).join('') || '<div style="font-size:11px;color:#45475A;padding:4px">No results</div>';
+}
+
+function mainSearch(q) {
+  const el = document.getElementById('search-results-main');
+  if (!q) { el.innerHTML = ''; return; }
+  const hits = searchDocs.filter(d => d.title.toLowerCase().includes(q.toLowerCase()) || d.body.toLowerCase().includes(q.toLowerCase()));
+  el.innerHTML = hits.map(d => `<div class="search-result" onclick="openTab('${d.title}','ti-file-text',true)"><div class="search-result-title"><i class="ti ti-file-text" aria-hidden="true"></i> ${highlight(d.title,q)}</div><div class="search-result-snippet">${highlight(d.body,q)}</div></div>`).join('') || '<div style="font-size:12px;color:#45475A;padding:8px">No results found</div>';
+}
+
+function toggleCmd() {
+  const o = document.getElementById('cmd-overlay');
+  o.classList.toggle('show');
+  if (o.classList.contains('show')) { setTimeout(() => document.getElementById('cmd-input').focus(), 50); }
+}
+
+function filterCmd(q) {
+  const items = document.querySelectorAll('.cmd-item');
+  items.forEach(item => {
+    const lbl = item.querySelector('.cmd-item-label');
+    item.style.display = (!q || lbl.textContent.toLowerCase().includes(q.toLowerCase())) ? '' : 'none';
+  });
+}
+
+function cmdKey(e) {
+  if (e.key === 'Escape') toggleCmd();
+}
+
+function cmdAction(action) {
+  toggleCmd();
+  if (action === 'daily') openTab('2024-04-01','ti-calendar',false);
+  else if (action === 'canvas') openTab('Canvas','ti-layout-board',false);
+  else if (action === 'spaced') openTab('Spaced Repetition','ti-file-text',true);
+  else if (action === 'atomic') openTab('Atomic Notes','ti-file-text',true);
+  else if (action === 'search') { openTab('__search','ti-search',false); document.getElementById('view-search').style.display='block'; setTimeout(()=>document.getElementById('main-search').focus(),100); }
+}
+
+function changeDay(d) {
+  currentDate.setDate(currentDate.getDate() + d);
+  const label = days[currentDate.getDay()]+', '+months[currentDate.getMonth()]+' '+currentDate.getDate()+' '+currentDate.getFullYear();
+  document.getElementById('daily-date-label').textContent = label;
+}
+
+function setMood(i, el) {
+  document.querySelectorAll('.mood-btn').forEach((b,j) => b.classList.toggle('active', j === i));
+}
+
+const habitData = [
+  [1,1,1,0,1,1,0],[1,0,1,1,0,1,1],[1,1,0,1,1,1,0],[0,1,1,1,0,0,1]
+];
+
+function renderHabits() {
+  habitData.forEach((row, i) => {
+    const el = document.getElementById('h'+i);
+    if (!el) return;
+    el.innerHTML = row.map((v,j) => `<div class="habit-dot ${v?'done':''}" onclick="toggleHabit(${i},${j},this)"></div>`).join('');
+  });
+}
+
+function toggleHabit(h, d, el) {
+  habitData[h][d] = habitData[h][d] ? 0 : 1;
+  el.classList.toggle('done');
+}
+
+function drawCanvasArrows() {
+  setTimeout(() => {
+    const svg = document.getElementById('canvas-svg');
+    const board = document.getElementById('canvas-board');
+    const br = board.getBoundingClientRect();
+    const connections = [['cc0','cc1'],['cc0','cc2'],['cc0','cc4'],['cc1','cc3'],['cc2','cc3']];
+    svg.innerHTML = '';
+    connections.forEach(([a,b]) => {
+      const ea = document.getElementById(a), eb = document.getElementById(b);
+      if (!ea || !eb) return;
+      const ra = ea.getBoundingClientRect(), rb = eb.getBoundingClientRect();
+      const x1 = ra.left - br.left + ra.width/2, y1 = ra.top - br.top + ra.height/2;
+      const x2 = rb.left - br.left + rb.width/2, y2 = rb.top - br.top + rb.height/2;
+      const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('x1',x1); line.setAttribute('y1',y1);
+      line.setAttribute('x2',x2); line.setAttribute('y2',y2);
+      line.setAttribute('stroke','#45475A'); line.setAttribute('stroke-width','1.5');
+      line.setAttribute('stroke-dasharray','4 3');
+      svg.appendChild(line);
+    });
+  }, 80);
+}
+
+let dragState = null;
+function startDrag(e, id) {
+  e.preventDefault();
+  const el = document.getElementById(id);
+  const board = document.getElementById('canvas-board').getBoundingClientRect();
+  const startX = e.clientX - board.left - parseInt(el.style.left);
+  const startY = e.clientY - board.top - parseInt(el.style.top);
+  dragState = {el, startX, startY};
+  document.getElementById('canvas-board').style.cursor = 'grabbing';
+  document.onmousemove = moveDrag;
+  document.onmouseup = stopDrag;
+}
+function moveDrag(e) {
+  if (!dragState) return;
+  const board = document.getElementById('canvas-board').getBoundingClientRect();
+  let nx = e.clientX - board.left - dragState.startX;
+  let ny = e.clientY - board.top - dragState.startY;
+  dragState.el.style.left = Math.max(0, nx)+'px';
+  dragState.el.style.top = Math.max(0, ny)+'px';
+  drawCanvasArrows();
+}
+function stopDrag() {
+  dragState = null;
+  document.getElementById('canvas-board').style.cursor = 'grab';
+  document.onmousemove = null; document.onmouseup = null;
+}
+
+renderHabits();
+document.addEventListener('keydown', e => { if ((e.metaKey||e.ctrlKey) && e.key==='k') { e.preventDefault(); toggleCmd(); }});
+</script>

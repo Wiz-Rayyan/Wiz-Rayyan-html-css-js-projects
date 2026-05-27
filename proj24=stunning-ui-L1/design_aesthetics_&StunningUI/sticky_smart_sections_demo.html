@@ -1,0 +1,190 @@
+
+<style>
+  .sticky-demo { display: grid; grid-template-columns: 1fr 1fr; gap: 0; min-height: 520px; border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); overflow: hidden; background: var(--color-background-primary); }
+  .left-col { position: sticky; top: 0; height: 520px; padding: 2rem; display: flex; flex-direction: column; gap: 1rem; border-right: 0.5px solid var(--color-border-tertiary); background: var(--color-background-secondary); }
+  .media-stage { flex: 1; border-radius: var(--border-radius-lg); overflow: hidden; position: relative; cursor: pointer; background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); }
+  .media-panel { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; opacity: 0; transition: opacity 0.3s ease; pointer-events: none; }
+  .media-panel.active { opacity: 1; pointer-events: auto; }
+  .media-icon { font-size: 40px; }
+  .media-label { font-size: 13px; color: var(--color-text-secondary); }
+  .expand-hint { font-size: 12px; color: var(--color-text-tertiary); display: flex; align-items: center; gap: 4px; }
+  .left-meta { }
+  .left-tag { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 4px 10px; border-radius: 99px; border: 0.5px solid var(--color-border-secondary); color: var(--color-text-secondary); margin-bottom: 8px; }
+  .left-title { font-size: 18px; font-weight: 500; color: var(--color-text-primary); margin: 0 0 6px; transition: opacity 0.3s; }
+  .left-desc { font-size: 14px; color: var(--color-text-secondary); line-height: 1.6; margin: 0; transition: opacity 0.3s; }
+  .step-dots { display: flex; gap: 6px; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--color-border-secondary); transition: background 0.3s, transform 0.3s; }
+  .dot.active { background: var(--color-text-primary); transform: scale(1.4); }
+  .right-col { overflow-y: auto; max-height: 520px; scroll-snap-type: y mandatory; scrollbar-width: thin; }
+  .feature-section { min-height: 180px; padding: 2rem; border-bottom: 0.5px solid var(--color-border-tertiary); scroll-snap-align: start; transition: background 0.2s; }
+  .feature-section:last-child { border-bottom: none; }
+  .feature-section.in-view { background: var(--color-background-secondary); }
+  .feature-num { font-size: 12px; color: var(--color-text-tertiary); margin: 0 0 6px; }
+  .feature-title { font-size: 16px; font-weight: 500; margin: 0 0 8px; color: var(--color-text-primary); }
+  .feature-body { font-size: 14px; color: var(--color-text-secondary); line-height: 1.6; margin: 0 0 12px; }
+  .feature-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { font-size: 12px; padding: 3px 10px; border-radius: 99px; background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); color: var(--color-text-secondary); }
+
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal-box { background: var(--color-background-primary); border-radius: var(--border-radius-lg); border: 0.5px solid var(--color-border-tertiary); padding: 2rem; width: 340px; max-width: 90%; position: relative; }
+  .modal-close { position: absolute; top: 12px; right: 12px; background: none; border: none; cursor: pointer; font-size: 20px; color: var(--color-text-secondary); padding: 4px; }
+  .modal-body { display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center; }
+  .modal-icon { font-size: 56px; }
+  .modal-title { font-size: 18px; font-weight: 500; margin: 0; }
+  .modal-sub { font-size: 14px; color: var(--color-text-secondary); margin: 0; line-height: 1.6; }
+
+  .scroll-note { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--color-text-tertiary); padding: 8px 2rem; border-top: 0.5px solid var(--color-border-tertiary); background: var(--color-background-primary); }
+</style>
+
+<h2 class="sr-only">Sticky sections demo: left column stays fixed while right column scrolls through features.</h2>
+
+<div class="sticky-demo">
+  <div class="left-col" id="leftCol">
+    <div class="media-stage" id="mediaStage">
+      <div class="media-panel active" data-panel="0">
+        <div class="media-icon">🗂️</div>
+        <div class="media-label">Docs & wikis</div>
+        <div class="expand-hint"><i class="ti ti-arrows-maximize" aria-hidden="true" style="font-size:13px"></i> click to expand</div>
+      </div>
+      <div class="media-panel" data-panel="1">
+        <div class="media-icon">🔀</div>
+        <div class="media-label">Workflow builder</div>
+        <div class="expand-hint"><i class="ti ti-arrows-maximize" aria-hidden="true" style="font-size:13px"></i> click to expand</div>
+      </div>
+      <div class="media-panel" data-panel="2">
+        <div class="media-icon">📊</div>
+        <div class="media-label">Analytics view</div>
+        <div class="expand-hint"><i class="ti ti-arrows-maximize" aria-hidden="true" style="font-size:13px"></i> click to expand</div>
+      </div>
+      <div class="media-panel" data-panel="3">
+        <div class="media-icon">👥</div>
+        <div class="media-label">Team presence</div>
+        <div class="expand-hint"><i class="ti ti-arrows-maximize" aria-hidden="true" style="font-size:13px"></i> click to expand</div>
+      </div>
+      <div class="media-panel" data-panel="4">
+        <div class="media-icon">🔒</div>
+        <div class="media-label">Permissions</div>
+        <div class="expand-hint"><i class="ti ti-arrows-maximize" aria-hidden="true" style="font-size:13px"></i> click to expand</div>
+      </div>
+    </div>
+    <div class="left-meta">
+      <div class="left-tag"><i class="ti ti-bolt" aria-hidden="true" style="font-size:13px"></i> <span id="tagText">feature 01</span></div>
+      <p class="left-title" id="leftTitle">All your docs, one place</p>
+      <p class="left-desc" id="leftDesc">Write, organize, and share knowledge across teams — with real-time collaboration built in.</p>
+    </div>
+    <div class="step-dots" id="dots">
+      <div class="dot active"></div>
+      <div class="dot"></div>
+      <div class="dot"></div>
+      <div class="dot"></div>
+      <div class="dot"></div>
+    </div>
+  </div>
+
+  <div class="right-col" id="rightCol">
+    <div class="feature-section in-view" data-index="0">
+      <p class="feature-num">01 / 05</p>
+      <p class="feature-title">Docs & wikis</p>
+      <p class="feature-body">Create beautiful documents with rich media, embeds, and comments. Your team's institutional knowledge, always one search away.</p>
+      <div class="feature-chips"><span class="chip">Rich text</span><span class="chip">Embeds</span><span class="chip">Comments</span></div>
+    </div>
+    <div class="feature-section" data-index="1">
+      <p class="feature-num">02 / 05</p>
+      <p class="feature-title">Visual workflows</p>
+      <p class="feature-body">Drag-and-drop automation builder. Connect apps, set conditions, trigger actions — no code needed. Ship workflows in minutes.</p>
+      <div class="feature-chips"><span class="chip">No-code</span><span class="chip">Triggers</span><span class="chip">Integrations</span></div>
+    </div>
+    <div class="feature-section" data-index="2">
+      <p class="feature-num">03 / 05</p>
+      <p class="feature-title">Analytics & reporting</p>
+      <p class="feature-body">Live dashboards that update as your data changes. Share snapshots or embed charts directly into docs for full context.</p>
+      <div class="feature-chips"><span class="chip">Live data</span><span class="chip">Charts</span><span class="chip">Exports</span></div>
+    </div>
+    <div class="feature-section" data-index="3">
+      <p class="feature-num">04 / 05</p>
+      <p class="feature-title">Real-time presence</p>
+      <p class="feature-body">See who's viewing, editing, or commenting live. Multiplayer cursors, threaded reactions, and instant @mentions keep teams in sync.</p>
+      <div class="feature-chips"><span class="chip">Multiplayer</span><span class="chip">Mentions</span><span class="chip">Threads</span></div>
+    </div>
+    <div class="feature-section" data-index="4">
+      <p class="feature-num">05 / 05</p>
+      <p class="feature-title">Granular permissions</p>
+      <p class="feature-body">Control access at workspace, page, or block level. Guest links, SSO, audit logs — enterprise-grade security that doesn't slow you down.</p>
+      <div class="feature-chips"><span class="chip">SSO</span><span class="chip">Audit logs</span><span class="chip">Guest links</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="scroll-note">
+  <i class="ti ti-arrow-down" aria-hidden="true" style="font-size:13px"></i>
+  scroll the right panel — left column updates automatically
+</div>
+
+<div class="modal-overlay" id="modal">
+  <div class="modal-box">
+    <button class="modal-close" id="modalClose" aria-label="close modal"><i class="ti ti-x"></i></button>
+    <div class="modal-body">
+      <div class="modal-icon" id="modalIcon">🗂️</div>
+      <p class="modal-title" id="modalTitle">Docs & wikis</p>
+      <p class="modal-sub" id="modalSub">Full-screen preview of this feature. In a real product, this would show a live screenshot or animation of the UI.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+const features = [
+  { tag: "feature 01", title: "All your docs, one place", desc: "Write, organize, and share knowledge across teams — with real-time collaboration built in.", icon: "🗂️", label: "Docs & wikis" },
+  { tag: "feature 02", title: "Build without code", desc: "Automate any process with a visual workflow editor. Connect your stack in minutes, not weeks.", icon: "🔀", label: "Workflow builder" },
+  { tag: "feature 03", title: "Data that tells a story", desc: "Turn raw numbers into shareable dashboards. Embed live charts anywhere in your workspace.", icon: "📊", label: "Analytics view" },
+  { tag: "feature 04", title: "Work together, live", desc: "Multiplayer editing with presence, threads, and instant notifications — feel your teammates alongside you.", icon: "👥", label: "Team presence" },
+  { tag: "feature 05", title: "Security you can trust", desc: "Granular permissions, SSO, and audit trails give IT teams the control they need without slowing anyone down.", icon: "🔒", label: "Permissions" },
+];
+
+let current = 0;
+
+function activate(idx) {
+  if (idx === current) return;
+  current = idx;
+  const f = features[idx];
+  document.getElementById("tagText").textContent = f.tag;
+
+  const title = document.getElementById("leftTitle");
+  const desc = document.getElementById("leftDesc");
+  title.style.opacity = 0; desc.style.opacity = 0;
+  setTimeout(() => {
+    title.textContent = f.title; desc.textContent = f.desc;
+    title.style.opacity = 1; desc.style.opacity = 1;
+  }, 150);
+
+  document.querySelectorAll(".media-panel").forEach((p, i) => p.classList.toggle("active", i === idx));
+  document.querySelectorAll(".dot").forEach((d, i) => d.classList.toggle("active", i === idx));
+  document.querySelectorAll(".feature-section").forEach((s, i) => s.classList.toggle("in-view", i === idx));
+}
+
+const rightCol = document.getElementById("rightCol");
+const sections = document.querySelectorAll(".feature-section");
+
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) activate(+e.target.dataset.index);
+  });
+}, { root: rightCol, threshold: 0.5 });
+
+sections.forEach(s => observer.observe(s));
+
+document.getElementById("mediaStage").addEventListener("click", () => {
+  const f = features[current];
+  document.getElementById("modalIcon").textContent = f.icon;
+  document.getElementById("modalTitle").textContent = f.label;
+  document.getElementById("modal").classList.add("open");
+});
+
+document.getElementById("modalClose").addEventListener("click", () => {
+  document.getElementById("modal").classList.remove("open");
+});
+
+document.getElementById("modal").addEventListener("click", (e) => {
+  if (e.target === document.getElementById("modal")) document.getElementById("modal").classList.remove("open");
+});
+</script>

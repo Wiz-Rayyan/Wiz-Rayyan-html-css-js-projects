@@ -1,0 +1,224 @@
+
+<style>
+  .app-shell{background:var(--color-background-secondary);border-radius:var(--border-radius-xl);overflow:hidden;max-width:380px;margin:0 auto;border:0.5px solid var(--color-border-tertiary);font-family:var(--font-sans)}
+  .top-bar{background:var(--color-background-primary);border-bottom:0.5px solid var(--color-border-tertiary);padding:14px 16px;display:flex;align-items:center;justify-content:space-between}
+  .top-bar h2{font-size:17px;font-weight:500;margin:0;color:var(--color-text-primary)}
+  .tab-row{display:flex;gap:0;border-bottom:0.5px solid var(--color-border-tertiary);background:var(--color-background-primary)}
+  .tab{flex:1;text-align:center;padding:10px;font-size:13px;cursor:pointer;color:var(--color-text-secondary);border-bottom:2px solid transparent;transition:all .2s}
+  .tab.active{color:var(--color-text-primary);border-bottom-color:var(--color-text-primary);font-weight:500}
+  .convo-list{background:var(--color-background-primary)}
+  .convo-wrap{position:relative;overflow:hidden;border-bottom:0.5px solid var(--color-border-tertiary)}
+  .action-bg{position:absolute;inset:0;display:flex;align-items:stretch;pointer-events:none}
+  .action-left{flex:1;background:#F5A623;display:flex;align-items:center;justify-content:flex-end;padding-right:24px;gap:6px}
+  .action-right{flex:1;background:#2B7BE9;display:flex;align-items:center;justify-content:flex-start;padding-left:24px;gap:6px}
+  .action-label{font-size:13px;font-weight:500;color:#fff}
+  .convo-row{position:relative;background:var(--color-background-primary);display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:grab;user-select:none;touch-action:pan-y;will-change:transform;transition:transform .0s}
+  .convo-row.settling{transition:transform .25s cubic-bezier(.25,.46,.45,.94)}
+  .convo-row.triggered{transition:none}
+  .avatar{width:42px;height:42px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500}
+  .av-purple{background:#EEEDFE;color:#3C3489}
+  .av-teal{background:#E1F5EE;color:#085041}
+  .av-coral{background:#FAECE7;color:#712B13}
+  .av-blue{background:#E6F1FB;color:#0C447C}
+  .av-amber{background:#FAEEDA;color:#633806}
+  .convo-body{flex:1;min-width:0}
+  .convo-header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:2px}
+  .convo-name{font-size:14px;font-weight:500;color:var(--color-text-primary)}
+  .convo-time{font-size:12px;color:var(--color-text-tertiary)}
+  .convo-preview{font-size:13px;color:var(--color-text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .unread-dot{width:8px;height:8px;background:#2B7BE9;border-radius:50%;flex-shrink:0}
+  .pinned-tag{font-size:11px;background:#E6F1FB;color:#0C447C;padding:2px 7px;border-radius:20px;margin-left:6px}
+  .hint{text-align:center;font-size:12px;color:var(--color-text-tertiary);padding:14px 16px;background:var(--color-background-primary)}
+  .toast{position:absolute;bottom:12px;left:50%;transform:translateX(-50%) translateY(20px);background:#222;color:#fff;font-size:13px;padding:8px 16px;border-radius:20px;opacity:0;transition:all .25s;pointer-events:none;white-space:nowrap;z-index:10}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .archive-view{display:none;background:var(--color-background-primary)}
+  .archive-view.active{display:block}
+  .archive-empty{padding:40px 16px;text-align:center;color:var(--color-text-secondary);font-size:14px}
+  .archive-item{padding:12px 16px;border-bottom:0.5px solid var(--color-border-tertiary);display:flex;align-items:center;gap:12px}
+  .back-btn{background:none;border:none;font-size:13px;color:var(--color-text-info);cursor:pointer;padding:0;font-family:inherit}
+  .pin-icon{font-size:14px;margin-left:4px}
+  .icon-btn{background:none;border:none;color:var(--color-text-secondary);cursor:pointer;font-size:18px;padding:4px;line-height:1}
+</style>
+
+<h2 class="sr-only">Swipe-to-archive conversation list demo. Swipe left to archive, swipe right to pin.</h2>
+
+<div class="app-shell" id="shell">
+  <div id="inbox-view">
+    <div class="top-bar">
+      <span style="width:32px"></span>
+      <h2>Messages</h2>
+      <button class="icon-btn" onclick="showArchive()" aria-label="View archive"><i class="ti ti-archive" aria-hidden="true"></i></button>
+    </div>
+    <div class="tab-row">
+      <div class="tab active">All</div>
+      <div class="tab">Unread</div>
+      <div class="tab">Groups</div>
+    </div>
+    <div class="convo-list" id="convo-list"></div>
+    <div class="hint">← swipe left to archive &nbsp;·&nbsp; swipe right to pin →</div>
+  </div>
+  <div class="archive-view" id="archive-view">
+    <div class="top-bar">
+      <button class="back-btn" onclick="showInbox()"><i class="ti ti-arrow-left" aria-hidden="true"></i> Back</button>
+      <h2>Archived</h2>
+      <span style="width:48px"></span>
+    </div>
+    <div id="archive-list"></div>
+  </div>
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+const convos = [
+  {id:1,name:"Priya Sharma",preview:"Can we reschedule tomorrow's call?",time:"now",av:"av-purple",unread:true,pinned:false,archived:false},
+  {id:2,name:"Design Team",preview:"New Figma link dropped in the channel",time:"2m",av:"av-teal",unread:true,pinned:true,archived:false},
+  {id:3,name:"Ravi Mehta",preview:"Thanks! I'll send the doc over tonight",time:"18m",av:"av-coral",unread:false,pinned:false,archived:false},
+  {id:4,name:"Anjali K.",preview:"The presentation looks great 🎉",time:"1h",av:"av-blue",unread:false,pinned:false,archived:false},
+  {id:5,name:"Dev Squad",preview:"Build is passing on main now",time:"3h",av:"av-amber",unread:false,pinned:false,archived:false},
+];
+
+let state = convos.map(c=>({...c}));
+let archived = [];
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer=setTimeout(()=>t.classList.remove('show'),2000);
+}
+
+function vibrate(){if(navigator.vibrate)navigator.vibrate(8);}
+
+function renderInbox(){
+  const list=document.getElementById('convo-list');
+  const active=state.filter(c=>!c.archived);
+  if(!active.length){list.innerHTML='<div style="padding:32px 16px;text-align:center;color:var(--color-text-secondary);font-size:14px;">No conversations</div>';return;}
+  list.innerHTML='';
+  active.sort((a,b)=>(b.pinned?1:0)-(a.pinned?1:0));
+  active.forEach(c=>{
+    const wrap=document.createElement('div');
+    wrap.className='convo-wrap';
+    wrap.innerHTML=`
+      <div class="action-bg">
+        <div class="action-left"><span class="action-label">Archive</span><i class="ti ti-archive" style="color:#fff;font-size:18px" aria-hidden="true"></i></div>
+        <div class="action-right"><i class="ti ti-pin" style="color:#fff;font-size:18px" aria-hidden="true"></i><span class="action-label">${c.pinned?'Unpin':'Pin'}</span></div>
+      </div>
+      <div class="convo-row" data-id="${c.id}">
+        <div class="avatar ${c.av}">${c.name.split(' ').map(w=>w[0]).join('').slice(0,2)}</div>
+        <div class="convo-body">
+          <div class="convo-header">
+            <span class="convo-name">${c.name}${c.pinned?'<span class="pin-icon">📌</span>':''}</span>
+            <span class="convo-time">${c.time}</span>
+          </div>
+          <div class="convo-preview">${c.preview}</div>
+        </div>
+        ${c.unread?'<div class="unread-dot" aria-label="unread"></div>':''}
+      </div>`;
+    list.appendChild(wrap);
+    attachSwipe(wrap.querySelector('.convo-row'), c.id);
+  });
+}
+
+function renderArchive(){
+  const list=document.getElementById('archive-list');
+  if(!archived.length){list.innerHTML='<div class="archive-empty"><i class="ti ti-archive" style="font-size:32px;display:block;margin-bottom:8px" aria-hidden="true"></i>No archived conversations</div>';return;}
+  list.innerHTML='';
+  archived.forEach(c=>{
+    const el=document.createElement('div');
+    el.className='archive-item';
+    el.innerHTML=`<div class="avatar ${c.av}">${c.name.split(' ').map(w=>w[0]).join('').slice(0,2)}</div>
+      <div class="convo-body">
+        <div class="convo-header"><span class="convo-name">${c.name}</span><span class="convo-time">${c.time}</span></div>
+        <div class="convo-preview">${c.preview}</div>
+      </div>`;
+    list.appendChild(el);
+  });
+}
+
+function showArchive(){
+  renderArchive();
+  document.getElementById('inbox-view').style.display='none';
+  document.getElementById('archive-view').classList.add('active');
+}
+function showInbox(){
+  document.getElementById('inbox-view').style.display='';
+  document.getElementById('archive-view').classList.remove('active');
+}
+
+function attachSwipe(row, id){
+  let startX=0,startY=0,dx=0,dragging=false,decided=false,isHoriz=false;
+  const W=row.offsetWidth||320;
+  const THRESHOLD=0.30;
+
+  function onStart(x,y){startX=x;startY=y;dx=0;dragging=true;decided=false;isHoriz=false;row.classList.remove('settling');}
+  function onMove(x,y){
+    if(!dragging)return;
+    const raw=x-startX;
+    const rawY=y-startY;
+    if(!decided){
+      if(Math.abs(raw)<4&&Math.abs(rawY)<4)return;
+      decided=true;
+      isHoriz=Math.abs(raw)>Math.abs(rawY)*0.7;
+    }
+    if(!isHoriz)return;
+    dx=raw;
+    row.style.transform=`translateX(${dx}px)`;
+    const pct=Math.abs(dx)/W;
+    if(pct>=THRESHOLD){
+      row.classList.add('triggered');
+    } else {
+      row.classList.remove('triggered');
+    }
+  }
+  function onEnd(){
+    if(!dragging||!isHoriz){dragging=false;return;}
+    dragging=false;
+    const pct=Math.abs(dx)/W;
+    row.classList.add('settling');
+    row.classList.remove('triggered');
+    if(pct>=THRESHOLD){
+      if(dx<0){
+        doArchive(id, row);
+      } else {
+        doPin(id, row);
+      }
+    } else {
+      row.style.transform='translateX(0)';
+    }
+  }
+
+  row.addEventListener('mousedown',e=>{onStart(e.clientX,e.clientY);});
+  window.addEventListener('mousemove',e=>{if(dragging)onMove(e.clientX,e.clientY);});
+  window.addEventListener('mouseup',()=>{if(dragging)onEnd();});
+  row.addEventListener('touchstart',e=>{const t=e.touches[0];onStart(t.clientX,t.clientY);},{passive:true});
+  row.addEventListener('touchmove',e=>{const t=e.touches[0];onMove(t.clientX,t.clientY);},{passive:true});
+  row.addEventListener('touchend',()=>onEnd(),{passive:true});
+}
+
+function doArchive(id, row){
+  vibrate();
+  const W=row.offsetWidth||320;
+  row.style.transform=`translateX(-${W}px)`;
+  row.style.opacity='0';
+  setTimeout(()=>{
+    const c=state.find(x=>x.id===id);
+    if(c){c.archived=true;archived.unshift(c);}
+    renderInbox();
+    showToast('Conversation archived');
+  },260);
+}
+
+function doPin(id, row){
+  vibrate();
+  row.style.transform='translateX(0)';
+  const c=state.find(x=>x.id===id);
+  if(c){
+    c.pinned=!c.pinned;
+    showToast(c.pinned?'Conversation pinned':'Unpinned');
+  }
+  setTimeout(()=>renderInbox(),260);
+}
+
+renderInbox();
+</script>

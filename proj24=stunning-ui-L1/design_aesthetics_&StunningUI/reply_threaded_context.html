@@ -1,0 +1,185 @@
+<h2 class="sr-only">Interactive mockup of threaded reply feature in a chat interface. Click reply on any message to see the quoted context appear above the input, then send a reply to see the reply badge.</h2>
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font-sans); }
+  .chat-wrap { background: var(--color-background-secondary); border-radius: var(--border-radius-lg); padding: 16px; }
+  .msg-row { display: flex; flex-direction: column; gap: 2px; margin-bottom: 16px; }
+  .msg-row.mine { align-items: flex-end; }
+  .msg-row.theirs { align-items: flex-start; }
+  .sender { font-size: 11px; color: var(--color-text-tertiary); padding: 0 4px 2px; }
+  .bubble { max-width: 72%; padding: 9px 13px; border-radius: 16px; font-size: 14px; line-height: 1.45; position: relative; }
+  .mine .bubble { background: #3B82F6; color: #fff; border-bottom-right-radius: 4px; }
+  .theirs .bubble { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-bottom-left-radius: 4px; color: var(--color-text-primary); }
+  .reply-badge { font-size: 11px; margin-bottom: 3px; padding: 3px 8px; border-radius: 20px; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
+  .mine .reply-badge { background: rgba(59,130,246,0.15); color: #3B82F6; align-self: flex-end; }
+  .theirs .reply-badge { background: var(--color-background-secondary); color: var(--color-text-secondary); align-self: flex-start; border: 0.5px solid var(--color-border-tertiary); }
+  .reply-badge:hover { opacity: 0.75; }
+  .msg-actions { display: flex; gap: 4px; margin-top: 4px; opacity: 0; transition: opacity 0.15s; }
+  .msg-row:hover .msg-actions { opacity: 1; }
+  .action-btn { font-size: 11px; color: var(--color-text-tertiary); background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: 20px; padding: 3px 9px; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+  .action-btn:hover { color: var(--color-text-primary); border-color: var(--color-border-secondary); }
+  .highlight-yellow { animation: flash-highlight 1.2s ease forwards; }
+  @keyframes flash-highlight {
+    0% { background: #FEF08A; }
+    60% { background: #FEF08A; }
+    100% { background: transparent; }
+  }
+  .theirs.highlight-yellow .bubble { background: #FEF08A; color: #000; border-color: transparent; transition: background 0.3s, color 0.3s; }
+  .mine.highlight-yellow .bubble { background: #FEF08A; color: #000; transition: background 0.3s, color 0.3s; }
+  .divider { border: none; border-top: 0.5px solid var(--color-border-tertiary); margin: 4px 0 16px; }
+  .input-area { background: var(--color-background-primary); border-radius: var(--border-radius-lg); border: 0.5px solid var(--color-border-tertiary); overflow: hidden; transition: border-color 0.15s; }
+  .input-area:focus-within { border-color: #3B82F6; }
+  .quoted-block { background: #F3F4F6; border-left: 4px solid #3B82F6; border-radius: 0; padding: 8px 12px; font-size: 12px; color: #6B7280; display: none; cursor: pointer; }
+  .quoted-block.visible { display: flex; align-items: flex-start; gap: 8px; }
+  .quoted-block:hover { background: #E9EAEC; }
+  .quoted-name { font-weight: 500; color: #3B82F6; margin-right: 4px; }
+  .quoted-dismiss { margin-left: auto; font-size: 14px; color: #9CA3AF; cursor: pointer; padding: 0 2px; flex-shrink: 0; line-height: 1; }
+  .quoted-dismiss:hover { color: #6B7280; }
+  .input-row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; }
+  .msg-input { flex: 1; border: none; background: transparent; font-size: 14px; color: var(--color-text-primary); outline: none; font-family: var(--font-sans); resize: none; line-height: 1.4; }
+  .msg-input::placeholder { color: var(--color-text-tertiary); }
+  .send-btn { background: #3B82F6; color: #fff; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .send-btn:hover { background: #2563EB; }
+  .send-btn:disabled { background: var(--color-background-secondary); color: var(--color-text-tertiary); cursor: not-allowed; }
+  .tip { font-size: 12px; color: var(--color-text-tertiary); text-align: center; margin-top: 10px; }
+</style>
+
+<div class="chat-wrap">
+  <div id="messages">
+    <div class="msg-row theirs" id="msg-1">
+      <span class="sender">Alex</span>
+      <div class="bubble">Hey, did you get a chance to review the new onboarding designs?</div>
+      <div class="msg-actions">
+        <button class="action-btn" onclick="startReply('msg-1','Alex','Hey, did you get a chance to review the new onboarding designs?')">
+          <i class="ti ti-arrow-back-up" aria-hidden="true"></i> Reply
+        </button>
+      </div>
+    </div>
+
+    <div class="msg-row mine" id="msg-2">
+      <span class="sender">You</span>
+      <div class="bubble">Yes! The flow looks much cleaner. One thing though — the empty state on step 3 feels a bit bare.</div>
+      <div class="msg-actions">
+        <button class="action-btn" onclick="startReply('msg-2','You','Yes! The flow looks much cleaner. One thing though — the empty state on step 3 feels a bit bare.')">
+          <i class="ti ti-arrow-back-up" aria-hidden="true"></i> Reply
+        </button>
+      </div>
+    </div>
+
+    <div class="msg-row theirs" id="msg-3">
+      <span class="sender">Alex</span>
+      <div class="bubble">Agreed! I was thinking we add an illustration there. Something playful.</div>
+      <div class="msg-actions">
+        <button class="action-btn" onclick="startReply('msg-3','Alex','Agreed! I was thinking we add an illustration there. Something playful.')">
+          <i class="ti ti-arrow-back-up" aria-hidden="true"></i> Reply
+        </button>
+      </div>
+    </div>
+
+    <div class="msg-row mine" id="msg-4">
+      <div class="reply-badge" onclick="scrollToMsg('msg-2')">
+        <i class="ti ti-corner-up-left" style="font-size:12px" aria-hidden="true"></i>
+        Reply to <strong>You</strong>
+      </div>
+      <div class="bubble">The empty state comment — totally fixable. Maybe a small character waving?</div>
+      <div class="msg-actions">
+        <button class="action-btn" onclick="startReply('msg-4','You','The empty state comment — totally fixable. Maybe a small character waving?')">
+          <i class="ti ti-arrow-back-up" aria-hidden="true"></i> Reply
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <div class="input-area">
+    <div class="quoted-block" id="quoted-block" onclick="scrollToMsg(quotedMsgId)">
+      <div style="flex:1; min-width:0;">
+        <span class="quoted-name" id="quoted-name">Alex</span>
+        <span id="quoted-text" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:inline;"></span>
+      </div>
+      <span class="quoted-dismiss" onclick="dismissReply(event)" title="Dismiss">×</span>
+    </div>
+    <div class="input-row">
+      <input class="msg-input" id="msg-input" type="text" placeholder="Message…" oninput="updateSend()" onkeydown="handleKey(event)" />
+      <button class="send-btn" id="send-btn" onclick="sendMsg()" disabled aria-label="Send">
+        <i class="ti ti-send" style="font-size:15px" aria-hidden="true"></i>
+      </button>
+    </div>
+  </div>
+  <p class="tip">Hover a message to reply · Click a "Reply to" badge to jump to original</p>
+</div>
+
+<script>
+  let quotedMsgId = null;
+  let quotedName = null;
+  let quotedText = null;
+  let msgCounter = 5;
+
+  function startReply(id, name, text) {
+    quotedMsgId = id;
+    quotedName = name;
+    quotedText = text;
+    document.getElementById('quoted-name').textContent = name + ': ';
+    document.getElementById('quoted-text').textContent = text.length > 60 ? text.slice(0, 60) + '…' : text;
+    document.getElementById('quoted-block').classList.add('visible');
+    document.getElementById('msg-input').focus();
+  }
+
+  function dismissReply(e) {
+    e.stopPropagation();
+    quotedMsgId = null; quotedName = null; quotedText = null;
+    document.getElementById('quoted-block').classList.remove('visible');
+  }
+
+  function updateSend() {
+    const val = document.getElementById('msg-input').value.trim();
+    document.getElementById('send-btn').disabled = val.length === 0;
+  }
+
+  function handleKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
+  }
+
+  function sendMsg() {
+    const input = document.getElementById('msg-input');
+    const text = input.value.trim();
+    if (!text) return;
+
+    const msgId = 'msg-' + msgCounter++;
+    const container = document.getElementById('messages');
+    const row = document.createElement('div');
+    row.className = 'msg-row mine';
+    row.id = msgId;
+
+    let html = '';
+    if (quotedName) {
+      const qName = quotedName;
+      const qId = quotedMsgId;
+      html += `<div class="reply-badge" onclick="scrollToMsg('${qId}')"><i class="ti ti-corner-up-left" style="font-size:12px" aria-hidden="true"></i> Reply to <strong>${qName}</strong></div>`;
+    }
+    html += `<div class="bubble">${escHtml(text)}</div>`;
+    html += `<div class="msg-actions"><button class="action-btn" onclick="startReply('${msgId}','You','${escJs(text)}')"><i class="ti ti-arrow-back-up" aria-hidden="true"></i> Reply</button></div>`;
+    row.innerHTML = html;
+    container.appendChild(row);
+
+    input.value = '';
+    updateSend();
+    dismissReply({ stopPropagation: () => {} });
+    row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function scrollToMsg(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el.classList.remove('highlight-yellow');
+    void el.offsetWidth;
+    el.classList.add('highlight-yellow');
+    setTimeout(() => el.classList.remove('highlight-yellow'), 1300);
+  }
+
+  function escHtml(t) { return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function escJs(t) { return t.replace(/'/g,"\\'").replace(/"/g,'&quot;').slice(0,80); }
+</script>
