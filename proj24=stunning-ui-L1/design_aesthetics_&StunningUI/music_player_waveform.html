@@ -1,0 +1,357 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: transparent; }
+  .player { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); overflow: hidden; max-width: 640px; margin: 1rem auto; }
+  .top { display: flex; align-items: center; gap: 16px; padding: 20px 20px 16px; }
+  .album { width: 56px; height: 56px; border-radius: var(--border-radius-md); flex-shrink: 0; background: #1a1a2e; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+  .album-ring { width: 34px; height: 34px; border-radius: 50%; border: 6px solid #2d2d4e; position: absolute; }
+  .album-hole { width: 8px; height: 8px; border-radius: 50%; background: #1a1a2e; position: absolute; z-index: 1; }
+  .meta { flex: 1; min-width: 0; }
+  .track-title { font-size: 15px; font-weight: 500; color: var(--color-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .track-artist { font-size: 13px; color: var(--color-text-secondary); margin-top: 2px; }
+  .badge { font-size: 11px; padding: 2px 8px; border-radius: 999px; border: 0.5px solid var(--color-border-secondary); color: var(--color-text-secondary); display: inline-block; margin-top: 4px; }
+  .heart-btn { background: none; border: none; cursor: pointer; padding: 4px; color: var(--color-text-secondary); font-size: 20px; display: flex; align-items: center; transition: color 0.15s; }
+  .heart-btn.liked { color: #D4537E; }
+  .waveform-wrap { position: relative; height: 88px; margin: 0 20px; cursor: pointer; }
+  canvas#wave { width: 100%; height: 100%; display: block; border-radius: var(--border-radius-md); }
+  .seek-tooltip { position: absolute; bottom: 100%; left: 0; transform: translateX(-50%); background: var(--color-background-primary); border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); font-size: 11px; color: var(--color-text-secondary); padding: 2px 6px; pointer-events: none; display: none; white-space: nowrap; }
+  .controls { display: flex; align-items: center; gap: 0; padding: 12px 20px 8px; }
+  .ctrl-btn { background: none; border: none; cursor: pointer; padding: 8px; color: var(--color-text-secondary); font-size: 18px; display: flex; align-items: center; justify-content: center; border-radius: var(--border-radius-md); transition: color 0.15s, background 0.15s; }
+  .ctrl-btn:hover { color: var(--color-text-primary); background: var(--color-background-secondary); }
+  .play-btn { width: 40px; height: 40px; border-radius: 50%; border: 0.5px solid var(--color-border-secondary); background: var(--color-background-primary); color: var(--color-text-primary); font-size: 18px; display: flex; align-items: center; justify-content: center; cursor: pointer; margin: 0 8px; transition: background 0.15s; }
+  .play-btn:hover { background: var(--color-background-secondary); }
+  .spacer { flex: 1; }
+  .vol-wrap { display: flex; align-items: center; gap: 8px; }
+  .vol-wrap i { font-size: 16px; color: var(--color-text-secondary); }
+  input[type=range]#vol { width: 72px; }
+  .progress-row { display: flex; align-items: center; gap: 10px; padding: 0 20px 16px; }
+  .time { font-size: 12px; color: var(--color-text-secondary); font-variant-numeric: tabular-nums; min-width: 32px; }
+  .time.right { text-align: right; }
+  .progress-bar { flex: 1; height: 3px; background: var(--color-border-tertiary); border-radius: 2px; position: relative; cursor: pointer; }
+  .progress-fill { height: 100%; border-radius: 2px; background: var(--color-text-primary); width: 0%; transition: width 0.1s linear; }
+  .note { font-size: 12px; color: var(--color-text-secondary); text-align: center; padding: 0 20px 14px; }
+</style>
+
+<h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">Music player with animated waveform visualizer. Click play to animate the waveform bars, click the waveform to seek.</h2>
+
+<div class="player">
+  <div class="top">
+    <div class="album">
+      <div class="album-ring"></div>
+      <div class="album-hole"></div>
+      <svg width="56" height="56" style="position:absolute;top:0;left:0;opacity:0.25"><defs><radialGradient id="ag" cx="50%" cy="30%"><stop offset="0%" stop-color="#7F77DD"/><stop offset="100%" stop-color="#1a1a2e"/></radialGradient></defs><rect width="56" height="56" fill="url(#ag)"/></svg>
+    </div>
+    <div class="meta">
+      <div class="track-title">Neon Parallax</div>
+      <div class="track-artist">Synthetic Echo</div>
+      <span class="badge">Lossless</span>
+    </div>
+    <button class="heart-btn" id="heartBtn" aria-label="Like track"><i class="ti ti-heart" aria-hidden="true"></i></button>
+  </div>
+
+  <div class="waveform-wrap" id="waveWrap">
+    <canvas id="wave"></canvas>
+    <div class="seek-tooltip" id="seekTip"></div>
+  </div>
+
+  <div class="progress-row">
+    <span class="time" id="curTime">0:00</span>
+    <div class="progress-bar" id="progBar">
+      <div class="progress-fill" id="progFill"></div>
+    </div>
+    <span class="time right" id="durTime">3:42</span>
+  </div>
+
+  <div class="controls">
+    <button class="ctrl-btn" id="shuffleBtn" aria-label="Shuffle"><i class="ti ti-arrows-shuffle" aria-hidden="true"></i></button>
+    <button class="ctrl-btn" aria-label="Previous"><i class="ti ti-player-skip-back" aria-hidden="true"></i></button>
+    <button class="play-btn" id="playBtn" aria-label="Play">
+      <i class="ti ti-player-play" id="playIcon" aria-hidden="true"></i>
+    </button>
+    <button class="ctrl-btn" aria-label="Next"><i class="ti ti-player-skip-forward" aria-hidden="true"></i></button>
+    <button class="ctrl-btn" id="repeatBtn" aria-label="Repeat"><i class="ti ti-repeat" aria-hidden="true"></i></button>
+    <div class="spacer"></div>
+    <div class="vol-wrap">
+      <i class="ti ti-volume" aria-hidden="true" id="volIcon"></i>
+      <input type="range" id="vol" min="0" max="100" value="75" aria-label="Volume">
+    </div>
+  </div>
+  <p class="note" id="noteText">Click play to start visualization · Click waveform to seek</p>
+</div>
+
+<script>
+(function(){
+  const canvas = document.getElementById('wave');
+  const ctx = canvas.getContext('2d');
+  const wrapEl = document.getElementById('waveWrap');
+  const playBtn = document.getElementById('playBtn');
+  const playIcon = document.getElementById('playIcon');
+  const heartBtn = document.getElementById('heartBtn');
+  const shuffleBtn = document.getElementById('shuffleBtn');
+  const repeatBtn = document.getElementById('repeatBtn');
+  const progFill = document.getElementById('progFill');
+  const curTimeEl = document.getElementById('curTime');
+  const durTimeEl = document.getElementById('durTime');
+  const progBar = document.getElementById('progBar');
+  const seekTip = document.getElementById('seekTip');
+  const noteText = document.getElementById('noteText');
+  const volSlider = document.getElementById('vol');
+  const volIcon = document.getElementById('volIcon');
+
+  let audioCtx, analyser, source, gainNode;
+  let isPlaying = false;
+  let animId;
+  let liked = false, shuffle = false, repeat = false;
+  let volume = 0.75;
+  let currentTime = 0;
+  let duration = 222;
+  let timerInterval;
+  let seekPos = 0;
+
+  const BAR_COUNT = 80;
+  const smoothData = new Float32Array(BAR_COUNT).fill(0);
+  let staticData = null;
+
+  function buildStaticWave() {
+    const d = new Float32Array(BAR_COUNT);
+    for(let i = 0; i < BAR_COUNT; i++) {
+      const x = i / BAR_COUNT;
+      d[i] = 0.08 + 0.18 * Math.sin(x * Math.PI * 3) + 0.08 * Math.sin(x * Math.PI * 11) + 0.06 * Math.random();
+    }
+    return d;
+  }
+  staticData = buildStaticWave();
+
+  function resize() {
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = wrapEl.offsetWidth * dpr;
+    canvas.height = wrapEl.offsetHeight * dpr;
+    ctx.scale(dpr, dpr);
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  function getCSSVar(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+
+  function drawBars(data, progress) {
+    const W = wrapEl.offsetWidth;
+    const H = wrapEl.offsetHeight;
+    ctx.clearRect(0, 0, W, H);
+    const gap = 2;
+    const barW = (W - gap * (BAR_COUNT - 1)) / BAR_COUNT;
+    const centerY = H / 2;
+    const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const seekFrac = progress;
+
+    for(let i = 0; i < BAR_COUNT; i++) {
+      const x = i * (barW + gap);
+      const frac = i / BAR_COUNT;
+      const h = Math.max(3, data[i] * H * 0.88);
+      const played = frac < seekFrac;
+
+      if(played) {
+        ctx.fillStyle = isDark ? 'rgba(180,180,180,0.95)' : 'rgba(30,30,30,0.95)';
+      } else {
+        ctx.fillStyle = isDark ? 'rgba(180,180,180,0.22)' : 'rgba(30,30,30,0.18)';
+      }
+      const r = Math.min(barW / 2, 2.5);
+      roundRect(ctx, x, centerY - h/2, barW, h, r);
+      ctx.fill();
+    }
+
+    if(seekFrac > 0 && seekFrac < 1) {
+      ctx.fillStyle = isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.7)';
+      const lineX = seekFrac * W;
+      ctx.fillRect(lineX - 0.75, 0, 1.5, H);
+    }
+  }
+
+  function roundRect(c, x, y, w, h, r) {
+    c.beginPath();
+    c.moveTo(x + r, y);
+    c.lineTo(x + w - r, y);
+    c.quadraticCurveTo(x + w, y, x + w, y + r);
+    c.lineTo(x + w, y + h - r);
+    c.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    c.lineTo(x + r, y + h);
+    c.quadraticCurveTo(x, y + h, x, y + h - r);
+    c.lineTo(x, y + r);
+    c.quadraticCurveTo(x, y, x + r, y);
+    c.closePath();
+  }
+
+  function lerp(a, b, t) { return a + (b - a) * t; }
+
+  function animate() {
+    if(!isPlaying) return;
+    let freqData;
+    if(analyser) {
+      const raw = new Uint8Array(analyser.frequencyBinCount);
+      analyser.getByteFrequencyData(raw);
+      freqData = new Float32Array(BAR_COUNT);
+      const step = Math.floor(raw.length / BAR_COUNT / 2);
+      for(let i = 0; i < BAR_COUNT; i++) {
+        let sum = 0;
+        for(let j = 0; j < step; j++) sum += raw[i * step + j];
+        freqData[i] = (sum / step) / 255;
+      }
+    } else {
+      const t = Date.now() / 1000;
+      freqData = new Float32Array(BAR_COUNT);
+      for(let i = 0; i < BAR_COUNT; i++) {
+        const x = i / BAR_COUNT;
+        freqData[i] = 0.15 + 0.5 * Math.abs(Math.sin(x * Math.PI * 4 + t * 2.1)) * Math.abs(Math.sin(t * 1.3 + i * 0.15)) + 0.1 * Math.sin(t * 3.7 + i * 0.3);
+        freqData[i] *= volume;
+      }
+    }
+    for(let i = 0; i < BAR_COUNT; i++) {
+      smoothData[i] = lerp(smoothData[i], freqData[i], 0.18);
+    }
+    const prog = currentTime / duration;
+    drawBars(smoothData, prog);
+    animId = requestAnimationFrame(animate);
+  }
+
+  function flattenBars() {
+    cancelAnimationFrame(animId);
+    let running = true;
+    function flatten() {
+      let anyAbove = false;
+      for(let i = 0; i < BAR_COUNT; i++) {
+        smoothData[i] = lerp(smoothData[i], staticData[i] * 0.3, 0.12);
+        if(smoothData[i] > 0.02) anyAbove = true;
+      }
+      drawBars(smoothData, currentTime / duration);
+      if(anyAbove && running) requestAnimationFrame(flatten);
+      else {
+        for(let i = 0; i < BAR_COUNT; i++) smoothData[i] = staticData[i] * 0.3;
+        drawBars(smoothData, currentTime / duration);
+      }
+    }
+    flatten();
+  }
+
+  function drawStatic() {
+    const d = new Float32Array(BAR_COUNT);
+    for(let i = 0; i < BAR_COUNT; i++) d[i] = staticData[i] * 0.3;
+    drawBars(d, currentTime / duration);
+  }
+  drawStatic();
+
+  function formatTime(s) {
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return m + ':' + (sec < 10 ? '0' : '') + sec;
+  }
+
+  function updateProgress() {
+    const prog = currentTime / duration;
+    progFill.style.width = (prog * 100) + '%';
+    curTimeEl.textContent = formatTime(currentTime);
+  }
+
+  async function startAudio() {
+    try {
+      if(!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        gainNode = audioCtx.createGain();
+        gainNode.gain.value = volume;
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 256;
+        gainNode.connect(analyser);
+        analyser.connect(audioCtx.destination);
+        const oscillator = audioCtx.createOscillator();
+        oscillator.type = 'sine';
+        oscillator.frequency.value = 200;
+        oscillator.connect(gainNode);
+        oscillator.start();
+        source = oscillator;
+      }
+      if(audioCtx.state === 'suspended') await audioCtx.resume();
+    } catch(e) { }
+  }
+
+  function startTimer() {
+    clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+      if(isPlaying) {
+        currentTime = Math.min(currentTime + 0.25, duration);
+        if(currentTime >= duration) { currentTime = 0; }
+        updateProgress();
+      }
+    }, 250);
+  }
+
+  playBtn.addEventListener('click', async () => {
+    isPlaying = !isPlaying;
+    if(isPlaying) {
+      playIcon.className = 'ti ti-player-pause';
+      playBtn.setAttribute('aria-label', 'Pause');
+      await startAudio();
+      startTimer();
+      animId = requestAnimationFrame(animate);
+      noteText.textContent = 'Click waveform to seek · Volume affects bar heights';
+    } else {
+      playIcon.className = 'ti ti-player-play';
+      playBtn.setAttribute('aria-label', 'Play');
+      clearInterval(timerInterval);
+      flattenBars();
+    }
+  });
+
+  heartBtn.addEventListener('click', () => {
+    liked = !liked;
+    heartBtn.classList.toggle('liked', liked);
+    heartBtn.querySelector('i').className = liked ? 'ti ti-heart-filled' : 'ti ti-heart';
+  });
+
+  shuffleBtn.addEventListener('click', () => {
+    shuffle = !shuffle;
+    shuffleBtn.style.color = shuffle ? 'var(--color-text-primary)' : '';
+  });
+
+  repeatBtn.addEventListener('click', () => {
+    repeat = !repeat;
+    repeatBtn.style.color = repeat ? 'var(--color-text-primary)' : '';
+  });
+
+  volSlider.addEventListener('input', () => {
+    volume = volSlider.value / 100;
+    if(gainNode) gainNode.gain.value = volume;
+    if(volume === 0) volIcon.className = 'ti ti-volume-off';
+    else if(volume < 0.4) volIcon.className = 'ti ti-volume-2';
+    else volIcon.className = 'ti ti-volume';
+  });
+
+  wrapEl.addEventListener('click', (e) => {
+    const rect = wrapEl.getBoundingClientRect();
+    const frac = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    currentTime = frac * duration;
+    updateProgress();
+    for(let i = 0; i < BAR_COUNT; i++) smoothData[i] = staticData[i] * 0.3;
+    if(!isPlaying) drawStatic();
+  });
+
+  wrapEl.addEventListener('mousemove', (e) => {
+    const rect = wrapEl.getBoundingClientRect();
+    const frac = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    seekPos = frac;
+    seekTip.style.display = 'block';
+    seekTip.style.left = (e.clientX - rect.left) + 'px';
+    seekTip.textContent = formatTime(frac * duration);
+  });
+  wrapEl.addEventListener('mouseleave', () => { seekTip.style.display = 'none'; });
+
+  progBar.addEventListener('click', (e) => {
+    const rect = progBar.getBoundingClientRect();
+    const frac = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    currentTime = frac * duration;
+    updateProgress();
+  });
+
+  updateProgress();
+})();
+</script>

@@ -1,0 +1,217 @@
+
+<style>
+  .pod-shell { display: flex; flex-direction: column; gap: 0; font-family: var(--font-sans); padding: 1rem 0 1.5rem; }
+  .pod-header { display: flex; align-items: center; gap: 16px; padding: 0 0 1.25rem; border-bottom: 0.5px solid var(--color-border-tertiary); margin-bottom: 0; }
+  .pod-thumb { width: 64px; height: 64px; border-radius: var(--border-radius-md); background: #4A3F9F; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .pod-meta { flex: 1; min-width: 0; }
+  .pod-meta h2 { font-size: 15px; font-weight: 500; margin: 0 0 2px; color: var(--color-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pod-meta p { font-size: 13px; color: var(--color-text-secondary); margin: 0; }
+  .pod-badge { font-size: 11px; font-weight: 500; background: var(--color-background-secondary); color: var(--color-text-secondary); border: 0.5px solid var(--color-border-tertiary); padding: 3px 8px; border-radius: 20px; white-space: nowrap; }
+  .player-bar { padding: 1rem 0; border-bottom: 0.5px solid var(--color-border-tertiary); }
+  .progress-wrap { position: relative; height: 4px; background: var(--color-background-secondary); border-radius: 2px; cursor: pointer; margin-bottom: 8px; overflow: visible; }
+  .progress-fill { height: 100%; background: #534AB7; border-radius: 2px; pointer-events: none; transition: width 0.1s linear; }
+  .progress-thumb { position: absolute; top: 50%; width: 12px; height: 12px; background: #534AB7; border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; box-shadow: 0 0 0 3px var(--color-background-primary); }
+  .time-row { display: flex; justify-content: space-between; font-size: 12px; color: var(--color-text-secondary); }
+  .controls { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+  .ctrl-btn { background: none; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); padding: 6px 10px; cursor: pointer; color: var(--color-text-primary); font-size: 15px; display: flex; align-items: center; gap: 4px; transition: background 0.15s; }
+  .ctrl-btn:hover { background: var(--color-background-secondary); }
+  .ctrl-play { background: #534AB7; border-color: #534AB7; color: #fff; padding: 8px 16px; font-size: 15px; }
+  .ctrl-play:hover { background: #3C3489; border-color: #3C3489; }
+  .ctrl-speed { font-size: 12px; font-weight: 500; padding: 6px 10px; }
+  .vol-wrap { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+  .vol-wrap input[type=range] { width: 72px; }
+  .chapters-label { font-size: 11px; font-weight: 500; color: var(--color-text-secondary); letter-spacing: 0.06em; text-transform: uppercase; padding: 1rem 0 0.5rem; }
+  .chapter-list { display: flex; flex-direction: column; gap: 1px; }
+  .chapter-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: var(--border-radius-md); cursor: pointer; transition: background 0.12s; border: 1px solid transparent; }
+  .chapter-item:hover { background: var(--color-background-secondary); }
+  .chapter-item.active { background: #EEEDFE; border-color: #AFA9EC; }
+  .chapter-num { font-size: 11px; color: var(--color-text-secondary); min-width: 18px; text-align: right; }
+  .chapter-item.active .chapter-num { color: #534AB7; }
+  .chapter-ts { font-size: 13px; font-weight: 500; color: #534AB7; min-width: 44px; font-variant-numeric: tabular-nums; }
+  .chapter-item:not(.active) .chapter-ts { color: var(--color-text-secondary); }
+  .chapter-info { flex: 1; min-width: 0; }
+  .chapter-title { font-size: 14px; font-weight: 400; color: var(--color-text-primary); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .chapter-item.active .chapter-title { font-weight: 500; color: #3C3489; }
+  .chapter-dur { font-size: 12px; color: var(--color-text-secondary); margin: 1px 0 0; }
+  .chapter-dot { width: 6px; height: 6px; border-radius: 50%; background: #534AB7; opacity: 0; flex-shrink: 0; }
+  .chapter-item.active .chapter-dot { opacity: 1; }
+  .chapter-pip { width: 3px; height: 3px; border-radius: 50%; background: var(--color-border-secondary); flex-shrink: 0; }
+  .chapter-item.active .chapter-pip { background: #534AB7; }
+</style>
+
+<h2 class="sr-only" style="position:absolute;left:-9999px">Podcast player with chapter timestamps — click a chapter to seek to that point</h2>
+
+<div class="pod-shell">
+  <div class="pod-header">
+    <div class="pod-thumb" aria-hidden="true">
+      <i class="ti ti-microphone" style="font-size:28px;color:#C8C4F5"></i>
+    </div>
+    <div class="pod-meta">
+      <h2>The Product Thinking Podcast</h2>
+      <p>Ep. 241 — Designing for AI-Powered Experiences</p>
+    </div>
+    <div class="pod-badge">52:14</div>
+  </div>
+
+  <div class="player-bar">
+    <div class="progress-wrap" id="progressWrap">
+      <div class="progress-fill" id="progressFill" style="width:0%"></div>
+      <div class="progress-thumb" id="progressThumb" style="left:0%"></div>
+    </div>
+    <div class="time-row">
+      <span id="currentTime">00:00</span>
+      <span id="chapterNow" style="color:var(--color-text-secondary);font-size:12px;flex:1;text-align:center;padding:0 8px">Intro</span>
+      <span>52:14</span>
+    </div>
+    <div class="controls">
+      <button class="ctrl-btn" id="skipBack" title="Skip back 15s" aria-label="Skip back 15 seconds"><i class="ti ti-rotate-clockwise-2" style="transform:scaleX(-1)"></i></button>
+      <button class="ctrl-btn ctrl-play" id="playBtn" aria-label="Play"><i class="ti ti-player-play" id="playIcon"></i></button>
+      <button class="ctrl-btn" id="skipFwd" title="Skip forward 30s" aria-label="Skip forward 30 seconds"><i class="ti ti-rotate-clockwise-2"></i></button>
+      <button class="ctrl-btn ctrl-speed" id="speedBtn" aria-label="Playback speed">1×</button>
+      <div class="vol-wrap">
+        <i class="ti ti-volume" style="font-size:16px;color:var(--color-text-secondary)" aria-hidden="true"></i>
+        <input type="range" min="0" max="100" value="80" id="volSlider" aria-label="Volume">
+      </div>
+    </div>
+  </div>
+
+  <div class="chapters-label">Chapters</div>
+  <div class="chapter-list" id="chapterList"></div>
+</div>
+
+<script>
+const CHAPTERS = [
+  { t: 0,    title: "Intro & guest welcome", desc: "Meet today's guest" },
+  { t: 183,  title: "What is AI-native design?", desc: "Defining the paradigm shift" },
+  { t: 523,  title: "Mental models for users", desc: "How people think about AI" },
+  { t: 847,  title: "Trust & transparency patterns", desc: "Building confidence in AI outputs" },
+  { t: 1204, title: "Error handling & graceful failure", desc: "When models get things wrong" },
+  { t: 1519, title: "Case study: AI writing tools", desc: "Copilot, Notion AI, Jasper" },
+  { t: 1923, title: "Interaction latency challenges", desc: "Streaming, skeletons & feedback" },
+  { t: 2281, title: "Ethical design considerations", desc: "Bias, consent & transparency" },
+  { t: 2718, title: "Tools & resources", desc: "What the team uses day-to-day" },
+  { t: 2941, title: "Rapid-fire Q&A", desc: "Hot takes from the community" },
+  { t: 3073, title: "Where to find the guest", desc: "Links, newsletter, socials" },
+];
+
+const TOTAL = 3134;
+let currentTime = 0;
+let playing = false;
+let speed = 1;
+let timer = null;
+
+function fmt(s) {
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+  return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+}
+
+function chapterIndex(t) {
+  let idx = 0;
+  for (let i = 0; i < CHAPTERS.length; i++) {
+    if (t >= CHAPTERS[i].t) idx = i;
+  }
+  return idx;
+}
+
+function chapterDur(i) {
+  const end = i + 1 < CHAPTERS.length ? CHAPTERS[i+1].t : TOTAL;
+  const d = end - CHAPTERS[i].t;
+  const m = Math.floor(d/60);
+  const s = d % 60;
+  return m > 0 ? `${m}m ${s}s` : `${s}s`;
+}
+
+function buildList() {
+  const list = document.getElementById('chapterList');
+  list.innerHTML = '';
+  CHAPTERS.forEach((ch, i) => {
+    const el = document.createElement('div');
+    el.className = 'chapter-item';
+    el.dataset.idx = i;
+    el.innerHTML = `
+      <span class="chapter-num">${i+1}</span>
+      <span class="chapter-ts">${fmt(ch.t)}</span>
+      <div class="chapter-info">
+        <p class="chapter-title">${ch.title}</p>
+        <p class="chapter-dur">${chapterDur(i)}</p>
+      </div>
+      <span class="chapter-dot" aria-hidden="true"></span>
+    `;
+    el.addEventListener('click', () => seekTo(ch.t));
+    list.appendChild(el);
+  });
+}
+
+function updateUI() {
+  const pct = (currentTime / TOTAL) * 100;
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressThumb').style.left = pct + '%';
+  document.getElementById('currentTime').textContent = fmt(currentTime);
+
+  const ci = chapterIndex(currentTime);
+  document.getElementById('chapterNow').textContent = CHAPTERS[ci].title;
+
+  document.querySelectorAll('.chapter-item').forEach((el, i) => {
+    el.classList.toggle('active', i === ci);
+  });
+
+  const activeEl = document.querySelector('.chapter-item.active');
+  if (activeEl) activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function seekTo(t) {
+  currentTime = Math.max(0, Math.min(TOTAL, t));
+  updateUI();
+  if (!playing) startPlay();
+}
+
+function startPlay() {
+  playing = true;
+  document.getElementById('playIcon').className = 'ti ti-player-pause';
+  clearInterval(timer);
+  timer = setInterval(() => {
+    currentTime += speed * 0.25;
+    if (currentTime >= TOTAL) { currentTime = TOTAL; stopPlay(); return; }
+    updateUI();
+  }, 250);
+}
+
+function stopPlay() {
+  playing = false;
+  document.getElementById('playIcon').className = 'ti ti-player-play';
+  clearInterval(timer);
+}
+
+document.getElementById('playBtn').addEventListener('click', () => {
+  playing ? stopPlay() : startPlay();
+});
+
+document.getElementById('skipBack').addEventListener('click', () => {
+  currentTime = Math.max(0, currentTime - 15);
+  updateUI();
+});
+
+document.getElementById('skipFwd').addEventListener('click', () => {
+  currentTime = Math.min(TOTAL, currentTime + 30);
+  updateUI();
+});
+
+const speeds = [1, 1.25, 1.5, 2, 0.75];
+let speedIdx = 0;
+document.getElementById('speedBtn').addEventListener('click', () => {
+  speedIdx = (speedIdx + 1) % speeds.length;
+  speed = speeds[speedIdx];
+  document.getElementById('speedBtn').textContent = speed + '×';
+});
+
+const pw = document.getElementById('progressWrap');
+pw.addEventListener('click', e => {
+  const rect = pw.getBoundingClientRect();
+  const pct = (e.clientX - rect.left) / rect.width;
+  seekTo(Math.floor(pct * TOTAL));
+});
+
+buildList();
+updateUI();
+</script>

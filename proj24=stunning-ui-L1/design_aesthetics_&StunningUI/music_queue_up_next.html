@@ -1,0 +1,175 @@
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.queue-wrap{max-width:360px;margin:1.5rem auto;background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);overflow:hidden;font-family:var(--font-sans)}
+.queue-header{padding:14px 16px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:0.5px solid var(--color-border-tertiary)}
+.queue-header h2{font-size:14px;font-weight:500;color:var(--color-text-primary)}
+.queue-header span{font-size:12px;color:var(--color-text-tertiary)}
+.now-playing-section{padding:10px 16px 6px}
+.section-label{font-size:11px;font-weight:500;color:var(--color-text-tertiary);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.track-row{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:8px;cursor:pointer;position:relative;transition:background .12s}
+.track-row:hover{background:var(--color-background-secondary)}
+.track-row.active{background:#EFF6FF}
+@media(prefers-color-scheme:dark){.track-row.active{background:#1e2d42}}
+.drag-handle{color:var(--color-text-tertiary);cursor:grab;font-size:16px;flex-shrink:0;opacity:.5;padding:2px}
+.drag-handle:hover{opacity:1}
+.track-row.dragging{opacity:.4;background:var(--color-background-secondary)}
+.track-row.drag-over{border-top:2px solid #3B82F6}
+.thumb{width:38px;height:38px;border-radius:6px;flex-shrink:0;object-fit:cover;background:var(--color-background-secondary);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+.thumb-img{width:100%;height:100%;border-radius:6px}
+.thumb-play{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45);border-radius:6px;opacity:0;transition:opacity .12s}
+.track-row:hover .thumb-play{opacity:1}
+.track-row.active .thumb-play{opacity:0}
+.thumb-play i{color:#fff;font-size:16px}
+.track-info{flex:1;min-width:0}
+.track-title{font-size:13px;font-weight:500;color:var(--color-text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.track-artist{font-size:12px;color:var(--color-text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.track-row.active .track-title{color:#2563EB}
+.track-duration{font-size:12px;color:var(--color-text-tertiary);flex-shrink:0}
+.active-badge{width:8px;height:8px;border-radius:50%;background:#3B82F6;flex-shrink:0;animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.4);opacity:.7}}
+.now-card{display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--color-background-secondary);border-radius:8px;border:0.5px solid var(--color-border-tertiary);margin-bottom:6px}
+.now-thumb{width:44px;height:44px;border-radius:8px;flex-shrink:0;overflow:hidden}
+.now-info{flex:1;min-width:0}
+.now-title{font-size:13px;font-weight:500;color:var(--color-text-primary)}
+.now-artist{font-size:12px;color:var(--color-text-secondary);margin-top:1px}
+.now-prog{height:3px;background:var(--color-border-tertiary);border-radius:2px;margin-top:8px;overflow:hidden}
+.now-prog-bar{height:100%;background:#3B82F6;border-radius:2px;width:38%;animation:prog 8s linear infinite alternate}
+@keyframes prog{from{width:38%}to{width:62%}}
+.up-next-section{padding:2px 16px 12px}
+.toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%) translateY(20px);background:#1e293b;color:#f8fafc;font-size:12px;padding:7px 16px;border-radius:20px;opacity:0;transition:all .25s;pointer-events:none;white-space:nowrap;z-index:99}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+
+<h2 class="sr-only">Music queue showing currently playing track and upcoming tracks. Drag to reorder, click to play.</h2>
+
+<div class="queue-wrap">
+  <div class="queue-header">
+    <h2>Queue</h2>
+    <span id="queue-count">6 tracks</span>
+  </div>
+
+  <div class="now-playing-section">
+    <div class="section-label">Now playing</div>
+    <div class="now-card">
+      <div class="now-thumb">
+        <svg width="44" height="44" viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg"><rect width="44" height="44" fill="#312e81"/><circle cx="22" cy="22" r="10" fill="none" stroke="#a5b4fc" stroke-width="1.5"/><circle cx="22" cy="22" r="3" fill="#a5b4fc"/><line x1="22" y1="12" x2="22" y2="6" stroke="#a5b4fc" stroke-width="1.5"/></svg>
+      </div>
+      <div class="now-info">
+        <div class="now-title">Midnight City</div>
+        <div class="now-artist">M83</div>
+        <div class="now-prog"><div class="now-prog-bar"></div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
+        <div class="active-badge"></div>
+        <span style="font-size:12px;color:#3B82F6;font-weight:500">Live</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="up-next-section">
+    <div class="section-label">Up next</div>
+    <div id="queue-list"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const tracks = [
+  {id:1, title:"Blinding Lights", artist:"The Weeknd", dur:"3:20", color:"#7c3aed", shape:"wave"},
+  {id:2, title:"Levitating", artist:"Dua Lipa", dur:"3:23", color:"#0369a1", shape:"circle"},
+  {id:3, title:"As It Was", artist:"Harry Styles", dur:"2:37", color:"#065f46", shape:"diamond"},
+  {id:4, title:"Heat Waves", artist:"Glass Animals", dur:"3:59", color:"#92400e", shape:"triangle"},
+  {id:5, title:"Anti-Hero", artist:"Taylor Swift", dur:"3:20", color:"#9d174d", shape:"star"},
+  {id:6, title:"Flowers", artist:"Miley Cyrus", dur:"3:20", color:"#1e3a5f", shape:"hex"},
+];
+
+let queue = [...tracks];
+let dragSrc = null;
+
+function makeThumb(t){
+  const s = t.shape, c = t.color;
+  const svgs = {
+    wave:`<svg width="38" height="38" viewBox="0 0 38 38" xmlns="http://www.w3.org/2000/svg"><rect width="38" height="38" fill="${c}"/><path d="M4 19 Q10 11 16 19 Q22 27 28 19 Q34 11 38 16" stroke="rgba(255,255,255,.6)" stroke-width="2" fill="none"/></svg>`,
+    circle:`<svg width="38" height="38" viewBox="0 0 38 38" xmlns="http://www.w3.org/2000/svg"><rect width="38" height="38" fill="${c}"/><circle cx="19" cy="19" r="9" stroke="rgba(255,255,255,.6)" stroke-width="2" fill="none"/><circle cx="19" cy="19" r="3" fill="rgba(255,255,255,.6)"/></svg>`,
+    diamond:`<svg width="38" height="38" viewBox="0 0 38 38" xmlns="http://www.w3.org/2000/svg"><rect width="38" height="38" fill="${c}"/><polygon points="19,8 30,19 19,30 8,19" stroke="rgba(255,255,255,.6)" stroke-width="2" fill="none"/></svg>`,
+    triangle:`<svg width="38" height="38" viewBox="0 0 38 38" xmlns="http://www.w3.org/2000/svg"><rect width="38" height="38" fill="${c}"/><polygon points="19,8 31,29 7,29" stroke="rgba(255,255,255,.6)" stroke-width="2" fill="none"/></svg>`,
+    star:`<svg width="38" height="38" viewBox="0 0 38 38" xmlns="http://www.w3.org/2000/svg"><rect width="38" height="38" fill="${c}"/><polygon points="19,7 21.5,14.5 29,14.5 23,19.5 25.5,27 19,22.5 12.5,27 15,19.5 9,14.5 16.5,14.5" stroke="rgba(255,255,255,.6)" stroke-width="1.5" fill="none"/></svg>`,
+    hex:`<svg width="38" height="38" viewBox="0 0 38 38" xmlns="http://www.w3.org/2000/svg"><rect width="38" height="38" fill="${c}"/><polygon points="19,8 28,13.5 28,24.5 19,30 10,24.5 10,13.5" stroke="rgba(255,255,255,.6)" stroke-width="2" fill="none"/></svg>`,
+  };
+  return svgs[s]||svgs.circle;
+}
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.classList.add('show');
+  clearTimeout(t._t);
+  t._t=setTimeout(()=>t.classList.remove('show'),1800);
+}
+
+function render(){
+  const list = document.getElementById('queue-list');
+  list.innerHTML='';
+  document.getElementById('queue-count').textContent = queue.length+' tracks';
+  queue.forEach((t,i)=>{
+    const row = document.createElement('div');
+    row.className='track-row';
+    row.dataset.i=i;
+    row.draggable=true;
+    row.innerHTML=`
+      <div class="drag-handle" aria-label="drag to reorder"><i class="ti ti-grip-vertical" aria-hidden="true"></i></div>
+      <div class="thumb">
+        ${makeThumb(t)}
+        <div class="thumb-play"><i class="ti ti-player-play-filled"></i></div>
+      </div>
+      <div class="track-info">
+        <div class="track-title">${t.title}</div>
+        <div class="track-artist">${t.artist}</div>
+      </div>
+      <div class="track-duration">${t.dur}</div>
+    `;
+
+    row.addEventListener('click', e=>{
+      if(e.target.closest('.drag-handle')) return;
+      showToast(`Now playing: ${t.title}`);
+    });
+
+    row.addEventListener('dblclick', e=>{
+      if(e.target.closest('.drag-handle')) return;
+      const item = queue.splice(i,1)[0];
+      queue.unshift(item);
+      render();
+      showToast(`Playing next: ${t.title}`);
+    });
+
+    row.addEventListener('dragstart', e=>{
+      dragSrc=i;
+      row.classList.add('dragging');
+      e.dataTransfer.effectAllowed='move';
+    });
+    row.addEventListener('dragend', ()=>{
+      row.classList.remove('dragging');
+      document.querySelectorAll('.drag-over').forEach(r=>r.classList.remove('drag-over'));
+    });
+    row.addEventListener('dragover', e=>{
+      e.preventDefault();
+      e.dataTransfer.dropEffect='move';
+      document.querySelectorAll('.drag-over').forEach(r=>r.classList.remove('drag-over'));
+      if(dragSrc!==i) row.classList.add('drag-over');
+    });
+    row.addEventListener('drop', e=>{
+      e.preventDefault();
+      if(dragSrc===null||dragSrc===i) return;
+      const moved = queue.splice(dragSrc,1)[0];
+      queue.splice(i,0,moved);
+      dragSrc=null;
+      render();
+    });
+
+    list.appendChild(row);
+  });
+}
+
+render();
+</script>

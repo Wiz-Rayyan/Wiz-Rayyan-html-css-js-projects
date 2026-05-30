@@ -1,0 +1,247 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:inherit}
+#app{display:flex;flex-direction:column;gap:0;height:520px}
+#toolbar{display:flex;align-items:center;gap:6px;padding:8px 12px;border-bottom:0.5px solid var(--color-border-tertiary);background:var(--color-background-secondary);flex-shrink:0}
+#toolbar label{font-size:12px;color:var(--color-text-secondary)}
+.tool-btn{display:flex;align-items:center;gap:5px;padding:4px 10px;font-size:12px;border:0.5px solid var(--color-border-secondary);border-radius:6px;background:transparent;color:var(--color-text-primary);cursor:pointer;transition:background .15s}
+.tool-btn:hover{background:var(--color-background-primary)}
+.tool-btn.active{background:var(--color-background-info);border-color:var(--color-border-info);color:var(--color-text-info)}
+.sep{width:0.5px;height:20px;background:var(--color-border-tertiary);margin:0 2px}
+select{font-size:12px;padding:3px 6px;border:0.5px solid var(--color-border-secondary);border-radius:6px;background:var(--color-background-primary);color:var(--color-text-primary);cursor:pointer}
+#hint{font-size:11px;color:var(--color-text-tertiary);margin-left:auto}
+#canvas{flex:1;position:relative;overflow:hidden;cursor:default}
+#canvas.mode-select{cursor:default}
+#canvas.mode-connect{cursor:crosshair}
+svg#lines{position:absolute;inset:0;pointer-events:none;width:100%;height:100%}
+svg#lines.active-lines{pointer-events:all}
+.node{position:absolute;border:1.5px solid var(--color-border-secondary);border-radius:8px;background:var(--color-background-primary);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;color:var(--color-text-primary);user-select:none;cursor:grab;transition:border-color .15s,box-shadow .15s;min-width:80px;min-height:36px;text-align:center;padding:6px 10px}
+.node:active{cursor:grabbing}
+.node.selected{border-color:var(--color-border-info);box-shadow:0 0 0 2px var(--color-background-info)}
+.node.snap-target{border-color:#1D9E75;box-shadow:0 0 0 2px #E1F5EE}
+.conn-line{pointer-events:stroke;cursor:pointer;transition:stroke .1s}
+.conn-line:hover{stroke-width:3}
+.conn-line.selected-line{stroke:#378ADD;stroke-width:2.5}
+#drag-line{pointer-events:none}
+</style>
+<div id="app">
+  <div id="toolbar">
+    <button class="tool-btn active" id="btn-select" onclick="setMode('select')"><i class="ti ti-cursor-text" aria-hidden="true"></i> Select</button>
+    <button class="tool-btn" id="btn-connect" onclick="setMode('connect')"><i class="ti ti-line-dashed" aria-hidden="true"></i> Connect</button>
+    <div class="sep"></div>
+    <label>Arrow</label>
+    <select id="arrow-sel"><option value="both">→ Both</option><option value="end">→ End</option><option value="none">— None</option></select>
+    <label>Style</label>
+    <select id="style-sel"><option value="">Solid</option><option value="6,3">Dashed</option><option value="2,3">Dotted</option></select>
+    <div class="sep"></div>
+    <button class="tool-btn" onclick="addNode()"><i class="ti ti-plus" aria-hidden="true"></i> Add node</button>
+    <button class="tool-btn" onclick="deleteSelected()" id="btn-del" style="color:var(--color-text-danger)"><i class="ti ti-trash" aria-hidden="true"></i></button>
+    <span id="hint">Click a node to select · Connect mode: drag between nodes</span>
+  </div>
+  <div id="canvas">
+    <svg id="lines"><defs>
+      <marker id="ah-end" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker>
+      <marker id="ah-start" viewBox="0 0 10 10" refX="2" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M8 1L2 5L8 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker>
+    </defs>
+    <g id="conn-group"></g>
+    <path id="drag-line" fill="none" stroke="#378ADD" stroke-width="1.5" stroke-dasharray="5,3" d=""/>
+    </svg>
+  </div>
+</div>
+<script>
+const canvas=document.getElementById('canvas');
+const svgEl=document.getElementById('lines');
+const connGroup=document.getElementById('conn-group');
+const dragLine=document.getElementById('drag-line');
+let mode='select';
+let nodes=[];let conns=[];let nid=0;let cid=0;
+let selectedNode=null;let selectedConn=null;
+let dragging=null;let dragOffset={x:0,y:0};
+let connecting=null;let snapTarget=null;
+
+const names=['Component','Service','Database','API','Client','Server','Module','Queue'];
+let nameIdx=0;
+
+function setMode(m){
+  mode=m;
+  document.getElementById('btn-select').classList.toggle('active',m==='select');
+  document.getElementById('btn-connect').classList.toggle('active',m==='connect');
+  canvas.className='';
+  if(m==='connect'){canvas.classList.add('mode-connect');selectNode(null);selectConn(null);}
+  else{canvas.classList.add('mode-select');}
+  document.getElementById('hint').textContent=
+    m==='connect'?'Drag from node → release on target node':
+    'Click to select · Drag to move · Del to remove';
+}
+
+function addNode(){
+  const cw=canvas.clientWidth,ch=canvas.clientHeight;
+  const x=80+Math.random()*(cw-200),y=60+Math.random()*(ch-120);
+  createNode(Math.round(x),Math.round(y),names[nameIdx++%names.length]);
+}
+
+function createNode(x,y,label){
+  const el=document.createElement('div');
+  el.className='node';el.textContent=label;
+  el.style.left=x+'px';el.style.top=y+'px';
+  const nd={id:nid++,el,label,x,y};
+  nodes.push(nd);canvas.appendChild(el);
+  el.addEventListener('mousedown',e=>onNodeMouseDown(e,nd));
+  el.addEventListener('touchstart',e=>onNodeTouch(e,nd),{passive:false});
+  return nd;
+}
+
+function getCenter(nd){
+  const el=nd.el;
+  return{x:nd.x+el.offsetWidth/2,y:nd.y+el.offsetHeight/2};
+}
+
+function getEdgePoint(nd,from){
+  const el=nd.el;
+  const cx=nd.x+el.offsetWidth/2,cy=nd.y+el.offsetHeight/2;
+  const dx=from.x-cx,dy=from.y-cy;
+  if(dx===0&&dy===0)return{x:cx,y:cy};
+  const w=el.offsetWidth/2+2,h=el.offsetHeight/2+2;
+  const absDx=Math.abs(dx),absDy=Math.abs(dy);
+  if(absDx/w>absDy/h){const s=w/absDx;return{x:cx+dx*s,y:cy+dy*s};}
+  else{const s=h/absDy;return{x:cx+dx*s,y:cy+dy*s};}
+}
+
+function orthoPath(x1,y1,x2,y2){
+  const mx=(x1+x2)/2;
+  return`M${x1},${y1}L${mx},${y1}L${mx},${y2}L${x2},${y2}`;
+}
+
+function updateConn(conn){
+  const a=nodes.find(n=>n.id===conn.from);
+  const b=nodes.find(n=>n.id===conn.to);
+  if(!a||!b){conn.el.remove();return;}
+  const ca=getCenter(a),cb=getCenter(b);
+  const pa=getEdgePoint(a,cb),pb=getEdgePoint(b,ca);
+  conn.el.setAttribute('d',orthoPath(pa.x,pa.y,pb.x,pb.y));
+  const arv=document.getElementById('arrow-sel').value;
+  const dash=document.getElementById('style-sel').value;
+  conn.el.setAttribute('stroke-dasharray',dash||'');
+  conn.el.setAttribute('marker-end',arv==='end'||arv==='both'?'url(#ah-end)':'');
+  conn.el.setAttribute('marker-start',arv==='both'?'url(#ah-start)':'');
+}
+
+function createConn(fromId,toId){
+  if(fromId===toId)return;
+  if(conns.find(c=>(c.from===fromId&&c.to===toId)||(c.from===toId&&c.to===fromId)))return;
+  const path=document.createElementNS('http://www.w3.org/2000/svg','path');
+  path.classList.add('conn-line');
+  path.setAttribute('fill','none');
+  path.setAttribute('stroke','var(--color-text-secondary)');
+  path.setAttribute('stroke-width','1.5');
+  path.setAttribute('stroke-linecap','round');
+  const conn={id:cid++,from:fromId,to:toId,el:path};
+  conns.push(conn);connGroup.appendChild(path);
+  path.addEventListener('click',()=>selectConn(conn));
+  updateConn(conn);
+}
+
+function selectNode(nd){
+  if(selectedNode)selectedNode.el.classList.remove('selected');
+  selectedNode=nd;
+  if(nd)nd.el.classList.add('selected');
+}
+
+function selectConn(c){
+  if(selectedConn)selectedConn.el.classList.remove('selected-line');
+  selectedConn=c;
+  if(c)c.el.classList.add('selected-line');
+}
+
+function onNodeMouseDown(e,nd){
+  if(mode==='connect'){
+    e.preventDefault();
+    connecting={nd,sx:nd.x,sy:nd.y};
+    return;
+  }
+  if(mode==='select'){
+    e.stopPropagation();
+    selectNode(nd);selectConn(null);
+    dragging=nd;
+    const r=canvas.getBoundingClientRect();
+    dragOffset={x:e.clientX-r.left-nd.x,y:e.clientY-r.top-nd.y};
+  }
+}
+
+function onNodeTouch(e,nd){
+  const t=e.touches[0];
+  const fakeE={clientX:t.clientX,clientY:t.clientY,preventDefault:()=>e.preventDefault(),stopPropagation:()=>e.stopPropagation()};
+  onNodeMouseDown(fakeE,nd);
+}
+
+document.addEventListener('mousemove',e=>{
+  const r=canvas.getBoundingClientRect();
+  const mx=e.clientX-r.left,my=e.clientY-r.top;
+  if(dragging){
+    dragging.x=Math.max(0,Math.min(canvas.clientWidth-dragging.el.offsetWidth,mx-dragOffset.x));
+    dragging.y=Math.max(0,Math.min(canvas.clientHeight-dragging.el.offsetHeight,my-dragOffset.y));
+    dragging.el.style.left=dragging.x+'px';dragging.el.style.top=dragging.y+'px';
+    conns.forEach(c=>{if(c.from===dragging.id||c.to===dragging.id)updateConn(c);});
+  }
+  if(connecting){
+    const sc=getCenter(connecting.nd);
+    dragLine.setAttribute('d',orthoPath(sc.x,sc.y,mx,my));
+    const tgt=nodes.find(n=>{
+      const c2=getCenter(n);return n.id!==connecting.nd.id&&Math.hypot(c2.x-mx,c2.y-my)<40;
+    });
+    if(snapTarget&&snapTarget!==tgt)snapTarget.el.classList.remove('snap-target');
+    snapTarget=tgt||null;
+    if(snapTarget)snapTarget.el.classList.add('snap-target');
+  }
+});
+
+document.addEventListener('mouseup',e=>{
+  if(connecting){
+    const r=canvas.getBoundingClientRect();
+    const mx=e.clientX-r.left,my=e.clientY-r.top;
+    const tgt=nodes.find(n=>{const c=getCenter(n);return n.id!==connecting.nd.id&&Math.hypot(c.x-mx,c.y-my)<50;});
+    if(tgt)createConn(connecting.nd.id,tgt.id);
+    dragLine.setAttribute('d','');
+    if(snapTarget)snapTarget.el.classList.remove('snap-target');
+    snapTarget=null;connecting=null;
+  }
+  dragging=null;
+});
+
+canvas.addEventListener('click',e=>{
+  if(e.target===canvas||e.target===svgEl){selectNode(null);selectConn(null);}
+});
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Delete'||e.key==='Backspace'){
+    if(document.activeElement&&document.activeElement!==document.body)return;
+    if(selectedConn){selectedConn.el.remove();conns=conns.filter(c=>c.id!==selectedConn.id);selectedConn=null;}
+    else if(selectedNode){
+      conns=conns.filter(c=>{if(c.from===selectedNode.id||c.to===selectedNode.id){c.el.remove();return false;}return true;});
+      selectedNode.el.remove();nodes=nodes.filter(n=>n.id!==selectedNode.id);selectedNode=null;
+    }
+  }
+  if(e.key==='Escape')setMode('select');
+});
+
+document.getElementById('arrow-sel').addEventListener('change',()=>conns.forEach(updateConn));
+document.getElementById('style-sel').addEventListener('change',()=>conns.forEach(updateConn));
+
+createNode(80,80,'Client');
+createNode(260,60,'API Gateway');
+createNode(440,80,'Auth Service');
+createNode(160,200,'Load Balancer');
+createNode(340,210,'Database');
+createNode(500,200,'Cache');
+setTimeout(()=>{
+  const ids=nodes.map(n=>n.id);
+  createConn(ids[0],ids[1]);
+  createConn(ids[1],ids[2]);
+  createConn(ids[1],ids[3]);
+  createConn(ids[3],ids[4]);
+  createConn(ids[2],ids[4]);
+  createConn(ids[4],ids[5]);
+},50);
+setMode('select');
+</script>

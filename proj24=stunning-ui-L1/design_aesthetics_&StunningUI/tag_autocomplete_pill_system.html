@@ -1,0 +1,329 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font-sans); }
+  .app { padding: 1.5rem 0; max-width: 680px; }
+  .toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 1rem; flex-wrap: wrap; }
+  .filter-pills { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .filter-label { font-size: 12px; color: var(--color-text-tertiary); }
+  .notes-grid { display: grid; gap: 10px; }
+  .note-card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 14px 16px; transition: border-color 0.15s; }
+  .note-card:hover { border-color: var(--color-border-secondary); }
+  .note-card.hidden { display: none; }
+  .note-title { font-size: 14px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 6px; }
+  .note-body { font-size: 13px; color: var(--color-text-secondary); line-height: 1.55; }
+  .note-tags { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 10px; }
+  .tag-pill { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 20px; cursor: pointer; user-select: none; transition: opacity 0.15s; border: 0.5px solid transparent; }
+  .tag-pill:hover { opacity: 0.8; }
+  .tag-pill.active-filter { outline: 2px solid currentColor; outline-offset: 1px; }
+  .editor-area { position: relative; background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); transition: border-color 0.15s; }
+  .editor-area:focus-within { border-color: var(--color-border-secondary); }
+  .editor-input { display: block; width: 100%; min-height: 56px; padding: 12px 14px; font-size: 14px; font-family: var(--font-sans); color: var(--color-text-primary); background: transparent; border: none; outline: none; resize: none; line-height: 1.6; }
+  .editor-tags-row { display: flex; gap: 5px; flex-wrap: wrap; padding: 0 14px 10px; }
+  .dropdown { position: absolute; top: calc(100% + 4px); left: 0; width: 100%; background: var(--color-background-primary); border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); overflow: hidden; z-index: 10; box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
+  .dropdown-item { display: flex; align-items: center; gap: 8px; padding: 8px 12px; font-size: 13px; color: var(--color-text-primary); cursor: pointer; transition: background 0.1s; }
+  .dropdown-item:hover, .dropdown-item.selected { background: var(--color-background-secondary); }
+  .dropdown-item .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .dropdown-item .create-hint { font-size: 11px; color: var(--color-text-tertiary); margin-left: auto; }
+  .dropdown-empty { padding: 10px 12px; font-size: 13px; color: var(--color-text-tertiary); }
+  .context-menu { position: fixed; background: var(--color-background-primary); border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); min-width: 140px; overflow: hidden; z-index: 100; box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+  .ctx-item { display: flex; align-items: center; gap: 8px; padding: 8px 14px; font-size: 13px; color: var(--color-text-primary); cursor: pointer; transition: background 0.1s; }
+  .ctx-item:hover { background: var(--color-background-secondary); }
+  .ctx-item.danger { color: var(--color-text-danger); }
+  .clear-filter { font-size: 11px; color: var(--color-text-tertiary); cursor: pointer; text-decoration: underline; text-decoration-style: dotted; padding: 2px 4px; }
+  .clear-filter:hover { color: var(--color-text-secondary); }
+  .add-btn { font-size: 12px; padding: 5px 12px; cursor: pointer; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); background: transparent; color: var(--color-text-secondary); transition: background 0.1s; }
+  .add-btn:hover { background: var(--color-background-secondary); }
+  .hint { font-size: 11px; color: var(--color-text-tertiary); padding: 6px 14px 10px; }
+  .section-label { font-size: 11px; color: var(--color-text-tertiary); margin-bottom: 8px; letter-spacing: 0.04em; text-transform: uppercase; }
+</style>
+
+<div class="app" role="main">
+  <h2 class="sr-only">Tag autocomplete and pill filtering demo</h2>
+
+  <div style="margin-bottom: 1.25rem;">
+    <p class="section-label">New note</p>
+    <div class="editor-area" id="editorArea">
+      <textarea class="editor-input" id="noteInput" placeholder="Type your note… use # to tag" rows="2"></textarea>
+      <div class="editor-tags-row" id="editorTags"></div>
+      <div class="dropdown" id="dropdown" style="display:none;"></div>
+      <p class="hint">Type <strong style="font-weight:500">#</strong> to tag &nbsp;·&nbsp; Tab / ↑↓ to navigate &nbsp;·&nbsp; Enter to select &nbsp;·&nbsp; Right-click tag to edit/delete</p>
+    </div>
+    <div style="display:flex; justify-content:flex-end; margin-top:8px;">
+      <button class="add-btn" id="addNoteBtn">Add note</button>
+    </div>
+  </div>
+
+  <div style="margin-bottom: 1rem;">
+    <div class="filter-pills" id="filterBar">
+      <span class="filter-label">Filter:</span>
+    </div>
+  </div>
+
+  <div class="notes-grid" id="notesGrid"></div>
+</div>
+
+<div class="context-menu" id="ctxMenu" style="display:none;">
+  <div class="ctx-item" id="ctxEdit"><i class="ti ti-edit" style="font-size:15px" aria-hidden="true"></i> Edit tag</div>
+  <div class="ctx-item danger" id="ctxDelete"><i class="ti ti-trash" style="font-size:15px" aria-hidden="true"></i> Delete tag</div>
+</div>
+
+<script>
+const COLORS = [
+  {bg:'#E6F1FB',border:'#378ADD',text:'#0C447C',dot:'#185FA5'},
+  {bg:'#EEEDFE',border:'#7F77DD',text:'#3C3489',dot:'#534AB7'},
+  {bg:'#E1F5EE',border:'#1D9E75',text:'#085041',dot:'#0F6E56'},
+  {bg:'#FAEEDA',border:'#EF9F27',text:'#633806',dot:'#BA7517'},
+  {bg:'#FAECE7',border:'#D85A30',text:'#4A1B0C',dot:'#993C1D'},
+  {bg:'#FBEAF0',border:'#D4537E',text:'#4B1528',dot:'#993556'},
+  {bg:'#EAF3DE',border:'#639922',text:'#173404',dot:'#3B6D11'},
+  {bg:'#FCEBEB',border:'#E24B4A',text:'#501313',dot:'#A32D2D'},
+];
+
+let tags = {
+  'design': COLORS[0],
+  'research': COLORS[1],
+  'dev': COLORS[2],
+  'idea': COLORS[3],
+  'todo': COLORS[4],
+  'writing': COLORS[5],
+};
+
+let notes = [
+  { id:1, text:'Redesign the onboarding flow with cleaner step indicators', tags:['design','todo'] },
+  { id:2, text:'Looked into user interview patterns for the new feature sprint', tags:['research','idea'] },
+  { id:3, text:'Set up CI pipeline for the mobile repo', tags:['dev','todo'] },
+  { id:4, text:'Draft blog post outline covering product philosophy', tags:['writing','idea'] },
+];
+
+let activeFilters = new Set();
+let colorIdx = Object.keys(tags).length % COLORS.length;
+let dropdownQuery = '';
+let ddSelected = 0;
+let ctxTarget = null;
+let pendingTags = [];
+let nextId = 5;
+
+const noteInput = document.getElementById('noteInput');
+const dropdown = document.getElementById('dropdown');
+const editorTags = document.getElementById('editorTags');
+const notesGrid = document.getElementById('notesGrid');
+const filterBar = document.getElementById('filterBar');
+const ctxMenu = document.getElementById('ctxMenu');
+
+function getColor(name) {
+  return tags[name] || COLORS[colorIdx % COLORS.length];
+}
+
+function pillHTML(name, clickable=true, active=false) {
+  const c = getColor(name);
+  return `<span class="tag-pill${active?' active-filter':''}" 
+    style="background:${c.bg};border-color:${c.border};color:${c.text}"
+    data-tag="${name}" ${clickable?'tabindex="0"':''}>
+    #${name}
+  </span>`;
+}
+
+function renderNotes() {
+  notesGrid.innerHTML = '';
+  notes.forEach(note => {
+    const visible = activeFilters.size === 0 || note.tags.some(t => activeFilters.has(t));
+    const card = document.createElement('div');
+    card.className = 'note-card' + (visible ? '' : ' hidden');
+    card.innerHTML = `<p class="note-body">${escapeHTML(note.text)}</p>
+      <div class="note-tags">${note.tags.map(t=>pillHTML(t)).join('')}</div>`;
+    card.querySelectorAll('.tag-pill').forEach(p => {
+      p.addEventListener('click', () => toggleFilter(p.dataset.tag));
+      p.addEventListener('contextmenu', e => openCtx(e, p.dataset.tag, 'note'));
+    });
+    notesGrid.appendChild(card);
+  });
+}
+
+function renderFilterBar() {
+  const existing = Array.from(filterBar.querySelectorAll('.tag-pill'));
+  existing.forEach(e => e.remove());
+  const clearEl = filterBar.querySelector('.clear-filter');
+  if (clearEl) clearEl.remove();
+
+  Object.keys(tags).forEach(name => {
+    const active = activeFilters.has(name);
+    const span = document.createElement('span');
+    span.className = 'tag-pill' + (active ? ' active-filter' : '');
+    const c = getColor(name);
+    span.style.cssText = `background:${c.bg};border-color:${c.border};color:${c.text}`;
+    span.dataset.tag = name;
+    span.setAttribute('tabindex', '0');
+    span.textContent = '#' + name;
+    span.addEventListener('click', () => toggleFilter(name));
+    span.addEventListener('contextmenu', e => openCtx(e, name, 'filter'));
+    filterBar.appendChild(span);
+  });
+
+  if (activeFilters.size > 0) {
+    const clr = document.createElement('span');
+    clr.className = 'clear-filter';
+    clr.textContent = 'clear';
+    clr.addEventListener('click', () => { activeFilters.clear(); renderFilterBar(); renderNotes(); });
+    filterBar.appendChild(clr);
+  }
+}
+
+function toggleFilter(name) {
+  if (activeFilters.has(name)) activeFilters.delete(name);
+  else activeFilters.add(name);
+  renderFilterBar();
+  renderNotes();
+}
+
+function renderEditorTags() {
+  editorTags.innerHTML = '';
+  pendingTags.forEach(name => {
+    const span = document.createElement('span');
+    span.className = 'tag-pill';
+    const c = getColor(name);
+    span.style.cssText = `background:${c.bg};border-color:${c.border};color:${c.text};cursor:default`;
+    span.textContent = '#' + name;
+    const x = document.createElement('span');
+    x.textContent = '×';
+    x.style.cssText = 'margin-left:4px;cursor:pointer;opacity:0.6;';
+    x.addEventListener('click', () => { pendingTags = pendingTags.filter(t=>t!==name); renderEditorTags(); });
+    span.appendChild(x);
+    editorTags.appendChild(span);
+  });
+}
+
+function showDropdown(query) {
+  dropdownQuery = query;
+  ddSelected = 0;
+  const all = Object.keys(tags);
+  const filtered = all.filter(t => t.startsWith(query) && !pendingTags.includes(t));
+  const showCreate = query.length > 0 && !all.includes(query);
+  if (filtered.length === 0 && !showCreate) { hideDropdown(); return; }
+
+  dropdown.innerHTML = '';
+  filtered.forEach((t, i) => {
+    const c = getColor(t);
+    const div = document.createElement('div');
+    div.className = 'dropdown-item' + (i===0?' selected':'');
+    div.dataset.idx = i;
+    div.innerHTML = `<span class="dot" style="background:${c.dot}"></span><span>#${t}</span>`;
+    div.addEventListener('mousedown', e => { e.preventDefault(); selectTag(t); });
+    dropdown.appendChild(div);
+  });
+
+  if (showCreate) {
+    const div = document.createElement('div');
+    div.className = 'dropdown-item' + (filtered.length===0?' selected':'');
+    div.dataset.idx = filtered.length;
+    div.dataset.create = query;
+    div.innerHTML = `<i class="ti ti-plus" style="font-size:14px;color:var(--color-text-tertiary)" aria-hidden="true"></i><span>#${query}</span><span class="create-hint">create new</span>`;
+    div.addEventListener('mousedown', e => { e.preventDefault(); createAndSelect(query); });
+    dropdown.appendChild(div);
+  }
+
+  dropdown.style.display = 'block';
+}
+
+function hideDropdown() { dropdown.style.display = 'none'; }
+
+function selectTag(name) {
+  if (!pendingTags.includes(name)) pendingTags.push(name);
+  const val = noteInput.value;
+  const hashIdx = val.lastIndexOf('#');
+  noteInput.value = val.slice(0, hashIdx);
+  hideDropdown();
+  renderEditorTags();
+  noteInput.focus();
+}
+
+function createAndSelect(name) {
+  if (!tags[name]) {
+    tags[name] = COLORS[colorIdx % COLORS.length];
+    colorIdx++;
+    renderFilterBar();
+  }
+  selectTag(name);
+}
+
+noteInput.addEventListener('input', () => {
+  const val = noteInput.value;
+  const hashIdx = val.lastIndexOf('#');
+  if (hashIdx === -1) { hideDropdown(); return; }
+  const query = val.slice(hashIdx + 1).toLowerCase().replace(/\s.*/, '');
+  if (val.slice(hashIdx).includes(' ') && query.length === 0) { hideDropdown(); return; }
+  showDropdown(query);
+});
+
+noteInput.addEventListener('keydown', e => {
+  if (dropdown.style.display === 'none') return;
+  const items = dropdown.querySelectorAll('.dropdown-item');
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    ddSelected = Math.min(ddSelected + 1, items.length - 1);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    ddSelected = Math.max(ddSelected - 1, 0);
+  } else if (e.key === 'Enter' || e.key === 'Tab') {
+    const sel = dropdown.querySelector('.dropdown-item.selected');
+    if (sel) { e.preventDefault(); sel.dispatchEvent(new MouseEvent('mousedown')); }
+    return;
+  } else if (e.key === 'Escape') {
+    hideDropdown(); return;
+  } else return;
+  items.forEach((it, i) => it.classList.toggle('selected', i === ddSelected));
+});
+
+document.getElementById('addNoteBtn').addEventListener('click', () => {
+  const text = noteInput.value.trim();
+  if (!text && pendingTags.length === 0) return;
+  const finalText = text || '(no text)';
+  notes.unshift({ id: nextId++, text: finalText, tags: [...pendingTags] });
+  noteInput.value = '';
+  pendingTags = [];
+  renderEditorTags();
+  hideDropdown();
+  renderNotes();
+});
+
+function openCtx(e, name, source) {
+  e.preventDefault();
+  ctxTarget = { name, source };
+  ctxMenu.style.left = Math.min(e.clientX, window.innerWidth - 160) + 'px';
+  ctxMenu.style.top = Math.min(e.clientY, window.innerHeight - 80) + 'px';
+  ctxMenu.style.display = 'block';
+}
+
+document.getElementById('ctxEdit').addEventListener('click', () => {
+  if (!ctxTarget) return;
+  ctxMenu.style.display = 'none';
+  const newName = prompt('Rename tag:', ctxTarget.name);
+  if (!newName || newName === ctxTarget.name || !/^[\w-]+$/.test(newName)) return;
+  const color = tags[ctxTarget.name];
+  delete tags[ctxTarget.name];
+  tags[newName] = color;
+  notes.forEach(n => { const i = n.tags.indexOf(ctxTarget.name); if (i !== -1) n.tags[i] = newName; });
+  if (activeFilters.has(ctxTarget.name)) { activeFilters.delete(ctxTarget.name); activeFilters.add(newName); }
+  renderFilterBar(); renderNotes();
+});
+
+document.getElementById('ctxDelete').addEventListener('click', () => {
+  if (!ctxTarget) return;
+  ctxMenu.style.display = 'none';
+  delete tags[ctxTarget.name];
+  notes.forEach(n => { n.tags = n.tags.filter(t => t !== ctxTarget.name); });
+  activeFilters.delete(ctxTarget.name);
+  renderFilterBar(); renderNotes();
+});
+
+document.addEventListener('click', e => {
+  if (!ctxMenu.contains(e.target)) ctxMenu.style.display = 'none';
+});
+
+function escapeHTML(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+renderFilterBar();
+renderNotes();
+</script>

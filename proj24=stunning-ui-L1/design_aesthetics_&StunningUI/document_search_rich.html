@@ -1,0 +1,340 @@
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+#app{display:flex;flex-direction:column;height:620px;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);overflow:hidden;font-family:var(--font-sans)}
+
+#topbar{background:var(--color-background-primary);border-bottom:0.5px solid var(--color-border-tertiary);padding:0}
+
+#doc-meta{display:flex;align-items:center;gap:10px;padding:10px 16px 0;border-bottom:0.5px solid var(--color-border-tertiary);padding-bottom:10px}
+#doc-icon{width:28px;height:28px;border-radius:6px;background:#E6F1FB;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+#doc-icon i{font-size:15px;color:#185FA5}
+#doc-title{font-size:13px;font-weight:500;color:var(--color-text-primary)}
+#doc-sub{font-size:12px;color:var(--color-text-tertiary);margin-left:auto;display:flex;align-items:center;gap:12px}
+.doc-pill{font-size:11px;padding:2px 8px;border-radius:99px;background:var(--color-background-secondary);color:var(--color-text-secondary);border:0.5px solid var(--color-border-tertiary)}
+
+#searchbar{display:flex;align-items:center;gap:8px;padding:10px 12px}
+#sinput-wrap{position:relative;flex:1;display:flex;align-items:center}
+#sinput-wrap .ico{position:absolute;left:10px;font-size:16px;color:var(--color-text-tertiary);pointer-events:none}
+#sinput{width:100%;height:34px;padding:0 90px 0 34px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);font-size:13px;background:var(--color-background-secondary);color:var(--color-text-primary);outline:none;transition:border-color 0.15s,box-shadow 0.15s}
+#sinput:focus{border-color:#378ADD;box-shadow:0 0 0 3px rgba(55,138,221,0.12);background:var(--color-background-primary)}
+#sinput.has-results{border-color:#1D9E75}
+#sinput.no-results{border-color:#E24B4A}
+#inline-counter{position:absolute;right:10px;font-size:12px;color:var(--color-text-tertiary);pointer-events:none;white-space:nowrap}
+
+.ctl-btn{display:flex;align-items:center;justify-content:center;width:30px;height:30px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:transparent;color:var(--color-text-secondary);cursor:pointer;font-size:15px;transition:background 0.12s,color 0.12s,transform 0.08s;flex-shrink:0}
+.ctl-btn:hover:not(:disabled){background:var(--color-background-secondary);color:var(--color-text-primary)}
+.ctl-btn:active:not(:disabled){transform:scale(0.93)}
+.ctl-btn:disabled{opacity:0.3;cursor:not-allowed}
+.ctl-btn.danger:hover:not(:disabled){background:#FCEBEB;color:#A32D2D;border-color:#F09595}
+
+.sep{width:0.5px;height:20px;background:var(--color-border-tertiary);flex-shrink:0}
+
+#opts-row{display:flex;align-items:center;gap:6px;padding:0 12px 10px}
+.opt-chip{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--color-text-secondary);padding:3px 10px;border:0.5px solid var(--color-border-tertiary);border-radius:99px;cursor:pointer;user-select:none;transition:background 0.12s,color 0.12s,border-color 0.12s;background:transparent}
+.opt-chip:hover{background:var(--color-background-secondary)}
+.opt-chip.active{background:#E6F1FB;border-color:#85B7EB;color:#0C447C}
+.opt-chip i{font-size:13px}
+#status-bar{font-size:12px;color:var(--color-text-tertiary);margin-left:auto;display:flex;align-items:center;gap:6px}
+#status-dot{width:6px;height:6px;border-radius:50%;background:#B4B2A9;transition:background 0.2s;flex-shrink:0}
+#status-dot.found{background:#1D9E75}
+#status-dot.none{background:#E24B4A}
+
+#main{display:flex;flex:1;overflow:hidden}
+
+#sidebar{width:180px;flex-shrink:0;border-right:0.5px solid var(--color-border-tertiary);background:var(--color-background-secondary);overflow-y:auto;display:flex;flex-direction:column}
+#sidebar-head{font-size:11px;font-weight:500;color:var(--color-text-tertiary);padding:12px 12px 6px;letter-spacing:0.04em;text-transform:uppercase}
+#match-list{flex:1;overflow-y:auto}
+.match-item{padding:7px 12px;cursor:pointer;border-left:2px solid transparent;transition:background 0.1s,border-color 0.1s}
+.match-item:hover{background:var(--color-background-primary)}
+.match-item.active-item{background:var(--color-background-primary);border-left-color:#378ADD}
+.match-item .mi-label{font-size:12px;color:var(--color-text-secondary);margin-bottom:2px}
+.match-item .mi-ctx{font-size:12px;color:var(--color-text-primary);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.match-item .mi-ctx mark{background:#FFE066;color:#3D2A00;border-radius:2px;padding:0 1px;font-size:inherit}
+.match-item .mi-ctx mark.active{background:#FF9500;color:#fff}
+#sidebar-empty{padding:16px 12px;font-size:12px;color:var(--color-text-tertiary);line-height:1.5}
+
+#doc-wrap{flex:1;overflow-y:auto;position:relative}
+#doc-scroll{padding:32px 40px;background:var(--color-background-primary)}
+#doc-scroll h1{font-size:22px;font-weight:500;color:var(--color-text-primary);margin-bottom:4px}
+#doc-scroll .byline{font-size:13px;color:var(--color-text-tertiary);margin-bottom:24px;padding-bottom:18px;border-bottom:0.5px solid var(--color-border-tertiary);display:flex;align-items:center;gap:6px}
+#doc-scroll h2{font-size:16px;font-weight:500;color:var(--color-text-primary);margin:28px 0 10px}
+#doc-scroll p{font-size:14px;line-height:1.8;color:var(--color-text-secondary);margin-bottom:14px}
+mark{background:#FFF3B0;color:#3D2A00;border-radius:3px;padding:0 2px;transition:background 0.15s}
+mark.active{background:#FF9500;color:#fff;border-radius:3px}
+
+#progress-bar{height:2px;background:#E6F1FB;position:relative;flex-shrink:0}
+#progress-fill{height:100%;background:#378ADD;width:0;transition:width 0.2s}
+
+#bottombar{background:var(--color-background-secondary);border-top:0.5px solid var(--color-border-tertiary);padding:6px 14px;display:flex;align-items:center;gap:10px;font-size:12px;color:var(--color-text-tertiary)}
+#wc-info{margin-left:auto;display:flex;align-items:center;gap:6px}
+kbd{font-family:var(--font-mono);font-size:11px;padding:1px 5px;border:0.5px solid var(--color-border-secondary);border-radius:4px;background:var(--color-background-primary);color:var(--color-text-secondary)}
+</style>
+
+<h2 class="sr-only">Rich document search — highlights all instances, shows match sidebar, supports regex and case-sensitive modes.</h2>
+
+<div id="app">
+  <div id="topbar">
+    <div id="doc-meta">
+      <div id="doc-icon"><i class="ti ti-file-text" aria-hidden="true"></i></div>
+      <span id="doc-title">The Design of Everyday Things — Chapter 1</span>
+      <div id="doc-sub">
+        <span class="doc-pill"><i class="ti ti-clock" style="font-size:11px;vertical-align:-1px;margin-right:3px" aria-hidden="true"></i>8 min read</span>
+        <span class="doc-pill" id="wc-pill">— words</span>
+      </div>
+    </div>
+    <div id="searchbar">
+      <div id="sinput-wrap">
+        <i class="ti ti-search ico" aria-hidden="true"></i>
+        <input id="sinput" type="text" placeholder="Search in document…" aria-label="Search" autocomplete="off" spellcheck="false" />
+        <span id="inline-counter"></span>
+      </div>
+      <div class="sep"></div>
+      <button class="ctl-btn" id="prevBtn" aria-label="Previous match" disabled><i class="ti ti-chevron-up" aria-hidden="true"></i></button>
+      <button class="ctl-btn" id="nextBtn" aria-label="Next match" disabled><i class="ti ti-chevron-down" aria-hidden="true"></i></button>
+      <div class="sep"></div>
+      <button class="ctl-btn danger" id="clearBtn" aria-label="Clear search"><i class="ti ti-x" aria-hidden="true"></i></button>
+    </div>
+    <div id="opts-row">
+      <button class="opt-chip" id="chipCase" aria-pressed="false"><i class="ti ti-letter-case" aria-hidden="true"></i> Match case</button>
+      <button class="opt-chip" id="chipWord" aria-pressed="false"><i class="ti ti-letter-a-small" aria-hidden="true"></i> Whole word</button>
+      <button class="opt-chip" id="chipRegex" aria-pressed="false"><i class="ti ti-regex" aria-hidden="true"></i> Regex</button>
+      <div id="status-bar"><div id="status-dot"></div><span id="status-txt">Ready</span></div>
+    </div>
+  </div>
+  <div id="progress-bar"><div id="progress-fill"></div></div>
+  <div id="main">
+    <div id="sidebar">
+      <div id="sidebar-head">Matches</div>
+      <div id="match-list"><div id="sidebar-empty" style="display:none">No matches found</div></div>
+    </div>
+    <div id="doc-wrap">
+      <div id="doc-scroll" role="document">
+        <h1>The Design of Everyday Things</h1>
+        <p class="byline"><i class="ti ti-user" style="font-size:13px" aria-hidden="true"></i> Don Norman &nbsp;·&nbsp; Chapter 1: The Psychopathology of Everyday Things</p>
+
+        <p>Good design is actually a lot harder to notice than poor design, in part because good designs fit our needs so well that the design is invisible, serving us without drawing attention to itself. Bad design, on the other hand, screams out its inadequacies, making itself very noticeable.</p>
+
+        <h2>Discoverability and understanding</h2>
+        <p>Two of the most important characteristics of good design are discoverability and understanding. Discoverability asks: is it possible to even figure out what actions are possible and where and how to perform them? Understanding asks: what does it all mean? How is the product supposed to be used? What do all the different controls and settings mean?</p>
+        <p>With complex devices, discoverability and understanding are more difficult. When I turn on a modern television set, I'm often baffled by the choices. Each manufacturer has a different way of arranging menus and controls. Good design makes discoverability trivial and understanding immediate.</p>
+
+        <h2>Affordances</h2>
+        <p>An affordance is a relationship between the properties of an object and the capabilities of the agent that determine just how the object could possibly be used. A chair affords support and, therefore, affords sitting. Most chairs also afford lifting — they are light enough that most people can lift them. Heavy chairs don't afford lifting; they do afford sitting.</p>
+        <p>The term affordance was invented by the perceptual psychologist J. J. Gibson in his 1979 book, The Ecological Approach to Visual Perception. Gibson wanted to emphasize that perception is more than just what the eye sees — it is what the combined effect of the environment and the organism produces.</p>
+
+        <h2>Signifiers</h2>
+        <p>Affordances determine what actions are possible. Signifiers communicate where the action should take place. We need both. Affordances represent the possibilities in the world for how an agent can interact with something. Some affordances are perceivable, others are not. Signifiers must be perceivable, otherwise they serve no purpose.</p>
+        <p>The push plate on a door is a signifier — a signal to where to push and that pushing is the appropriate action. Without signifiers, users are left to guess and often guess wrong. Good design makes signifiers clear, prominent, and unambiguous.</p>
+
+        <h2>Feedback and conceptual models</h2>
+        <p>Feedback communicates the results of an action. Without feedback, people are left to guess whether an action was successful. Feedback must be immediate: even a delay of a tenth of a second is noticeable and distracting. Feedback must also be informative. Poor feedback can be worse than no feedback at all, because misleading feedback will cause people to create incorrect conceptual models of the design.</p>
+        <p>A good conceptual model allows us to predict the effects of our actions. Without a good model, we operate by rote, following instructions without understanding what will happen if we deviate from those instructions. A mental model is the explanation of someone's thought process about how something works in the real world.</p>
+
+        <h2>Human-centered design</h2>
+        <p>Human-centered design is a philosophy, not a precise set of methods. It requires observing people in their natural activities, generating ideas, building prototypes, testing them with real users, and iterating. The goal of human-centered design is to produce a product that someone finds useful, understandable, and enjoyable.</p>
+        <p>Design is concerned with how things work, how they are controlled, and the nature of the interaction between people and technology. When done well, the results are brilliant and wonderful products. When done poorly, the results are miserable products that make our everyday life more difficult and frustrating.</p>
+
+        <h2>The paradox of technology</h2>
+        <p>The same technology that simplifies life by providing more functions in each device also complicates life by making the device harder to learn and use. This is the paradox of technology and the challenge for the designer. Every new capability added to a device requires its own set of controls and displays. The added complexity can overwhelm the user.</p>
+        <p>Designers need to figure out how to offer the added benefit of new technologies while still making things simple, pleasurable, and understandable. This requires understanding both the technology being designed and the people who will use it. Human-centered design is a proven way to meet this challenge.</p>
+      </div>
+    </div>
+  </div>
+  <div id="bottombar">
+    <kbd>↵</kbd> next &nbsp; <kbd>⇧↵</kbd> prev &nbsp; <kbd>Esc</kbd> clear
+    <div id="wc-info"><i class="ti ti-align-left" style="font-size:13px" aria-hidden="true"></i><span id="wc-count">—</span> words</div>
+  </div>
+</div>
+
+<script>
+const sinput=document.getElementById('sinput');
+const inlineCounter=document.getElementById('inline-counter');
+const prevBtn=document.getElementById('prevBtn');
+const nextBtn=document.getElementById('nextBtn');
+const clearBtn=document.getElementById('clearBtn');
+const docScroll=document.getElementById('doc-scroll');
+const docWrap=document.getElementById('doc-wrap');
+const matchList=document.getElementById('match-list');
+const sidebarEmpty=document.getElementById('sidebar-empty');
+const statusDot=document.getElementById('status-dot');
+const statusTxt=document.getElementById('status-txt');
+const progressFill=document.getElementById('progress-fill');
+const chipCase=document.getElementById('chipCase');
+const chipWord=document.getElementById('chipWord');
+const chipRegex=document.getElementById('chipRegex');
+const wcCount=document.getElementById('wc-count');
+const wcPill=document.getElementById('wc-pill');
+
+const originalHTML=docScroll.innerHTML;
+
+const wc=docScroll.textContent.trim().split(/\s+/).filter(Boolean).length;
+wcCount.textContent=wc.toLocaleString();
+wcPill.textContent=wc.toLocaleString()+' words';
+
+let marks=[],current=-1;
+let opts={cs:false,word:false,rx:false};
+
+function toggleChip(chip,key){
+  opts[key]=!opts[key];
+  chip.classList.toggle('active',opts[key]);
+  chip.setAttribute('aria-pressed',String(opts[key]));
+  doSearch();
+}
+chipCase.addEventListener('click',()=>toggleChip(chipCase,'cs'));
+chipWord.addEventListener('click',()=>toggleChip(chipWord,'word'));
+chipRegex.addEventListener('click',()=>toggleChip(chipRegex,'rx'));
+
+function buildRegex(term){
+  if(!term) return null;
+  try{
+    let src=opts.rx?term:term.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    if(opts.word) src=`\\b${src}\\b`;
+    return new RegExp(`(${src})`,opts.cs?'g':'gi');
+  }catch(e){return null;}
+}
+
+function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function getHeading(node){
+  let el=node;
+  while(el&&el!==docScroll){
+    if(el.previousElementSibling){
+      let prev=el.previousElementSibling;
+      while(prev){
+        if(/^H[1-6]$/.test(prev.tagName)) return prev.textContent.trim();
+        prev=prev.previousElementSibling;
+      }
+    }
+    el=el.parentElement;
+  }
+  return 'Introduction';
+}
+
+function doSearch(){
+  docScroll.innerHTML=originalHTML;
+  marks=[];current=-1;
+  matchList.innerHTML='';
+  sidebarEmpty.style.display='none';
+  progressFill.style.width='0';
+
+  const term=sinput.value.trim();
+  sinput.classList.remove('has-results','no-results');
+
+  if(!term){
+    inlineCounter.textContent='';
+    statusDot.className='status-dot';
+    statusTxt.textContent='Ready';
+    prevBtn.disabled=true;nextBtn.disabled=true;
+    return;
+  }
+
+  const re=buildRegex(term);
+  if(!re){
+    inlineCounter.textContent='Invalid';
+    statusDot.className='status-dot none';
+    statusTxt.textContent='Invalid regex';
+    return;
+  }
+
+  walkAndMark(docScroll,re);
+  marks=Array.from(docScroll.querySelectorAll('mark'));
+
+  if(!marks.length){
+    sinput.classList.add('no-results');
+    inlineCounter.textContent='No results';
+    statusDot.className='status-dot none';
+    statusTxt.textContent='No matches';
+    sidebarEmpty.style.display='block';
+    prevBtn.disabled=true;nextBtn.disabled=true;
+    return;
+  }
+
+  sinput.classList.add('has-results');
+  prevBtn.disabled=false;nextBtn.disabled=false;
+  current=0;
+  setActive(0,false);
+
+  buildSidebar();
+  updateUI();
+}
+
+function walkAndMark(node,re){
+  if(node.nodeType===3){
+    const v=node.nodeValue;
+    re.lastIndex=0;
+    if(re.test(v)){
+      re.lastIndex=0;
+      const span=document.createElement('span');
+      span.innerHTML=escHtml(v).replace(re,'<mark>$1</mark>');
+      node.parentNode.replaceChild(span,node);
+    }
+  } else if(node.nodeType===1&&!/^(MARK|SCRIPT|STYLE)$/.test(node.tagName)){
+    Array.from(node.childNodes).forEach(c=>walkAndMark(c,re));
+  }
+}
+
+function buildSidebar(){
+  matchList.innerHTML='';
+  marks.forEach((m,i)=>{
+    const heading=getHeading(m);
+    const para=m.closest('p,h1,h2,h3');
+    const ctx=para?para.textContent:'';
+    const start=Math.max(0,ctx.indexOf(m.textContent)-30);
+    const snippet=ctx.slice(start,start+80).trim();
+
+    const div=document.createElement('div');
+    div.className='match-item'+(i===0?' active-item':'');
+    div.dataset.idx=i;
+    div.innerHTML=`<div class="mi-label">${escHtml(heading)}</div><div class="mi-ctx">${escHtml(snippet).replace(new RegExp('('+escHtml(m.textContent).replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi'),'<mark>$1</mark>')}</div>`;
+    div.addEventListener('click',()=>{
+      current=i;
+      setActive(i,true);
+      updateUI();
+    });
+    matchList.appendChild(div);
+  });
+}
+
+function setActive(idx,scroll){
+  marks.forEach((m,i)=>{m.className=i===idx?'active':''});
+  const items=matchList.querySelectorAll('.match-item');
+  items.forEach((it,i)=>it.classList.toggle('active-item',i===idx));
+  if(scroll&&marks[idx]) marks[idx].scrollIntoView({block:'center',behavior:'smooth'});
+  if(items[idx]) items[idx].scrollIntoView({block:'nearest',behavior:'smooth'});
+}
+
+function updateUI(){
+  const n=marks.length;
+  inlineCounter.textContent=n?`${current+1} / ${n}`:'';
+  statusDot.className='status-dot'+(n?' found':'');
+  statusTxt.textContent=n?`${n} match${n!==1?'es':''} found`:'Ready';
+  progressFill.style.width=n?`${Math.round(((current+1)/n)*100)}%`:'0';
+}
+
+let debounceTm;
+sinput.addEventListener('input',()=>{clearTimeout(debounceTm);debounceTm=setTimeout(doSearch,180);});
+
+nextBtn.addEventListener('click',()=>{
+  if(!marks.length) return;
+  current=(current+1)%marks.length;
+  setActive(current,true);updateUI();
+});
+prevBtn.addEventListener('click',()=>{
+  if(!marks.length) return;
+  current=(current-1+marks.length)%marks.length;
+  setActive(current,true);updateUI();
+});
+clearBtn.addEventListener('click',()=>{
+  sinput.value='';doSearch();sinput.focus();
+});
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){sinput.value='';doSearch();sinput.blur();}
+  if(e.key==='Enter'&&document.activeElement===sinput){
+    e.preventDefault();
+    if(e.shiftKey) prevBtn.click(); else nextBtn.click();
+  }
+  if((e.ctrlKey||e.metaKey)&&e.key==='f'){e.preventDefault();sinput.focus();sinput.select();}
+});
+</script>

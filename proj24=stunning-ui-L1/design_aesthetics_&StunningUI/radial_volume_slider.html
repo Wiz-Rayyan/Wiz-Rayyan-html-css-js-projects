@@ -1,0 +1,161 @@
+
+<style>
+  .vol-wrap { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:2.5rem 1rem; gap:2rem; }
+  .vol-label { font-size:13px; color:var(--color-text-secondary); letter-spacing:0.05em; text-transform:uppercase; font-weight:500; }
+  .vol-hint { font-size:13px; color:var(--color-text-tertiary); margin-top:0.5rem; }
+  .vol-ring { position:relative; width:220px; height:220px; cursor:pointer; user-select:none; touch-action:none; }
+  .vol-ring svg { position:absolute; inset:0; overflow:visible; }
+  .vol-center { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; border-radius:50%; transition:background 0.15s; }
+  .vol-center:hover { background:rgba(128,128,128,0.08); }
+  .vol-pct { font-size:26px; font-weight:500; color:var(--color-text-primary); line-height:1; }
+  .vol-icon { font-size:20px; color:var(--color-text-secondary); }
+  .vol-mute-badge { font-size:11px; color:var(--color-text-tertiary); }
+</style>
+
+<div class="vol-wrap">
+  <h2 class="sr-only">Radial volume slider. Drag around the circle to adjust volume from 0 to 100 percent. Click the center to mute or unmute.</h2>
+  <div class="vol-label">Volume</div>
+  <div class="vol-ring" id="ring" title="">
+    <svg id="arc-svg" viewBox="0 0 220 220" width="220" height="220">
+      <defs>
+        <linearGradient id="arcGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#7F77DD"/>
+          <stop offset="100%" stop-color="#534AB7"/>
+        </linearGradient>
+      </defs>
+      <circle cx="110" cy="110" r="90" fill="none" stroke="var(--color-border-tertiary)" stroke-width="10" stroke-linecap="round"/>
+      <path id="vol-arc" fill="none" stroke="url(#arcGrad)" stroke-width="10" stroke-linecap="round"/>
+      <circle id="knob" cx="110" cy="20" r="7" fill="#7F77DD"/>
+    </svg>
+    <div class="vol-center" id="center-btn">
+      <i class="ti ti-volume vol-icon" id="vol-icon" aria-hidden="true"></i>
+      <span class="vol-pct" id="vol-pct">75%</span>
+      <span class="vol-mute-badge" id="mute-badge"></span>
+    </div>
+  </div>
+  <div class="vol-hint">Drag around ring · Click center to mute</div>
+</div>
+
+<script>
+(function(){
+  const cx=110,cy=110,r=90;
+  const startAngle=-225, endAngle=45;
+  const span=endAngle-startAngle;
+  let volume=0.75, muted=false, dragging=false;
+  let prevMuteVol=0.75;
+
+  function toRad(d){return d*Math.PI/180;}
+
+  function volToAngle(v){
+    return startAngle+v*span;
+  }
+
+  function polarToXY(angleDeg){
+    const a=toRad(angleDeg-90);
+    return {x:cx+r*Math.cos(a), y:cy+r*Math.sin(a)};
+  }
+
+  function describeArc(vol){
+    if(vol<=0) return "";
+    const s=polarToXY(startAngle);
+    const e=polarToXY(volToAngle(vol));
+    const aDelta=vol*span;
+    const large=aDelta>180?1:0;
+    return `M${s.x.toFixed(2)},${s.y.toFixed(2)} A${r},${r} 0 ${large} 1 ${e.x.toFixed(2)},${e.y.toFixed(2)}`;
+  }
+
+  function getIcon(v, m){
+    if(m||v===0) return "ti-volume-off";
+    if(v<0.4) return "ti-volume";
+    if(v<0.7) return "ti-volume-2";
+    return "ti-volume-3";
+  }
+
+  function render(){
+    const displayVol=muted?0:volume;
+    const el_arc=document.getElementById('vol-arc');
+    const el_knob=document.getElementById('knob');
+    const el_pct=document.getElementById('vol-pct');
+    const el_icon=document.getElementById('vol-icon');
+    const el_mute=document.getElementById('mute-badge');
+    const el_ring=document.getElementById('ring');
+
+    el_arc.setAttribute('d',describeArc(displayVol));
+    const knobAngle=volToAngle(displayVol);
+    const kp=polarToXY(knobAngle);
+    el_knob.setAttribute('cx',kp.x.toFixed(2));
+    el_knob.setAttribute('cy',kp.y.toFixed(2));
+    el_knob.style.opacity=displayVol>0?'1':'0';
+    el_arc.style.opacity=displayVol>0?'1':'0.15';
+
+    el_pct.textContent=Math.round(volume*100)+'%';
+    el_icon.className='ti '+getIcon(volume,muted)+' vol-icon';
+    el_mute.textContent=muted?'(muted)':'';
+    el_ring.title=muted?`Volume: ${Math.round(volume*100)}% (muted)`:`Volume: ${Math.round(volume*100)}%`;
+  }
+
+  function angleFromEvent(e){
+    const ring=document.getElementById('ring');
+    const rect=ring.getBoundingClientRect();
+    const midX=rect.left+rect.width/2;
+    const midY=rect.top+rect.height/2;
+    const clientX=e.touches?e.touches[0].clientX:e.clientX;
+    const clientY=e.touches?e.touches[0].clientY:e.clientY;
+    const dx=clientX-midX, dy=clientY-midY;
+    let angle=Math.atan2(dy,dx)*180/Math.PI+90;
+    return angle;
+  }
+
+  function angleToVol(angle){
+    let a=angle;
+    if(a<startAngle) a+=360;
+    if(a>endAngle+360-span) a-=360;
+    let v=(a-startAngle)/span;
+    return Math.max(0,Math.min(1,v));
+  }
+
+  function onMove(e){
+    if(!dragging) return;
+    e.preventDefault();
+    const angle=angleFromEvent(e);
+    volume=angleToVol(angle);
+    muted=false;
+    render();
+  }
+
+  function onDown(e){
+    const center=document.getElementById('center-btn');
+    if(center.contains(e.target)) return;
+    dragging=true;
+    onMove(e);
+    document.addEventListener('mousemove',onMove);
+    document.addEventListener('mouseup',onUp);
+    document.addEventListener('touchmove',onMove,{passive:false});
+    document.addEventListener('touchend',onUp);
+  }
+
+  function onUp(){
+    dragging=false;
+    document.removeEventListener('mousemove',onMove);
+    document.removeEventListener('mouseup',onUp);
+    document.removeEventListener('touchmove',onMove);
+    document.removeEventListener('touchend',onUp);
+  }
+
+  document.getElementById('ring').addEventListener('mousedown',onDown);
+  document.getElementById('ring').addEventListener('touchstart',onDown,{passive:true});
+
+  document.getElementById('center-btn').addEventListener('click',function(e){
+    e.stopPropagation();
+    if(muted){
+      muted=false;
+    } else {
+      prevMuteVol=volume;
+      muted=true;
+    }
+    render();
+  });
+
+  render();
+})();
+</script>

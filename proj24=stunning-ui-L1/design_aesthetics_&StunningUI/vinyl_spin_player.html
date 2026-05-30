@@ -1,0 +1,274 @@
+
+<style>
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .vinyl {
+    width: 240px; height: 240px;
+    border-radius: 50%;
+    cursor: pointer;
+    position: relative;
+    animation: spin 2.8s linear infinite;
+    animation-play-state: paused;
+    user-select: none;
+  }
+  .vinyl.playing { animation-play-state: running; }
+  .track-fill { transition: width 0.3s ease; }
+  .btn-ctrl {
+    width: 44px; height: 44px; border-radius: 50%;
+    border: 0.5px solid var(--color-border-secondary);
+    background: var(--color-background-primary);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 18px; color: var(--color-text-primary);
+    transition: background 0.15s, transform 0.1s;
+  }
+  .btn-ctrl:hover { background: var(--color-background-secondary); }
+  .btn-ctrl:active { transform: scale(0.95); }
+  .btn-play {
+    width: 56px; height: 56px; border-radius: 50%;
+    background: var(--color-text-primary);
+    border: none;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 22px; color: var(--color-background-primary);
+    transition: transform 0.1s, opacity 0.1s;
+  }
+  .btn-play:hover { opacity: 0.85; }
+  .btn-play:active { transform: scale(0.95); }
+  .album-view {
+    display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.6); z-index: 100; align-items: center; justify-content: center;
+    animation: fadeIn 0.2s ease;
+  }
+  .album-view.open { display: flex; }
+</style>
+
+<h2 class="sr-only">Vinyl record music player with spinning album art</h2>
+
+<div style="padding: 2rem 0 1rem; display: flex; flex-direction: column; align-items: center; gap: 2rem;">
+
+  <div style="position: relative; display: flex; align-items: center; justify-content: center;">
+    <div style="width: 280px; height: 280px; border-radius: 50%; background: #111; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 3px #222, 0 12px 40px rgba(0,0,0,0.35);">
+      <svg id="vinyl" class="vinyl" viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Vinyl record — click to play/pause, double-click to open album" title="Vinyl record player">
+        <defs>
+          <clipPath id="vinylClip"><circle cx="120" cy="120" r="120"/></clipPath>
+          <radialGradient id="grooves" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="rgba(255,255,255,0)"/>
+            <stop offset="40%" stop-color="rgba(255,255,255,0.02)"/>
+            <stop offset="60%" stop-color="rgba(255,255,255,0.05)"/>
+            <stop offset="80%" stop-color="rgba(255,255,255,0.02)"/>
+            <stop offset="100%" stop-color="rgba(0,0,0,0.3)"/>
+          </radialGradient>
+        </defs>
+        <circle cx="120" cy="120" r="120" fill="#1a0a2e"/>
+        <image href="https://picsum.photos/seed/vinyl1/240/240" x="0" y="0" width="240" height="240" clip-path="url(#vinylClip)" style="filter: saturate(0.7) brightness(0.8);" preserveAspectRatio="xMidYMid slice"/>
+        <circle cx="120" cy="120" r="120" fill="url(#grooves)"/>
+        <circle cx="120" cy="120" r="115" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="0.5"/>
+        <circle cx="120" cy="120" r="105" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="0.5"/>
+        <circle cx="120" cy="120" r="95" fill="none" stroke="rgba(255,255,255,0.03)" stroke-width="0.5"/>
+        <circle cx="120" cy="120" r="85" fill="none" stroke="rgba(255,255,255,0.03)" stroke-width="0.5"/>
+        <circle cx="120" cy="120" r="75" fill="none" stroke="rgba(255,255,255,0.03)" stroke-width="0.5"/>
+        <circle cx="120" cy="120" r="60" fill="#0d0520"/>
+        <circle cx="120" cy="120" r="58" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="0.5"/>
+        <circle cx="120" cy="120" r="52" fill="#1a0a2e"/>
+        <text x="120" y="113" text-anchor="middle" font-size="8" fill="rgba(255,255,255,0.7)" font-family="sans-serif" letter-spacing="2">NEON DUSK</text>
+        <text x="120" y="124" text-anchor="middle" font-size="6.5" fill="rgba(255,255,255,0.45)" font-family="sans-serif" letter-spacing="1.5">MIDNIGHT BLOOM</text>
+        <text x="120" y="134" text-anchor="middle" font-size="5.5" fill="rgba(255,255,255,0.3)" font-family="sans-serif">SIDE A • 33⅓ RPM</text>
+        <circle cx="120" cy="120" r="5" fill="#555"/>
+        <circle cx="120" cy="120" r="2.5" fill="#111"/>
+      </svg>
+    </div>
+    <div id="tonearm" style="position: absolute; top: -8px; right: -16px; width: 80px; height: 140px; pointer-events: none;">
+      <svg viewBox="0 0 80 140" width="80" height="140">
+        <circle cx="68" cy="12" r="8" fill="#888" stroke="#555" stroke-width="1"/>
+        <circle cx="68" cy="12" r="4" fill="#555"/>
+        <line x1="68" y1="20" x2="20" y2="120" stroke="#999" stroke-width="2.5" stroke-linecap="round"/>
+        <ellipse cx="17" cy="124" rx="5" ry="3" fill="#cc4" transform="rotate(-15 17 124)"/>
+      </svg>
+    </div>
+  </div>
+
+  <div style="text-align: center; animation: fadeIn 0.4s ease;">
+    <p style="font-size: 18px; font-weight: 500; color: var(--color-text-primary); margin: 0 0 4px;">Midnight Bloom</p>
+    <p style="font-size: 14px; color: var(--color-text-secondary); margin: 0;">Neon Dusk • 1982</p>
+  </div>
+
+  <div style="width: 100%; max-width: 340px; display: flex; flex-direction: column; gap: 10px;">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <span style="font-size: 12px; color: var(--color-text-tertiary); min-width: 32px;" id="elapsed">1:24</span>
+      <div style="flex: 1; height: 3px; background: var(--color-border-tertiary); border-radius: 2px; cursor: pointer; position: relative;" id="progressBar">
+        <div class="track-fill" id="progressFill" style="height: 100%; border-radius: 2px; background: var(--color-text-primary); width: 33%;"></div>
+      </div>
+      <span style="font-size: 12px; color: var(--color-text-tertiary); min-width: 32px; text-align: right;">4:12</span>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: center; gap: 12px;">
+      <button class="btn-ctrl" id="btnPrev" aria-label="Previous track"><i class="ti ti-player-skip-back" aria-hidden="true"></i></button>
+      <button class="btn-play" id="btnPlay" aria-label="Play"><i class="ti ti-player-play" id="playIcon" aria-hidden="true"></i></button>
+      <button class="btn-ctrl" id="btnNext" aria-label="Next track"><i class="ti ti-player-skip-forward" aria-hidden="true"></i></button>
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
+      <i class="ti ti-volume" style="font-size: 15px; color: var(--color-text-tertiary);" aria-hidden="true"></i>
+      <input type="range" min="0" max="100" value="72" step="1" id="volume" style="flex: 1;" aria-label="Volume"/>
+      <span style="font-size: 12px; color: var(--color-text-tertiary); min-width: 28px; text-align: right;" id="volOut">72</span>
+    </div>
+  </div>
+
+  <p style="font-size: 12px; color: var(--color-text-tertiary); margin: 0; text-align: center;">
+    Click vinyl to play/pause &nbsp;·&nbsp; Double-click to open album
+  </p>
+</div>
+
+<div class="album-view" id="albumView" role="dialog" aria-modal="true" aria-label="Album details">
+  <div style="background: var(--color-background-primary); border-radius: var(--border-radius-lg); border: 0.5px solid var(--color-border-secondary); padding: 2rem; max-width: 400px; width: 90%; animation: fadeIn 0.2s ease;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem;">
+      <div>
+        <p style="font-size: 20px; font-weight: 500; margin: 0 0 4px;">Midnight Bloom</p>
+        <p style="font-size: 14px; color: var(--color-text-secondary); margin: 0;">Neon Dusk</p>
+      </div>
+      <button class="btn-ctrl" id="closeAlbum" aria-label="Close album view"><i class="ti ti-x" aria-hidden="true"></i></button>
+    </div>
+    <img src="https://picsum.photos/seed/vinyl1/360/360" style="width: 100%; border-radius: var(--border-radius-md); margin-bottom: 1.5rem;" alt="Album artwork for Midnight Bloom"/>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 1.5rem;">
+      <div style="background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 12px;">
+        <p style="font-size: 11px; color: var(--color-text-tertiary); margin: 0 0 2px;">Year</p>
+        <p style="font-size: 15px; font-weight: 500; margin: 0;">1982</p>
+      </div>
+      <div style="background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 12px;">
+        <p style="font-size: 11px; color: var(--color-text-tertiary); margin: 0 0 2px;">Genre</p>
+        <p style="font-size: 15px; font-weight: 500; margin: 0;">Synth-pop</p>
+      </div>
+      <div style="background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 12px;">
+        <p style="font-size: 11px; color: var(--color-text-tertiary); margin: 0 0 2px;">Label</p>
+        <p style="font-size: 15px; font-weight: 500; margin: 0;">Dusk Records</p>
+      </div>
+      <div style="background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 12px;">
+        <p style="font-size: 11px; color: var(--color-text-tertiary); margin: 0 0 2px;">Format</p>
+        <p style="font-size: 15px; font-weight: 500; margin: 0;">33⅓ RPM</p>
+      </div>
+    </div>
+    <div style="border-top: 0.5px solid var(--color-border-tertiary); padding-top: 1rem;">
+      <p style="font-size: 13px; font-weight: 500; margin: 0 0 8px; color: var(--color-text-secondary);">Tracklist — Side A</p>
+      <div id="trackList" style="display: flex; flex-direction: column; gap: 0;"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const tracks = [
+  { title: "Midnight Bloom", dur: "4:12" },
+  { title: "Electric Reverie", dur: "3:58" },
+  { title: "Velvet Horizon", dur: "5:01" },
+  { title: "Neon Haze", dur: "3:44" },
+  { title: "Glass City", dur: "4:27" },
+];
+let currentTrack = 0;
+let playing = false;
+let progress = 0.33;
+let progressTimer = null;
+const totalSeconds = [252, 238, 301, 224, 267];
+
+const vinyl = document.getElementById('vinyl');
+const btnPlay = document.getElementById('btnPlay');
+const playIcon = document.getElementById('playIcon');
+const progressFill = document.getElementById('progressFill');
+const elapsed = document.getElementById('elapsed');
+const albumView = document.getElementById('albumView');
+const trackList = document.getElementById('trackList');
+const volOut = document.getElementById('volOut');
+
+function buildTracklist() {
+  trackList.innerHTML = '';
+  tracks.forEach((t, i) => {
+    const row = document.createElement('div');
+    row.style.cssText = `display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid var(--color-border-tertiary);cursor:pointer;`;
+    row.innerHTML = `<div style="display:flex;align-items:center;gap:10px;"><span style="font-size:12px;color:var(--color-text-tertiary);min-width:16px;">${i+1}</span><span style="font-size:14px;${i===currentTrack?'font-weight:500;color:var(--color-text-primary)':'color:var(--color-text-secondary)'}">${t.title}</span></div><span style="font-size:12px;color:var(--color-text-tertiary);">${t.dur}</span>`;
+    row.onclick = () => { currentTrack = i; buildTracklist(); updateTrackDisplay(); albumView.classList.remove('open'); setPlaying(true); };
+    trackList.appendChild(row);
+  });
+}
+
+function formatTime(s) {
+  return `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
+}
+
+function updateTrackDisplay() {
+  document.querySelector('div[style*="18px"]').querySelector('p').textContent = tracks[currentTrack].title;
+  elapsed.textContent = formatTime(progress * totalSeconds[currentTrack]);
+  progressFill.style.width = (progress * 100) + '%';
+}
+
+function setPlaying(val) {
+  playing = val;
+  if (playing) {
+    vinyl.classList.add('playing');
+    playIcon.className = 'ti ti-player-pause';
+    btnPlay.setAttribute('aria-label','Pause');
+    clearInterval(progressTimer);
+    progressTimer = setInterval(() => {
+      progress = Math.min(1, progress + 1 / totalSeconds[currentTrack]);
+      if (progress >= 1) { progress = 0; currentTrack = (currentTrack + 1) % tracks.length; }
+      elapsed.textContent = formatTime(progress * totalSeconds[currentTrack]);
+      progressFill.style.width = (progress * 100) + '%';
+    }, 1000);
+  } else {
+    vinyl.classList.remove('playing');
+    playIcon.className = 'ti ti-player-play';
+    btnPlay.setAttribute('aria-label','Play');
+    clearInterval(progressTimer);
+  }
+}
+
+let lastClick = 0;
+vinyl.addEventListener('click', (e) => {
+  const now = Date.now();
+  if (now - lastClick < 300) {
+    albumView.classList.add('open');
+    buildTracklist();
+    return;
+  }
+  lastClick = now;
+  setTimeout(() => {
+    if (Date.now() - lastClick >= 280) setPlaying(!playing);
+  }, 300);
+});
+
+btnPlay.addEventListener('click', () => setPlaying(!playing));
+
+document.getElementById('btnPrev').addEventListener('click', () => {
+  currentTrack = (currentTrack - 1 + tracks.length) % tracks.length;
+  progress = 0;
+  updateTrackDisplay();
+  if (playing) setPlaying(true);
+});
+
+document.getElementById('btnNext').addEventListener('click', () => {
+  currentTrack = (currentTrack + 1) % tracks.length;
+  progress = 0;
+  updateTrackDisplay();
+  if (playing) setPlaying(true);
+});
+
+document.getElementById('progressBar').addEventListener('click', (e) => {
+  const rect = e.currentTarget.getBoundingClientRect();
+  progress = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+  updateTrackDisplay();
+});
+
+document.getElementById('volume').addEventListener('input', (e) => {
+  volOut.textContent = e.target.value;
+});
+
+document.getElementById('closeAlbum').addEventListener('click', () => albumView.classList.remove('open'));
+albumView.addEventListener('click', (e) => { if (e.target === albumView) albumView.classList.remove('open'); });
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') albumView.classList.remove('open');
+  if (e.key === ' ' && e.target === document.body) { e.preventDefault(); setPlaying(!playing); }
+});
+
+buildTracklist();
+</script>

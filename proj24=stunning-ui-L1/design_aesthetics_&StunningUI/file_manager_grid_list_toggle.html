@@ -1,0 +1,201 @@
+
+<style>
+  #fm{padding:1.5rem;font-family:var(--font-sans)}
+  #toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem}
+  #toolbar h2{font-size:16px;font-weight:500;margin:0;color:var(--color-text-primary)}
+  #toggle-wrap{display:flex;gap:4px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:3px}
+  .toggle-btn{background:none;border:none;padding:6px 10px;border-radius:6px;cursor:pointer;color:var(--color-text-secondary);display:flex;align-items:center;font-size:15px;transition:all .18s ease}
+  .toggle-btn.active{background:var(--color-background-primary);color:var(--color-text-primary);box-shadow:0 0 0 0.5px var(--color-border-secondary)}
+  #file-container{position:relative;min-height:320px}
+  .file-view{transition:opacity .22s ease, transform .22s ease}
+  .file-view.hidden{opacity:0;transform:scale(0.97);pointer-events:none;position:absolute;top:0;left:0;width:100%}
+  #grid-view{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
+  .file-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1rem;cursor:pointer;position:relative;transition:border-color .15s,box-shadow .15s;overflow:hidden}
+  .file-card:hover{border-color:var(--color-border-secondary)}
+  .file-card:hover .card-actions{opacity:1;transform:translateY(0)}
+  .file-thumb{width:100%;height:72px;border-radius:6px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;font-size:28px}
+  .file-name{font-size:13px;font-weight:500;color:var(--color-text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px}
+  .file-date{font-size:11px;color:var(--color-text-tertiary)}
+  .card-actions{position:absolute;bottom:0;left:0;right:0;padding:8px;display:flex;gap:4px;justify-content:flex-end;background:linear-gradient(transparent,var(--color-background-primary) 60%);opacity:0;transform:translateY(4px);transition:all .18s ease}
+  .action-btn{background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:6px;padding:4px 7px;cursor:pointer;font-size:13px;color:var(--color-text-secondary);transition:background .12s,color .12s;display:flex;align-items:center}
+  .action-btn:hover{background:var(--color-background-primary);color:var(--color-text-primary);border-color:var(--color-border-primary)}
+  .action-btn.danger:hover{color:var(--color-text-danger);border-color:var(--color-border-danger)}
+  #list-view{border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);overflow:hidden}
+  .list-header{display:grid;grid-template-columns:1fr 90px 120px 100px;gap:8px;padding:9px 14px;background:var(--color-background-secondary);border-bottom:0.5px solid var(--color-border-tertiary);font-size:12px;font-weight:500;color:var(--color-text-secondary)}
+  .list-row{display:grid;grid-template-columns:1fr 90px 120px 100px;gap:8px;padding:10px 14px;border-bottom:0.5px solid var(--color-border-tertiary);align-items:center;cursor:pointer;position:relative;transition:background .12s}
+  .list-row:last-child{border-bottom:none}
+  .list-row:hover{background:var(--color-background-secondary)}
+  .list-row:hover .row-actions{opacity:1}
+  .row-name{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500;color:var(--color-text-primary);overflow:hidden}
+  .row-name span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row-meta{font-size:12px;color:var(--color-text-secondary)}
+  .row-actions{display:flex;gap:4px;opacity:0;transition:opacity .15s}
+  .row-thumb{width:24px;height:24px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+</style>
+<h2 class="sr-only">File manager with grid and list view toggle</h2>
+<div id="fm">
+  <div id="toolbar">
+    <h2><i class="ti ti-folder" aria-hidden="true" style="margin-right:6px;font-size:16px;vertical-align:-2px"></i>My Files</h2>
+    <div id="toggle-wrap" role="group" aria-label="View mode">
+      <button class="toggle-btn active" id="btn-grid" aria-pressed="true" aria-label="Grid view" onclick="setView('grid')"><i class="ti ti-layout-grid" aria-hidden="true"></i></button>
+      <button class="toggle-btn" id="btn-list" aria-pressed="false" aria-label="List view" onclick="setView('list')"><i class="ti ti-list" aria-hidden="true"></i></button>
+    </div>
+  </div>
+  <div id="file-container">
+    <div id="grid-view" class="file-view" role="list">
+      <div class="file-card" role="listitem">
+        <div class="file-thumb" style="background:var(--color-background-info)"><i class="ti ti-file-type-pdf" style="color:var(--color-text-info)"></i></div>
+        <div class="file-name">Q4 Report.pdf</div>
+        <div class="file-date">May 28, 2026</div>
+        <div class="card-actions">
+          <button class="action-btn" aria-label="Rename"><i class="ti ti-edit" aria-hidden="true"></i></button>
+          <button class="action-btn" aria-label="Share"><i class="ti ti-share" aria-hidden="true"></i></button>
+          <button class="action-btn danger" aria-label="Delete"><i class="ti ti-trash" aria-hidden="true"></i></button>
+        </div>
+      </div>
+      <div class="file-card" role="listitem">
+        <div class="file-thumb" style="background:var(--color-background-success)"><i class="ti ti-photo" style="color:var(--color-text-success)"></i></div>
+        <div class="file-name">Banner Final.png</div>
+        <div class="file-date">May 25, 2026</div>
+        <div class="card-actions">
+          <button class="action-btn" aria-label="Rename"><i class="ti ti-edit" aria-hidden="true"></i></button>
+          <button class="action-btn" aria-label="Share"><i class="ti ti-share" aria-hidden="true"></i></button>
+          <button class="action-btn danger" aria-label="Delete"><i class="ti ti-trash" aria-hidden="true"></i></button>
+        </div>
+      </div>
+      <div class="file-card" role="listitem">
+        <div class="file-thumb" style="background:var(--color-background-warning)"><i class="ti ti-table" style="color:var(--color-text-warning)"></i></div>
+        <div class="file-name">Budget 2026.xlsx</div>
+        <div class="file-date">May 20, 2026</div>
+        <div class="card-actions">
+          <button class="action-btn" aria-label="Rename"><i class="ti ti-edit" aria-hidden="true"></i></button>
+          <button class="action-btn" aria-label="Share"><i class="ti ti-share" aria-hidden="true"></i></button>
+          <button class="action-btn danger" aria-label="Delete"><i class="ti ti-trash" aria-hidden="true"></i></button>
+        </div>
+      </div>
+      <div class="file-card" role="listitem">
+        <div class="file-thumb" style="background:var(--color-background-secondary)"><i class="ti ti-file-text" style="color:var(--color-text-secondary)"></i></div>
+        <div class="file-name">Meeting Notes.docx</div>
+        <div class="file-date">May 18, 2026</div>
+        <div class="card-actions">
+          <button class="action-btn" aria-label="Rename"><i class="ti ti-edit" aria-hidden="true"></i></button>
+          <button class="action-btn" aria-label="Share"><i class="ti ti-share" aria-hidden="true"></i></button>
+          <button class="action-btn danger" aria-label="Delete"><i class="ti ti-trash" aria-hidden="true"></i></button>
+        </div>
+      </div>
+      <div class="file-card" role="listitem">
+        <div class="file-thumb" style="background:#EEEDFE"><i class="ti ti-code" style="color:#534AB7"></i></div>
+        <div class="file-name">app.config.js</div>
+        <div class="file-date">May 15, 2026</div>
+        <div class="card-actions">
+          <button class="action-btn" aria-label="Rename"><i class="ti ti-edit" aria-hidden="true"></i></button>
+          <button class="action-btn" aria-label="Share"><i class="ti ti-share" aria-hidden="true"></i></button>
+          <button class="action-btn danger" aria-label="Delete"><i class="ti ti-trash" aria-hidden="true"></i></button>
+        </div>
+      </div>
+      <div class="file-card" role="listitem">
+        <div class="file-thumb" style="background:#FAECE7"><i class="ti ti-presentation" style="color:#993C1D"></i></div>
+        <div class="file-name">Pitch Deck.pptx</div>
+        <div class="file-date">May 10, 2026</div>
+        <div class="card-actions">
+          <button class="action-btn" aria-label="Rename"><i class="ti ti-edit" aria-hidden="true"></i></button>
+          <button class="action-btn" aria-label="Share"><i class="ti ti-share" aria-hidden="true"></i></button>
+          <button class="action-btn danger" aria-label="Delete"><i class="ti ti-trash" aria-hidden="true"></i></button>
+        </div>
+      </div>
+    </div>
+    <div id="list-view" class="file-view hidden" role="table" aria-label="File list">
+      <div class="list-header" role="row">
+        <div role="columnheader">Name</div>
+        <div role="columnheader">Size</div>
+        <div role="columnheader">Modified</div>
+        <div role="columnheader">Actions</div>
+      </div>
+      <div class="list-row" role="row">
+        <div class="row-name"><div class="row-thumb" style="background:var(--color-background-info)"><i class="ti ti-file-type-pdf" style="color:var(--color-text-info);font-size:13px"></i></div><span>Q4 Report.pdf</span></div>
+        <div class="row-meta">2.4 MB</div>
+        <div class="row-meta">May 28, 2026</div>
+        <div class="row-actions">
+          <button class="action-btn" aria-label="Rename"><i class="ti ti-edit" aria-hidden="true"></i></button>
+          <button class="action-btn" aria-label="Share"><i class="ti ti-share" aria-hidden="true"></i></button>
+          <button class="action-btn danger" aria-label="Delete"><i class="ti ti-trash" aria-hidden="true"></i></button>
+        </div>
+      </div>
+      <div class="list-row" role="row">
+        <div class="row-name"><div class="row-thumb" style="background:var(--color-background-success)"><i class="ti ti-photo" style="color:var(--color-text-success);font-size:13px"></i></div><span>Banner Final.png</span></div>
+        <div class="row-meta">1.1 MB</div>
+        <div class="row-meta">May 25, 2026</div>
+        <div class="row-actions">
+          <button class="action-btn" aria-label="Rename"><i class="ti ti-edit" aria-hidden="true"></i></button>
+          <button class="action-btn" aria-label="Share"><i class="ti ti-share" aria-hidden="true"></i></button>
+          <button class="action-btn danger" aria-label="Delete"><i class="ti ti-trash" aria-hidden="true"></i></button>
+        </div>
+      </div>
+      <div class="list-row" role="row">
+        <div class="row-name"><div class="row-thumb" style="background:var(--color-background-warning)"><i class="ti ti-table" style="color:var(--color-text-warning);font-size:13px"></i></div><span>Budget 2026.xlsx</span></div>
+        <div class="row-meta">890 KB</div>
+        <div class="row-meta">May 20, 2026</div>
+        <div class="row-actions">
+          <button class="action-btn" aria-label="Rename"><i class="ti ti-edit" aria-hidden="true"></i></button>
+          <button class="action-btn" aria-label="Share"><i class="ti ti-share" aria-hidden="true"></i></button>
+          <button class="action-btn danger" aria-label="Delete"><i class="ti ti-trash" aria-hidden="true"></i></button>
+        </div>
+      </div>
+      <div class="list-row" role="row">
+        <div class="row-name"><div class="row-thumb" style="background:var(--color-background-secondary)"><i class="ti ti-file-text" style="color:var(--color-text-secondary);font-size:13px"></i></div><span>Meeting Notes.docx</span></div>
+        <div class="row-meta">320 KB</div>
+        <div class="row-meta">May 18, 2026</div>
+        <div class="row-actions">
+          <button class="action-btn" aria-label="Rename"><i class="ti ti-edit" aria-hidden="true"></i></button>
+          <button class="action-btn" aria-label="Share"><i class="ti ti-share" aria-hidden="true"></i></button>
+          <button class="action-btn danger" aria-label="Delete"><i class="ti ti-trash" aria-hidden="true"></i></button>
+        </div>
+      </div>
+      <div class="list-row" role="row">
+        <div class="row-name"><div class="row-thumb" style="background:#EEEDFE"><i class="ti ti-code" style="color:#534AB7;font-size:13px"></i></div><span>app.config.js</span></div>
+        <div class="row-meta">14 KB</div>
+        <div class="row-meta">May 15, 2026</div>
+        <div class="row-actions">
+          <button class="action-btn" aria-label="Rename"><i class="ti ti-edit" aria-hidden="true"></i></button>
+          <button class="action-btn" aria-label="Share"><i class="ti ti-share" aria-hidden="true"></i></button>
+          <button class="action-btn danger" aria-label="Delete"><i class="ti ti-trash" aria-hidden="true"></i></button>
+        </div>
+      </div>
+      <div class="list-row" role="row">
+        <div class="row-name"><div class="row-thumb" style="background:#FAECE7"><i class="ti ti-presentation" style="color:#993C1D;font-size:13px"></i></div><span>Pitch Deck.pptx</span></div>
+        <div class="row-meta">5.7 MB</div>
+        <div class="row-meta">May 10, 2026</div>
+        <div class="row-actions">
+          <button class="action-btn" aria-label="Rename"><i class="ti ti-edit" aria-hidden="true"></i></button>
+          <button class="action-btn" aria-label="Share"><i class="ti ti-share" aria-hidden="true"></i></button>
+          <button class="action-btn danger" aria-label="Delete"><i class="ti ti-trash" aria-hidden="true"></i></button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  const PREF_KEY='fm_view_pref';
+  function setView(mode){
+    const grid=document.getElementById('grid-view');
+    const list=document.getElementById('list-view');
+    const btnGrid=document.getElementById('btn-grid');
+    const btnList=document.getElementById('btn-list');
+    if(mode==='grid'){
+      grid.classList.remove('hidden');
+      list.classList.add('hidden');
+      btnGrid.classList.add('active');btnGrid.setAttribute('aria-pressed','true');
+      btnList.classList.remove('active');btnList.setAttribute('aria-pressed','false');
+    } else {
+      list.classList.remove('hidden');
+      grid.classList.add('hidden');
+      btnList.classList.add('active');btnList.setAttribute('aria-pressed','true');
+      btnGrid.classList.remove('active');btnGrid.setAttribute('aria-pressed','false');
+    }
+    try{localStorage.setItem(PREF_KEY,mode);}catch(e){}
+  }
+  try{
+    const saved=localStorage.getItem(PREF_KEY);
+    if(saved==='list') setView('list');
+  }catch(e){}
+</script>

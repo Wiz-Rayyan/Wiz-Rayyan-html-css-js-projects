@@ -1,0 +1,207 @@
+
+<style>
+  .poll-wrap { padding: 1.25rem 0; font-family: var(--font-sans); }
+  .poll-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
+  .poll-badge { font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 20px; background: #fcebeb; color: #a32d2d; display: flex; align-items: center; gap: 5px; }
+  .poll-badge.live { background: #fcebeb; color: #a32d2d; }
+  .poll-badge.ended { background: var(--color-background-secondary); color: var(--color-text-secondary); }
+  .poll-dot { width: 7px; height: 7px; border-radius: 50%; background: #e24b4a; animation: pulse 1.2s ease infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  .poll-timer { font-size: 13px; font-weight: 500; color: var(--color-text-secondary); display: flex; align-items: center; gap: 5px; }
+  .poll-timer .tick { font-variant-numeric: tabular-nums; color: var(--color-text-primary); font-size: 15px; }
+  .poll-question { font-size: 17px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 1.25rem; line-height: 1.4; }
+  .option-row { margin-bottom: 10px; }
+  .option-btn { width: 100%; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); background: var(--color-background-primary); cursor: pointer; padding: 0; overflow: hidden; position: relative; transition: border-color 0.15s; }
+  .option-btn:hover:not(:disabled) { border-color: var(--color-border-primary); }
+  .option-btn:disabled { cursor: default; }
+  .option-btn.voted { border-color: #185fa5; }
+  .bar-track { position: absolute; top: 0; left: 0; height: 100%; border-radius: var(--border-radius-md); background: #e6f1fb; transition: width 0.6s cubic-bezier(0.4,0,0.2,1); z-index: 0; }
+  .option-btn.voted .bar-track { background: #b5d4f4; }
+  .option-content { position: relative; z-index: 1; display: flex; align-items: center; padding: 12px 14px; gap: 10px; }
+  .option-key { width: 26px; height: 26px; border-radius: 6px; background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 500; color: var(--color-text-secondary); flex-shrink: 0; }
+  .option-btn.voted .option-key { background: #185fa5; color: #fff; border-color: #185fa5; }
+  .option-label { flex: 1; text-align: left; font-size: 14px; font-weight: 400; color: var(--color-text-primary); }
+  .option-pct { font-size: 13px; font-weight: 500; color: var(--color-text-secondary); min-width: 36px; text-align: right; }
+  .option-btn.voted .option-pct { color: #185fa5; }
+  .option-votes { font-size: 11px; color: var(--color-text-tertiary); margin-top: 2px; min-width: 36px; text-align: right; }
+  .poll-footer { margin-top: 1rem; display: flex; align-items: center; justify-content: space-between; }
+  .total-votes { font-size: 12px; color: var(--color-text-tertiary); }
+  .new-poll-btn { font-size: 12px; padding: 5px 14px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-secondary); background: transparent; cursor: pointer; color: var(--color-text-secondary); }
+  .new-poll-btn:hover { background: var(--color-background-secondary); }
+  .ended-banner { margin-top: 1rem; padding: 10px 14px; background: var(--color-background-secondary); border-radius: var(--border-radius-md); font-size: 13px; color: var(--color-text-secondary); text-align: center; }
+  .winner-row .option-key { background: #1d9e75; color: #fff; border-color: #1d9e75; }
+  .winner-row .bar-track { background: #9fe1cb; }
+  .winner-row .option-btn.voted .bar-track { background: #5dcaa5; }
+  .sim-label { font-size: 11px; color: var(--color-text-tertiary); margin-bottom: 0.5rem; }
+  .sim-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 1.25rem; }
+  .sim-btn { font-size: 11px; padding: 4px 10px; border-radius: 20px; border: 0.5px solid var(--color-border-tertiary); background: var(--color-background-secondary); cursor: pointer; color: var(--color-text-secondary); }
+  .sim-btn:hover { border-color: var(--color-border-secondary); }
+  .divider { border: none; border-top: 0.5px solid var(--color-border-tertiary); margin: 1.25rem 0; }
+</style>
+
+<div class="poll-wrap">
+  <h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">Live voting poll widget — vote on a question and see real-time results</h2>
+
+  <div id="sim-section">
+    <p class="sim-label" style="font-size:12px;color:var(--color-text-tertiary);margin-bottom:6px;">Simulate incoming votes</p>
+    <div class="sim-btns" id="sim-btns"></div>
+    <hr class="divider">
+  </div>
+
+  <div class="poll-header">
+    <div class="poll-badge live" id="status-badge">
+      <span class="poll-dot" id="live-dot"></span>
+      <span id="status-text">Live</span>
+    </div>
+    <div class="poll-timer">
+      <i class="ti ti-clock" style="font-size:14px" aria-hidden="true"></i>
+      <span id="timer-display" class="tick">30s</span>
+    </div>
+  </div>
+
+  <div class="poll-question" id="poll-question">Which feature should we build next?</div>
+
+  <div id="options-list"></div>
+
+  <div class="poll-footer">
+    <span class="total-votes" id="total-label">0 votes</span>
+    <button class="new-poll-btn" onclick="startNewPoll()">New poll ↺</button>
+  </div>
+
+  <div class="ended-banner" id="ended-banner" style="display:none">
+    <i class="ti ti-trophy" style="font-size:14px;vertical-align:-2px;margin-right:4px" aria-hidden="true"></i>
+    Poll ended — winner highlighted above
+  </div>
+</div>
+
+<script>
+const POLLS = [
+  { q: "Which feature should we build next?", opts: ["Mobile app", "Dark mode", "API access", "Integrations"] },
+  { q: "What stream should I do this weekend?", opts: ["Just Chatting", "Gaming", "Art stream", "IRL stream"] },
+  { q: "Best map in the game?", opts: ["Dust II", "Mirage", "Inferno", "Nuke"] },
+  { q: "Pick tonight's game:", opts: ["Elden Ring", "Baldur's Gate 3", "Minecraft", "Valorant"] },
+];
+
+let state = { votes: [], userVote: null, timerSec: 30, ended: false, pollIdx: 0, intervalId: null, simId: null };
+
+function totalVotes() { return state.votes.reduce((a,b)=>a+b,0); }
+function pct(i) { const t=totalVotes(); return t===0?0:Math.round(state.votes[i]/t*100); }
+
+function render() {
+  const poll = POLLS[state.pollIdx];
+  const opts = poll.opts;
+  const total = totalVotes();
+  const maxV = Math.max(...state.votes);
+  const winnerIdx = state.ended ? state.votes.indexOf(maxV) : -1;
+  const list = document.getElementById('options-list');
+  list.innerHTML = '';
+  opts.forEach((label, i) => {
+    const p = pct(i);
+    const isVoted = state.userVote === i;
+    const isWinner = winnerIdx === i;
+    const row = document.createElement('div');
+    row.className = 'option-row' + (isWinner ? ' winner-row' : '');
+    const btn = document.createElement('button');
+    btn.className = 'option-btn' + (isVoted?' voted':'');
+    btn.disabled = state.userVote !== null || state.ended;
+    btn.onclick = () => castVote(i);
+    const showBar = state.userVote !== null || state.ended;
+    btn.innerHTML = `<div class="bar-track" style="width:${showBar?p:0}%"></div>
+      <div class="option-content">
+        <div class="option-key">${['A','B','C','D'][i]}</div>
+        <span class="option-label">${label}</span>
+        <div style="text-align:right">
+          <div class="option-pct">${showBar?p+'%':''}</div>
+          <div class="option-votes">${showBar?state.votes[i]+' vote'+(state.votes[i]!==1?'s':''):''}</div>
+        </div>
+      </div>`;
+    row.appendChild(btn);
+    list.appendChild(row);
+  });
+  document.getElementById('total-label').textContent = total + ' vote' + (total!==1?'s':'');
+  document.getElementById('timer-display').textContent = state.ended ? 'Ended' : state.timerSec+'s';
+  const badge = document.getElementById('status-badge');
+  const dot = document.getElementById('live-dot');
+  const stxt = document.getElementById('status-text');
+  if (state.ended) {
+    badge.className='poll-badge ended'; dot.style.animation='none'; dot.style.opacity='0.4'; stxt.textContent='Ended';
+  } else {
+    badge.className='poll-badge live'; dot.style.animation=''; stxt.textContent='Live';
+  }
+  document.getElementById('ended-banner').style.display = state.ended?'block':'none';
+}
+
+function castVote(i) {
+  if (state.userVote!==null||state.ended) return;
+  state.userVote = i;
+  state.votes[i]++;
+  render();
+}
+
+function simVote() {
+  if (state.ended) return;
+  const poll = POLLS[state.pollIdx];
+  const weights = [0.4,0.3,0.2,0.1];
+  let r = Math.random(), cum = 0;
+  for (let i=0;i<poll.opts.length;i++) { cum+=weights[i]; if(r<cum){state.votes[i]++;break;} }
+  render();
+}
+
+function buildSimBtns() {
+  const poll = POLLS[state.pollIdx];
+  const c = document.getElementById('sim-btns');
+  c.innerHTML = '';
+  poll.opts.forEach((label,i)=>{
+    const b = document.createElement('button');
+    b.className='sim-btn';
+    b.textContent='+ '+['A','B','C','D'][i]+': '+label;
+    b.onclick=()=>{if(!state.ended){state.votes[i]++;render();}};
+    c.appendChild(b);
+  });
+  const auto = document.createElement('button');
+  auto.className='sim-btn';
+  auto.id='auto-btn';
+  auto.textContent='▶ Auto-vote';
+  auto.onclick=toggleAuto;
+  c.appendChild(auto);
+}
+
+function toggleAuto() {
+  const btn = document.getElementById('auto-btn');
+  if (state.simId) {
+    clearInterval(state.simId); state.simId=null; btn.textContent='▶ Auto-vote';
+  } else {
+    state.simId=setInterval(()=>{if(!state.ended)simVote();else{clearInterval(state.simId);state.simId=null;}},400);
+    btn.textContent='⏹ Stop';
+  }
+}
+
+function startTimer() {
+  if (state.intervalId) clearInterval(state.intervalId);
+  state.intervalId = setInterval(()=>{
+    if (state.ended) { clearInterval(state.intervalId); return; }
+    state.timerSec--;
+    if (state.timerSec<=0) { state.ended=true; clearInterval(state.intervalId); if(state.simId){clearInterval(state.simId);state.simId=null;} }
+    render();
+  },1000);
+}
+
+function startNewPoll() {
+  if (state.intervalId) clearInterval(state.intervalId);
+  if (state.simId) clearInterval(state.simId);
+  state.pollIdx = (state.pollIdx+1)%POLLS.length;
+  const poll = POLLS[state.pollIdx];
+  state = { votes: poll.opts.map(()=>0), userVote:null, timerSec:30, ended:false, pollIdx:state.pollIdx, intervalId:null, simId:null };
+  document.getElementById('poll-question').textContent = poll.q;
+  buildSimBtns();
+  render();
+  startTimer();
+}
+
+const firstPoll = POLLS[0];
+state.votes = firstPoll.opts.map(()=>0);
+document.getElementById('poll-question').textContent = firstPoll.q;
+buildSimBtns();
+render();
+startTimer();
+</script>

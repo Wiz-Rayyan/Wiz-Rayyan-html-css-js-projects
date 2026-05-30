@@ -1,0 +1,156 @@
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.editor-wrap{background:#0A0A0A;border-radius:12px;overflow:hidden;font-family:'Fira Code','Cascadia Code','JetBrains Mono',monospace;font-size:13.5px;line-height:1.75;min-height:440px;border:1px solid #1a1a2e;position:relative}
+.toolbar{background:#0f0f1a;border-bottom:1px solid #1a1a2e;padding:10px 16px;display:flex;align-items:center;gap:10px}
+.dot{width:12px;height:12px;border-radius:50%}
+.dot-r{background:#FF3B5C}.dot-y{background:#FFCC00}.dot-g{background:#00FFCC}
+.filename{color:#555;font-size:12px;margin-left:8px;letter-spacing:.04em}
+.editor-body{display:flex;overflow:auto}
+.gutter{padding:12px 0;min-width:44px;background:#0d0d1a;border-right:1px solid #1a1a2e;user-select:none;flex-shrink:0}
+.ln{display:flex;align-items:center;justify-content:flex-end;padding:0 12px;height:calc(1.75em);font-size:11.5px;color:#333;cursor:pointer;transition:color .15s;position:relative;overflow:hidden}
+.ln:hover{color:#00FFCC;text-shadow:0 0 8px #00FFCC88}
+.ln.active{color:#0099FF;text-shadow:0 0 10px #0099FFAA}
+.ln .ripple{position:absolute;inset:0;background:radial-gradient(circle at center,#0099FF44 0%,transparent 70%);opacity:0;pointer-events:none}
+.ln.pulsing .ripple{animation:ripple .5s ease-out forwards}
+@keyframes ripple{0%{opacity:1;transform:scale(.5)}100%{opacity:0;transform:scale(1.2)}}
+.code-area{padding:12px 0;flex:1;outline:none;white-space:pre;overflow:auto}
+.code-line{display:flex;align-items:baseline;height:calc(1.75em);padding:0 20px;cursor:text;transition:background .15s;position:relative}
+.code-line:hover{background:#ffffff06}
+.code-line.selected{background:#00FFCC12;box-shadow:inset 3px 0 0 #00FFCC88}
+.tok{transition:text-shadow .2s}
+.kw{color:#FF0055;text-shadow:0 0 4px #FF005599}
+.str{color:#00FFCC;text-shadow:0 0 4px #00FFCC88}
+.fn{color:#FFCC00;text-shadow:0 0 4px #FFCC0088}
+.cm{color:#AA00FF;text-shadow:0 0 3px #AA00FF77;font-style:italic}
+.num{color:#FF6B35;text-shadow:0 0 3px #FF6B3577}
+.op{color:#888}
+.paren{color:#FF0099;text-shadow:0 0 3px #FF009966}
+.plain{color:#ccc}
+.bounce{animation:bounce .25s ease-out}
+@keyframes bounce{0%{transform:scale(1)}40%{transform:scale(1.05)}100%{transform:scale(1)}}
+.editor-wrap:hover .kw{text-shadow:0 0 8px #FF0055CC,0 0 16px #FF005566}
+.editor-wrap:hover .str{text-shadow:0 0 8px #00FFCCBB,0 0 14px #00FFCC44}
+.editor-wrap:hover .fn{text-shadow:0 0 8px #FFCC00BB,0 0 14px #FFCC0044}
+.editor-wrap:hover .cm{text-shadow:0 0 8px #AA00FFAA,0 0 14px #AA00FF44}
+.cursor{display:inline-block;width:2px;height:1em;background:#00FFCC;vertical-align:text-bottom;margin-left:1px;animation:blink 1s step-end infinite;box-shadow:0 0 6px #00FFCC}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.status-bar{background:#0f0f1a;border-top:1px solid #1a1a2e;padding:4px 16px;display:flex;gap:20px;align-items:center}
+.stat{font-size:11px;color:#444;font-family:monospace}
+.stat span{color:#00FFCC88}
+.type-input-area{background:#0f0f1a;padding:10px 16px;display:flex;align-items:center;gap:10px;border-top:1px solid #1a1a2e}
+.type-input-area input{flex:1;background:#111;border:1px solid #222;border-radius:6px;padding:6px 12px;color:#ccc;font-family:monospace;font-size:13px;outline:none}
+.type-input-area input:focus{border-color:#00FFCC44;box-shadow:0 0 0 2px #00FFCC11}
+.type-input-area button{background:transparent;border:1px solid #333;border-radius:6px;padding:6px 14px;color:#00FFCC;font-size:12px;font-family:monospace;cursor:pointer;transition:all .2s}
+.type-input-area button:hover{border-color:#00FFCC66;box-shadow:0 0 8px #00FFCC33;background:#00FFCC08}
+</style>
+
+<h2 class="sr-only">Neon syntax-highlighted code editor with interactive glow effects</h2>
+
+<div class="editor-wrap" id="editor">
+  <div class="toolbar">
+    <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+    <span class="filename">cyberspace.js</span>
+  </div>
+  <div class="editor-body">
+    <div class="gutter" id="gutter"></div>
+    <div class="code-area" id="code-area" tabindex="0"></div>
+  </div>
+  <div class="status-bar">
+    <span class="stat">JS <span>ES2024</span></span>
+    <span class="stat">line <span id="stat-line">1</span></span>
+    <span class="stat">chars <span id="stat-chars">0</span></span>
+    <span class="stat" style="margin-left:auto;color:#FF005566">● NEON</span>
+  </div>
+  <div class="type-input-area">
+    <input type="text" id="type-input" placeholder="type a character to inject into the editor..." maxlength="1" />
+    <button id="clear-btn">clear</button>
+  </div>
+</div>
+
+<script>
+const lines = [
+  [{t:'cm',v:'// neural interface — v3.1.0'}],
+  [],
+  [{t:'kw',v:'import'},{t:'plain',v:' '},{t:'paren',v:'{'},{t:'fn',v:' connect'},{t:'plain',v:', '},{t:'fn',v:'stream'},{t:'plain',v:' '},{t:'paren',v:'}'},{t:'plain',v:' '},{t:'kw',v:'from'},{t:'plain',v:' '},{t:'str',v:"'@cyber/core'"}],
+  [],
+  [{t:'kw',v:'const'},{t:'plain',v:' '},{t:'fn',v:'initMatrix'},{t:'plain',v:' '},{t:'op',v:'='},{t:'plain',v:' '},{t:'kw',v:'async'},{t:'plain',v:' '},{t:'paren',v:'('},{t:'plain',v:'nodes'},{t:'paren',v:')'},{t:'plain',v:' '},{t:'op',v:'=>'},{t:'plain',v:' '},{t:'paren',v:'{'}],
+  [{t:'plain',v:'  '},{t:'kw',v:'const'},{t:'plain',v:' grid '},{t:'op',v:'='},{t:'plain',v:' '},{t:'kw',v:'await'},{t:'plain',v:' '},{t:'fn',v:'connect'},{t:'paren',v:'('},{t:'paren',v:'{'}],
+  [{t:'plain',v:'    host'},{t:'op',v:':'},{t:'plain',v:' '},{t:'str',v:"'matrix.local'"},{t:'plain',v:', signal'},{t:'op',v:':'},{t:'plain',v:' '},{t:'num',v:'9001'}],
+  [{t:'plain',v:'  '},{t:'paren',v:'}'},{t:'paren',v:')'},{t:'plain',v:';'}],
+  [],
+  [{t:'plain',v:'  '},{t:'fn',v:'stream'},{t:'paren',v:'('},{t:'plain',v:'grid'},{t:'plain',v:'.nodes, '},{t:'paren',v:'('},{t:'plain',v:'data'},{t:'paren',v:')'},{t:'plain',v:' '},{t:'op',v:'=>'},{t:'plain',v:' '},{t:'paren',v:'{'}],
+  [{t:'plain',v:'    '},{t:'kw',v:'if'},{t:'plain',v:' '},{t:'paren',v:'('},{t:'plain',v:'data.pulse '},{t:'op',v:'>'},{t:'plain',v:' '},{t:'num',v:'0'},{t:'paren',v:')'},{t:'plain',v:' '},{t:'paren',v:'{'}],
+  [{t:'plain',v:'      console'},{t:'op',v:'.'},{t:'fn',v:'log'},{t:'paren',v:'('},{t:'str',v:"'⚡ signal: '"},{t:'plain',v:', data.id'},{t:'paren',v:')'}],
+  [{t:'plain',v:'    '},{t:'paren',v:'}'}],
+  [{t:'plain',v:'  '},{t:'paren',v:'}'},{t:'paren',v:')'},{t:'plain',v:';'}],
+  [{t:'paren',v:'}'}],
+  [],
+  [{t:'cm',v:'// boot sequence'}],
+  [{t:'fn',v:'initMatrix'},{t:'paren',v:'('},{t:'plain',v:'nodes'},{t:'paren',v:')'},{t:'op',v:'.'},{t:'fn',v:'catch'},{t:'paren',v:'('},{t:'plain',v:'console.error'},{t:'paren',v:')'}],
+];
+
+const codeArea = document.getElementById('code-area');
+const gutter = document.getElementById('gutter');
+let selectedLine = -1;
+
+function renderLine(toks) {
+  return toks.map(t => `<span class="tok ${t.t}">${escHtml(t.v)}</span>`).join('');
+}
+function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+function render() {
+  gutter.innerHTML = '';
+  codeArea.innerHTML = '';
+  lines.forEach((toks, i) => {
+    const ln = document.createElement('div');
+    ln.className = 'ln' + (selectedLine === i ? ' active' : '');
+    ln.dataset.i = i;
+    ln.innerHTML = `<div class="ripple"></div>${i+1}`;
+    ln.onclick = () => selectLine(i);
+    gutter.appendChild(ln);
+
+    const cl = document.createElement('div');
+    cl.className = 'code-line' + (selectedLine === i ? ' selected' : '');
+    cl.innerHTML = renderLine(toks) || '&nbsp;';
+    if (i === lines.length - 1) {
+      cl.innerHTML += '<span class="cursor"></span>';
+    }
+    codeArea.appendChild(cl);
+  });
+  document.getElementById('stat-chars').textContent = lines.flat().reduce((a,t)=>a+t.v.length,0);
+}
+
+function selectLine(i) {
+  selectedLine = i;
+  render();
+  document.getElementById('stat-line').textContent = i + 1;
+  const ln = gutter.querySelector(`.ln[data-i="${i}"]`);
+  if (ln) { ln.classList.add('pulsing'); setTimeout(()=>ln.classList.remove('pulsing'),500); }
+}
+
+const typeInput = document.getElementById('type-input');
+typeInput.addEventListener('input', (e) => {
+  const ch = e.target.value;
+  if (!ch) return;
+  typeInput.value = '';
+  const last = lines[lines.length - 1];
+  if (last.length && last[last.length-1].t === 'plain') {
+    last[last.length-1].v += ch;
+  } else {
+    last.push({t:'plain',v:ch});
+  }
+  const lineEls = codeArea.querySelectorAll('.code-line');
+  const target = lineEls[lines.length - 1];
+  if (target) { target.classList.add('bounce'); setTimeout(()=>target.classList.remove('bounce'), 250); }
+  render();
+});
+
+document.getElementById('clear-btn').onclick = () => {
+  const last = lines[lines.length-1];
+  const plain = last.filter(t=>t.t==='plain');
+  plain.forEach(t=>{ if(t.v.length>0) t.v = t.v.slice(0,-1) });
+  render();
+};
+
+render();
+</script>

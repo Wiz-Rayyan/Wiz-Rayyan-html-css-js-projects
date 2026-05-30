@@ -1,0 +1,176 @@
+
+<style>
+  .cw-wrap { padding: 1.5rem 0; font-family: var(--font-sans); }
+  .cw-label { font-size: 13px; color: var(--color-text-secondary); margin-bottom: 1rem; letter-spacing: 0.02em; }
+  .cw-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 16px; }
+  .cw-card { position: relative; border-radius: var(--border-radius-lg); overflow: hidden; background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); cursor: pointer; transition: transform 0.15s ease, border-color 0.15s ease; }
+  .cw-card:hover { transform: translateY(-3px); border-color: var(--color-border-primary); }
+  .cw-thumb { position: relative; width: 100%; padding-top: 56.25%; background: var(--color-background-secondary); overflow: hidden; }
+  .cw-thumb-img { position: absolute; inset: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 32px; }
+  .cw-progress-track { position: absolute; bottom: 0; left: 0; right: 0; height: 4px; background: rgba(0,0,0,0.25); }
+  .cw-progress-bar { height: 4px; background: #3B82F6; transition: width 0.2s ease; }
+  .cw-progress-bar.complete { background: #22C55E; }
+  .cw-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0); display: flex; align-items: center; justify-content: center; transition: background 0.15s ease; }
+  .cw-card:hover .cw-overlay { background: rgba(0,0,0,0.45); }
+  .cw-play { width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,0.95); display: flex; align-items: center; justify-content: center; opacity: 0; transform: scale(0.8); transition: opacity 0.15s ease, transform 0.15s ease; }
+  .cw-card:hover .cw-play { opacity: 1; transform: scale(1); }
+  .cw-play i { font-size: 16px; color: #111; margin-left: 2px; }
+  .cw-tooltip { position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.85); color: #fff; font-size: 11px; font-weight: 500; white-space: nowrap; padding: 4px 10px; border-radius: 20px; opacity: 0; transition: opacity 0.15s ease; pointer-events: none; }
+  .cw-card:hover .cw-tooltip { opacity: 1; }
+  .cw-watched-badge { position: absolute; top: 8px; right: 8px; background: rgba(34,197,94,0.9); color: #fff; font-size: 10px; font-weight: 500; padding: 3px 8px; border-radius: 20px; display: flex; align-items: center; gap: 4px; }
+  .cw-watched-badge i { font-size: 11px; }
+  .cw-info { padding: 10px 12px; }
+  .cw-title { font-size: 13px; font-weight: 500; color: var(--color-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px; }
+  .cw-meta { font-size: 11px; color: var(--color-text-secondary); }
+  .cw-seekbar-wrap { margin-top: 2rem; border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1.25rem; background: var(--color-background-primary); }
+  .cw-seekbar-header { display: flex; align-items: center; gap: 12px; margin-bottom: 1rem; }
+  .cw-now-thumb { width: 80px; height: 45px; border-radius: 6px; background: var(--color-background-secondary); display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; overflow: hidden; }
+  .cw-now-title { font-size: 14px; font-weight: 500; color: var(--color-text-primary); }
+  .cw-now-sub { font-size: 12px; color: var(--color-text-secondary); margin-top: 2px; }
+  .cw-seek-row { display: flex; align-items: center; gap: 10px; }
+  .cw-time { font-size: 12px; color: var(--color-text-secondary); min-width: 36px; font-variant-numeric: tabular-nums; }
+  .cw-seek-track { flex: 1; height: 4px; background: var(--color-background-secondary); border-radius: 2px; position: relative; cursor: pointer; }
+  .cw-seek-fill { height: 4px; background: #3B82F6; border-radius: 2px; position: relative; }
+  .cw-seek-thumb { width: 12px; height: 12px; border-radius: 50%; background: #3B82F6; position: absolute; right: -6px; top: -4px; box-shadow: 0 0 0 2px var(--color-background-primary); }
+  .cw-actions { display: flex; gap: 8px; margin-top: 1rem; }
+  .cw-btn { flex: 1; padding: 8px 0; font-size: 12px; font-weight: 500; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-secondary); background: transparent; color: var(--color-text-primary); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: background 0.1s; }
+  .cw-btn:hover { background: var(--color-background-secondary); }
+  .cw-btn.primary { background: #3B82F6; color: #fff; border-color: #3B82F6; }
+  .cw-btn.primary:hover { background: #2563EB; border-color: #2563EB; }
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(60px); background: var(--color-background-primary); border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-lg); padding: 10px 18px; font-size: 13px; color: var(--color-text-primary); box-shadow: none; transition: transform 0.25s ease, opacity 0.25s ease; opacity: 0; pointer-events: none; white-space: nowrap; }
+  .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+</style>
+
+<h2 class="sr-only">Continue Watching — interactive UI demo showing progress bars, resume tooltips, and watched badges on video thumbnails</h2>
+
+<div class="cw-wrap">
+  <p class="cw-label">CONTINUE WATCHING</p>
+  <div class="cw-grid" id="grid"></div>
+  <div class="cw-seekbar-wrap" id="player-panel" style="display:none;">
+    <div class="cw-seekbar-header">
+      <div class="cw-now-thumb" id="player-thumb"></div>
+      <div>
+        <div class="cw-now-title" id="player-title"></div>
+        <div class="cw-now-sub" id="player-sub"></div>
+      </div>
+    </div>
+    <div class="cw-seek-row">
+      <span class="cw-time" id="t-cur">0:00</span>
+      <div class="cw-seek-track" id="seek-track">
+        <div class="cw-seek-fill" id="seek-fill">
+          <div class="cw-seek-thumb"></div>
+        </div>
+      </div>
+      <span class="cw-time" id="t-dur" style="text-align:right;">0:00</span>
+    </div>
+    <div class="cw-actions">
+      <button class="cw-btn" onclick="markWatched()"><i class="ti ti-check" aria-hidden="true"></i> Mark watched</button>
+      <button class="cw-btn primary" id="resume-btn" onclick="resumePlay()"><i class="ti ti-player-play" aria-hidden="true"></i> Resume</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const shows = [
+  { id: 1, emoji: "🌌", title: "Dark Matter", sub: "S1 E4 • 42 min", duration: 2520, saved: 1260 },
+  { id: 2, emoji: "🧟", title: "The Last of Us", sub: "S2 E2 • 55 min", duration: 3300, saved: 2640 },
+  { id: 3, emoji: "🏕️", title: "Yellowjackets", sub: "S3 E1 • 48 min", duration: 2880, saved: 2880 },
+  { id: 4, emoji: "🤖", title: "Severance", sub: "S2 E6 • 44 min", duration: 2640, saved: 462 },
+  { id: 5, emoji: "🔪", title: "Only Murders", sub: "S4 E3 • 38 min", duration: 2280, saved: 1900 },
+  { id: 6, emoji: "🚀", title: "For All Mankind", sub: "S5 E5 • 51 min", duration: 3060, saved: 50 },
+];
+
+function fmt(s) {
+  const m = Math.floor(s / 60), sec = Math.floor(s % 60);
+  return m + ':' + String(sec).padStart(2,'0');
+}
+
+function pct(show) { return Math.min(show.saved / show.duration, 1); }
+function isComplete(show) { return pct(show) >= 1; }
+
+let active = null;
+
+function renderGrid() {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  shows.forEach(show => {
+    const complete = isComplete(show);
+    const p = Math.round(pct(show) * 100);
+    const tip = complete ? 'Watch again' : 'Resume from ' + fmt(show.saved);
+    const card = document.createElement('div');
+    card.className = 'cw-card';
+    card.setAttribute('role', 'button');
+    card.setAttribute('aria-label', show.title + ' — ' + tip);
+    card.innerHTML = `
+      <div class="cw-thumb">
+        <div class="cw-thumb-img">${show.emoji}</div>
+        <div class="cw-overlay">
+          <div class="cw-play"><i class="ti ti-player-play" aria-hidden="true"></i></div>
+          <div class="cw-tooltip">${tip}</div>
+        </div>
+        ${complete ? `<div class="cw-watched-badge"><i class="ti ti-check" aria-hidden="true"></i> Watched</div>` : ''}
+        <div class="cw-progress-track">
+          <div class="cw-progress-bar${complete ? ' complete' : ''}" style="width:${p}%"></div>
+        </div>
+      </div>
+      <div class="cw-info">
+        <div class="cw-title">${show.title}</div>
+        <div class="cw-meta">${show.sub}</div>
+      </div>`;
+    card.addEventListener('click', () => openPlayer(show));
+    grid.appendChild(card);
+  });
+}
+
+function openPlayer(show) {
+  active = show;
+  const panel = document.getElementById('player-panel');
+  panel.style.display = 'block';
+  document.getElementById('player-thumb').textContent = show.emoji;
+  document.getElementById('player-title').textContent = show.title;
+  const p = Math.round(pct(show) * 100);
+  document.getElementById('player-sub').textContent = isComplete(show) ? 'Fully watched · ' + p + '%' : 'Resuming from ' + fmt(show.saved) + ' · ' + p + '% watched';
+  document.getElementById('t-cur').textContent = fmt(show.saved);
+  document.getElementById('t-dur').textContent = fmt(show.duration);
+  document.getElementById('seek-fill').style.width = p + '%';
+  document.getElementById('resume-btn').innerHTML = isComplete(show)
+    ? '<i class="ti ti-player-play" aria-hidden="true"></i> Watch again'
+    : '<i class="ti ti-player-play" aria-hidden="true"></i> Resume from ' + fmt(show.saved);
+  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+document.getElementById('seek-track').addEventListener('click', function(e) {
+  if (!active) return;
+  const rect = this.getBoundingClientRect();
+  const ratio = Math.min(Math.max((e.clientX - rect.left) / rect.width, 0), 1);
+  active.saved = Math.round(ratio * active.duration);
+  renderGrid();
+  openPlayer(active);
+  showToast('Jumped to ' + fmt(active.saved));
+});
+
+function resumePlay() {
+  if (!active) return;
+  showToast('▶ Playing "' + active.title + '" from ' + fmt(active.saved));
+}
+
+function markWatched() {
+  if (!active) return;
+  active.saved = active.duration;
+  renderGrid();
+  openPlayer(active);
+  showToast('Marked "' + active.title + '" as watched');
+}
+
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+renderGrid();
+</script>

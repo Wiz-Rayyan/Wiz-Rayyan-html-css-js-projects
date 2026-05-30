@@ -1,0 +1,123 @@
+<style>
+.task-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1rem 1.25rem;margin-bottom:12px}
+.task-header{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.task-icon{width:20px;height:20px;border-radius:50%;border:2px solid var(--color-border-secondary);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .2s,border-color .2s}
+.task-icon.done{background:#22c55e;border-color:#22c55e}
+.task-icon.partial{border-color:#3B82F6}
+.task-icon i{font-size:11px;color:#fff;opacity:0;transition:opacity .15s}
+.task-icon.done i{opacity:1}
+.task-title{font-size:15px;font-weight:500;color:var(--color-text-primary);flex:1;transition:color .2s}
+.task-title.done{text-decoration:line-through;color:var(--color-text-secondary)}
+.task-meta{font-size:12px;color:var(--color-text-secondary);white-space:nowrap}
+.progress-track{height:4px;background:var(--color-border-tertiary);border-radius:2px;margin-bottom:12px;overflow:hidden}
+.progress-fill{height:100%;background:#3B82F6;border-radius:2px;transition:width .35s cubic-bezier(.4,0,.2,1)}
+.progress-fill.complete{background:#22c55e}
+.subtask-list{display:flex;flex-direction:column;gap:2px}
+.subtask{display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:6px;cursor:pointer;user-select:none;transition:background .15s}
+.subtask:hover{background:var(--color-background-secondary)}
+.subtask.range-select{background:var(--color-background-info)}
+.cb-wrap{width:18px;height:18px;border-radius:4px;border:1.5px solid var(--color-border-secondary);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s,border-color .15s}
+.cb-wrap.checked{background:#3B82F6;border-color:#3B82F6}
+.cb-wrap i{font-size:11px;color:#fff;opacity:0;transition:opacity .12s}
+.cb-wrap.checked i{opacity:1}
+.sub-label{font-size:14px;color:var(--color-text-primary);transition:color .2s;flex:1}
+.sub-label.done{text-decoration:line-through;color:var(--color-text-secondary)}
+.sub-assign{font-size:11px;color:var(--color-text-secondary);white-space:nowrap}
+.shift-hint{font-size:11px;color:var(--color-text-secondary);text-align:right;margin-top:8px;opacity:.7}
+</style>
+
+<h2 class="sr-only">Checklist with subtasks and animated progress bars. Shift+click to select a range of subtasks.</h2>
+
+<div id="app" style="padding:1rem 0;max-width:640px;margin:0 auto"></div>
+
+<script>
+const tasks=[
+  {id:1,title:"Design system refresh",subtasks:[
+    {id:11,label:"Audit existing components",done:true,assign:"Priya"},
+    {id:12,label:"Define new color tokens",done:true,assign:"Priya"},
+    {id:13,label:"Update typography scale",done:false,assign:"Lei"},
+    {id:14,label:"Create icon guidelines",done:false,assign:"Lei"},
+    {id:15,label:"Document spacing rules",done:false,assign:"Sam"},
+  ]},
+  {id:2,title:"Q3 launch checklist",subtasks:[
+    {id:21,label:"Finalize feature scope",done:true,assign:"Alex"},
+    {id:22,label:"QA regression pass",done:true,assign:"Sam"},
+    {id:23,label:"Write release notes",done:true,assign:"Alex"},
+    {id:24,label:"Update changelog",done:false,assign:"Sam"},
+    {id:25,label:"Deploy to staging",done:false,assign:"Lei"},
+    {id:26,label:"Schedule announcement",done:false,assign:"Alex"},
+  ]},
+  {id:3,title:"Onboarding flow",subtasks:[
+    {id:31,label:"Write welcome email copy",done:false,assign:"Sam"},
+    {id:32,label:"Set up email triggers",done:false,assign:"Lei"},
+    {id:33,label:"Design checklist UI",done:false,assign:"Priya"},
+  ]}
+];
+
+let lastClicked={taskId:null,idx:null};
+
+function pct(task){
+  const done=task.subtasks.filter(s=>s.done).length;
+  return Math.round((done/task.subtasks.length)*100);
+}
+
+function render(){
+  const app=document.getElementById('app');
+  app.innerHTML='';
+  tasks.forEach(task=>{
+    const p=pct(task);
+    const allDone=p===100;
+    const card=document.createElement('div');
+    card.className='task-card';
+
+    const iconClass='task-icon'+(allDone?' done':p>0?' partial':'');
+    const titleClass='task-title'+(allDone?' done':'');
+    const fillClass='progress-fill'+(allDone?' complete':'');
+
+    card.innerHTML=`
+      <div class="task-header">
+        <div class="${iconClass}" id="icon-${task.id}"><i class="ti ti-check" aria-hidden="true"></i></div>
+        <span class="${titleClass}">${task.title}</span>
+        <span class="task-meta">${task.subtasks.filter(s=>s.done).length}/${task.subtasks.length}</span>
+      </div>
+      <div class="progress-track"><div class="${fillClass}" style="width:${p}%" role="progressbar" aria-valuenow="${p}" aria-valuemin="0" aria-valuemax="100"></div></div>
+      <div class="subtask-list" id="list-${task.id}"></div>
+      <div class="shift-hint">Shift+click to select a range</div>
+    `;
+
+    const list=card.querySelector(`#list-${task.id}`);
+    task.subtasks.forEach((sub,idx)=>{
+      const row=document.createElement('div');
+      row.className='subtask';
+      row.setAttribute('role','checkbox');
+      row.setAttribute('aria-checked',sub.done);
+      row.setAttribute('tabindex','0');
+      row.innerHTML=`
+        <div class="cb-wrap${sub.done?' checked':''}" aria-hidden="true"><i class="ti ti-check"></i></div>
+        <span class="sub-label${sub.done?' done':''}">${sub.label}</span>
+        <span class="sub-assign">${sub.assign}</span>
+      `;
+
+      const toggle=(e)=>{
+        if(e.shiftKey && lastClicked.taskId===task.id && lastClicked.idx!==null && lastClicked.idx!==idx){
+          const lo=Math.min(lastClicked.idx,idx), hi=Math.max(lastClicked.idx,idx);
+          const targetState=!task.subtasks[idx].done;
+          for(let i=lo;i<=hi;i++) task.subtasks[i].done=targetState;
+        } else {
+          sub.done=!sub.done;
+        }
+        lastClicked={taskId:task.id,idx};
+        render();
+      };
+
+      row.addEventListener('click',toggle);
+      row.addEventListener('keydown',e=>{if(e.key===' '||e.key==='Enter'){e.preventDefault();toggle(e);}});
+      list.appendChild(row);
+    });
+
+    app.appendChild(card);
+  });
+}
+
+render();
+</script>

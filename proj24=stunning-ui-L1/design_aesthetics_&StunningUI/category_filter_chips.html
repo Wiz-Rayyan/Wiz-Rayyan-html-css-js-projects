@@ -1,0 +1,158 @@
+<style>
+.chips-wrap{overflow-x:auto;display:flex;gap:8px;white-space:nowrap;padding:4px 2px;cursor:grab;user-select:none;scrollbar-width:none}
+.chips-wrap::-webkit-scrollbar{display:none}
+.chips-wrap.dragging{cursor:grabbing}
+.chip{display:inline-flex;align-items:center;border-radius:999px;padding:7px 16px;font-size:14px;font-weight:400;border:0.5px solid var(--color-border-secondary);background:var(--color-background-secondary);color:var(--color-text-secondary);cursor:pointer;transition:background 0.15s,color 0.15s,border-color 0.15s;flex-shrink:0}
+.chip:hover{background:var(--color-background-tertiary);color:var(--color-text-primary);border-color:var(--color-border-primary)}
+.chip.active{background:#3B82F6;color:#fff;border-color:#3B82F6}
+.chip.active:hover{background:#2563EB;border-color:#2563EB}
+.chip.range-preview{background:#BFDBFE;color:#1D4ED8;border-color:#93C5FD}
+.clear-btn{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:7px 14px;font-size:14px;border:0.5px solid var(--color-border-secondary);background:transparent;color:var(--color-text-tertiary);cursor:pointer;transition:all 0.15s;flex-shrink:0}
+.clear-btn:hover{color:var(--color-text-primary);border-color:var(--color-border-primary)}
+.clear-btn i{font-size:13px}
+.content-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-top:1.5rem}
+.content-card{background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:0;overflow:hidden;transition:opacity 0.2s}
+.content-card.hidden{opacity:0;pointer-events:none;height:0;min-height:0;overflow:hidden;padding:0;border:none;margin:0}
+.card-thumb{height:72px;display:flex;align-items:center;justify-content:center;font-size:26px}
+.card-body{padding:8px 10px 10px}
+.card-title{font-size:13px;font-weight:500;color:var(--color-text-primary);margin:0 0 2px}
+.card-tag{font-size:11px;color:var(--color-text-tertiary)}
+.status-bar{display:flex;align-items:center;justify-content:space-between;margin-top:1rem}
+.status-hint{font-size:12px;color:var(--color-text-tertiary)}
+.count-badge{font-size:12px;color:var(--color-text-secondary)}
+</style>
+
+<h2 class="sr-only">Category filter chips — click to filter content, Shift+click to select a range, drag to scroll</h2>
+
+<div style="padding:1.25rem 0 0.5rem">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:1rem">
+    <div id="chips-row" class="chips-wrap" style="flex:1;min-width:0"></div>
+    <button id="clear-btn" class="clear-btn" style="display:none" aria-label="Clear all filters">
+      <i class="ti ti-x" aria-hidden="true"></i> Clear
+    </button>
+  </div>
+  <div class="status-bar">
+    <span class="status-hint" id="hint">Shift+click to select a range</span>
+    <span class="count-badge" id="count-label"></span>
+  </div>
+  <div id="content-grid" class="content-grid"></div>
+</div>
+
+<script>
+const categories = [
+  {id:'all', label:'All'},
+  {id:'music', label:'Music'},
+  {id:'gaming', label:'Gaming'},
+  {id:'film', label:'Film'},
+  {id:'comedy', label:'Comedy'},
+  {id:'tech', label:'Tech'},
+  {id:'food', label:'Food'},
+  {id:'travel', label:'Travel'},
+  {id:'sports', label:'Sports'},
+  {id:'science', label:'Science'},
+  {id:'art', label:'Art'},
+  {id:'news', label:'News'},
+];
+
+const items = [
+  {title:'Lo-fi Beats',cat:'music',thumb:'🎵',color:'#EDE9FE'},
+  {title:'Indie Rock',cat:'music',thumb:'🎸',color:'#EDE9FE'},
+  {title:'Open World',cat:'gaming',thumb:'🕹️',color:'#D1FAE5'},
+  {title:'Retro RPG',cat:'gaming',thumb:'👾',color:'#D1FAE5'},
+  {title:'Sci-fi Epic',cat:'film',thumb:'🎬',color:'#FEF3C7'},
+  {title:'Short Films',cat:'film',thumb:'🎞️',color:'#FEF3C7'},
+  {title:'Stand-up',cat:'comedy',thumb:'😂',color:'#FFF3E0'},
+  {title:'Sketches',cat:'comedy',thumb:'🤡',color:'#FFF3E0'},
+  {title:'AI Tools',cat:'tech',thumb:'🤖',color:'#E0F2FE'},
+  {title:'Web Dev',cat:'tech',thumb:'💻',color:'#E0F2FE'},
+  {title:'Street Food',cat:'food',thumb:'🌮',color:'#FCE7F3'},
+  {title:'Baking 101',cat:'food',thumb:'🍞',color:'#FCE7F3'},
+  {title:'Backpacking',cat:'travel',thumb:'🏔️',color:'#ECFDF5'},
+  {title:'City Guides',cat:'travel',thumb:'🗺️',color:'#ECFDF5'},
+  {title:'Basketball',cat:'sports',thumb:'🏀',color:'#FEF9C3'},
+  {title:'Swimming',cat:'sports',thumb:'🏊',color:'#FEF9C3'},
+  {title:'Space Deep',cat:'science',thumb:'🔭',color:'#E8EAF6'},
+  {title:'Chemistry',cat:'science',thumb:'🧪',color:'#E8EAF6'},
+  {title:'Street Art',cat:'art',thumb:'🎨',color:'#FDF4FF'},
+  {title:'Sculpture',cat:'art',thumb:'🗿',color:'#FDF4FF'},
+  {title:'Daily Wrap',cat:'news',thumb:'📰',color:'#F1F5F9'},
+  {title:'Interviews',cat:'news',thumb:'🎙️',color:'#F1F5F9'},
+];
+
+let active = new Set();
+let lastClicked = null;
+
+const row = document.getElementById('chips-row');
+const grid = document.getElementById('content-grid');
+const clearBtn = document.getElementById('clear-btn');
+const hintEl = document.getElementById('hint');
+const countEl = document.getElementById('count-label');
+
+categories.forEach(c => {
+  const el = document.createElement('button');
+  el.className = 'chip';
+  el.textContent = c.label;
+  el.dataset.id = c.id;
+  el.setAttribute('aria-pressed', 'false');
+  el.addEventListener('click', e => handleChipClick(c.id, e));
+  row.appendChild(el);
+});
+
+items.forEach(item => {
+  const card = document.createElement('div');
+  card.className = 'content-card';
+  card.dataset.cat = item.cat;
+  card.innerHTML = `<div class="card-thumb" style="background:${item.color}">${item.thumb}</div><div class="card-body"><p class="card-title">${item.title}</p><span class="card-tag">${item.cat}</span></div>`;
+  grid.appendChild(card);
+});
+
+function handleChipClick(id, e) {
+  if (id === 'all') {
+    active.clear();
+    lastClicked = null;
+    updateUI();
+    return;
+  }
+  const ids = categories.filter(c => c.id !== 'all').map(c => c.id);
+  if (e.shiftKey && lastClicked && lastClicked !== id) {
+    const a = ids.indexOf(lastClicked);
+    const b = ids.indexOf(id);
+    const [lo, hi] = a < b ? [a, b] : [b, a];
+    ids.slice(lo, hi + 1).forEach(x => active.add(x));
+  } else {
+    if (active.has(id)) active.delete(id);
+    else active.add(id);
+  }
+  lastClicked = id;
+  updateUI();
+}
+
+function updateUI() {
+  const chips = row.querySelectorAll('.chip');
+  chips.forEach(chip => {
+    const id = chip.dataset.id;
+    const on = id === 'all' ? active.size === 0 : active.has(id);
+    chip.classList.toggle('active', on);
+    chip.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+  const cards = grid.querySelectorAll('.content-card');
+  let visible = 0;
+  cards.forEach(card => {
+    const show = active.size === 0 || active.has(card.dataset.cat);
+    card.classList.toggle('hidden', !show);
+    if (show) visible++;
+  });
+  clearBtn.style.display = active.size > 0 ? 'inline-flex' : 'none';
+  countEl.textContent = active.size > 0 ? `${visible} result${visible !== 1 ? 's' : ''}` : `${items.length} items`;
+  hintEl.textContent = active.size > 1 ? `${active.size} filters active` : 'Shift+click to select a range';
+}
+
+clearBtn.addEventListener('click', () => { active.clear(); lastClicked = null; updateUI(); });
+
+let isDown = false, startX, scrollLeft;
+row.addEventListener('mousedown', e => { if (e.target.classList.contains('chip')) return; isDown = true; row.classList.add('dragging'); startX = e.pageX - row.offsetLeft; scrollLeft = row.scrollLeft; });
+document.addEventListener('mouseup', () => { isDown = false; row.classList.remove('dragging'); });
+row.addEventListener('mousemove', e => { if (!isDown) return; e.preventDefault(); const x = e.pageX - row.offsetLeft; row.scrollLeft = scrollLeft - (x - startX); });
+
+updateUI();
+</script>

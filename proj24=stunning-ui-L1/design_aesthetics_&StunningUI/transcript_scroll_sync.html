@@ -1,0 +1,312 @@
+
+<style>
+  :root { --line-h: 56px; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font-sans); }
+
+  #root { display: flex; flex-direction: column; gap: 0; padding: 1rem 0 1.5rem; }
+
+  .toolbar {
+    display: flex; align-items: center; gap: 10px;
+    padding: 0 0 1rem;
+    border-bottom: 0.5px solid var(--color-border-tertiary);
+    margin-bottom: 0;
+  }
+
+  .search-wrap {
+    flex: 1; position: relative;
+  }
+  .search-wrap i {
+    position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+    font-size: 15px; color: var(--color-text-tertiary); pointer-events: none;
+  }
+  .search-wrap input {
+    width: 100%; padding: 7px 10px 7px 32px;
+    border: 0.5px solid var(--color-border-secondary);
+    border-radius: var(--border-radius-md);
+    font-size: 14px; background: var(--color-background-primary);
+    color: var(--color-text-primary);
+  }
+  .search-wrap input:focus { outline: none; border-color: var(--color-border-primary); }
+
+  .search-count {
+    font-size: 13px; color: var(--color-text-secondary); white-space: nowrap; min-width: 60px; text-align: right;
+  }
+
+  .player-bar {
+    display: flex; align-items: center; gap: 12px;
+    padding: 0.9rem 1rem;
+    background: var(--color-background-secondary);
+    border-radius: var(--border-radius-lg);
+    margin: 0.8rem 0;
+    border: 0.5px solid var(--color-border-tertiary);
+  }
+
+  #play-btn {
+    width: 36px; height: 36px; border-radius: 50%;
+    border: 0.5px solid var(--color-border-secondary);
+    background: var(--color-background-primary);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; flex-shrink: 0;
+    color: var(--color-text-primary); font-size: 16px;
+    transition: background 0.15s;
+  }
+  #play-btn:hover { background: var(--color-background-tertiary); }
+
+  #seek { flex: 1; }
+
+  .time-label { font-size: 13px; color: var(--color-text-secondary); min-width: 82px; text-align: right; }
+
+  .episode-info { font-size: 13px; font-weight: 500; color: var(--color-text-primary); }
+  .episode-sub  { font-size: 12px; color: var(--color-text-secondary); }
+
+  .transcript-area {
+    max-height: 340px; overflow-y: auto;
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--border-radius-lg);
+    scroll-behavior: smooth;
+  }
+  .transcript-area::-webkit-scrollbar { width: 5px; }
+  .transcript-area::-webkit-scrollbar-thumb { background: var(--color-border-secondary); border-radius: 3px; }
+
+  .t-line {
+    display: flex; gap: 14px;
+    padding: 12px 16px;
+    cursor: pointer;
+    border-bottom: 0.5px solid var(--color-border-tertiary);
+    transition: background 0.12s;
+    align-items: flex-start;
+  }
+  .t-line:last-child { border-bottom: none; }
+  .t-line:hover { background: var(--color-background-secondary); }
+
+  .t-line.active {
+    background: #FAEEDA;
+  }
+  @media (prefers-color-scheme: dark) {
+    .t-line.active { background: #412402; }
+  }
+
+  .t-line.search-match { outline: 1.5px solid var(--color-border-info); outline-offset: -1.5px; }
+
+  .t-ts {
+    font-size: 12px; color: var(--color-text-tertiary);
+    min-width: 38px; padding-top: 2px;
+    font-variant-numeric: tabular-nums;
+    font-family: var(--font-mono);
+  }
+  .t-speaker { font-size: 12px; font-weight: 500; color: var(--color-text-secondary); min-width: 80px; padding-top: 2px; flex-shrink: 0; }
+  .t-text { font-size: 14px; color: var(--color-text-primary); line-height: 1.6; flex: 1; }
+  .t-text mark {
+    background: #FAC775; color: #412402;
+    border-radius: 2px; padding: 0 1px;
+  }
+  @media (prefers-color-scheme: dark) {
+    .t-text mark { background: #633806; color: #FAC775; }
+  }
+</style>
+
+<div id="root">
+  <h2 class="sr-only">Interactive transcript player with scroll sync and search</h2>
+
+  <div class="toolbar">
+    <div class="search-wrap">
+      <i class="ti ti-search" aria-hidden="true"></i>
+      <input type="text" id="search-input" placeholder="Search transcript…" aria-label="Search transcript">
+    </div>
+    <span class="search-count" id="search-count" aria-live="polite"></span>
+  </div>
+
+  <div class="player-bar">
+    <button id="play-btn" aria-label="Play">
+      <i class="ti ti-player-play" id="play-icon"></i>
+    </button>
+    <div style="flex:1; min-width:0;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+        <span class="episode-info">The Future of Human–AI Collaboration</span>
+        <span class="time-label" id="time-display">0:00 / 3:54</span>
+      </div>
+      <input type="range" id="seek" min="0" max="234" value="0" step="1" aria-label="Seek">
+    </div>
+  </div>
+
+  <div class="transcript-area" id="transcript" role="list"></div>
+</div>
+
+<script>
+const LINES = [
+  { t: 0,   speaker: "Host",    text: "Welcome to today's episode on the future of human–AI collaboration." },
+  { t: 5,   speaker: "Host",    text: "I'm joined by two researchers who've been working at the forefront of this field." },
+  { t: 12,  speaker: "Dr. Chen", text: "Thanks for having us. This is a topic I feel really passionate about." },
+  { t: 18,  speaker: "Dr. Park", text: "Likewise — the past two years have seen remarkable acceleration." },
+  { t: 25,  speaker: "Host",    text: "Let's start with the basics. What does 'collaboration' actually mean here?" },
+  { t: 33,  speaker: "Dr. Chen", text: "It means AI isn't replacing human judgment — it's augmenting it." },
+  { t: 41,  speaker: "Dr. Chen", text: "Think of it like a co-pilot: the human sets the course, the AI handles calculations." },
+  { t: 51,  speaker: "Dr. Park", text: "Exactly. The most powerful systems combine machine precision with human intuition." },
+  { t: 60,  speaker: "Host",    text: "Where are we seeing this work best right now?" },
+  { t: 67,  speaker: "Dr. Park", text: "Healthcare diagnostics is a great example. AI catches patterns humans miss at scale." },
+  { t: 77,  speaker: "Dr. Chen", text: "And in creative fields — AI as a brainstorming partner, not a replacement author." },
+  { t: 86,  speaker: "Host",    text: "What are the biggest risks you're watching?" },
+  { t: 93,  speaker: "Dr. Park", text: "Over-reliance. People stopping to verify outputs. Automation complacency." },
+  { t: 102, speaker: "Dr. Chen", text: "Also bias amplification. A biased model deployed at scale causes real harm." },
+  { t: 111, speaker: "Host",    text: "How do we build systems that stay trustworthy over time?" },
+  { t: 119, speaker: "Dr. Chen", text: "Transparency is key — users need to understand when and why AI is involved." },
+  { t: 128, speaker: "Dr. Park", text: "And continuous red-teaming. You have to stress-test these systems constantly." },
+  { t: 137, speaker: "Host",    text: "What's your most optimistic vision for 10 years from now?" },
+  { t: 145, speaker: "Dr. Park", text: "AI handles the cognitive drudgery, freeing humans for genuinely creative work." },
+  { t: 154, speaker: "Dr. Chen", text: "I imagine scientific discovery accelerating by an order of magnitude." },
+  { t: 162, speaker: "Host",    text: "And the most pessimistic?" },
+  { t: 168, speaker: "Dr. Park", text: "Concentration of power in the hands of whoever controls the frontier models." },
+  { t: 177, speaker: "Dr. Chen", text: "That's my worry too — access inequality becomes capability inequality." },
+  { t: 186, speaker: "Host",    text: "How do we avoid that?" },
+  { t: 192, speaker: "Dr. Chen", text: "Open research, open weights, and robust international governance frameworks." },
+  { t: 201, speaker: "Dr. Park", text: "And investing in AI literacy — people who understand these tools use them more safely." },
+  { t: 210, speaker: "Host",    text: "Final question: one piece of advice for someone entering this field?" },
+  { t: 218, speaker: "Dr. Chen", text: "Stay curious and stay humble. The field changes fast — yesterday's wisdom becomes today's mistake." },
+  { t: 228, speaker: "Dr. Park", text: "Build things that matter. Use the tools to solve real human problems." },
+  { t: 234, speaker: "Host",    text: "Brilliant. Thank you both — this has been a genuinely eye-opening conversation." },
+];
+
+const TOTAL = 234;
+let currentTime = 0;
+let playing = false;
+let interval = null;
+let activeLine = -1;
+let searchMatches = [];
+let searchIndex = 0;
+
+function fmt(s) {
+  const m = Math.floor(s / 60), ss = Math.floor(s % 60);
+  return m + ':' + String(ss).padStart(2, '0');
+}
+
+function findActiveLine(t) {
+  let idx = 0;
+  for (let i = 0; i < LINES.length; i++) {
+    if (LINES[i].t <= t) idx = i;
+    else break;
+  }
+  return idx;
+}
+
+const area = document.getElementById('transcript');
+const seekEl = document.getElementById('seek');
+const timeEl = document.getElementById('time-display');
+const playBtn = document.getElementById('play-btn');
+const playIcon = document.getElementById('play-icon');
+const searchInput = document.getElementById('search-input');
+const searchCount = document.getElementById('search-count');
+
+function buildTranscript(query) {
+  area.innerHTML = '';
+  const q = query ? query.toLowerCase() : '';
+  LINES.forEach((line, i) => {
+    const div = document.createElement('div');
+    div.className = 't-line';
+    div.setAttribute('role', 'listitem');
+    div.dataset.idx = i;
+    div.dataset.t = line.t;
+
+    const ts = document.createElement('span');
+    ts.className = 't-ts';
+    ts.textContent = fmt(line.t);
+
+    const spk = document.createElement('span');
+    spk.className = 't-speaker';
+    spk.textContent = line.speaker;
+
+    const txt = document.createElement('span');
+    txt.className = 't-text';
+
+    if (q && line.text.toLowerCase().includes(q)) {
+      const re = new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+      txt.innerHTML = line.text.replace(re, '<mark>$1</mark>');
+      div.classList.add('search-match');
+    } else {
+      txt.textContent = line.text;
+    }
+
+    div.appendChild(ts);
+    div.appendChild(spk);
+    div.appendChild(txt);
+
+    div.addEventListener('click', () => {
+      currentTime = line.t;
+      seekEl.value = currentTime;
+      timeEl.textContent = fmt(currentTime) + ' / ' + fmt(TOTAL);
+      highlightLine(findActiveLine(currentTime), true);
+    });
+
+    area.appendChild(div);
+  });
+}
+
+function highlightLine(idx, forceScroll) {
+  if (idx === activeLine && !forceScroll) return;
+  const prev = area.querySelector('.t-line.active');
+  if (prev) prev.classList.remove('active');
+  const el = area.querySelectorAll('.t-line')[idx];
+  if (el) {
+    el.classList.add('active');
+    if (forceScroll || playing) {
+      el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  }
+  activeLine = idx;
+}
+
+function tick() {
+  if (currentTime >= TOTAL) {
+    stopPlay();
+    return;
+  }
+  currentTime = Math.min(currentTime + 0.25, TOTAL);
+  seekEl.value = Math.round(currentTime);
+  timeEl.textContent = fmt(currentTime) + ' / ' + fmt(TOTAL);
+  const idx = findActiveLine(currentTime);
+  highlightLine(idx, false);
+}
+
+function startPlay() {
+  playing = true;
+  playIcon.className = 'ti ti-player-pause';
+  interval = setInterval(tick, 250);
+}
+
+function stopPlay() {
+  playing = false;
+  playIcon.className = 'ti ti-player-play';
+  clearInterval(interval);
+}
+
+playBtn.addEventListener('click', () => {
+  if (playing) stopPlay(); else startPlay();
+});
+
+seekEl.addEventListener('input', () => {
+  currentTime = Number(seekEl.value);
+  timeEl.textContent = fmt(currentTime) + ' / ' + fmt(TOTAL);
+  const idx = findActiveLine(currentTime);
+  highlightLine(idx, true);
+});
+
+searchInput.addEventListener('input', () => {
+  const q = searchInput.value.trim();
+  buildTranscript(q);
+  highlightLine(findActiveLine(currentTime), false);
+  if (q) {
+    const matches = area.querySelectorAll('.search-match');
+    searchCount.textContent = matches.length + ' result' + (matches.length !== 1 ? 's' : '');
+    if (matches.length) matches[0].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  } else {
+    searchCount.textContent = '';
+    const el = area.querySelectorAll('.t-line')[findActiveLine(currentTime)];
+    if (el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+});
+
+seekEl.max = TOTAL;
+timeEl.textContent = '0:00 / ' + fmt(TOTAL);
+buildTranscript('');
+highlightLine(0, false);
+</script>

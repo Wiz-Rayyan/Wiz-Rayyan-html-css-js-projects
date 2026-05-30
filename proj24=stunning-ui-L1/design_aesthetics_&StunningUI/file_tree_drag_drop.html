@@ -1,0 +1,212 @@
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans)}
+.layout{display:flex;height:520px;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);overflow:hidden;background:var(--color-background-primary)}
+.sidebar{width:240px;border-right:0.5px solid var(--color-border-tertiary);display:flex;flex-direction:column;background:var(--color-background-secondary)}
+.sidebar-header{padding:12px 14px;font-size:12px;font-weight:500;color:var(--color-text-secondary);letter-spacing:.04em;border-bottom:0.5px solid var(--color-border-tertiary);display:flex;align-items:center;justify-content:space-between}
+.tree{padding:8px 0;flex:1;overflow-y:auto}
+.item{display:flex;align-items:center;gap:6px;padding:5px 10px;cursor:pointer;border-radius:6px;margin:1px 6px;position:relative;user-select:none;transition:background .1s}
+.item:hover{background:var(--color-background-primary)}
+.item.selected{background:var(--color-background-info)}
+.item.selected .item-name{color:var(--color-text-info)}
+.item.drag-over{background:var(--color-background-info);outline:2px dashed var(--color-border-info);outline-offset:-2px}
+.item.dragging{opacity:.4}
+.item.insert-above::before{content:'';position:absolute;top:-1px;left:10px;right:10px;height:2px;background:var(--color-border-info);border-radius:1px}
+.item.insert-below::after{content:'';position:absolute;bottom:-1px;left:10px;right:10px;height:2px;background:var(--color-border-info);border-radius:1px}
+.drag-handle{color:var(--color-text-secondary);font-size:11px;opacity:0;transition:opacity .1s;cursor:grab;padding:2px 0;letter-spacing:-1px;line-height:1}
+.item:hover .drag-handle{opacity:1}
+.item-icon{font-size:15px;flex-shrink:0;color:var(--color-text-secondary)}
+.item-name{font-size:13px;color:var(--color-text-primary);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.folder-toggle{font-size:12px;color:var(--color-text-secondary);transition:transform .15s;flex-shrink:0}
+.folder-toggle.open{transform:rotate(90deg)}
+.indent{display:inline-block}
+.main{flex:1;display:flex;flex-direction:column}
+.breadcrumb{padding:10px 16px;font-size:12px;color:var(--color-text-secondary);border-bottom:0.5px solid var(--color-border-tertiary);display:flex;align-items:center;gap:6px;background:var(--color-background-primary)}
+.breadcrumb span{color:var(--color-text-primary);font-weight:500}
+.breadcrumb .sep{color:var(--color-border-primary)}
+.preview{flex:1;padding:20px 24px;overflow-y:auto}
+.preview h2{font-size:16px;font-weight:500;margin-bottom:8px;color:var(--color-text-primary)}
+.preview p{font-size:13px;color:var(--color-text-secondary);line-height:1.7}
+.status-bar{padding:6px 16px;font-size:11px;color:var(--color-text-secondary);border-top:0.5px solid var(--color-border-tertiary);min-height:26px;background:var(--color-background-secondary)}
+.ghost{position:fixed;pointer-events:none;background:var(--color-background-primary);border:0.5px solid var(--color-border-secondary);border-radius:6px;padding:5px 10px;font-size:13px;display:flex;align-items:center;gap:6px;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.12);opacity:.95;white-space:nowrap}
+</style>
+<h2 class="sr-only">File tree sidebar with drag-and-drop to move notes between folders and reorder items.</h2>
+<div class="layout">
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <span>Workspace</span>
+      <i class="ti ti-dots" aria-hidden="true" style="font-size:14px;cursor:pointer"></i>
+    </div>
+    <div class="tree" id="tree"></div>
+  </div>
+  <div class="main">
+    <div class="breadcrumb" id="breadcrumb"></div>
+    <div class="preview" id="preview">
+      <h2 id="preview-title">Select a note</h2>
+      <p id="preview-body" style="color:var(--color-text-secondary)">Click any file in the sidebar to preview it here.</p>
+    </div>
+    <div class="status-bar" id="status"></div>
+  </div>
+</div>
+<div class="ghost" id="ghost" style="display:none"></div>
+
+<script>
+const data = {
+  id:'root', type:'folder', name:'root', open:true,
+  children:[
+    {id:'f1', type:'folder', name:'Design', open:true, children:[
+      {id:'n1', type:'note', name:'Brand guidelines', body:'Defines our color palette, typography, and logo usage rules across all materials.'},
+      {id:'n2', type:'note', name:'Component library', body:'Reusable UI components with specs for spacing, states, and interaction patterns.'},
+      {id:'n3', type:'note', name:'Wireframes', body:'Low-fidelity layouts for the main product flows — onboarding, dashboard, settings.'},
+    ]},
+    {id:'f2', type:'folder', name:'Engineering', open:false, children:[
+      {id:'n4', type:'note', name:'API reference', body:'Endpoint documentation with request/response schemas and authentication details.'},
+      {id:'n5', type:'note', name:'Architecture', body:'System design overview: services, data flows, and infrastructure decisions.'},
+    ]},
+    {id:'f3', type:'folder', name:'Product', open:false, children:[
+      {id:'n6', type:'note', name:'Roadmap Q3', body:'Planned features for Q3: search improvements, team collaboration, export options.'},
+      {id:'n7', type:'note', name:'User research', body:'Findings from 12 customer interviews. Key pain points and opportunity areas.'},
+    ]},
+    {id:'n8', type:'note', name:'Meeting notes', body:'Weekly all-hands: product updates, engineering priorities, design reviews.'},
+    {id:'n9', type:'note', name:'Onboarding', body:'Getting started guide for new team members. Tools, processes, and first-week tasks.'},
+  ]
+};
+
+let selected = null;
+let dragId = null;
+let dragOver = null;
+let insertPos = null;
+const ghost = document.getElementById('ghost');
+
+function findById(node, id, parent=null, idx=0){
+  if(node.id===id) return {node, parent, idx};
+  if(node.children) for(let i=0;i<node.children.length;i++){
+    const r=findById(node.children[i],id,node,i);
+    if(r) return r;
+  }
+  return null;
+}
+function getPath(id, node=data, path=[]){
+  if(node.id===id) return [...path,node];
+  if(node.children) for(const c of node.children){
+    const r=getPath(id,c,[...path,node]);
+    if(r) return r;
+  }
+  return null;
+}
+
+function render(){
+  const tree = document.getElementById('tree');
+  tree.innerHTML='';
+  renderChildren(data.children, tree, 0);
+}
+function renderChildren(children, container, depth){
+  children.forEach((item,idx)=>{
+    const el=document.createElement('div');
+    el.dataset.id=item.id;
+    el.dataset.type=item.type;
+    el.className='item'+(item.id===selected?' selected':'');
+    el.draggable=true;
+    el.innerHTML=`
+      <span class="indent" style="width:${depth*14}px"></span>
+      <span class="drag-handle" aria-hidden="true">⋮⋮</span>
+      ${item.type==='folder'?`<i class="ti ti-chevron-right folder-toggle ${item.open?'open':''}" aria-hidden="true"></i>`:''}
+      <i class="ti ${item.type==='folder'?'ti-folder':'ti-file-text'} item-icon" aria-hidden="true" style="${item.type==='folder'?'color:var(--color-text-info)':''}"></i>
+      <span class="item-name">${item.name}</span>
+    `;
+    el.addEventListener('click', e=>{
+      if(e.target.classList.contains('folder-toggle')||e.target.closest('.folder-toggle')){
+        item.open=!item.open; render(); return;
+      }
+      if(item.type==='folder'){item.open=!item.open; render();}
+      selected=item.id;
+      render();
+      showPreview(item);
+    });
+    el.addEventListener('dragstart',e=>{
+      dragId=item.id;
+      el.classList.add('dragging');
+      ghost.innerHTML=`<i class="ti ${item.type==='folder'?'ti-folder':'ti-file-text'}" style="font-size:14px"></i><span style="font-size:13px">${item.name}</span>`;
+      ghost.style.display='flex';
+      e.dataTransfer.effectAllowed='move';
+      e.dataTransfer.setDragImage(document.createElement('div'),0,0);
+    });
+    el.addEventListener('dragend',()=>{
+      el.classList.remove('dragging');
+      ghost.style.display='none';
+      document.querySelectorAll('.drag-over,.insert-above,.insert-below').forEach(x=>{x.classList.remove('drag-over','insert-above','insert-below')});
+      dragId=null; dragOver=null; insertPos=null;
+      setStatus('');
+    });
+    el.addEventListener('dragover',e=>{
+      e.preventDefault();
+      if(!dragId||dragId===item.id) return;
+      document.querySelectorAll('.drag-over,.insert-above,.insert-below').forEach(x=>x.classList.remove('drag-over','insert-above','insert-below'));
+      const r=el.getBoundingClientRect();
+      const y=e.clientY-r.top;
+      const h=r.height;
+      if(item.type==='folder' && y>h*.25 && y<h*.75){
+        el.classList.add('drag-over');
+        dragOver=item.id; insertPos='inside';
+        setStatus(`Move into "${item.name}"`);
+      } else if(y<h*.5){
+        el.classList.add('insert-above');
+        dragOver=item.id; insertPos='before';
+        setStatus(`Reorder before "${item.name}"`);
+      } else {
+        el.classList.add('insert-below');
+        dragOver=item.id; insertPos='after';
+        setStatus(`Reorder after "${item.name}"`);
+      }
+    });
+    el.addEventListener('drop',e=>{
+      e.preventDefault();
+      if(!dragId||dragId===item.id) return;
+      const src=findById(data,dragId);
+      const tgt=findById(data,item.id);
+      if(!src||!tgt) return;
+      if(insertPos==='inside' && item.type==='folder'){
+        src.parent.children.splice(src.idx,1);
+        if(!item.children) item.children=[];
+        item.children.push(src.node);
+        item.open=true;
+        setStatus(`Moved "${src.node.name}" into "${item.name}"`);
+      } else {
+        src.parent.children.splice(src.idx,1);
+        const newTgt=findById(data,item.id);
+        const offset=insertPos==='after'?1:0;
+        newTgt.parent.children.splice(newTgt.idx+offset,0,src.node);
+        setStatus(`Reordered "${src.node.name}"`);
+      }
+      render();
+      setTimeout(()=>setStatus(''),2000);
+    });
+    container.appendChild(el);
+    if(item.type==='folder' && item.open && item.children){
+      renderChildren(item.children, container, depth+1);
+    }
+  });
+}
+function showPreview(item){
+  document.getElementById('preview-title').textContent=item.name;
+  document.getElementById('preview-body').textContent=item.type==='note'?item.body:'';
+  const path=getPath(item.id)||[];
+  const bc=document.getElementById('breadcrumb');
+  bc.innerHTML=path.filter(n=>n.id!=='root').map((n,i,arr)=>
+    i<arr.length-1?`<span style="color:var(--color-text-secondary)">${n.name}</span><span class="sep">/</span>`:`<span>${n.name}</span>`
+  ).join('');
+  if(!bc.innerHTML) bc.innerHTML='<span>Workspace</span>';
+}
+function setStatus(msg){document.getElementById('status').textContent=msg;}
+
+document.addEventListener('mousemove',e=>{
+  if(ghost.style.display==='flex'){
+    ghost.style.left=(e.clientX+14)+'px';
+    ghost.style.top=(e.clientY-14)+'px';
+  }
+});
+
+render();
+showPreview({id:'root',name:'Workspace',type:'folder'});
+document.getElementById('breadcrumb').innerHTML='<span>Workspace</span>';
+</script>

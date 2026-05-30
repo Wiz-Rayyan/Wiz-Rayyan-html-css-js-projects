@@ -1,0 +1,65 @@
+<h2 class="sr-only">Interactive slider and numeric input demo with live preview. Adjust font size, letter spacing, and rotation using linked sliders and number fields.</h2>
+
+<style>
+.panel{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1.25rem}
+.ctrl-row{display:grid;grid-template-columns:90px 1fr 72px;align-items:center;gap:12px;margin-bottom:1rem}
+.ctrl-row:last-child{margin-bottom:0}
+.ctrl-label{font-size:13px;color:var(--color-text-secondary);display:flex;flex-direction:column;gap:2px}
+.ctrl-label span{font-size:11px;color:var(--color-text-tertiary)}
+input[type=range]{flex:1}
+input[type=number]{width:72px;text-align:center;font-size:14px;font-weight:500}
+.preview-box{background:var(--color-background-secondary);border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-tertiary);padding:2rem 1.5rem;display:flex;align-items:center;justify-content:center;min-height:120px;margin-bottom:1.25rem;overflow:hidden}
+#preview-text{font-weight:500;color:var(--color-text-primary);white-space:nowrap;transition:none}
+.section-label{font-size:12px;font-weight:500;color:var(--color-text-tertiary);text-transform:uppercase;letter-spacing:.06em;margin:0 0 .75rem}
+</style>
+
+<div style="padding:1.25rem 0;display:flex;flex-direction:column;gap:1.25rem">
+
+  <div class="preview-box">
+    <span id="preview-text">Preview text</span>
+  </div>
+
+  <div class="panel">
+    <p class="section-label">Controls</p>
+
+    <div class="ctrl-row">
+      <div class="ctrl-label">Font size <span>px</span></div>
+      <input type="range" id="fs-range" min="10" max="72" value="24" step="1">
+      <input type="number" id="fs-num" min="10" max="72" value="24" step="1">
+    </div>
+
+    <div class="ctrl-row">
+      <div class="ctrl-label">Letter spacing <span>em</span></div>
+      <input type="range" id="ls-range" min="-5" max="20" value="0" step="1">
+      <input type="number" id="ls-num" min="-5" max="20" value="0" step="1">
+    </div>
+
+    <div class="ctrl-row">
+      <div class="ctrl-label">Rotation <span>deg</span></div>
+      <input type="range" id="rot-range" min="-180" max="180" value="0" step="1">
+      <input type="number" id="rot-num" min="-180" max="180" value="0" step="1">
+    </div>
+
+  </div>
+</div>
+
+<script>
+const pt = document.getElementById('preview-text');
+
+function link(rangeId, numId, apply) {
+  const range = document.getElementById(rangeId);
+  const num   = document.getElementById(numId);
+  const sync = (src, dst, val) => {
+    const clamped = Math.min(Number(range.max), Math.max(Number(range.min), Number(val)));
+    dst.value = clamped;
+    apply(clamped);
+  };
+  range.addEventListener('input', () => sync(range, num, range.value));
+  num.addEventListener('input',   () => sync(num, range, num.value));
+  num.addEventListener('change',  () => sync(num, range, num.value));
+}
+
+link('fs-range',  'fs-num',  v => pt.style.fontSize      = v + 'px');
+link('ls-range',  'ls-num',  v => pt.style.letterSpacing  = (v * 0.1).toFixed(2) + 'em');
+link('rot-range', 'rot-num', v => pt.style.transform      = `rotate(${v}deg)`);
+</script>

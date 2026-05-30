@@ -1,0 +1,339 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans)}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+.root{display:flex;flex-direction:column;gap:16px;padding:1rem 0}
+.preview-area{background:var(--color-background-secondary);border-radius:var(--border-radius-lg);border:0.5px solid var(--color-border-tertiary);min-height:200px;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.stream-bg{width:100%;height:200px;background:linear-gradient(135deg,#1a0a2e 0%,#0d1a3a 50%,#0a2a1a 100%);border-radius:var(--border-radius-lg);display:flex;align-items:center;justify-content:center;position:relative}
+.stream-label{color:rgba(255,255,255,0.2);font-size:13px;letter-spacing:2px;text-transform:uppercase}
+.alert-stage{position:absolute;top:0;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.alert-card{background:rgba(15,10,30,0.95);border:1.5px solid rgba(255,255,255,0.15);border-radius:12px;padding:16px 20px;min-width:280px;max-width:340px;pointer-events:all;cursor:pointer;transform:scale(0) translateY(20px);opacity:0;transition:none;position:relative;overflow:hidden}
+.alert-card.show{animation:alertIn 0.45s cubic-bezier(0.34,1.56,0.64,1) forwards}
+.alert-card.dismiss{animation:alertOut 0.25s ease-in forwards}
+@keyframes alertIn{0%{transform:scale(0.6) translateY(20px);opacity:0}60%{transform:scale(1.05) translateY(-4px);opacity:1}100%{transform:scale(1) translateY(0);opacity:1}}
+@keyframes alertOut{0%{transform:scale(1);opacity:1}100%{transform:scale(0.8) translateY(-10px);opacity:0}}
+.alert-glow{position:absolute;inset:0;border-radius:12px;pointer-events:none;animation:glowPulse 1.5s ease-out forwards;opacity:0}
+@keyframes glowPulse{0%{box-shadow:inset 0 0 0 2px rgba(168,130,255,0.8),0 0 40px rgba(168,130,255,0.6);opacity:1}100%{box-shadow:inset 0 0 0 2px rgba(168,130,255,0),0 0 0px rgba(168,130,255,0);opacity:0}}
+.alert-header{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.alert-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:500;font-size:14px;flex-shrink:0}
+.alert-name{color:#ffffff;font-size:15px;font-weight:500}
+.alert-type{font-size:11px;color:rgba(255,255,255,0.5);margin-top:1px}
+.alert-amount{font-size:26px;font-weight:500;color:#a882ff;letter-spacing:-0.5px;margin-bottom:6px;animation:countUp 0.6s ease-out}
+@keyframes countUp{0%{transform:scale(0.7);opacity:0}100%{transform:scale(1);opacity:1}}
+.alert-message{font-size:13px;color:rgba(255,255,255,0.7);line-height:1.5;font-style:italic;border-left:2px solid rgba(168,130,255,0.4);padding-left:8px}
+.alert-dismiss-hint{font-size:11px;color:rgba(255,255,255,0.25);text-align:right;margin-top:8px}
+.progress-bar{height:2px;background:rgba(255,255,255,0.1);border-radius:1px;margin-top:10px;overflow:hidden}
+.progress-fill{height:100%;background:rgba(168,130,255,0.6);border-radius:1px;width:100%;transform-origin:left;animation:progressDrain 5s linear forwards}
+@keyframes progressDrain{0%{transform:scaleX(1)}100%{transform:scaleX(0)}}
+.queue-badge{position:absolute;top:8px;right:8px;background:rgba(168,130,255,0.2);border:0.5px solid rgba(168,130,255,0.3);color:#a882ff;font-size:11px;padding:2px 8px;border-radius:20px}
+.controls-row{display:flex;gap:8px;flex-wrap:wrap}
+.btn{padding:6px 14px;font-size:13px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-primary);cursor:pointer;transition:background 0.15s}
+.btn:hover{background:var(--color-background-secondary)}
+.btn-trigger{border-color:rgba(168,130,255,0.4);color:#a882ff;background:rgba(168,130,255,0.06)}
+.btn-trigger:hover{background:rgba(168,130,255,0.12)}
+.btn-sub{border-color:rgba(255,180,80,0.4);color:#f0a030;background:rgba(255,180,80,0.06)}
+.btn-sub:hover{background:rgba(255,180,80,0.12)}
+.panel-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.panel{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:14px 16px}
+.panel-title{font-size:12px;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px}
+.queue-list{display:flex;flex-direction:column;gap:6px;min-height:60px}
+.queue-item{display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--color-background-secondary);border-radius:var(--border-radius-md);font-size:13px;animation:slideIn 0.2s ease-out}
+@keyframes slideIn{from{transform:translateX(-8px);opacity:0}to{transform:translateX(0);opacity:1}}
+.queue-item.active{border-left:2px solid #a882ff}
+.qi-name{flex:1;color:var(--color-text-primary);font-weight:500}
+.qi-amount{color:#a882ff;font-weight:500}
+.qi-dot{width:6px;height:6px;border-radius:50%;background:var(--color-border-secondary);flex-shrink:0}
+.qi-dot.active{background:#a882ff}
+.leaderboard{display:flex;flex-direction:column;gap:6px;min-height:60px}
+.lb-item{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:var(--border-radius-md);font-size:13px}
+.lb-rank{font-size:11px;color:var(--color-text-tertiary);width:16px;text-align:center;flex-shrink:0}
+.lb-rank.gold{color:#f0a030}
+.lb-rank.silver{color:#8899aa}
+.lb-rank.bronze{color:#c8734a}
+.lb-avatar{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;flex-shrink:0}
+.lb-name{flex:1;color:var(--color-text-primary)}
+.lb-total{color:var(--color-text-secondary);font-size:12px}
+.lb-bar{height:3px;background:var(--color-background-secondary);border-radius:2px;margin-top:2px;overflow:hidden}
+.lb-fill{height:100%;border-radius:2px;background:rgba(168,130,255,0.5);transition:width 0.5s ease-out}
+.empty-state{color:var(--color-text-tertiary);font-size:13px;text-align:center;padding:16px 0}
+.stat-row{display:flex;gap:8px;margin-bottom:4px}
+.stat-chip{flex:1;background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:8px 10px;text-align:center}
+.stat-val{font-size:18px;font-weight:500;color:var(--color-text-primary)}
+.stat-lbl{font-size:11px;color:var(--color-text-secondary);margin-top:2px}
+.particles{position:absolute;inset:0;pointer-events:none;overflow:hidden;border-radius:12px}
+.particle{position:absolute;width:4px;height:4px;border-radius:50%;opacity:0}
+</style>
+
+<h2 class="sr-only">Donation alert overlay demo with queue system and leaderboard</h2>
+<div class="root">
+
+<div class="preview-area">
+  <div class="stream-bg">
+    <span class="stream-label">Live Stream</span>
+    <div class="alert-stage" id="alertStage"></div>
+  </div>
+</div>
+
+<div class="controls-row">
+  <button class="btn btn-trigger" onclick="triggerDonation()"><i class="ti ti-gift" aria-hidden="true"></i> Simulate donation</button>
+  <button class="btn btn-sub" onclick="triggerSubscription()"><i class="ti ti-star" aria-hidden="true"></i> Simulate subscription</button>
+  <button class="btn" onclick="triggerBurst()"><i class="ti ti-bolt" aria-hidden="true"></i> Burst (×4)</button>
+  <button class="btn" style="margin-left:auto" onclick="clearAll()"><i class="ti ti-trash" aria-hidden="true"></i> Reset</button>
+</div>
+
+<div class="stat-row">
+  <div class="stat-chip"><div class="stat-val" id="statTotal">$0</div><div class="stat-lbl">Total raised</div></div>
+  <div class="stat-chip"><div class="stat-val" id="statCount">0</div><div class="stat-lbl">Donations</div></div>
+  <div class="stat-chip"><div class="stat-val" id="statQueue">0</div><div class="stat-lbl">In queue</div></div>
+</div>
+
+<div class="panel-row">
+  <div class="panel">
+    <div class="panel-title">Alert queue</div>
+    <div class="queue-list" id="queueList"><div class="empty-state">No alerts pending</div></div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Top donors</div>
+    <div class="leaderboard" id="leaderboard"><div class="empty-state">No donations yet</div></div>
+  </div>
+</div>
+
+</div>
+
+<script>
+const DONORS = ["xXDragonSlayerXx","StreamQueen99","TechGuru42","NightOwl_TV","CryptoKing","PixelWizard","SpeedRunner77","DarkMatter_","CosmicVibes","LegendaryGG"];
+const MESSAGES = ["Keep it up!","You're amazing!","Best stream ever!","Love this content!","From your biggest fan","GG WP!","Lets gooo!!!","No message","This community rocks","First time donating, love it!"];
+const AMOUNTS = [5,10,20,50,100,25,15,200,75,500];
+const AVATARCOLORS = [["#4a1a7a","#c4a0f0"],["#0a3d6b","#7ab8f0"],["#0a4d2a","#6ad4a0"],["#6b2a0a","#f0a070"],["#4d0a2a","#f070a8"]];
+
+let queue = [];
+let showing = false;
+let leaderboard = {};
+let totalRaised = 0;
+let donationCount = 0;
+let currentTimer = null;
+let currentProgressAnim = null;
+let audioCtx = null;
+
+function getAudioCtx(){
+  if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function playCheer(){
+  try{
+    const ctx = getAudioCtx();
+    const freqs = [523,659,784,1047];
+    freqs.forEach((f,i)=>{
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.value = f;
+      osc.type = 'sine';
+      const t = ctx.currentTime + i*0.08;
+      gain.gain.setValueAtTime(0,t);
+      gain.gain.linearRampToValueAtTime(0.12,t+0.04);
+      gain.gain.exponentialRampToValueAtTime(0.001,t+0.35);
+      osc.start(t); osc.stop(t+0.35);
+    });
+  }catch(e){}
+}
+
+function playSubSound(){
+  try{
+    const ctx = getAudioCtx();
+    const freqs = [784,1047,1319];
+    freqs.forEach((f,i)=>{
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.value = f;
+      osc.type = 'triangle';
+      const t = ctx.currentTime + i*0.1;
+      gain.gain.setValueAtTime(0,t);
+      gain.gain.linearRampToValueAtTime(0.1,t+0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001,t+0.4);
+      osc.start(t); osc.stop(t+0.4);
+    });
+  }catch(e){}
+}
+
+function randomItem(arr){return arr[Math.floor(Math.random()*arr.length)]}
+
+function makeDonation(type='donation'){
+  const name = randomItem(DONORS);
+  const amount = type==='subscription'?randomItem([4.99,9.99,24.99]):randomItem(AMOUNTS);
+  const message = type==='subscription'?'Just subscribed!':randomItem(MESSAGES);
+  const colorIdx = Math.floor(Math.random()*AVATARCOLORS.length);
+  return {id:Date.now()+Math.random(),name,amount,message,type,colorIdx,initials:name.slice(0,2).toUpperCase()};
+}
+
+function triggerDonation(){enqueue(makeDonation('donation'))}
+function triggerSubscription(){enqueue(makeDonation('subscription'))}
+function triggerBurst(){[0,1,2,3].forEach((_,i)=>setTimeout(()=>enqueue(makeDonation(i%2===0?'donation':'subscription')),i*120))}
+
+function enqueue(data){
+  queue.push(data);
+  updateQueueUI();
+  if(!showing) processQueue();
+}
+
+function processQueue(){
+  if(queue.length===0){showing=false;updateQueueUI();return;}
+  showing=true;
+  const data = queue.shift();
+  updateQueueUI();
+  showAlert(data);
+  updateLeaderboard(data);
+  updateStats(data);
+}
+
+function showAlert(data){
+  const stage = document.getElementById('alertStage');
+  stage.innerHTML='';
+  const ac = AVATARCOLORS[data.colorIdx];
+  const typeLabel = data.type==='subscription'?'New subscriber':'New donation';
+  const amountStr = data.type==='subscription'?`$${data.amount.toFixed(2)}/mo`:`$${data.amount}`;
+  const card = document.createElement('div');
+  card.className='alert-card';
+  card.innerHTML=`
+    <div class="alert-glow"></div>
+    <div class="particles" id="particles"></div>
+    <div class="alert-header">
+      <div class="alert-avatar" style="background:${ac[0]};color:${ac[1]}">${data.initials}</div>
+      <div><div class="alert-name">${data.name}</div><div class="alert-type">${typeLabel}</div></div>
+    </div>
+    <div class="alert-amount">${amountStr}</div>
+    ${data.message&&data.message!=='No message'?`<div class="alert-message">"${data.message}"</div>`:''}
+    <div class="progress-bar"><div class="progress-fill" id="pf"></div></div>
+    <div class="alert-dismiss-hint">click to dismiss</div>
+  `;
+  card.onclick=()=>dismissAlert(card);
+  stage.appendChild(card);
+
+  spawnParticles(card);
+
+  requestAnimationFrame(()=>{
+    card.classList.add('show');
+    if(data.type==='subscription') playSubSound(); else playCheer();
+    updateQueueBadge(stage,queue.length);
+  });
+
+  currentTimer = setTimeout(()=>dismissAlert(card),5000);
+}
+
+function spawnParticles(card){
+  const p = card.querySelector('#particles');
+  const colors = ['#a882ff','#ff80c8','#80d4ff','#ffe080','#80ffb4'];
+  for(let i=0;i<14;i++){
+    const dot = document.createElement('div');
+    dot.className='particle';
+    const x = 20+Math.random()*60;
+    const y = 20+Math.random()*60;
+    const c = colors[Math.floor(Math.random()*colors.length)];
+    const vx = (Math.random()-0.5)*80;
+    const vy = -(20+Math.random()*60);
+    dot.style.cssText=`left:${x}%;top:${y}%;background:${c};`;
+    p.appendChild(dot);
+    const start = performance.now();
+    (function anim(now){
+      const t=(now-start)/1000;
+      if(t>1.2){dot.remove();return;}
+      const tx=vx*t, ty=vy*t+30*t*t;
+      const op=Math.max(0,1-t/1.2);
+      dot.style.transform=`translate(${tx}px,${ty}px)`;
+      dot.style.opacity=op;
+      requestAnimationFrame(anim);
+    })(start);
+  }
+}
+
+function updateQueueBadge(stage,count){
+  const existing = stage.querySelector('.queue-badge');
+  if(existing) existing.remove();
+  if(count>0){
+    const b=document.createElement('div');
+    b.className='queue-badge';
+    b.textContent=`+${count} waiting`;
+    stage.querySelector('.alert-card').appendChild(b);
+  }
+}
+
+function dismissAlert(card){
+  if(card.classList.contains('dismiss')) return;
+  if(currentTimer){clearTimeout(currentTimer);currentTimer=null;}
+  card.classList.add('dismiss');
+  card.addEventListener('animationend',()=>{
+    card.remove();
+    setTimeout(processQueue,200);
+  },{once:true});
+}
+
+function updateLeaderboard(data){
+  if(!leaderboard[data.name]) leaderboard[data.name]={total:0,count:0,colorIdx:data.colorIdx,initials:data.initials};
+  leaderboard[data.name].total += data.amount;
+  leaderboard[data.name].count++;
+  renderLeaderboard();
+}
+
+function renderLeaderboard(){
+  const el = document.getElementById('leaderboard');
+  const sorted = Object.entries(leaderboard).sort((a,b)=>b[1].total-a[1].total).slice(0,5);
+  const max = sorted[0]?sorted[0][1].total:1;
+  const rankSymbols = ['1','2','3','4','5'];
+  const rankClasses = ['gold','silver','bronze','',''];
+  el.innerHTML = sorted.map(([name,d],i)=>{
+    const ac = AVATARCOLORS[d.colorIdx];
+    const pct = Math.round((d.total/max)*100);
+    return `<div class="lb-item">
+      <div class="lb-rank ${rankClasses[i]}">${rankSymbols[i]}</div>
+      <div class="lb-avatar" style="background:${ac[0]};color:${ac[1]};font-size:10px">${d.initials}</div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span class="lb-name" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:90px">${name}</span>
+          <span class="lb-total">$${d.total.toFixed(d.total%1===0?0:2)}</span>
+        </div>
+        <div class="lb-bar"><div class="lb-fill" style="width:${pct}%"></div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function updateStats(data){
+  totalRaised += data.amount;
+  donationCount++;
+  document.getElementById('statTotal').textContent = totalRaised>=1000?'$'+Math.round(totalRaised/100)/10+'k':'$'+totalRaised.toFixed(totalRaised%1===0?0:2);
+  document.getElementById('statCount').textContent = donationCount;
+}
+
+function updateQueueUI(){
+  const el = document.getElementById('queueList');
+  document.getElementById('statQueue').textContent = queue.length + (showing?1:0);
+  if(queue.length===0){
+    el.innerHTML='<div class="empty-state">No alerts pending</div>';
+    return;
+  }
+  el.innerHTML = queue.map((d,i)=>{
+    const ac = AVATARCOLORS[d.colorIdx];
+    const amtStr = d.type==='subscription'?`$${d.amount.toFixed(2)}/mo`:`$${d.amount}`;
+    return `<div class="queue-item${i===0?' active':''}">
+      <div class="qi-dot${i===0?' active':''}"></div>
+      <div class="lb-avatar" style="background:${ac[0]};color:${ac[1]};width:20px;height:20px;font-size:9px;border-radius:50%;display:flex;align-items:center;justify-content:center">${d.initials}</div>
+      <span class="qi-name">${d.name}</span>
+      <span class="qi-amount">${amtStr}</span>
+    </div>`;
+  }).join('');
+}
+
+function clearAll(){
+  queue=[];leaderboard={};totalRaised=0;donationCount=0;showing=false;
+  if(currentTimer){clearTimeout(currentTimer);currentTimer=null;}
+  document.getElementById('alertStage').innerHTML='';
+  document.getElementById('queueList').innerHTML='<div class="empty-state">No alerts pending</div>';
+  document.getElementById('leaderboard').innerHTML='<div class="empty-state">No donations yet</div>';
+  document.getElementById('statTotal').textContent='$0';
+  document.getElementById('statCount').textContent='0';
+  document.getElementById('statQueue').textContent='0';
+}
+</script>

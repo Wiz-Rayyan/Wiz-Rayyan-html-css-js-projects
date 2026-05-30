@@ -1,0 +1,126 @@
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.chat-shell{background:var(--color-background-secondary);border-radius:var(--border-radius-lg);padding:16px;font-family:var(--font-sans)}
+.chat-header{font-size:13px;font-weight:500;color:var(--color-text-secondary);padding-bottom:12px;border-bottom:0.5px solid var(--color-border-tertiary);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.dot{width:8px;height:8px;border-radius:50%;background:#22c55e;flex-shrink:0}
+.msg{display:flex;gap:10px;padding:8px 10px;border-radius:var(--border-radius-md);margin-bottom:6px;cursor:pointer;border:1px solid transparent;transition:background 1.5s ease,border-color 1.5s ease}
+.msg.highlight{background:#FEF3C7;border-color:#f59e0b;animation:pulseBorder 1s ease 3;transition:none}
+.msg.fading{background:transparent;border-color:transparent;transition:background 3s ease,border-color 3s ease}
+@keyframes pulseBorder{0%,100%{border-color:#f59e0b}50%{border-color:#fbbf24;box-shadow:0 0 0 3px rgba(245,158,11,0.18)}}
+.avatar{width:30px;height:30px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500}
+.av-a{background:#E6F1FB;color:#0C447C}
+.av-b{background:#EAF3DE;color:#3B6D11}
+.av-c{background:#FAEEDA;color:#854F0B}
+.av-d{background:#EEEDFE;color:#3C3489}
+.bubble{flex:1}
+.sender{font-size:12px;font-weight:500;color:var(--color-text-secondary);margin-bottom:2px}
+.text{font-size:14px;color:var(--color-text-primary);line-height:1.5}
+.mention{color:#185FA5;font-weight:500}
+.msg.highlight .text,.msg.highlight .mention{color:#92400e}
+.msg.highlight .mention{color:#b45309}
+.msg.highlight .sender{color:#a16207}
+.badge{display:inline-block;font-size:10px;font-weight:500;background:#FEF3C7;color:#92400e;border:0.5px solid #f59e0b;border-radius:100px;padding:1px 7px;margin-left:6px;vertical-align:middle}
+.actions{display:flex;gap:8px;margin-top:14px;padding-top:12px;border-top:0.5px solid var(--color-border-tertiary);flex-wrap:wrap}
+button{font-size:13px;padding:6px 14px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:transparent;color:var(--color-text-primary);cursor:pointer}
+button:hover{background:var(--color-background-secondary)}
+button:active{transform:scale(0.98)}
+.status{font-size:12px;color:var(--color-text-secondary);margin-top:10px;min-height:18px;padding-left:2px}
+</style>
+
+<h2 class="sr-only">Mention highlight demo — click "Trigger @you mention" to see a message highlight yellow and animate when you are mentioned.</h2>
+
+<div class="chat-shell">
+  <div class="chat-header"><div class="dot"></div>#design-team</div>
+
+  <div class="msg" id="m1" onclick="clearMsg('m1')">
+    <div class="avatar av-a">SR</div>
+    <div class="bubble">
+      <div class="sender">Sarah R.</div>
+      <div class="text">Just pushed the new icon set to Figma — looks great!</div>
+    </div>
+  </div>
+
+  <div class="msg" id="m2" onclick="clearMsg('m2')">
+    <div class="avatar av-b">JK</div>
+    <div class="bubble">
+      <div class="sender">James K.</div>
+      <div class="text">Nice, the rounded corners are much better.</div>
+    </div>
+  </div>
+
+  <div class="msg" id="m3" onclick="clearMsg('m3')">
+    <div class="avatar av-c">ML</div>
+    <div class="bubble">
+      <div class="sender">Maya L.</div>
+      <div class="text"><span class="mention">@you</span> can you review the nav bar spec before standup? <span id="badge3" class="badge" style="display:none">mention</span></div>
+    </div>
+  </div>
+
+  <div class="msg" id="m4" onclick="clearMsg('m4')">
+    <div class="avatar av-d">TP</div>
+    <div class="bubble">
+      <div class="sender">Tom P.</div>
+      <div class="text">Also dropping the color tokens doc in the thread.</div>
+    </div>
+  </div>
+
+  <div class="msg" id="m5" onclick="clearMsg('m5')">
+    <div class="avatar av-a">SR</div>
+    <div class="bubble">
+      <div class="sender">Sarah R.</div>
+      <div class="text"><span class="mention">@you</span> quick q — did you get sign-off on the modal pattern? <span id="badge5" class="badge" style="display:none">mention</span></div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button onclick="triggerMention('m3','badge3')">Trigger @you mention ↗</button>
+    <button onclick="triggerMention('m5','badge5')">Trigger second mention ↗</button>
+    <button onclick="clearAll()">Clear all highlights</button>
+  </div>
+  <div class="status" id="status"></div>
+</div>
+
+<script>
+let timers={};
+function triggerMention(id,badgeId){
+  const el=document.getElementById(id);
+  const badge=document.getElementById(badgeId);
+  if(timers[id]) clearTimeout(timers[id]);
+  el.classList.remove('fading');
+  el.classList.add('highlight');
+  badge.style.display='inline-block';
+  el.scrollIntoView({behavior:'smooth',block:'nearest'});
+  setStatus('Message highlighted — click it to dismiss, or it fades in 3s');
+  timers[id]=setTimeout(()=>{
+    el.classList.remove('highlight');
+    el.classList.add('fading');
+    badge.style.display='none';
+    setStatus('Highlight faded automatically');
+    setTimeout(()=>el.classList.remove('fading'),3200);
+  },3000);
+}
+function clearMsg(id){
+  const el=document.getElementById(id);
+  if(!el.classList.contains('highlight')&&!el.classList.contains('fading')) return;
+  if(timers[id]) clearTimeout(timers[id]);
+  el.classList.remove('highlight','fading');
+  const badge=el.querySelector('.badge');
+  if(badge) badge.style.display='none';
+  setStatus('Highlight cleared by click');
+}
+function clearAll(){
+  ['m3','m5'].forEach(id=>{
+    if(timers[id]) clearTimeout(timers[id]);
+    const el=document.getElementById(id);
+    el.classList.remove('highlight','fading');
+    const badge=el.querySelector('.badge');
+    if(badge) badge.style.display='none';
+  });
+  setStatus('All highlights cleared');
+}
+function setStatus(msg){
+  const s=document.getElementById('status');
+  s.textContent=msg;
+  setTimeout(()=>{ if(s.textContent===msg) s.textContent=''; },4000);
+}
+</script>

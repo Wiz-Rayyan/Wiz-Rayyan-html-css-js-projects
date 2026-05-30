@@ -1,0 +1,207 @@
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans)}
+.page{padding:1.5rem;max-width:680px}
+.video-wrapper{position:relative;width:100%;border-radius:var(--border-radius-lg);overflow:hidden;background:#000;aspect-ratio:16/9;margin-bottom:1.5rem}
+.video-placeholder{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);color:#fff;position:relative}
+.play-icon{width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;border:2px solid rgba(255,255,255,0.3)}
+.play-icon i{font-size:22px;margin-left:3px}
+.vid-label{font-size:13px;opacity:0.6;letter-spacing:0.04em}
+.vid-title{font-size:16px;font-weight:500}
+.vid-bar{position:absolute;bottom:0;left:0;right:0;padding:10px 14px;background:linear-gradient(transparent,rgba(0,0,0,0.7));display:flex;align-items:center;gap:10px}
+.progress{flex:1;height:3px;background:rgba(255,255,255,0.25);border-radius:2px;overflow:hidden}
+.progress-fill{height:100%;width:38%;background:#e63946;border-radius:2px}
+.pip-btn{display:flex;align-items:center;gap:6px;padding:6px 12px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:6px;color:#fff;font-size:12px;cursor:pointer;font-family:var(--font-sans);transition:background 0.15s;white-space:nowrap}
+.pip-btn:hover{background:rgba(255,255,255,0.25)}
+.pip-btn i{font-size:15px}
+.time{font-size:12px;color:rgba(255,255,255,0.7);white-space:nowrap}
+
+.article-content{color:var(--color-text-primary)}
+.article-tag{display:inline-block;font-size:11px;font-weight:500;color:var(--color-text-info);background:var(--color-background-info);padding:3px 9px;border-radius:4px;margin-bottom:10px;letter-spacing:0.04em;text-transform:uppercase}
+.article-title{font-size:20px;font-weight:500;line-height:1.35;margin-bottom:8px}
+.article-meta{font-size:13px;color:var(--color-text-secondary);margin-bottom:16px}
+.article-body{font-size:15px;line-height:1.75;color:var(--color-text-secondary)}
+.article-body p{margin-bottom:1rem}
+.divider{height:0.5px;background:var(--color-border-tertiary);margin:1.5rem 0}
+
+.pip-window{display:none;position:absolute;bottom:20px;right:20px;width:260px;background:#000;border-radius:10px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.1);z-index:100}
+.pip-window.active{display:block}
+.pip-inner{position:relative;width:100%;aspect-ratio:16/9;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);display:flex;align-items:center;justify-content:center}
+.pip-inner .play-icon{width:36px;height:36px}
+.pip-inner .play-icon i{font-size:14px;margin-left:2px}
+.pip-bar{display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:#111}
+.pip-bar .progress{height:2px;flex:1;margin:0 8px}
+.pip-controls{display:flex;align-items:center;gap:6px}
+.pip-ctrl{background:none;border:none;color:rgba(255,255,255,0.75);cursor:pointer;padding:2px;display:flex;align-items:center;font-size:15px;transition:color 0.15s}
+.pip-ctrl:hover{color:#fff}
+.pip-label{font-size:10px;color:rgba(255,255,255,0.5);white-space:nowrap}
+
+.drag-handle{cursor:move;padding:4px 10px 0;display:flex;align-items:center;justify-content:center;background:#111}
+.drag-dots{display:flex;gap:3px;padding:4px 0}
+.drag-dots span{width:20px;height:2px;border-radius:1px;background:rgba(255,255,255,0.2)}
+.resize-hint{position:absolute;bottom:0;right:0;width:16px;height:16px;cursor:nwse-resize;display:flex;align-items:flex-end;justify-content:flex-end;padding:3px}
+.resize-hint i{font-size:10px;color:rgba(255,255,255,0.3)}
+
+.container{position:relative;min-height:520px}
+.restored-badge{display:none;align-items:center;gap:6px;padding:8px 12px;background:var(--color-background-success);border:0.5px solid var(--color-border-success);border-radius:var(--border-radius-md);font-size:13px;color:var(--color-text-success);margin-top:8px}
+.restored-badge.show{display:flex}
+</style>
+
+<h2 class="sr-only">Picture-in-Picture video player demo — shows a floating mini video window that lets you read while watching</h2>
+
+<div class="page">
+  <div class="container" id="mainContainer">
+
+    <div class="video-wrapper" id="mainVideo">
+      <div class="video-placeholder">
+        <div class="play-icon"><i class="ti ti-player-play" aria-hidden="true"></i></div>
+        <div class="vid-title">The Future of Creative AI</div>
+        <div class="vid-label">Documentary · 28 min</div>
+      </div>
+      <div class="vid-bar">
+        <span class="time">10:52 / 28:04</span>
+        <div class="progress"><div class="progress-fill"></div></div>
+        <button class="pip-btn" id="pipBtn" onclick="openPip()" aria-label="Open picture-in-picture">
+          <i class="ti ti-picture-in-picture" aria-hidden="true"></i> Mini player
+        </button>
+      </div>
+    </div>
+
+    <div class="restored-badge" id="restoredBadge">
+      <i class="ti ti-check" aria-hidden="true"></i> Restored to full player
+    </div>
+
+    <div class="article-content">
+      <div class="article-tag">Technology</div>
+      <div class="article-title">How generative AI is reshaping the film industry — one frame at a time</div>
+      <div class="article-meta">By Sarah Okonkwo · 12 min read · May 2026</div>
+      <div class="article-body">
+        <p>In the span of just three years, AI has gone from a curiosity in production pipelines to a genuine collaborator on major studio productions. Directors who once spent weeks on pre-visualization are now iterating in hours, with tools that translate rough storyboards into photorealistic animatics.</p>
+        <p>The shift isn't only about speed. Smaller studios — previously unable to afford the production infrastructure of their larger rivals — are producing work that competes at the highest levels. "We made this film with seven people," says one indie director whose latest feature screened at Sundance. "That would have been unthinkable five years ago."</p>
+        <p>But the conversation is complicated. Guilds, writers, and visual artists continue to negotiate contracts that address ownership, attribution, and fair compensation. The tools are moving faster than the legal frameworks that govern them.</p>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="article-body" style="color:var(--color-text-secondary)">
+      <p>Industry leaders point to three forces accelerating adoption: dramatically reduced compute costs, open-weight models that can be fine-tuned on proprietary style libraries, and a generational shift among creators who grew up using AI tools in art school. The result is a creative ecosystem that looks very different from 2022.</p>
+      <p>Still, the question of what gets lost looms large. "There's a texture to slow, deliberate craft that I don't think any tool can replicate yet," argues one veteran cinematographer. The debate will likely define the next decade of filmmaking.</p>
+    </div>
+
+    <div class="pip-window" id="pipWindow" aria-label="Mini video player">
+      <div class="drag-handle" id="dragHandle" aria-hidden="true">
+        <div class="drag-dots"><span></span><span></span><span></span></div>
+      </div>
+      <div class="pip-inner">
+        <div class="play-icon"><i class="ti ti-player-play" aria-hidden="true"></i></div>
+        <div class="resize-hint" id="resizeHandle"><i class="ti ti-arrows-diagonal" aria-hidden="true"></i></div>
+      </div>
+      <div class="pip-bar">
+        <span class="pip-label">10:52</span>
+        <div class="progress"><div class="progress-fill"></div></div>
+        <div class="pip-controls">
+          <button class="pip-ctrl" onclick="restorePip()" title="Restore" aria-label="Restore to full player"><i class="ti ti-picture-in-picture-off" aria-hidden="true"></i></button>
+          <button class="pip-ctrl" onclick="closePip()" title="Close" aria-label="Close mini player"><i class="ti ti-x" aria-hidden="true"></i></button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const pipWindow = document.getElementById('pipWindow');
+const mainVideo = document.getElementById('mainVideo');
+const restoredBadge = document.getElementById('restoredBadge');
+let pipActive = false;
+
+function openPip() {
+  pipActive = true;
+  mainVideo.style.opacity = '0.35';
+  mainVideo.style.filter = 'grayscale(0.5)';
+  pipWindow.classList.add('active');
+  makeDraggable();
+  makeResizable();
+}
+
+function restorePip() {
+  pipWindow.classList.remove('active');
+  mainVideo.style.opacity = '1';
+  mainVideo.style.filter = 'none';
+  pipActive = false;
+  restoredBadge.classList.add('show');
+  setTimeout(() => restoredBadge.classList.remove('show'), 2000);
+}
+
+function closePip() {
+  pipWindow.classList.remove('active');
+  mainVideo.style.opacity = '1';
+  mainVideo.style.filter = 'none';
+  pipActive = false;
+}
+
+function makeDraggable() {
+  const handle = document.getElementById('dragHandle');
+  const container = document.getElementById('mainContainer');
+  let isDragging = false, startX, startY, startRight, startBottom;
+
+  function getPos() {
+    const cRect = container.getBoundingClientRect();
+    const wRect = pipWindow.getBoundingClientRect();
+    return {
+      right: cRect.right - wRect.right,
+      bottom: cRect.bottom - wRect.bottom
+    };
+  }
+
+  handle.onmousedown = (e) => {
+    isDragging = true;
+    startX = e.clientX; startY = e.clientY;
+    const pos = getPos();
+    startRight = pos.right; startBottom = pos.bottom;
+    e.preventDefault();
+  };
+
+  document.onmousemove = (e) => {
+    if (!isDragging) return;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    const cRect = container.getBoundingClientRect();
+    const ww = pipWindow.offsetWidth;
+    const wh = pipWindow.offsetHeight;
+    let newRight = startRight - dx;
+    let newBottom = startBottom - dy;
+    newRight = Math.max(0, Math.min(cRect.width - ww, newRight));
+    newBottom = Math.max(0, Math.min(cRect.height - wh, newBottom));
+    pipWindow.style.right = newRight + 'px';
+    pipWindow.style.bottom = newBottom + 'px';
+    pipWindow.style.left = 'auto';
+    pipWindow.style.top = 'auto';
+  };
+
+  document.onmouseup = () => { isDragging = false; };
+}
+
+function makeResizable() {
+  const handle = document.getElementById('resizeHandle');
+  let isResizing = false, startX, startY, startW, startH;
+
+  handle.onmousedown = (e) => {
+    isResizing = true;
+    startX = e.clientX; startY = e.clientY;
+    startW = pipWindow.offsetWidth;
+    startH = pipWindow.offsetHeight;
+    e.preventDefault(); e.stopPropagation();
+  };
+
+  document.addEventListener('mousemove', (e) => {
+    if (!isResizing) return;
+    const dw = e.clientX - startX;
+    const newW = Math.max(200, Math.min(420, startW + dw));
+    pipWindow.style.width = newW + 'px';
+  });
+
+  document.addEventListener('mouseup', () => { isResizing = false; });
+}
+</script>

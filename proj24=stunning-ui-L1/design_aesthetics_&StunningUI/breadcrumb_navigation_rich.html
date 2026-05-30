@@ -1,0 +1,565 @@
+<h2 class="sr-only">Rich breadcrumb navigation component with history, search, keyboard shortcuts, context menus, animated transitions, drag-to-move files, and sibling dropdowns.</h2>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans)}
+
+.shell{background:var(--color-background-secondary);border-radius:var(--border-radius-lg);padding:0;overflow:hidden}
+
+.toolbar{display:flex;align-items:center;gap:6px;padding:10px 14px;border-bottom:0.5px solid var(--color-border-tertiary);background:var(--color-background-primary)}
+.tb-btn{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;border:0.5px solid var(--color-border-tertiary);background:transparent;cursor:pointer;color:var(--color-text-secondary);font-size:15px;transition:background .12s,color .12s,border-color .12s}
+.tb-btn:hover:not(:disabled){background:var(--color-background-secondary);color:var(--color-text-primary);border-color:var(--color-border-secondary)}
+.tb-btn:disabled{opacity:.32;cursor:not-allowed}
+.tb-btn:active:not(:disabled){transform:scale(.96)}
+.tb-sep{width:0.5px;height:18px;background:var(--color-border-tertiary);margin:0 2px}
+
+.bc-wrap{display:flex;align-items:center;flex:1;gap:0;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:0 6px;min-height:34px;overflow:hidden}
+.bc-inner{display:flex;align-items:center;gap:1px;overflow:hidden}
+.seg-group{display:flex;align-items:center;position:relative}
+.seg{display:flex;align-items:center;gap:5px;padding:5px 8px;border-radius:6px;font-size:13px;color:var(--color-text-secondary);cursor:pointer;white-space:nowrap;transition:background .12s,color .12s;user-select:none;line-height:1}
+.seg i{font-size:14px;flex-shrink:0}
+.seg:hover{background:var(--color-background-primary);color:var(--color-text-primary)}
+.seg.active{color:var(--color-text-primary);font-weight:500;cursor:default}
+.seg.active:hover{background:transparent}
+.seg.dropping{background:var(--color-background-info);color:var(--color-text-info);border-radius:6px}
+.caret{display:flex;align-items:center;justify-content:center;width:18px;height:22px;border-radius:4px;cursor:pointer;color:var(--color-text-tertiary);font-size:11px;transition:background .1s,color .12s,transform .15s}
+.caret:hover{background:var(--color-background-primary);color:var(--color-text-primary)}
+.caret.open{color:var(--color-text-primary);transform:rotate(180deg)}
+.sep-arrow{font-size:11px;color:var(--color-border-primary);padding:0 1px;pointer-events:none;flex-shrink:0}
+.bc-overflow{display:flex;align-items:center;gap:4px;padding:0 4px;color:var(--color-text-tertiary);font-size:12px;cursor:pointer;border-radius:4px;padding:3px 6px;transition:background .1s}
+.bc-overflow:hover{background:var(--color-background-primary);color:var(--color-text-secondary)}
+
+.search-box{display:flex;align-items:center;gap:6px;padding:8px 14px;border-bottom:0.5px solid var(--color-border-tertiary);background:var(--color-background-primary)}
+.search-box input{flex:1;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:6px 10px;font-size:13px;background:var(--color-background-secondary);color:var(--color-text-primary);outline:none;transition:border-color .15s}
+.search-box input:focus{border-color:var(--color-border-primary)}
+.search-hint{font-size:12px;color:var(--color-text-tertiary);white-space:nowrap}
+
+.content-area{display:flex;gap:0;min-height:320px}
+.sidebar{width:180px;border-right:0.5px solid var(--color-border-tertiary);padding:12px 8px;background:var(--color-background-primary);flex-shrink:0}
+.sidebar-label{font-size:11px;color:var(--color-text-tertiary);letter-spacing:.05em;padding:0 8px;margin-bottom:6px}
+.sidebar-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;font-size:13px;color:var(--color-text-secondary);cursor:pointer;transition:background .1s,color .1s;user-select:none}
+.sidebar-item:hover{background:var(--color-background-secondary);color:var(--color-text-primary)}
+.sidebar-item.active{background:var(--color-background-info);color:var(--color-text-info);font-weight:500}
+.sidebar-item i{font-size:14px;flex-shrink:0}
+.sidebar-item .badge{margin-left:auto;background:var(--color-background-secondary);color:var(--color-text-tertiary);font-size:11px;padding:1px 6px;border-radius:10px}
+.sidebar-item.active .badge{background:var(--color-background-primary);color:var(--color-text-info)}
+
+.main{flex:1;padding:16px}
+.main-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.folder-title{font-size:15px;font-weight:500;color:var(--color-text-primary)}
+.view-btns{display:flex;gap:4px}
+.view-btn{display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:5px;border:0.5px solid var(--color-border-tertiary);background:transparent;cursor:pointer;color:var(--color-text-tertiary);font-size:13px;transition:background .1s,color .1s}
+.view-btn:hover,.view-btn.active{background:var(--color-background-secondary);color:var(--color-text-primary)}
+
+.file-grid{display:grid;gap:8px}
+.file-grid.grid-view{grid-template-columns:repeat(auto-fill,minmax(110px,1fr))}
+.file-grid.list-view{grid-template-columns:1fr}
+
+.file-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);transition:border-color .12s,background .12s;cursor:grab;user-select:none;position:relative}
+.file-card:hover{border-color:var(--color-border-secondary)}
+.file-card:active{cursor:grabbing;opacity:.75}
+.file-card.selected{border-color:var(--color-border-info);background:var(--color-background-info)}
+.file-card.dragging{opacity:.4}
+
+.file-card.grid-card{padding:14px 10px 10px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
+.file-card.grid-card .ficon{font-size:28px}
+.file-card.grid-card .fname{font-size:12px;color:var(--color-text-primary);word-break:break-word;line-height:1.3}
+.file-card.grid-card .fmeta{font-size:11px;color:var(--color-text-tertiary)}
+.file-card.grid-card.selected .fname{color:var(--color-text-info)}
+
+.file-card.list-card{padding:8px 12px;display:flex;align-items:center;gap:10px}
+.file-card.list-card .ficon{font-size:16px;flex-shrink:0}
+.file-card.list-card .fname{font-size:13px;color:var(--color-text-primary);flex:1}
+.file-card.list-card .fsize{font-size:12px;color:var(--color-text-tertiary);white-space:nowrap}
+.file-card.list-card .fdate{font-size:12px;color:var(--color-text-tertiary);white-space:nowrap;min-width:90px;text-align:right}
+.file-card.list-card.selected .fname{color:var(--color-text-info)}
+
+.sel-check{position:absolute;top:6px;left:6px;width:16px;height:16px;border-radius:4px;border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--color-text-tertiary);cursor:pointer;transition:background .1s,border-color .1s}
+.file-card.selected .sel-check{background:var(--color-background-info);border-color:var(--color-border-info);color:var(--color-text-info)}
+
+.status-bar{display:flex;align-items:center;gap:16px;padding:8px 14px;border-top:0.5px solid var(--color-border-tertiary);background:var(--color-background-primary);font-size:12px;color:var(--color-text-tertiary)}
+.status-bar span{display:flex;align-items:center;gap:4px}
+.status-bar i{font-size:13px}
+.status-spacer{flex:1}
+
+.dropdown{position:absolute;top:calc(100% + 6px);left:0;background:var(--color-background-primary);border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:4px;min-width:180px;z-index:200}
+.dd-section{font-size:11px;color:var(--color-text-tertiary);padding:6px 10px 2px;letter-spacing:.04em}
+.dd-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:6px;font-size:13px;cursor:pointer;color:var(--color-text-secondary);transition:background .1s;position:relative}
+.dd-item:hover{background:var(--color-background-secondary);color:var(--color-text-primary)}
+.dd-item.current{font-weight:500;color:var(--color-text-primary)}
+.dd-item.current::after{content:'';width:5px;height:5px;border-radius:50%;background:var(--color-text-info);position:absolute;right:10px;top:50%;transform:translateY(-50%)}
+.dd-item i{font-size:14px;flex-shrink:0;color:var(--color-text-tertiary)}
+.dd-item:hover i{color:var(--color-text-primary)}
+.dd-divider{height:0.5px;background:var(--color-border-tertiary);margin:4px 0}
+.dd-item.danger{color:var(--color-text-danger)}
+.dd-item.danger i{color:var(--color-text-danger)}
+
+.ctx-menu{position:absolute;background:var(--color-background-primary);border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:4px;min-width:180px;z-index:300}
+
+.history-pill{display:flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);font-size:12px;color:var(--color-text-secondary);cursor:pointer;transition:background .1s,border-color .1s;white-space:nowrap}
+.history-pill:hover{border-color:var(--color-border-secondary);color:var(--color-text-primary)}
+.history-pill i{font-size:12px}
+
+.toast{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);background:var(--color-background-primary);border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:8px 16px;font-size:13px;color:var(--color-text-primary);opacity:0;transition:opacity .2s;pointer-events:none;z-index:500;white-space:nowrap;display:flex;align-items:center;gap:8px}
+.toast.show{opacity:1}
+.toast i{color:var(--color-text-success);font-size:15px}
+
+.kbd{display:inline-flex;align-items:center;justify-content:center;padding:1px 5px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-secondary);border-radius:4px;font-size:11px;color:var(--color-text-tertiary);font-family:var(--font-mono);margin:0 1px}
+
+.anim-in{animation:slideIn .18s ease forwards}
+@keyframes slideIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+.seg-anim{animation:segPop .15s ease forwards}
+@keyframes segPop{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:scale(1)}}
+
+.history-row{display:flex;align-items:center;gap:6px;padding:8px 14px;border-bottom:0.5px solid var(--color-border-tertiary);background:var(--color-background-primary);overflow-x:auto;scrollbar-width:none}
+.history-row::-webkit-scrollbar{display:none}
+</style>
+
+<div class="shell" id="shell" style="position:relative">
+
+<div class="toolbar">
+  <button class="tb-btn" id="btn-back" disabled aria-label="Back" title="Back (Alt+←)"><i class="ti ti-arrow-left" aria-hidden="true"></i></button>
+  <button class="tb-btn" id="btn-fwd" disabled aria-label="Forward" title="Forward (Alt+→)"><i class="ti ti-arrow-right" aria-hidden="true"></i></button>
+  <button class="tb-btn" id="btn-up" aria-label="Up one level" title="Up (Alt+↑)"><i class="ti ti-arrow-up" aria-hidden="true"></i></button>
+  <div class="tb-sep"></div>
+  <div class="bc-wrap" id="bc-wrap" aria-label="Breadcrumb navigation">
+    <div class="bc-inner" id="bc-inner"></div>
+  </div>
+  <div class="tb-sep"></div>
+  <button class="tb-btn" id="btn-refresh" aria-label="Refresh" title="Refresh"><i class="ti ti-refresh" aria-hidden="true"></i></button>
+  <button class="tb-btn" id="btn-home" aria-label="Go home" title="Home"><i class="ti ti-home" aria-hidden="true"></i></button>
+</div>
+
+<div class="search-box">
+  <i class="ti ti-search" style="font-size:15px;color:var(--color-text-tertiary)" aria-hidden="true"></i>
+  <input type="text" id="search-input" placeholder="Search in current folder…" aria-label="Search files">
+  <span class="search-hint"><span class="kbd">Ctrl</span><span class="kbd">K</span> to focus</span>
+</div>
+
+<div class="history-row" id="history-row" aria-label="Recent locations"></div>
+
+<div class="content-area">
+  <div class="sidebar">
+    <div class="sidebar-label">Quick access</div>
+    <div class="sidebar-item" data-path="Home" onclick="navQuick('Home')"><i class="ti ti-home" aria-hidden="true"></i>Home</div>
+    <div class="sidebar-item" data-path="Home,Documents" onclick="navQuick('Home,Documents')"><i class="ti ti-folder" aria-hidden="true"></i>Documents<span class="badge">12</span></div>
+    <div class="sidebar-item" data-path="Home,Downloads" onclick="navQuick('Home,Downloads')"><i class="ti ti-download" aria-hidden="true"></i>Downloads<span class="badge">4</span></div>
+    <div class="sidebar-item" data-path="Home,Pictures" onclick="navQuick('Home,Pictures')"><i class="ti ti-photo" aria-hidden="true"></i>Pictures<span class="badge">38</span></div>
+    <div class="sidebar-item" data-path="Home,Desktop" onclick="navQuick('Home,Desktop')"><i class="ti ti-device-desktop" aria-hidden="true"></i>Desktop</div>
+    <div style="height:1px;background:var(--color-border-tertiary);margin:8px 0"></div>
+    <div class="sidebar-label">Pinned</div>
+    <div class="sidebar-item" data-path="Home,Documents,Design,Project" onclick="navQuick('Home,Documents,Design,Project')"><i class="ti ti-layout-dashboard" aria-hidden="true"></i>Project<span class="badge">6</span></div>
+    <div class="sidebar-item" data-path="Home,Documents,Design" onclick="navQuick('Home,Documents,Design')"><i class="ti ti-palette" aria-hidden="true"></i>Design<span class="badge">9</span></div>
+  </div>
+
+  <div class="main">
+    <div class="main-header">
+      <div class="folder-title" id="folder-title">Project</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:12px;color:var(--color-text-tertiary)" id="sel-count"></span>
+        <div class="view-btns">
+          <button class="view-btn active" id="vbtn-grid" aria-label="Grid view" title="Grid view" onclick="setView('grid')"><i class="ti ti-layout-grid" aria-hidden="true"></i></button>
+          <button class="view-btn" id="vbtn-list" aria-label="List view" title="List view" onclick="setView('list')"><i class="ti ti-list" aria-hidden="true"></i></button>
+        </div>
+      </div>
+    </div>
+    <div class="file-grid grid-view" id="file-grid"></div>
+  </div>
+</div>
+
+<div class="status-bar">
+  <span><i class="ti ti-files" aria-hidden="true"></i><span id="st-count">6 items</span></span>
+  <span><i class="ti ti-database" aria-hidden="true"></i><span id="st-size">14.2 MB</span></span>
+  <span class="status-spacer"></span>
+  <span><i class="ti ti-keyboard" aria-hidden="true"></i><span class="kbd">Alt</span><span class="kbd">←</span> back &nbsp; <span class="kbd">Alt</span><span class="kbd">↑</span> up &nbsp; <span class="kbd">Ctrl</span><span class="kbd">K</span> search</span>
+</div>
+
+<div class="toast" id="toast"><i class="ti ti-circle-check" aria-hidden="true"></i><span id="toast-msg"></span></div>
+</div>
+
+<script>
+const TREE = {
+  name:'Home', icon:'ti-home', color:'#378ADD',
+  siblings:[],
+  children:[
+    {name:'Documents', icon:'ti-folder', color:'#1D9E75', siblings:['Downloads','Desktop','Pictures','Music'],
+      children:[
+        {name:'Design', icon:'ti-palette', color:'#7F77DD', siblings:['Reports','Invoices','Contracts','Archive'],
+          children:[
+            {name:'Project', icon:'ti-layout-dashboard', color:'#D4537E', siblings:['Mockups','Brand','Icons','Exports'], children:[]},
+            {name:'Mockups', icon:'ti-vector', color:'#D4537E', siblings:['Design','Reports','Icons','Exports'], children:[]},
+            {name:'Brand', icon:'ti-brand-figma', color:'#D4537E', siblings:['Design','Mockups','Icons','Exports'], children:[]},
+          ]},
+        {name:'Reports', icon:'ti-report', color:'#7F77DD', siblings:['Design','Invoices','Contracts','Archive'], children:[]},
+        {name:'Invoices', icon:'ti-receipt', color:'#BA7517', siblings:['Design','Reports','Contracts','Archive'], children:[]},
+      ]},
+    {name:'Downloads', icon:'ti-download', color:'#378ADD', siblings:['Documents','Desktop','Pictures','Music'], children:[]},
+    {name:'Pictures', icon:'ti-photo', color:'#D85A30', siblings:['Documents','Downloads','Desktop','Music'], children:[]},
+    {name:'Desktop', icon:'ti-device-desktop', color:'#888780', siblings:['Documents','Downloads','Pictures','Music'], children:[]},
+    {name:'Music', icon:'ti-music', color:'#D4537E', siblings:['Documents','Downloads','Pictures','Desktop'], children:[]},
+  ]
+};
+
+const FILE_SETS = {
+  default:[
+    {name:'Cover.png', icon:'ti-photo', color:'#D85A30', size:'2.1 MB', date:'May 28'},
+    {name:'Brief.pdf', icon:'ti-file-type-pdf', color:'#E24B4A', size:'340 KB', date:'May 27'},
+    {name:'Notes.txt', icon:'ti-file-text', color:'#888780', size:'12 KB', date:'May 26'},
+    {name:'Demo.mp4', icon:'ti-player-play', color:'#185FA5', size:'8.4 MB', date:'May 25'},
+    {name:'Budget.xlsx', icon:'ti-table', color:'#3B6D11', size:'280 KB', date:'May 24'},
+    {name:'Archive.zip', icon:'ti-package', color:'#BA7517', size:'3.1 MB', date:'May 23'},
+  ],
+  Documents:[
+    {name:'Resume.docx', icon:'ti-file-description', color:'#185FA5', size:'180 KB', date:'May 29'},
+    {name:'Proposal.pdf', icon:'ti-file-type-pdf', color:'#E24B4A', size:'1.2 MB', date:'May 28'},
+    {name:'Meeting.txt', icon:'ti-file-text', color:'#888780', size:'8 KB', date:'May 27'},
+  ],
+  Downloads:[
+    {name:'Setup.exe', icon:'ti-brand-windows', color:'#185FA5', size:'64 MB', date:'May 29'},
+    {name:'Font.zip', icon:'ti-letter-case', color:'#BA7517', size:'2.3 MB', date:'May 28'},
+    {name:'Photo.jpg', icon:'ti-photo', color:'#D85A30', size:'4.1 MB', date:'May 27'},
+    {name:'Installer.dmg', icon:'ti-brand-apple', color:'#888780', size:'120 MB', date:'May 26'},
+  ],
+  Pictures:[
+    {name:'Vacation.jpg', icon:'ti-photo', color:'#D85A30', size:'6.2 MB', date:'May 20'},
+    {name:'Portrait.png', icon:'ti-user', color:'#7F77DD', size:'3.4 MB', date:'May 18'},
+    {name:'Screenshot.png', icon:'ti-screenshot', color:'#378ADD', size:'1.1 MB', date:'May 17'},
+  ],
+};
+
+let path = ['Home','Documents','Design','Project'];
+let historyStack = [['Home'],['Home','Documents'],['Home','Documents','Design'],['Home','Documents','Design','Project']];
+let histIdx = 3;
+let viewMode = 'grid';
+let selected = new Set();
+let openDD = null;
+let searchQ = '';
+let draggedFile = null;
+
+function getFiles(){
+  const last = path[path.length-1];
+  return FILE_SETS[last] || FILE_SETS.default;
+}
+
+function getIcon(name){ return TREE.children?.find(c=>c.name===name)?.icon || 'ti-folder'; }
+function getColor(name){
+  function search(node){ if(node.name===name) return node.color; for(const c of (node.children||[])){const r=search(c);if(r)return r;} return null; }
+  return search(TREE) || '#888780';
+}
+
+function findSiblings(seg, idx){
+  if(idx===0) return [];
+  function search(node, depth){
+    if(depth===idx-1){
+      const match = (node.children||[]).find(c=>c.name===seg);
+      if(match) return match.siblings||[];
+    }
+    for(const c of (node.children||[])){const r=search(c,depth+1);if(r)return r;}
+    return null;
+  }
+  return search(TREE,0)||[];
+}
+
+function navigate(newPath, push=true){
+  if(push){
+    historyStack = historyStack.slice(0,histIdx+1);
+    historyStack.push([...newPath]);
+    histIdx = historyStack.length-1;
+  }
+  path = [...newPath];
+  selected.clear();
+  closeDD();
+  render();
+}
+
+function navQuick(pathStr){
+  navigate(pathStr.split(','));
+}
+
+function goBack(){ if(histIdx>0){histIdx--;navigate(historyStack[histIdx],false);} }
+function goFwd(){ if(histIdx<historyStack.length-1){histIdx++;navigate(historyStack[histIdx],false);} }
+function goUp(){ if(path.length>1) navigate(path.slice(0,-1)); }
+function goHome(){ navigate(['Home']); }
+
+function render(){
+  renderBreadcrumb();
+  renderFiles();
+  renderHistory();
+  renderSidebar();
+  document.getElementById('btn-back').disabled = histIdx<=0;
+  document.getElementById('btn-fwd').disabled = histIdx>=historyStack.length-1;
+  document.getElementById('btn-up').disabled = path.length<=1;
+  document.getElementById('folder-title').textContent = path[path.length-1];
+  const files = getFiles();
+  document.getElementById('st-count').textContent = `${files.length} items`;
+  const total = files.reduce((a,f)=>{
+    const n=parseFloat(f.size);
+    const u=f.size.includes('MB')?1:f.size.includes('KB')?0.001:0;
+    return a+n*u;
+  },0);
+  document.getElementById('st-size').textContent = total.toFixed(1)+' MB';
+}
+
+function renderBreadcrumb(){
+  const inner = document.getElementById('bc-inner');
+  inner.innerHTML='';
+  path.forEach((seg,i)=>{
+    const isLast = i===path.length-1;
+    const group = document.createElement('div');
+    group.className='seg-group seg-anim';
+
+    const btn = document.createElement('div');
+    btn.className='seg'+(isLast?' active':'');
+    btn.setAttribute('role','button');
+    btn.setAttribute('aria-current', isLast?'page':'false');
+    btn.setAttribute('tabindex', isLast?'-1':'0');
+
+    const color = getColor(seg);
+    const iconName = (function search(node){if(node.name===seg)return node.icon;for(const c of (node.children||[])){const r=search(c);if(r)return r;}return null;})(TREE)||'ti-folder';
+
+    if(i===0){
+      btn.innerHTML=`<i class="ti ${iconName}" style="color:${color}" aria-hidden="true"></i>${seg}`;
+    } else {
+      btn.innerHTML=`<i class="ti ${iconName}" style="color:${color}" aria-hidden="true"></i>${seg}`;
+    }
+    if(!isLast){
+      btn.addEventListener('click',()=>navigate(path.slice(0,i+1)));
+      btn.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' ') navigate(path.slice(0,i+1)); });
+    }
+    btn.addEventListener('dragover',e=>{e.preventDefault();btn.classList.add('dropping');});
+    btn.addEventListener('dragleave',()=>btn.classList.remove('dropping'));
+    btn.addEventListener('drop',e=>{
+      e.preventDefault(); btn.classList.remove('dropping');
+      if(draggedFile) showToast(`"${draggedFile}" moved to ${seg}`,'ti-circle-check');
+    });
+    group.appendChild(btn);
+
+    const sibs = findSiblings(seg,i);
+    if(!isLast && sibs.length){
+      const caret = document.createElement('div');
+      caret.className='caret';
+      caret.setAttribute('aria-label',`Show siblings of ${seg}`);
+      caret.innerHTML=`<i class="ti ti-chevron-down" aria-hidden="true"></i>`;
+      caret.addEventListener('click',e=>{
+        e.stopPropagation();
+        if(openDD===seg){closeDD();return;}
+        closeDD();
+        openDD=seg;
+        caret.classList.add('open');
+
+        const dd=document.createElement('div');
+        dd.className='dropdown anim-in';
+        dd.innerHTML=`<div class="dd-section">Sibling folders</div>`;
+
+        const allSibs = [seg,...sibs.filter(s=>s!==seg)];
+        allSibs.forEach(sib=>{
+          const sibIcon=(function search(node){if(node.name===sib)return node.icon;for(const c of (node.children||[])){const r=search(c);if(r)return r;}return null;})(TREE)||'ti-folder';
+          const sibColor=getColor(sib);
+          const item=document.createElement('div');
+          item.className='dd-item'+(sib===seg?' current':'');
+          item.innerHTML=`<i class="ti ${sibIcon}" style="color:${sibColor}" aria-hidden="true"></i>${sib}`;
+          item.addEventListener('click',()=>{
+            const newPath=[...path.slice(0,i),sib];
+            closeDD(); navigate(newPath);
+          });
+          dd.appendChild(item);
+        });
+        dd.innerHTML+=`<div class="dd-divider"></div>`;
+        const pinItem=document.createElement('div');
+        pinItem.className='dd-item';
+        pinItem.innerHTML=`<i class="ti ti-pin" aria-hidden="true"></i>Pin "${seg}" to sidebar`;
+        pinItem.addEventListener('click',()=>{closeDD();showToast(`"${seg}" pinned to sidebar`,'ti-pin');});
+        dd.appendChild(pinItem);
+        group.appendChild(dd);
+      });
+      group.appendChild(caret);
+    }
+
+    inner.appendChild(group);
+
+    if(!isLast){
+      const sep=document.createElement('span');
+      sep.className='sep-arrow';
+      sep.setAttribute('aria-hidden','true');
+      sep.textContent='›';
+      inner.appendChild(sep);
+    }
+  });
+}
+
+function renderFiles(){
+  const grid = document.getElementById('file-grid');
+  const q = searchQ.toLowerCase();
+  const files = getFiles().filter(f=>!q||f.name.toLowerCase().includes(q));
+  grid.innerHTML='';
+  grid.className='file-grid '+(viewMode==='grid'?'grid-view':'list-view');
+
+  files.forEach(f=>{
+    const card=document.createElement('div');
+    card.className='file-card '+(viewMode==='grid'?'grid-card':'list-card')+(selected.has(f.name)?' selected':'');
+    card.draggable=true;
+    card.setAttribute('role','gridcell');
+    card.setAttribute('aria-label',f.name);
+
+    const check=document.createElement('div');
+    check.className='sel-check';
+    check.innerHTML=selected.has(f.name)?`<i class="ti ti-check" aria-hidden="true"></i>`:'';
+    check.addEventListener('click',e=>{
+      e.stopPropagation();
+      if(selected.has(f.name)) selected.delete(f.name); else selected.add(f.name);
+      renderFiles();
+      updateSelCount();
+    });
+
+    if(viewMode==='grid'){
+      card.innerHTML=`<div class="ficon"><i class="ti ${f.icon}" style="color:${f.color}" aria-hidden="true"></i></div><div class="fname">${f.name}</div><div class="fmeta">${f.size}</div>`;
+    } else {
+      card.innerHTML=`<i class="ti ${f.icon}" class="ficon" style="color:${f.color};font-size:16px" aria-hidden="true"></i><span class="fname">${f.name}</span><span class="fsize">${f.size}</span><span class="fdate">${f.date}</span>`;
+    }
+    card.prepend(check);
+
+    card.addEventListener('click',e=>{
+      if(e.ctrlKey||e.metaKey){ if(selected.has(f.name)) selected.delete(f.name); else selected.add(f.name); }
+      else{ selected.clear(); selected.add(f.name); }
+      renderFiles(); updateSelCount();
+    });
+    card.addEventListener('dragstart',e=>{
+      draggedFile=f.name; card.classList.add('dragging');
+      e.dataTransfer.setData('text/plain',f.name);
+    });
+    card.addEventListener('dragend',()=>{ card.classList.remove('dragging'); draggedFile=null; });
+
+    card.addEventListener('contextmenu',e=>{
+      e.preventDefault();
+      showContextMenu(e.clientX,e.clientY,f.name);
+    });
+    grid.appendChild(card);
+  });
+
+  if(!files.length){
+    grid.innerHTML=`<div style="padding:2rem;text-align:center;color:var(--color-text-tertiary);font-size:14px;grid-column:1/-1"><i class="ti ti-search" style="font-size:24px;display:block;margin-bottom:8px" aria-hidden="true"></i>No files match "${searchQ}"</div>`;
+  }
+}
+
+function updateSelCount(){
+  const el=document.getElementById('sel-count');
+  el.textContent=selected.size?`${selected.size} selected`:'';
+}
+
+function renderHistory(){
+  const row=document.getElementById('history-row');
+  row.innerHTML='';
+  const recent=[...historyStack].reverse().slice(0,8);
+  recent.forEach((p,idx)=>{
+    const pill=document.createElement('div');
+    pill.className='history-pill';
+    const name=p[p.length-1];
+    const iconName=(function search(node){if(node.name===name)return node.icon;for(const c of (node.children||[])){const r=search(c);if(r)return r;}return null;})(TREE)||'ti-folder';
+    pill.innerHTML=`<i class="ti ${iconName}" style="font-size:12px" aria-hidden="true"></i>${p.join(' › ')}`;
+    pill.addEventListener('click',()=>navigate([...p]));
+    row.appendChild(pill);
+  });
+}
+
+function renderSidebar(){
+  document.querySelectorAll('.sidebar-item').forEach(el=>{
+    const p=el.dataset.path;
+    const active = p && p===path.join(',');
+    el.classList.toggle('active',active);
+  });
+}
+
+function setView(mode){
+  viewMode=mode;
+  document.getElementById('vbtn-grid').classList.toggle('active',mode==='grid');
+  document.getElementById('vbtn-list').classList.toggle('active',mode==='list');
+  renderFiles();
+}
+
+function showContextMenu(x,y,fname){
+  closeCtxMenu();
+  const shell=document.getElementById('shell');
+  const rect=shell.getBoundingClientRect();
+  const menu=document.createElement('div');
+  menu.className='ctx-menu anim-in';
+  menu.id='ctx-menu';
+  menu.style.top=(y-rect.top+4)+'px';
+  menu.style.left=(x-rect.left)+'px';
+  const items=[
+    {icon:'ti-eye',label:'Preview'},
+    {icon:'ti-copy',label:'Copy'},
+    {icon:'ti-cut',label:'Cut'},
+    {icon:'ti-download',label:'Download'},
+    {divider:true},
+    {icon:'ti-pin',label:'Pin to sidebar'},
+    {icon:'ti-share',label:'Share…'},
+    {divider:true},
+    {icon:'ti-edit',label:'Rename'},
+    {icon:'ti-info-circle',label:'Get info'},
+    {divider:true},
+    {icon:'ti-trash',label:'Move to trash',danger:true},
+  ];
+  items.forEach(it=>{
+    if(it.divider){const d=document.createElement('div');d.className='dd-divider';menu.appendChild(d);return;}
+    const el=document.createElement('div');
+    el.className='dd-item'+(it.danger?' danger':'');
+    el.innerHTML=`<i class="ti ${it.icon}" aria-hidden="true"></i>${it.label}`;
+    el.addEventListener('click',()=>{
+      closeCtxMenu();
+      if(it.label==='Move to trash') showToast(`"${fname}" moved to trash`,'ti-trash');
+      else if(it.label==='Download') showToast(`"${fname}" downloaded`,'ti-download');
+      else showToast(`${it.label}: ${fname}`,'ti-circle-check');
+    });
+    menu.appendChild(el);
+  });
+  shell.appendChild(menu);
+}
+
+function closeCtxMenu(){
+  const m=document.getElementById('ctx-menu');
+  if(m) m.remove();
+}
+
+function closeDD(){
+  openDD=null;
+  document.querySelectorAll('.dropdown').forEach(d=>d.remove());
+  document.querySelectorAll('.caret.open').forEach(c=>c.classList.remove('open'));
+}
+
+function showToast(msg,icon='ti-circle-check'){
+  const t=document.getElementById('toast');
+  const ico=t.querySelector('i');
+  ico.className=`ti ${icon}`;
+  document.getElementById('toast-msg').textContent=msg;
+  t.classList.add('show');
+  clearTimeout(t._tid);
+  t._tid=setTimeout(()=>t.classList.remove('show'),2400);
+}
+
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.seg-group')) closeDD();
+  if(!e.target.closest('.ctx-menu')) closeCtxMenu();
+});
+
+document.addEventListener('keydown',e=>{
+  if(e.altKey&&e.key==='ArrowLeft'){e.preventDefault();goBack();}
+  if(e.altKey&&e.key==='ArrowRight'){e.preventDefault();goFwd();}
+  if(e.altKey&&e.key==='ArrowUp'){e.preventDefault();goUp();}
+  if((e.ctrlKey||e.metaKey)&&e.key==='k'){e.preventDefault();document.getElementById('search-input').focus();}
+  if(e.key==='Escape'){document.getElementById('search-input').blur();closeDD();closeCtxMenu();}
+});
+
+document.getElementById('search-input').addEventListener('input',e=>{
+  searchQ=e.target.value;
+  renderFiles();
+});
+document.getElementById('btn-back').addEventListener('click',goBack);
+document.getElementById('btn-fwd').addEventListener('click',goFwd);
+document.getElementById('btn-up').addEventListener('click',goUp);
+document.getElementById('btn-home').addEventListener('click',goHome);
+document.getElementById('btn-refresh').addEventListener('click',()=>{
+  selected.clear(); searchQ=''; document.getElementById('search-input').value='';
+  renderFiles(); updateSelCount(); showToast('Folder refreshed','ti-refresh');
+});
+
+render();
+</script>

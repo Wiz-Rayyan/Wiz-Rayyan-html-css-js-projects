@@ -1,0 +1,230 @@
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+#canvas{position:relative;width:100%;height:560px;background:var(--color-background-tertiary);border-radius:var(--border-radius-lg);overflow:hidden;border:0.5px solid var(--color-border-tertiary);cursor:default}
+#canvas.snap-on{background-image:radial-gradient(circle,var(--color-border-tertiary) 1px,transparent 1px);background-size:40px 40px}
+.toolbar{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--color-background-primary);border-bottom:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg) var(--border-radius-lg) 0 0;flex-wrap:wrap}
+.toolbar label{font-size:13px;color:var(--color-text-secondary)}
+.color-swatch{width:22px;height:22px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:transform 0.1s}
+.color-swatch:hover,.color-swatch.active{transform:scale(1.2);border-color:var(--color-border-primary)}
+.tb-btn{font-size:13px;padding:5px 12px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:transparent;color:var(--color-text-primary);cursor:pointer;display:flex;align-items:center;gap:5px}
+.tb-btn:hover{background:var(--color-background-secondary)}
+.note{position:absolute;width:200px;min-height:120px;border-radius:10px;padding:0;cursor:grab;user-select:none;transition:box-shadow 0.15s}
+.note:hover{box-shadow:0 8px 24px rgba(0,0,0,0.18)!important}
+.note.dragging{cursor:grabbing;opacity:0.85;box-shadow:0 16px 40px rgba(0,0,0,0.25)!important;z-index:1000}
+.note.selected{outline:2px solid #4A90D9;outline-offset:2px}
+.note-bar{display:flex;align-items:center;justify-content:space-between;padding:8px 10px 4px;cursor:grab;border-radius:10px 10px 0 0}
+.note-bar .grip{display:flex;gap:3px;opacity:0.45}
+.note-bar .grip span{width:4px;height:4px;border-radius:50%;background:currentColor}
+.note-del{background:none;border:none;cursor:pointer;width:20px;height:20px;display:flex;align-items:center;justify-content:center;border-radius:50%;opacity:0.5;font-size:14px;color:inherit;transition:opacity 0.1s}
+.note-del:hover{opacity:1;background:rgba(0,0,0,0.12)}
+.note-body{padding:4px 12px 12px;font-size:14px;line-height:1.5;min-height:80px;outline:none;white-space:pre-wrap;word-break:break-word;cursor:text}
+.note-body[contenteditable=true]:focus{cursor:text}
+.snap-toggle{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--color-text-secondary);cursor:pointer}
+.snap-toggle input{cursor:pointer}
+.empty-hint{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;opacity:0.4}
+.empty-hint i{font-size:36px;display:block;margin-bottom:8px;color:var(--color-text-secondary)}
+.empty-hint p{font-size:14px;color:var(--color-text-secondary)}
+</style>
+
+<h2 class="sr-only">Sticky notes canvas — drag, double-click to edit, add colored notes</h2>
+
+<div style="border-radius:var(--border-radius-lg);overflow:hidden;border:0.5px solid var(--color-border-tertiary)">
+  <div class="toolbar">
+    <label>Color</label>
+    <div id="swatches" style="display:flex;gap:6px;align-items:center"></div>
+    <div style="width:0.5px;height:20px;background:var(--color-border-tertiary)"></div>
+    <button class="tb-btn" id="add-btn" aria-label="Add new note"><i class="ti ti-plus" aria-hidden="true"></i> add note</button>
+    <div style="margin-left:auto">
+      <label class="snap-toggle"><input type="checkbox" id="snap-cb"> snap to grid</label>
+    </div>
+  </div>
+  <div id="canvas">
+    <div class="empty-hint" id="empty-hint">
+      <i class="ti ti-pinned" aria-hidden="true"></i>
+      <p>click "add note" to get started</p>
+    </div>
+  </div>
+</div>
+
+<script>
+const COLORS=[
+  {bg:'#FEF3C7',dark:'#92400E',label:'yellow'},
+  {bg:'#D1FAE5',dark:'#065F46',label:'green'},
+  {bg:'#DBEAFE',dark:'#1E40AF',label:'blue'},
+  {bg:'#FCE7F3',dark:'#9D174D',label:'pink'},
+  {bg:'#EDE9FE',dark:'#4C1D95',label:'purple'},
+  {bg:'#FEE2E2',dark:'#991B1B',label:'red'},
+  {bg:'#F3F4F6',dark:'#374151',label:'gray'},
+];
+let activeColor=COLORS[0];
+let notes=[];
+let zCounter=10;
+let snapOn=false;
+const SNAP=40;
+const canvas=document.getElementById('canvas');
+const swatchesEl=document.getElementById('swatches');
+const emptyHint=document.getElementById('empty-hint');
+const snapCb=document.getElementById('snap-cb');
+
+COLORS.forEach((c,i)=>{
+  const sw=document.createElement('button');
+  sw.className='color-swatch'+(i===0?' active':'');
+  sw.style.background=c.bg;
+  sw.title=c.label;
+  sw.setAttribute('aria-label',c.label+' notes');
+  sw.addEventListener('click',()=>{
+    activeColor=c;
+    document.querySelectorAll('.color-swatch').forEach(s=>s.classList.remove('active'));
+    sw.classList.add('active');
+  });
+  swatchesEl.appendChild(sw);
+});
+
+snapCb.addEventListener('change',()=>{
+  snapOn=snapCb.checked;
+  canvas.classList.toggle('snap-on',snapOn);
+});
+
+document.getElementById('add-btn').addEventListener('click',()=>addNote());
+
+function snap(v){return snapOn?Math.round(v/SNAP)*SNAP:v;}
+
+function addNote(x,y,text,color){
+  const cr=canvas.getBoundingClientRect();
+  const col=color||activeColor;
+  const nx=snap(x!=null?x:Math.random()*(cr.width-220)+10);
+  const ny=snap(y!=null?y:Math.random()*(cr.height-160)+10);
+
+  const note=document.createElement('div');
+  note.className='note';
+  note.style.cssText=`left:${nx}px;top:${ny}px;background:${col.bg};color:${col.dark};box-shadow:0 4px 12px rgba(0,0,0,0.13);z-index:${++zCounter}`;
+  note.dataset.colorIdx=COLORS.indexOf(col);
+
+  note.innerHTML=`
+    <div class="note-bar">
+      <div class="grip" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+      <button class="note-del" title="Delete note" aria-label="Delete note"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="note-body" contenteditable="false" spellcheck="false">${text||'double-click to edit'}</div>
+  `;
+
+  const body=note.querySelector('.note-body');
+  body.addEventListener('dblclick',e=>{
+    e.stopPropagation();
+    body.contentEditable='true';
+    body.focus();
+    note.classList.add('selected');
+    const range=document.createRange();
+    range.selectNodeContents(body);
+    const sel=window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  });
+  body.addEventListener('blur',()=>{
+    body.contentEditable='false';
+    note.classList.remove('selected');
+    if(!body.textContent.trim())body.textContent='double-click to edit';
+  });
+  body.addEventListener('keydown',e=>{
+    if(e.key==='Escape'){body.blur();}
+    e.stopPropagation();
+  });
+
+  note.querySelector('.note-del').addEventListener('click',e=>{
+    e.stopPropagation();
+    note.remove();
+    notes=notes.filter(n=>n!==note);
+    updateHint();
+  });
+
+  makeDraggable(note);
+
+  note.addEventListener('mousedown',e=>{
+    if(e.target.closest('.note-del')||e.target===body||body.contentEditable==='true')return;
+    note.style.zIndex=++zCounter;
+  });
+
+  canvas.appendChild(note);
+  notes.push(note);
+  updateHint();
+  return note;
+}
+
+function makeDraggable(note){
+  let ox,oy,startX,startY,dragging=false;
+  const bar=note.querySelector('.note-bar');
+
+  bar.addEventListener('mousedown',startDrag);
+  note.addEventListener('mousedown',e=>{
+    if(e.target===bar||bar.contains(e.target))return;
+    if(note.querySelector('.note-body').contentEditable==='true')return;
+    if(e.target.closest('.note-del'))return;
+    startDrag(e);
+  });
+
+  function startDrag(e){
+    if(e.button!==0)return;
+    if(e.target.closest('.note-del'))return;
+    const body=note.querySelector('.note-body');
+    if(body.contentEditable==='true')return;
+    e.preventDefault();
+    const cr=canvas.getBoundingClientRect();
+    ox=e.clientX-cr.left-parseInt(note.style.left);
+    oy=e.clientY-cr.top-parseInt(note.style.top);
+    startX=e.clientX;startY=e.clientY;
+    dragging=false;
+    note.style.zIndex=++zCounter;
+
+    function onMove(ev){
+      const dx=ev.clientX-startX,dy=ev.clientY-startY;
+      if(!dragging&&(Math.abs(dx)>3||Math.abs(dy)>3)){dragging=true;note.classList.add('dragging');}
+      if(!dragging)return;
+      const cr2=canvas.getBoundingClientRect();
+      let nx=ev.clientX-cr2.left-ox;
+      let ny=ev.clientY-cr2.top-oy;
+      nx=Math.max(0,Math.min(cr2.width-note.offsetWidth,nx));
+      ny=Math.max(0,Math.min(cr2.height-note.offsetHeight,ny));
+      note.style.left=snap(nx)+'px';
+      note.style.top=snap(ny)+'px';
+    }
+    function onUp(){
+      note.classList.remove('dragging');
+      dragging=false;
+      window.removeEventListener('mousemove',onMove);
+      window.removeEventListener('mouseup',onUp);
+    }
+    window.addEventListener('mousemove',onMove);
+    window.addEventListener('mouseup',onUp);
+  }
+}
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Delete'||e.key==='Backspace'){
+    const sel=document.querySelector('.note.selected');
+    if(sel){
+      const body=sel.querySelector('.note-body');
+      if(body.contentEditable==='true')return;
+      sel.remove();
+      notes=notes.filter(n=>n!==sel);
+      updateHint();
+    }
+  }
+});
+
+canvas.addEventListener('dblclick',e=>{
+  if(e.target===canvas){
+    const cr=canvas.getBoundingClientRect();
+    addNote(e.clientX-cr.left-100,e.clientY-cr.top-60);
+  }
+});
+
+function updateHint(){
+  emptyHint.style.display=notes.length>0?'none':'block';
+}
+
+addNote(20,20,'meeting recap\n—\nreview Q3 goals with team',COLORS[0]);
+addNote(240,60,'ideas 💡\n—\nnew onboarding flow',COLORS[2]);
+addNote(460,30,'to-do\n—\ndeploy staging env',COLORS[4]);
+addNote(130,200,'ship it! 🚀',COLORS[1]);
+updateHint();
+</script>

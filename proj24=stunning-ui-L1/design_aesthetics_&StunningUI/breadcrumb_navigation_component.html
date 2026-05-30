@@ -1,0 +1,268 @@
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans)}
+.scene{padding:2rem;background:var(--color-background-tertiary);border-radius:var(--border-radius-lg);min-height:520px}
+.label{font-size:12px;color:var(--color-text-tertiary);margin-bottom:8px;letter-spacing:.04em}
+.breadcrumb-bar{display:flex;align-items:center;gap:2px;background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:6px 10px;flex-wrap:wrap;min-height:40px;position:relative}
+.sep{color:var(--color-text-tertiary);font-size:13px;padding:0 2px;user-select:none}
+.seg-wrap{position:relative;display:flex;align-items:center;gap:0}
+.seg{display:flex;align-items:center;gap:5px;padding:4px 8px;border-radius:6px;font-size:13px;cursor:pointer;color:var(--color-text-secondary);transition:background .12s,color .12s;white-space:nowrap;border:none;background:none}
+.seg:hover{background:var(--color-background-secondary);color:var(--color-text-primary)}
+.seg.active{color:var(--color-text-primary);font-weight:500;cursor:default;pointer-events:none;background:var(--color-background-secondary)}
+.seg.drop-target{background:#E6F1FB;border:1.5px dashed #378ADD}
+.seg i{font-size:15px;color:inherit}
+.chevron-btn{display:flex;align-items:center;justify-content:center;width:20px;height:26px;border:none;background:none;cursor:pointer;color:var(--color-text-tertiary);border-radius:4px;padding:0;transition:background .12s,color .12s}
+.chevron-btn:hover{background:var(--color-background-secondary);color:var(--color-text-primary)}
+.chevron-btn i{font-size:13px;transition:transform .15s}
+.chevron-btn.open i{transform:rotate(180deg)}
+.dropdown{position:absolute;top:calc(100% + 4px);left:0;min-width:160px;background:var(--color-background-primary);border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);box-shadow:0 4px 16px rgba(0,0,0,.08);z-index:100;overflow:hidden}
+.dropdown-item{display:flex;align-items:center;gap:8px;padding:8px 12px;font-size:13px;cursor:pointer;color:var(--color-text-secondary);transition:background .1s}
+.dropdown-item:hover{background:var(--color-background-secondary);color:var(--color-text-primary)}
+.dropdown-item i{font-size:15px;color:var(--color-text-tertiary)}
+.dropdown-item.current{color:var(--color-text-primary);font-weight:500}
+.dropdown-item.current i{color:#378ADD}
+.divider{height:0.5px;background:var(--color-border-tertiary);margin:4px 0}
+
+.file-area{margin-top:1.5rem}
+.files-label{font-size:12px;color:var(--color-text-tertiary);margin-bottom:10px;letter-spacing:.04em}
+.files-grid{display:flex;flex-wrap:wrap;gap:8px}
+.file-chip{display:flex;align-items:center;gap:7px;padding:7px 12px;background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);font-size:13px;cursor:grab;color:var(--color-text-primary);transition:border-color .15s,box-shadow .15s;user-select:none}
+.file-chip:active{cursor:grabbing}
+.file-chip i{font-size:16px;color:var(--color-text-secondary)}
+.file-chip.dragging{opacity:.5;border-style:dashed}
+
+.status{margin-top:1.25rem;min-height:28px;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--color-text-secondary);background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:6px 12px;transition:opacity .3s}
+.status i{font-size:15px}
+.status.hidden{opacity:0}
+.status.success i{color:#1D9E75}
+.status.info i{color:#378ADD}
+
+.nav-result{margin-top:1rem;font-size:12px;color:var(--color-text-tertiary);padding:0 2px}
+.hint{margin-top:1.5rem;display:flex;flex-wrap:wrap;gap:8px}
+.hint-chip{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--color-text-tertiary);background:var(--color-background-secondary);border-radius:20px;padding:4px 10px}
+.hint-chip i{font-size:13px}
+</style>
+
+<h2 class="sr-only">Interactive breadcrumb navigation component demonstrating path navigation, sibling folder dropdowns, and drag-to-move file interactions.</h2>
+
+<div class="scene">
+  <div class="label">NAVIGATION PATH</div>
+  <div class="breadcrumb-bar" id="bcBar">
+  </div>
+  <div class="nav-result" id="navResult"></div>
+
+  <div class="file-area">
+    <div class="files-label">FILES — DRAG ONTO A BREADCRUMB SEGMENT TO MOVE</div>
+    <div class="files-grid" id="filesGrid"></div>
+  </div>
+
+  <div class="status hidden" id="status">
+    <i class="ti ti-check"></i>
+    <span id="statusText"></span>
+  </div>
+
+  <div class="hint">
+    <div class="hint-chip"><i class="ti ti-hand-click" aria-hidden="true"></i> Click segment to navigate</div>
+    <div class="hint-chip"><i class="ti ti-chevron-down" aria-hidden="true"></i> Dropdown for siblings</div>
+    <div class="hint-chip"><i class="ti ti-drag-drop" aria-hidden="true"></i> Drag file to breadcrumb</div>
+  </div>
+</div>
+
+<script>
+const tree = {
+  "Home": {
+    siblings: [],
+    icon: "ti-home",
+    children: ["Documents","Pictures","Downloads","Desktop"]
+  },
+  "Documents": {
+    siblings: ["Pictures","Downloads","Desktop"],
+    icon: "ti-folder",
+    children: ["Projects","Reports","Archives","Shared"]
+  },
+  "Projects": {
+    siblings: ["Reports","Archives","Shared"],
+    icon: "ti-folder",
+    children: ["Project Alpha","Project Beta","Research"]
+  },
+  "Project Alpha": {
+    siblings: ["Project Beta","Research"],
+    icon: "ti-folder",
+    children: []
+  }
+};
+
+let path = ["Home","Documents","Projects","Project Alpha"];
+let files = [
+  {name:"brief.pdf", icon:"ti-file-type-pdf"},
+  {name:"notes.txt", icon:"ti-file-type-txt"},
+  {name:"design.png", icon:"ti-photo"},
+  {name:"budget.xlsx", icon:"ti-table"},
+  {name:"readme.md", icon:"ti-markdown"}
+];
+let openDropdown = null;
+let dragFile = null;
+
+function showStatus(msg, type="info") {
+  const el = document.getElementById("status");
+  el.className = "status " + type;
+  document.getElementById("statusText").textContent = msg;
+  clearTimeout(el._t);
+  el._t = setTimeout(()=>el.classList.add("hidden"), 3000);
+}
+
+function closeAllDropdowns() {
+  document.querySelectorAll(".dropdown").forEach(d=>d.remove());
+  document.querySelectorAll(".chevron-btn").forEach(b=>b.classList.remove("open"));
+  openDropdown = null;
+}
+
+function openSiblingDropdown(segWrap, segName, idx) {
+  closeAllDropdowns();
+  const node = tree[segName];
+  if (!node || !node.siblings.length) return;
+
+  const btn = segWrap.querySelector(".chevron-btn");
+  btn.classList.add("open");
+  openDropdown = segName;
+
+  const dd = document.createElement("div");
+  dd.className = "dropdown";
+
+  const cur = document.createElement("div");
+  cur.className = "dropdown-item current";
+  cur.innerHTML = `<i class="ti ${node.icon}" aria-hidden="true"></i>${segName}`;
+  dd.appendChild(cur);
+
+  const div = document.createElement("div");
+  div.className = "divider";
+  dd.appendChild(div);
+
+  node.siblings.forEach(sib => {
+    const it = document.createElement("div");
+    it.className = "dropdown-item";
+    const parentNode = tree[path[idx-1]] || tree["Home"];
+    const sibIcon = "ti-folder";
+    it.innerHTML = `<i class="ti ${sibIcon}" aria-hidden="true"></i>${sib}`;
+    it.addEventListener("click", e => {
+      e.stopPropagation();
+      path = path.slice(0, idx);
+      path[idx] = sib;
+      closeAllDropdowns();
+      render();
+      showStatus(`Navigated to ${sib}`, "info");
+      document.getElementById("navResult").textContent = "Current path: " + path.join(" › ");
+    });
+    dd.appendChild(it);
+  });
+
+  segWrap.appendChild(dd);
+}
+
+function navigateTo(idx) {
+  path = path.slice(0, idx+1);
+  closeAllDropdowns();
+  render();
+  showStatus(`Navigated to ${path[path.length-1]}`, "info");
+  document.getElementById("navResult").textContent = "Current path: " + path.join(" › ");
+}
+
+function render() {
+  const bar = document.getElementById("bcBar");
+  bar.innerHTML = "";
+
+  path.forEach((seg, i) => {
+    if (i > 0) {
+      const s = document.createElement("span");
+      s.className = "sep";
+      s.textContent = "›";
+      bar.appendChild(s);
+    }
+
+    const node = tree[seg] || {siblings:[], icon:"ti-folder"};
+    const isLast = i === path.length - 1;
+
+    const wrap = document.createElement("div");
+    wrap.className = "seg-wrap";
+    wrap.setAttribute("data-idx", i);
+    wrap.setAttribute("data-seg", seg);
+
+    const btn = document.createElement("button");
+    btn.className = "seg" + (isLast ? " active" : "");
+    btn.setAttribute("aria-label", `Navigate to ${seg}`);
+    if (!isLast) btn.setAttribute("aria-label", `Navigate to ${seg}`);
+    btn.innerHTML = `<i class="ti ${node.icon}" aria-hidden="true"></i>${seg}`;
+
+    if (!isLast) {
+      btn.addEventListener("click", () => navigateTo(i));
+    }
+
+    wrap.appendChild(btn);
+
+    if (node.siblings && node.siblings.length > 0 && !isLast) {
+      const ch = document.createElement("button");
+      ch.className = "chevron-btn";
+      ch.setAttribute("aria-label", `Show folders at same level as ${seg}`);
+      ch.innerHTML = `<i class="ti ti-chevron-down" aria-hidden="true"></i>`;
+      ch.addEventListener("click", e => {
+        e.stopPropagation();
+        if (openDropdown === seg) { closeAllDropdowns(); return; }
+        openSiblingDropdown(wrap, seg, i);
+      });
+      wrap.appendChild(ch);
+    }
+
+    wrap.addEventListener("dragover", e => {
+      e.preventDefault();
+      wrap.querySelector(".seg").classList.add("drop-target");
+    });
+    wrap.addEventListener("dragleave", () => {
+      wrap.querySelector(".seg").classList.remove("drop-target");
+    });
+    wrap.addEventListener("drop", e => {
+      e.preventDefault();
+      wrap.querySelector(".seg").classList.remove("drop-target");
+      if (dragFile) {
+        showStatus(`Moved "${dragFile}" to ${seg}`, "success");
+        files = files.filter(f => f.name !== dragFile);
+        dragFile = null;
+        renderFiles();
+      }
+    });
+
+    bar.appendChild(wrap);
+  });
+
+  document.getElementById("navResult").textContent = "Current path: " + path.join(" › ");
+}
+
+function renderFiles() {
+  const grid = document.getElementById("filesGrid");
+  grid.innerHTML = "";
+  if (!files.length) {
+    grid.innerHTML = `<span style="font-size:13px;color:var(--color-text-tertiary)">All files moved.</span>`;
+    return;
+  }
+  files.forEach(f => {
+    const chip = document.createElement("div");
+    chip.className = "file-chip";
+    chip.draggable = true;
+    chip.innerHTML = `<i class="ti ${f.icon}" aria-hidden="true"></i>${f.name}`;
+    chip.addEventListener("dragstart", e => {
+      dragFile = f.name;
+      setTimeout(()=>chip.classList.add("dragging"), 0);
+    });
+    chip.addEventListener("dragend", () => {
+      chip.classList.remove("dragging");
+    });
+    grid.appendChild(chip);
+  });
+}
+
+document.addEventListener("click", e => {
+  if (!e.target.closest(".seg-wrap")) closeAllDropdowns();
+});
+
+render();
+renderFiles();
+</script>

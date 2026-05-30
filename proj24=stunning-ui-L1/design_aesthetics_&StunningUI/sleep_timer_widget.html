@@ -1,0 +1,248 @@
+
+<style>
+  .st-root { padding: 1.5rem 0; max-width: 420px; margin: 0 auto; }
+  .player-card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1.25rem; margin-bottom: 1.25rem; }
+  .track-info { display: flex; align-items: center; gap: 12px; margin-bottom: 1rem; }
+  .album-art { width: 48px; height: 48px; border-radius: var(--border-radius-md); background: linear-gradient(135deg,#AFA9EC,#7F77DD); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .track-meta { flex: 1; min-width: 0; }
+  .track-title { font-size: 15px; font-weight: 500; color: var(--color-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .track-artist { font-size: 13px; color: var(--color-text-secondary); }
+  .progress-bar { height: 3px; background: var(--color-border-tertiary); border-radius: 2px; margin-bottom: 1rem; position: relative; }
+  .progress-fill { height: 100%; width: 38%; background: var(--color-text-primary); border-radius: 2px; transition: width 0.3s; }
+  .controls { display: flex; align-items: center; justify-content: center; gap: 20px; }
+  .ctrl-btn { background: none; border: none; cursor: pointer; color: var(--color-text-secondary); padding: 6px; border-radius: 50%; transition: color 0.15s, background 0.15s; display: flex; align-items: center; justify-content: center; }
+  .ctrl-btn:hover { color: var(--color-text-primary); background: var(--color-background-secondary); }
+  .ctrl-btn.play { width: 40px; height: 40px; background: var(--color-text-primary); color: var(--color-background-primary); border-radius: 50%; }
+  .ctrl-btn.play:hover { opacity: 0.85; }
+  .timer-section { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1.25rem; }
+  .timer-header { font-size: 13px; font-weight: 500; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem; }
+  .timer-options { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 1rem; }
+  .timer-opt { background: none; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); padding: 8px 4px; font-size: 13px; font-weight: 500; color: var(--color-text-secondary); cursor: pointer; text-align: center; transition: all 0.15s; }
+  .timer-opt:hover { border-color: var(--color-border-primary); color: var(--color-text-primary); background: var(--color-background-secondary); }
+  .timer-opt.active { background: var(--color-text-primary); color: var(--color-background-primary); border-color: var(--color-text-primary); }
+  .badge-row { display: flex; align-items: center; gap: 10px; }
+  .sleep-badge { display: none; align-items: center; gap: 8px; background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); border-radius: 99px; padding: 7px 14px; font-size: 14px; font-weight: 500; color: var(--color-text-primary); cursor: pointer; transition: background 0.15s; }
+  .sleep-badge.visible { display: flex; }
+  .sleep-badge:hover { background: var(--color-background-tertiary); }
+  .badge-dot { width: 8px; height: 8px; border-radius: 50%; background: #534AB7; flex-shrink: 0; }
+  .badge-dot.pulsing { animation: pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.8)} }
+  .cancel-btn { background: none; border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); padding: 7px 14px; font-size: 13px; color: var(--color-text-secondary); cursor: pointer; display: none; transition: all 0.15s; }
+  .cancel-btn.visible { display: block; }
+  .cancel-btn:hover { border-color: var(--color-border-secondary); color: var(--color-text-primary); }
+  .set-label { font-size: 13px; color: var(--color-text-secondary); }
+  .popup { display: none; background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1rem 1.25rem; margin-top: 10px; }
+  .popup.visible { display: block; }
+  .popup-title { font-size: 14px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 4px; }
+  .popup-sub { font-size: 13px; color: var(--color-text-secondary); margin-bottom: 12px; }
+  .popup-actions { display: flex; gap: 8px; }
+  .popup-cancel { background: none; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); padding: 7px 16px; font-size: 13px; color: var(--color-text-secondary); cursor: pointer; transition: all 0.15s; }
+  .popup-cancel:hover { color: var(--color-text-primary); border-color: var(--color-border-primary); }
+  .fade-overlay { display: none; position: absolute; inset: 0; background: var(--color-background-primary); border-radius: var(--border-radius-lg); align-items: center; justify-content: center; flex-direction: column; gap: 8px; }
+  .fade-overlay.visible { display: flex; }
+  .player-wrap { position: relative; }
+</style>
+
+<div class="st-root">
+  <h2 class="sr-only">Sleep timer widget — set a countdown to pause playback after a chosen duration.</h2>
+
+  <div class="player-wrap">
+    <div class="player-card" id="player-card">
+      <div class="track-info">
+        <div class="album-art" aria-hidden="true">
+          <i class="ti ti-music" style="font-size:22px;color:#EEEDFE;"></i>
+        </div>
+        <div class="track-meta">
+          <div class="track-title">Weightless</div>
+          <div class="track-artist">Marconi Union</div>
+        </div>
+        <div id="vol-icon" style="color:var(--color-text-secondary);font-size:20px;" aria-hidden="true">
+          <i class="ti ti-volume"></i>
+        </div>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+      <div class="controls">
+        <button class="ctrl-btn" aria-label="Previous"><i class="ti ti-player-skip-back" style="font-size:18px;" aria-hidden="true"></i></button>
+        <button class="ctrl-btn" aria-label="Rewind"><i class="ti ti-player-track-prev" style="font-size:16px;" aria-hidden="true"></i></button>
+        <button class="ctrl-btn play" id="play-btn" aria-label="Pause">
+          <i class="ti ti-player-pause" style="font-size:18px;" aria-hidden="true" id="play-icon"></i>
+        </button>
+        <button class="ctrl-btn" aria-label="Fast forward"><i class="ti ti-player-track-next" style="font-size:16px;" aria-hidden="true"></i></button>
+        <button class="ctrl-btn" aria-label="Next"><i class="ti ti-player-skip-forward" style="font-size:18px;" aria-hidden="true"></i></button>
+      </div>
+    </div>
+    <div class="fade-overlay" id="fade-overlay" role="status" aria-live="polite">
+      <i class="ti ti-moon" style="font-size:28px;color:var(--color-text-secondary);" aria-hidden="true"></i>
+      <div style="font-size:15px;font-weight:500;color:var(--color-text-primary);">Sleep timer ended</div>
+      <div style="font-size:13px;color:var(--color-text-secondary);">Playback paused</div>
+      <button onclick="resetAll()" style="margin-top:8px;background:none;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:7px 18px;font-size:13px;color:var(--color-text-secondary);cursor:pointer;">Reset</button>
+    </div>
+  </div>
+
+  <div class="timer-section">
+    <div class="timer-header">Sleep timer</div>
+    <div class="timer-options" role="group" aria-label="Timer duration options">
+      <button class="timer-opt" data-mins="15" onclick="selectDuration(this,15)">15 min</button>
+      <button class="timer-opt" data-mins="30" onclick="selectDuration(this,30)">30 min</button>
+      <button class="timer-opt" data-mins="60" onclick="selectDuration(this,60)">1 hour</button>
+      <button class="timer-opt" data-mins="-1" onclick="selectDuration(this,-1)">Episode</button>
+    </div>
+    <div class="badge-row">
+      <div class="set-label" id="set-label">Choose a duration above</div>
+      <button class="sleep-badge" id="sleep-badge" onclick="togglePopup()" aria-label="Sleep timer active, tap to manage">
+        <span class="badge-dot pulsing" id="badge-dot"></span>
+        <span id="badge-text">–</span>
+      </button>
+      <button class="cancel-btn" id="cancel-btn" onclick="cancelTimer()" aria-label="Cancel sleep timer">Cancel</button>
+    </div>
+    <div class="popup" id="timer-popup" role="dialog" aria-label="Timer status">
+      <div class="popup-title" id="popup-title">Sleep timer active</div>
+      <div class="popup-sub" id="popup-sub">Playback will pause in –</div>
+      <div class="popup-actions">
+        <button class="popup-cancel" onclick="cancelTimer()">Cancel timer</button>
+        <button class="popup-cancel" onclick="togglePopup()">Dismiss</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let timerInterval = null;
+  let countdownSecs = 0;
+  let isPlaying = true;
+  let selectedMins = null;
+  let fadeInterval = null;
+  let volume = 1;
+
+  function fmtTime(secs) {
+    if (secs <= 0) return "0:00";
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return m + ":" + String(s).padStart(2,"0");
+  }
+
+  function selectDuration(el, mins) {
+    document.querySelectorAll(".timer-opt").forEach(b => b.classList.remove("active"));
+    el.classList.add("active");
+    selectedMins = mins;
+    startTimer(mins);
+  }
+
+  function startTimer(mins) {
+    clearTimerState();
+    if (mins === -1) {
+      countdownSecs = 28 * 60;
+    } else {
+      countdownSecs = mins * 60;
+    }
+    updateBadge();
+    document.getElementById("sleep-badge").classList.add("visible");
+    document.getElementById("cancel-btn").classList.add("visible");
+    document.getElementById("set-label").style.display = "none";
+    timerInterval = setInterval(tick, 1000);
+  }
+
+  function tick() {
+    countdownSecs--;
+    if (countdownSecs <= 0) {
+      triggerSleep();
+      return;
+    }
+    updateBadge();
+    if (document.getElementById("timer-popup").classList.contains("visible")) {
+      updatePopup();
+    }
+  }
+
+  function updateBadge() {
+    const text = countdownSecs > 0 ? fmtTime(countdownSecs) : "0:00";
+    document.getElementById("badge-text").textContent = text;
+  }
+
+  function updatePopup() {
+    document.getElementById("popup-sub").textContent = "Playback will pause in " + fmtTime(countdownSecs);
+    document.getElementById("popup-title").textContent = "Sleep timer active";
+  }
+
+  function togglePopup() {
+    const p = document.getElementById("timer-popup");
+    if (p.classList.contains("visible")) {
+      p.classList.remove("visible");
+    } else {
+      updatePopup();
+      p.classList.add("visible");
+    }
+  }
+
+  function cancelTimer() {
+    clearTimerState();
+    document.getElementById("sleep-badge").classList.remove("visible");
+    document.getElementById("cancel-btn").classList.remove("visible");
+    document.getElementById("timer-popup").classList.remove("visible");
+    document.getElementById("set-label").style.display = "";
+    document.querySelectorAll(".timer-opt").forEach(b => b.classList.remove("active"));
+  }
+
+  function clearTimerState() {
+    if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+    if (fadeInterval) { clearInterval(fadeInterval); fadeInterval = null; }
+  }
+
+  function triggerSleep() {
+    clearTimerState();
+    let opacity = 1;
+    let vol = 1;
+    const steps = 20;
+    const dur = 2000;
+    const step = dur / steps;
+    fadeInterval = setInterval(() => {
+      opacity -= 1/steps;
+      vol -= 1/steps;
+      if (opacity <= 0) {
+        clearInterval(fadeInterval);
+        fadeInterval = null;
+        document.getElementById("player-card").style.opacity = "0";
+        showSleepOverlay();
+      } else {
+        document.getElementById("player-card").style.opacity = String(Math.max(0, opacity));
+      }
+    }, step);
+  }
+
+  function showSleepOverlay() {
+    document.getElementById("fade-overlay").classList.add("visible");
+    document.getElementById("sleep-badge").classList.remove("visible");
+    document.getElementById("cancel-btn").classList.remove("visible");
+    document.getElementById("timer-popup").classList.remove("visible");
+    document.getElementById("set-label").style.display = "";
+    document.querySelectorAll(".timer-opt").forEach(b => b.classList.remove("active"));
+    isPlaying = false;
+  }
+
+  function resetAll() {
+    document.getElementById("fade-overlay").classList.remove("visible");
+    document.getElementById("player-card").style.opacity = "1";
+    isPlaying = true;
+    selectedMins = null;
+    countdownSecs = 0;
+    document.getElementById("set-label").style.display = "";
+    updatePlayIcon();
+  }
+
+  function updatePlayIcon() {
+    const icon = document.getElementById("play-icon");
+    const btn = document.getElementById("play-btn");
+    if (isPlaying) {
+      icon.className = "ti ti-player-pause";
+      btn.setAttribute("aria-label","Pause");
+    } else {
+      icon.className = "ti ti-player-play";
+      btn.setAttribute("aria-label","Play");
+    }
+  }
+
+  document.getElementById("play-btn").addEventListener("click", () => {
+    isPlaying = !isPlaying;
+    updatePlayIcon();
+  });
+</script>

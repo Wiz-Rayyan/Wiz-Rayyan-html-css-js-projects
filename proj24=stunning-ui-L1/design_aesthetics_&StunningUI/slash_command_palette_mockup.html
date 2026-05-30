@@ -1,0 +1,385 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font-sans); }
+  .scene { display: flex; gap: 24px; padding: 1.5rem 0; align-items: flex-start; }
+  .editor-wrap {
+    flex: 1;
+    background: var(--color-background-primary);
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--border-radius-lg);
+    padding: 1.25rem 1.5rem;
+    min-height: 320px;
+    position: relative;
+  }
+  .editor-title {
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--color-text-primary);
+    margin-bottom: 14px;
+    outline: none;
+  }
+  .editor-body {
+    font-size: 15px;
+    color: var(--color-text-secondary);
+    line-height: 1.7;
+    outline: none;
+  }
+  .editor-body p { margin-bottom: 10px; }
+  .editor-body p:last-child { margin-bottom: 0; }
+  .cursor-line {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    min-height: 26px;
+    margin-top: 8px;
+  }
+  .slash-text {
+    font-size: 15px;
+    color: var(--color-text-primary);
+    font-family: var(--font-sans);
+  }
+  .filter-text {
+    font-size: 15px;
+    color: var(--color-text-primary);
+    font-family: var(--font-sans);
+  }
+  .cursor {
+    display: inline-block;
+    width: 2px;
+    height: 18px;
+    background: var(--color-text-primary);
+    margin-left: 1px;
+    animation: blink 1s step-end infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+  .palette {
+    position: absolute;
+    left: 1.5rem;
+    top: 175px;
+    width: 260px;
+    background: var(--color-background-primary);
+    border: 0.5px solid var(--color-border-secondary);
+    border-radius: var(--border-radius-lg);
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    z-index: 10;
+  }
+  .palette-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-bottom: 0.5px solid var(--color-border-tertiary);
+  }
+  .palette-search i { font-size: 15px; color: var(--color-text-tertiary); }
+  .palette-query {
+    font-size: 13px;
+    color: var(--color-text-secondary);
+  }
+  .palette-query span {
+    color: var(--color-text-primary);
+    font-weight: 500;
+  }
+  .cmd-list { padding: 6px 0; }
+  .cmd-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 12px;
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  .cmd-item:hover { background: var(--color-background-secondary); }
+  .cmd-item.active { background: var(--color-background-secondary); }
+  .cmd-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: var(--border-radius-md);
+    background: var(--color-background-secondary);
+    border: 0.5px solid var(--color-border-tertiary);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .cmd-icon i { font-size: 14px; color: var(--color-text-secondary); }
+  .cmd-label { font-size: 13px; color: var(--color-text-primary); }
+  .cmd-shortcut { font-size: 11px; color: var(--color-text-tertiary); margin-left: auto; }
+  .cmd-divider {
+    font-size: 10px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-text-tertiary);
+    padding: 8px 12px 4px;
+  }
+
+  .controls {
+    width: 210px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .ctrl-label {
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-text-tertiary);
+    margin-bottom: 2px;
+  }
+  .ctrl-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 12px;
+    background: var(--color-background-primary);
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--border-radius-md);
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+    font-family: var(--font-sans);
+    transition: background 0.1s;
+  }
+  .ctrl-btn:hover { background: var(--color-background-secondary); }
+  .ctrl-btn i { font-size: 15px; color: var(--color-text-secondary); }
+  .ctrl-btn-text { font-size: 13px; color: var(--color-text-primary); }
+  .ctrl-btn-hint { font-size: 11px; color: var(--color-text-tertiary); margin-left: auto; }
+  .kbd {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 20px; height: 18px; padding: 0 4px;
+    background: var(--color-background-secondary);
+    border: 0.5px solid var(--color-border-secondary);
+    border-radius: 4px;
+    font-size: 11px;
+    color: var(--color-text-secondary);
+    font-family: var(--font-mono);
+  }
+  .inserted-block {
+    border-left: 3px solid #7F77DD;
+    padding: 8px 12px;
+    margin: 10px 0;
+    background: #EEEDFE;
+    border-radius: 0 var(--border-radius-md) var(--border-radius-md) 0;
+    font-size: 14px;
+    font-weight: 500;
+    color: #3C3489;
+    display: none;
+  }
+  .toast {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    background: var(--color-background-secondary);
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--border-radius-md);
+    padding: 7px 12px;
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    display: none;
+    align-items: center;
+    gap: 6px;
+  }
+  .toast.show { display: flex; }
+  .state-label {
+    font-size: 11px;
+    color: var(--color-text-tertiary);
+    text-align: center;
+    padding: 8px 0 2px;
+  }
+</style>
+
+<h2 class="sr-only">Interactive mockup of a slash command palette in a note editor. Type / to open the command menu, filter by typing, navigate with arrow keys, and insert blocks by pressing Enter.</h2>
+
+<div class="scene">
+  <div class="editor-wrap" id="editor">
+    <div class="editor-title">Meeting notes — Q2 planning</div>
+    <div class="editor-body">
+      <p>Attendees: Sarah, Marcus, Priya, Dev</p>
+      <p id="inserted-block-p" style="display:none">
+        <span class="inserted-block" id="inserted-block"></span>
+      </p>
+      <div class="cursor-line">
+        <span class="slash-text" id="slash-char"></span><span class="filter-text" id="filter-text"></span><span class="cursor"></span>
+      </div>
+    </div>
+
+    <div class="palette" id="palette" style="display:none;">
+      <div class="palette-search">
+        <i class="ti ti-terminal-2" aria-hidden="true"></i>
+        <span class="palette-query">/<span id="query-display"></span></span>
+      </div>
+      <div class="cmd-list" id="cmd-list"></div>
+    </div>
+
+    <div class="toast" id="toast">
+      <i class="ti ti-check" style="color: #0F6E56; font-size:14px" aria-hidden="true"></i>
+      <span id="toast-msg"></span>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="ctrl-label">Try it</div>
+    <button class="ctrl-btn" onclick="triggerSlash()">
+      <i class="ti ti-terminal-2" aria-hidden="true"></i>
+      <span class="ctrl-btn-text">Type <kbd class="kbd">/</kbd></span>
+    </button>
+    <button class="ctrl-btn" onclick="typeFilter('head')">
+      <i class="ti ti-filter" aria-hidden="true"></i>
+      <span class="ctrl-btn-text">Filter "head"</span>
+    </button>
+    <button class="ctrl-btn" onclick="typeFilter('code')">
+      <i class="ti ti-filter" aria-hidden="true"></i>
+      <span class="ctrl-btn-text">Filter "code"</span>
+    </button>
+    <button class="ctrl-btn" onclick="navDown()">
+      <i class="ti ti-arrow-down" aria-hidden="true"></i>
+      <span class="ctrl-btn-text">Arrow down</span>
+      <span class="ctrl-btn-hint"><kbd class="kbd">↓</kbd></span>
+    </button>
+    <button class="ctrl-btn" onclick="selectActive()">
+      <i class="ti ti-corner-down-left" aria-hidden="true"></i>
+      <span class="ctrl-btn-text">Insert block</span>
+      <span class="ctrl-btn-hint"><kbd class="kbd">↵</kbd></span>
+    </button>
+    <button class="ctrl-btn" onclick="closeпалитра()">
+      <i class="ti ti-x" aria-hidden="true"></i>
+      <span class="ctrl-btn-text">Dismiss</span>
+      <span class="ctrl-btn-hint"><kbd class="kbd">ESC</kbd></span>
+    </button>
+    <div class="state-label" id="state-label">Idle</div>
+  </div>
+</div>
+
+<script>
+const ALL_COMMANDS = [
+  { icon: 'ti-heading', label: 'Heading 1', group: 'Text', hint: 'H1' },
+  { icon: 'ti-heading', label: 'Heading 2', group: 'Text', hint: 'H2' },
+  { icon: 'ti-heading', label: 'Heading 3', group: 'Text', hint: 'H3' },
+  { icon: 'ti-list', label: 'Bullet list', group: 'Text', hint: '' },
+  { icon: 'ti-checkbox', label: 'Checkbox', group: 'Text', hint: '' },
+  { icon: 'ti-code', label: 'Code block', group: 'Embed', hint: '' },
+  { icon: 'ti-quote', label: 'Quote', group: 'Embed', hint: '' },
+  { icon: 'ti-info-circle', label: 'Callout — info', group: 'Callout', hint: '' },
+  { icon: 'ti-alert-triangle', label: 'Callout — warning', group: 'Callout', hint: '' },
+  { icon: 'ti-bulb', label: 'Callout — tip', group: 'Callout', hint: '' },
+];
+
+let state = 'idle';
+let filter = '';
+let activeIdx = 0;
+let filtered = [];
+
+function setState(s) {
+  state = s;
+  const labels = { idle: 'Idle', open: 'Palette open', filtered: 'Filtering…', inserted: 'Block inserted' };
+  document.getElementById('state-label').textContent = labels[s] || s;
+}
+
+function getFiltered(q) {
+  if (!q) return ALL_COMMANDS;
+  return ALL_COMMANDS.filter(c => c.label.toLowerCase().includes(q.toLowerCase()));
+}
+
+function renderPalette() {
+  const list = document.getElementById('cmd-list');
+  document.getElementById('query-display').textContent = filter;
+  list.innerHTML = '';
+  if (filtered.length === 0) {
+    list.innerHTML = '<div style="padding:14px 12px;font-size:13px;color:var(--color-text-tertiary)">No results</div>';
+    return;
+  }
+  let lastGroup = null;
+  filtered.forEach((cmd, i) => {
+    if (cmd.group !== lastGroup) {
+      const div = document.createElement('div');
+      div.className = 'cmd-divider';
+      div.textContent = cmd.group;
+      list.appendChild(div);
+      lastGroup = cmd.group;
+    }
+    const item = document.createElement('div');
+    item.className = 'cmd-item' + (i === activeIdx ? ' active' : '');
+    item.innerHTML = `<div class="cmd-icon"><i class="ti ${cmd.icon}" aria-hidden="true"></i></div><span class="cmd-label">${cmd.label}</span>${cmd.hint ? `<span class="cmd-shortcut">${cmd.hint}</span>` : ''}`;
+    item.onclick = () => { activeIdx = i; insertBlock(); };
+    list.appendChild(item);
+  });
+}
+
+function triggerSlash() {
+  filter = '';
+  activeIdx = 0;
+  filtered = getFiltered('');
+  document.getElementById('slash-char').textContent = '/';
+  document.getElementById('filter-text').textContent = '';
+  document.getElementById('palette').style.display = 'block';
+  document.getElementById('inserted-block-p').style.display = 'none';
+  renderPalette();
+  setState('open');
+}
+
+function typeFilter(q) {
+  if (state === 'idle') triggerSlash();
+  filter = q;
+  activeIdx = 0;
+  filtered = getFiltered(filter);
+  document.getElementById('filter-text').textContent = filter;
+  document.getElementById('query-display').textContent = filter;
+  renderPalette();
+  setState('filtered');
+}
+
+function navDown() {
+  if (state === 'idle') { triggerSlash(); return; }
+  if (filtered.length === 0) return;
+  activeIdx = (activeIdx + 1) % filtered.length;
+  renderPalette();
+}
+
+function selectActive() {
+  if (state === 'idle' || filtered.length === 0) return;
+  insertBlock();
+}
+
+function insertBlock() {
+  const cmd = filtered[activeIdx];
+  if (!cmd) return;
+  document.getElementById('palette').style.display = 'none';
+  document.getElementById('slash-char').textContent = '';
+  document.getElementById('filter-text').textContent = '';
+  const block = document.getElementById('inserted-block');
+  const icons = { 'ti-heading': '# ', 'ti-list': '• ', 'ti-checkbox': '☐ ', 'ti-code': '</> ', 'ti-quote': '" ', 'ti-info-circle': 'ℹ ', 'ti-alert-triangle': '⚠ ', 'ti-bulb': '💡 ' };
+  const prefix = icons[cmd.icon] || '';
+  block.textContent = prefix + cmd.label + ' block inserted';
+  block.style.display = 'block';
+  document.getElementById('inserted-block-p').style.display = 'block';
+  filter = '';
+  filtered = [];
+  showToast(`"${cmd.label}" inserted`);
+  setState('inserted');
+  setTimeout(() => {
+    block.style.display = 'none';
+    document.getElementById('inserted-block-p').style.display = 'none';
+    setState('idle');
+  }, 2400);
+}
+
+function closepalитра() { closeПалитра(); }
+function closepalitka() { closeПалитра(); }
+function closeПалитра() {
+  document.getElementById('palette').style.display = 'none';
+  document.getElementById('slash-char').textContent = '';
+  document.getElementById('filter-text').textContent = '';
+  filter = '';
+  filtered = [];
+  setState('idle');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  document.getElementById('toast-msg').textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+</script>

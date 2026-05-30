@@ -1,0 +1,226 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.board{display:flex;gap:14px;padding:1rem 0;align-items:flex-start;min-height:520px}
+.col{flex:1;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:12px;min-height:200px;display:flex;flex-direction:column;gap:8px}
+.col-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.col-title{font-size:13px;font-weight:500;color:var(--color-text-primary)}
+.col-meta{display:flex;align-items:center;gap:8px}
+.col-count{font-size:11px;font-weight:500;padding:2px 7px;border-radius:20px;background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);color:var(--color-text-secondary)}
+.add-btn{background:none;border:none;cursor:pointer;color:var(--color-text-tertiary);font-size:18px;line-height:1;padding:0 2px;border-radius:4px;transition:color .15s}
+.add-btn:hover{color:var(--color-text-primary)}
+.card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:10px 12px;cursor:grab;user-select:none;transition:box-shadow .15s,opacity .15s}
+.card:hover{border-color:var(--color-border-secondary)}
+.card.dragging{opacity:0.45;cursor:grabbing}
+.card-title{font-size:13px;font-weight:500;color:var(--color-text-primary);margin-bottom:4px}
+.card-desc{font-size:12px;color:var(--color-text-secondary);line-height:1.5}
+.card-footer{display:flex;align-items:center;justify-content:space-between;margin-top:8px}
+.assignee{font-size:11px;color:var(--color-text-tertiary);display:flex;align-items:center;gap:5px}
+.avatar{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:500;flex-shrink:0}
+.tag{font-size:10px;padding:2px 7px;border-radius:20px;font-weight:500}
+.tag-purple{background:#EEEDFE;color:#3C3489}
+.tag-teal{background:#E1F5EE;color:#085041}
+.tag-amber{background:#FAEEDA;color:#633806}
+.placeholder{border:1.5px dashed var(--color-border-secondary);border-radius:var(--border-radius-md);height:60px;background:var(--color-background-tertiary);flex-shrink:0}
+.drop-active{background:var(--color-background-primary);border-color:var(--color-border-primary)}
+
+.modal-bg{position:absolute;inset:0;background:rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;z-index:100;border-radius:var(--border-radius-lg)}
+.modal{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:20px;width:300px}
+.modal h3{font-size:15px;font-weight:500;color:var(--color-text-primary);margin-bottom:16px}
+.field{margin-bottom:12px}
+.field label{font-size:12px;color:var(--color-text-secondary);display:block;margin-bottom:5px}
+.field input,.field textarea{width:100%;font-size:13px;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:7px 10px;background:var(--color-background-secondary);color:var(--color-text-primary);resize:none}
+.modal-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+.btn-secondary{padding:6px 14px;font-size:13px;cursor:pointer;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:none;color:var(--color-text-secondary)}
+.btn-primary{padding:6px 14px;font-size:13px;cursor:pointer;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-info,#185FA5);background:var(--color-background-info,#E6F1FB);color:var(--color-text-info,#185FA5)}
+</style>
+
+<h2 class="sr-only">Kanban board with To Do, In Progress, and Done columns. Drag cards between columns to update their status.</h2>
+
+<div style="position:relative" id="app">
+<div class="board" id="board">
+</div>
+</div>
+
+<script>
+const COLS = ['To Do','In Progress','Done'];
+const COLORS = {
+  'To Do':     {bg:'#EEEDFE',text:'#3C3489'},
+  'In Progress':{bg:'#FAEEDA',text:'#633806'},
+  'Done':      {bg:'#EAF3DE',text:'#27500A'},
+};
+const TAGS = {
+  'To Do': ['Design','Research'],
+  'In Progress': ['Dev','Review'],
+  'Done': ['Dev','Design','QA'],
+};
+
+let cards = [
+  {id:'c1',col:'To Do',title:'Define user personas',desc:'Interview 5 users, synthesize insights',assignee:'AR',tag:'Research'},
+  {id:'c2',col:'To Do',title:'Homepage redesign',desc:'Update hero section and CTA',assignee:'SK',tag:'Design'},
+  {id:'c3',col:'To Do',title:'API rate limiting',desc:'Add throttling to public endpoints',assignee:'NP',tag:'Dev'},
+  {id:'c4',col:'In Progress',title:'Auth flow revamp',desc:'OAuth2 + magic link support',assignee:'AR',tag:'Dev'},
+  {id:'c5',col:'In Progress',title:'Design system tokens',desc:'Migrate to new color variables',assignee:'SK',tag:'Design'},
+  {id:'c6',col:'Done',title:'Onboarding email sequence',desc:'5-part drip campaign written',assignee:'ML',tag:'Design'},
+  {id:'c7',col:'Done',title:'DB migration script',desc:'Postgres → RDS, zero downtime',assignee:'NP',tag:'Dev'},
+  {id:'c8',col:'Done',title:'Accessibility audit',desc:'WCAG 2.1 AA pass',assignee:'AR',tag:'QA'},
+];
+
+let dragCard = null, dragClone = null, curPlaceholder = null, modalCard = null;
+
+const avatarColors = ['#EEEDFE:#3C3489','#E1F5EE:#085041','#FAEEDA:#633806','#FAECE7:#712B13'];
+function avColor(initials){const i=(initials.charCodeAt(0)+initials.charCodeAt(1))%4;return avatarColors[i].split(':');}
+
+function tagClass(tag){
+  const m={'Design':'tag-purple','Research':'tag-teal','Dev':'tag-purple','Review':'tag-amber','QA':'tag-teal'};
+  return m[tag]||'tag-teal';
+}
+
+function colCount(col){return cards.filter(c=>c.col===col).length;}
+
+function render(){
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+
+  COLS.forEach(col=>{
+    const colDiv = document.createElement('div');
+    colDiv.className='col';
+    colDiv.dataset.col=col;
+
+    const hdr = document.createElement('div');
+    hdr.className='col-header';
+    const {bg,text}=COLORS[col];
+    hdr.innerHTML=`<div style="display:flex;align-items:center;gap:7px">
+      <div style="width:8px;height:8px;border-radius:50%;background:${text};opacity:.7"></div>
+      <span class="col-title">${col}</span>
+    </div>
+    <div class="col-meta">
+      <span class="col-count" id="cnt-${col.replace(/ /g,'-')}">${colCount(col)}</span>
+      <button class="add-btn" title="Add card" data-col="${col}" aria-label="Add card to ${col}"><i class="ti ti-plus" aria-hidden="true"></i></button>
+    </div>`;
+    colDiv.appendChild(hdr);
+
+    cards.filter(c=>c.col===col).forEach(card=>{
+      const div = document.createElement('div');
+      div.className='card';
+      div.dataset.id=card.id;
+      const av=avColor(card.assignee);
+      div.innerHTML=`<div class="card-title">${card.title}</div>
+        <div class="card-desc">${card.desc}</div>
+        <div class="card-footer">
+          <div class="assignee">
+            <div class="avatar" style="background:${av[0]};color:${av[1]}">${card.assignee}</div>
+            <span>${card.assignee}</span>
+          </div>
+          <span class="tag ${tagClass(card.tag)}">${card.tag}</span>
+        </div>`;
+
+      div.addEventListener('mousedown', e=>{
+        if(e.target.closest('.add-btn')) return;
+        startDrag(e, card.id, div);
+      });
+      div.addEventListener('dblclick', e=>{
+        e.stopPropagation();
+        openModal(card.id);
+      });
+
+      colDiv.appendChild(div);
+    });
+
+    colDiv.addEventListener('dragover', e=>e.preventDefault());
+    board.appendChild(colDiv);
+  });
+
+  document.querySelectorAll('.add-btn').forEach(btn=>{
+    btn.addEventListener('click', e=>{
+      e.stopPropagation();
+      openModal(null, btn.dataset.col);
+    });
+  });
+}
+
+function startDrag(e, cardId, el){
+  dragCard = cardId;
+  el.classList.add('dragging');
+
+  curPlaceholder = document.createElement('div');
+  curPlaceholder.className='placeholder';
+  el.after(curPlaceholder);
+
+  const onMove = ev=>{
+    const target = document.elementFromPoint(ev.clientX, ev.clientY);
+    const col = target?.closest('.col');
+    if(!col) return;
+    const sibling = [...col.querySelectorAll('.card:not(.dragging),.placeholder')].find(s=>{
+      const r=s.getBoundingClientRect();
+      return ev.clientY < r.top + r.height/2;
+    });
+    if(sibling) col.insertBefore(curPlaceholder, sibling);
+    else col.appendChild(curPlaceholder);
+  };
+
+  const onUp = ev=>{
+    el.classList.remove('dragging');
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+    const col = curPlaceholder?.closest('.col');
+    if(col){
+      const newCol = col.dataset.col;
+      const card = cards.find(c=>c.id===cardId);
+      if(card) card.col = newCol;
+    }
+    dragCard=null;
+    curPlaceholder?.remove();
+    curPlaceholder=null;
+    render();
+  };
+
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+}
+
+function openModal(cardId, defaultCol){
+  const app = document.getElementById('app');
+  const card = cardId ? cards.find(c=>c.id===cardId) : null;
+
+  const bg = document.createElement('div');
+  bg.className='modal-bg';
+
+  const tagOpts = ['Design','Research','Dev','Review','QA'].map(t=>`<option${card?.tag===t?' selected':''}>${t}</option>`).join('');
+  const colOpts = COLS.map(c=>`<option${(card?.col||defaultCol)===c?' selected':''}>${c}</option>`).join('');
+
+  bg.innerHTML=`<div class="modal">
+    <h3>${card ? 'Edit card' : 'New card'}</h3>
+    <div class="field"><label>Title</label><input id="m-title" value="${card?.title||''}"></div>
+    <div class="field"><label>Description</label><textarea id="m-desc" rows="2">${card?.desc||''}</textarea></div>
+    <div class="field"><label>Assignee initials</label><input id="m-assignee" value="${card?.assignee||''}" maxlength="3" style="max-width:100px"></div>
+    <div class="field"><label>Column</label><select id="m-col">${colOpts}</select></div>
+    <div class="field"><label>Tag</label><select id="m-tag">${tagOpts}</select></div>
+    <div class="modal-footer">
+      ${card?`<button class="btn-secondary" id="m-delete"><i class="ti ti-trash" aria-hidden="true"></i></button>`:''}
+      <button class="btn-secondary" id="m-cancel">Cancel</button>
+      <button class="btn-primary" id="m-save">Save</button>
+    </div>
+  </div>`;
+
+  bg.querySelector('#m-cancel').onclick=()=>bg.remove();
+  bg.querySelector('#m-save').onclick=()=>{
+    const title=bg.querySelector('#m-title').value.trim();
+    if(!title) return;
+    const desc=bg.querySelector('#m-desc').value.trim();
+    const assignee=(bg.querySelector('#m-assignee').value.trim().toUpperCase()||'??').slice(0,2);
+    const col=bg.querySelector('#m-col').value;
+    const tag=bg.querySelector('#m-tag').value;
+    if(card){Object.assign(card,{title,desc,assignee,col,tag});}
+    else{cards.push({id:'c'+(Date.now()),col,title,desc,assignee,tag});}
+    bg.remove();render();
+  };
+  if(card) bg.querySelector('#m-delete').onclick=()=>{
+    cards=cards.filter(c=>c.id!==cardId);bg.remove();render();
+  };
+  bg.addEventListener('click',e=>{if(e.target===bg)bg.remove();});
+  app.appendChild(bg);
+}
+
+render();
+</script>

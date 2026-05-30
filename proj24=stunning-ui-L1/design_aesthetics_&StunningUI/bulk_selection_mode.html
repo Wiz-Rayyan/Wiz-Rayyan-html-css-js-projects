@@ -1,0 +1,149 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.shell{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);overflow:hidden;font-size:14px;color:var(--color-text-primary)}
+.toolbar{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:0.5px solid var(--color-border-tertiary);background:var(--color-background-secondary)}
+.toolbar-title{font-size:13px;font-weight:500;color:var(--color-text-secondary);flex:1}
+.btn-sel{font-size:12px;padding:4px 10px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:transparent;color:var(--color-text-secondary);cursor:pointer;white-space:nowrap}
+.btn-sel:hover{background:var(--color-background-secondary)}
+.btn-sel.active{background:#E6F1FB;border-color:#185FA5;color:#185FA5}
+.action-bar{display:flex;align-items:center;gap:8px;padding:9px 14px;background:#E6F1FB;border-bottom:0.5px solid #B5D4F4;transition:all .15s}
+.action-bar.hidden{display:none}
+.sel-count{font-size:13px;font-weight:500;color:#0C447C;flex:1}
+.act-btn{display:flex;align-items:center;gap:5px;font-size:12px;padding:5px 11px;border:0.5px solid #B5D4F4;border-radius:var(--border-radius-md);background:var(--color-background-primary);color:#185FA5;cursor:pointer}
+.act-btn:hover{background:#B5D4F4}
+.act-btn.danger{color:#A32D2D;border-color:#F7C1C1}
+.act-btn.danger:hover{background:#F7C1C1}
+.act-btn i{font-size:14px}
+.esc-btn{margin-left:auto;font-size:12px;padding:5px 11px;border:none;background:transparent;color:#185FA5;cursor:pointer;border-radius:var(--border-radius-md)}
+.esc-btn:hover{background:#B5D4F4}
+.file-list{padding:4px 0}
+.file-row{display:flex;align-items:center;gap:10px;padding:7px 14px;cursor:pointer;position:relative;transition:background .1s;user-select:none}
+.file-row:hover{background:var(--color-background-secondary)}
+.file-row.selected{background:#E6F1FB}
+.file-row.selected:hover{background:#d0e8f8}
+.cb-wrap{width:18px;height:18px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.cb{width:15px;height:15px;border-radius:3px;border:1.5px solid var(--color-border-secondary);background:var(--color-background-primary);display:flex;align-items:center;justify-content:center;transition:all .1s;flex-shrink:0}
+.cb.checked{background:#185FA5;border-color:#185FA5}
+.cb.checked::after{content:'';display:block;width:8px;height:5px;border-left:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(-45deg) translate(1px,-1px)}
+.file-icon{font-size:18px;color:var(--color-text-secondary);flex-shrink:0;width:22px;text-align:center}
+.file-icon.folder{color:#185FA5}
+.file-icon.img{color:#3B6D11}
+.file-icon.doc{color:#185FA5}
+.file-icon.zip{color:#854F0B}
+.file-name{flex:1;font-size:13px;color:var(--color-text-primary)}
+.file-meta{font-size:12px;color:var(--color-text-secondary);min-width:80px;text-align:right}
+.hint{font-size:11px;color:var(--color-text-tertiary);padding:6px 14px 10px;border-top:0.5px solid var(--color-border-tertiary);margin-top:2px}
+.hint span{margin-right:12px}
+</style>
+
+<h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">Bulk selection file manager demo — hover to reveal checkboxes, click to select, shift+click for range, cmd/ctrl+click for multi-select</h2>
+
+<div class="shell">
+  <div class="toolbar">
+    <span class="toolbar-title">My Files</span>
+    <button class="btn-sel" id="toggle-sel-btn" onclick="toggleSelMode()"><i class="ti ti-checkbox" aria-hidden="true"></i> Select</button>
+  </div>
+
+  <div class="action-bar hidden" id="action-bar">
+    <span class="sel-count" id="sel-count">0 selected</span>
+    <button class="act-btn" onclick="doAction('Copy')"><i class="ti ti-copy" aria-hidden="true"></i> Copy</button>
+    <button class="act-btn" onclick="doAction('Move')"><i class="ti ti-folder-share" aria-hidden="true"></i> Move</button>
+    <button class="act-btn" onclick="doAction('Share')"><i class="ti ti-share" aria-hidden="true"></i> Share</button>
+    <button class="act-btn danger" onclick="doAction('Delete')"><i class="ti ti-trash" aria-hidden="true"></i> Delete</button>
+    <button class="esc-btn" onclick="clearSelection()" title="Clear selection (Esc)"><i class="ti ti-x" aria-hidden="true"></i></button>
+  </div>
+
+  <div class="file-list" id="file-list"></div>
+  <div class="hint"><span><i class="ti ti-mouse" aria-hidden="true"></i> Click to select</span><span><i class="ti ti-arrow-up" aria-hidden="true"></i>Shift+click for range</span><span><i class="ti ti-command" aria-hidden="true"></i>Cmd/Ctrl+click to toggle</span><span><i class="ti ti-keyboard" aria-hidden="true"></i>Esc to clear</span></div>
+</div>
+
+<script>
+const files=[
+  {name:'Design Assets',type:'folder',size:'—',icon:'ti-folder',cls:'folder'},
+  {name:'Q2 Report.docx',type:'doc',size:'240 KB',icon:'ti-file-text',cls:'doc'},
+  {name:'Hero Image.png',type:'img',size:'1.8 MB',icon:'ti-photo',cls:'img'},
+  {name:'Project Plan.docx',type:'doc',size:'88 KB',icon:'ti-file-text',cls:'doc'},
+  {name:'Brand Guidelines.pdf',type:'pdf',size:'4.1 MB',icon:'ti-file-description',cls:'doc'},
+  {name:'Source Code.zip',type:'zip',size:'12.3 MB',icon:'ti-file-zip',cls:'zip'},
+  {name:'Mockups',type:'folder',size:'—',icon:'ti-folder',cls:'folder'},
+  {name:'Budget 2026.xlsx',type:'doc',size:'312 KB',icon:'ti-table',cls:'doc'},
+  {name:'Team Photo.jpg',type:'img',size:'3.2 MB',icon:'ti-photo',cls:'img'},
+  {name:'Changelog.md',type:'doc',size:'18 KB',icon:'ti-file-text',cls:'doc'},
+];
+
+let selected=new Set();
+let lastClicked=null;
+let selMode=false;
+
+function renderList(){
+  const list=document.getElementById('file-list');
+  list.innerHTML='';
+  files.forEach((f,i)=>{
+    const row=document.createElement('div');
+    row.className='file-row'+(selected.has(i)?' selected':'');
+    row.innerHTML=`<div class="cb-wrap"><div class="cb${selected.has(i)?' checked':''}"></div></div><i class="ti ${f.icon} file-icon ${f.cls}" aria-hidden="true"></i><span class="file-name">${f.name}</span><span class="file-meta">${f.size}</span>`;
+    row.addEventListener('click',e=>handleClick(e,i));
+    list.appendChild(row);
+  });
+  updateActionBar();
+}
+
+function handleClick(e,i){
+  if(e.shiftKey && lastClicked!==null){
+    const lo=Math.min(lastClicked,i), hi=Math.max(lastClicked,i);
+    for(let j=lo;j<=hi;j++) selected.add(j);
+  } else if(e.metaKey||e.ctrlKey){
+    selected.has(i)?selected.delete(i):selected.add(i);
+    lastClicked=i;
+  } else {
+    if(!selMode&&selected.size===0){
+      selected.add(i);
+    } else if(selected.has(i)&&selected.size===1&&!selMode){
+      selected.clear();
+    } else {
+      selected.has(i)?selected.delete(i):selected.add(i);
+    }
+    lastClicked=i;
+  }
+  renderList();
+}
+
+function updateActionBar(){
+  const bar=document.getElementById('action-bar');
+  const cnt=document.getElementById('sel-count');
+  if(selected.size>0){
+    bar.classList.remove('hidden');
+    cnt.textContent=selected.size+' item'+(selected.size>1?'s':'')+' selected';
+  } else {
+    bar.classList.add('hidden');
+  }
+  const btn=document.getElementById('toggle-sel-btn');
+  btn.className='btn-sel'+(selMode?' active':'');
+}
+
+function toggleSelMode(){
+  selMode=!selMode;
+  if(!selMode) clearSelection();
+  else updateActionBar();
+  document.getElementById('toggle-sel-btn').className='btn-sel'+(selMode?' active':'');
+}
+
+function clearSelection(){
+  selected.clear();
+  lastClicked=null;
+  selMode=false;
+  renderList();
+  document.getElementById('toggle-sel-btn').className='btn-sel';
+}
+
+function doAction(action){
+  const names=[...selected].map(i=>files[i].name);
+  const msg=action+' '+selected.size+' item'+(selected.size>1?'s':'')+': '+names.join(', ');
+  clearSelection();
+  sendPrompt(msg);
+}
+
+document.addEventListener('keydown',e=>{if(e.key==='Escape') clearSelection()});
+renderList();
+</script>

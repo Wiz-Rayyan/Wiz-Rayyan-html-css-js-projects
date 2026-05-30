@@ -1,0 +1,279 @@
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.player-wrap{padding:1.5rem 0;font-family:var(--font-sans)}
+.video-surface{width:100%;aspect-ratio:16/9;background:#0a0a0f;border-radius:var(--border-radius-lg);position:relative;overflow:hidden;border:0.5px solid var(--color-border-tertiary)}
+.scene-canvas{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.scene-label{color:rgba(255,255,255,0.18);font-size:13px;letter-spacing:.04em}
+.play-indicator{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,0.12);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s}
+.play-indicator:hover{background:rgba(255,255,255,0.2)}
+.play-indicator i{color:#fff;font-size:20px;margin-left:3px}
+.controls{padding:12px 0 0}
+.progress-area{position:relative;padding:8px 0;cursor:pointer}
+.progress-track{height:4px;background:var(--color-background-secondary);border-radius:2px;position:relative;overflow:visible}
+.progress-buf{height:100%;background:rgba(255,255,255,0.18);border-radius:2px;position:absolute;left:0;top:0;width:62%}
+.progress-fill{height:100%;background:var(--color-text-primary);border-radius:2px;position:absolute;left:0;top:0;transition:width .05s}
+.scrubber{position:absolute;top:50%;transform:translate(-50%,-50%);width:14px;height:14px;border-radius:50%;background:var(--color-text-primary);box-shadow:0 0 0 2px var(--color-background-primary);cursor:grab;transition:transform .1s}
+.scrubber:active{cursor:grabbing;transform:translate(-50%,-50%) scale(1.2)}
+.thumb-tooltip{position:absolute;bottom:calc(100% + 20px);transform:translateX(-50%);pointer-events:none;display:none;flex-direction:column;align-items:center;gap:6px;z-index:10}
+.thumb-tooltip.visible{display:flex}
+.thumb-frame{width:144px;height:81px;border-radius:6px;border:1.5px solid var(--color-border-primary);overflow:hidden;position:relative;flex-shrink:0}
+.thumb-ts{font-size:11px;font-weight:500;background:var(--color-background-primary);color:var(--color-text-primary);padding:3px 8px;border-radius:4px;border:0.5px solid var(--color-border-tertiary);white-space:nowrap}
+.thumb-arrow{width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:6px solid var(--color-border-secondary)}
+.meta-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0 0}
+.time-display{font-size:13px;color:var(--color-text-secondary);font-variant-numeric:tabular-nums}
+.ctrl-btns{display:flex;align-items:center;gap:4px}
+.ctrl-btn{background:none;border:none;cursor:pointer;color:var(--color-text-secondary);padding:4px;border-radius:4px;display:flex;align-items:center;font-size:18px;transition:color .12s}
+.ctrl-btn:hover{color:var(--color-text-primary)}
+.state-tag{font-size:11px;padding:2px 8px;border-radius:var(--border-radius-md);font-weight:500}
+.state-seek{background:var(--color-background-info);color:var(--color-text-info)}
+.state-play{background:var(--color-background-success);color:var(--color-text-success)}
+.state-drag{background:var(--color-background-warning);color:var(--color-text-warning)}
+.legend{display:flex;gap:16px;flex-wrap:wrap;padding-top:1rem;border-top:0.5px solid var(--color-border-tertiary);margin-top:.5rem}
+.leg-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--color-text-secondary)}
+.leg-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+</style>
+
+<h2 class="sr-only">Interactive video seek bar with thumbnail preview on hover</h2>
+
+<div class="player-wrap">
+
+<div class="video-surface" id="videoSurface">
+  <div class="scene-canvas" id="sceneCanvas">
+    <canvas id="sceneViz" width="680" height="382" style="width:100%;height:100%"></canvas>
+  </div>
+  <div class="play-indicator" id="playBtn" title="Play/Pause">
+    <i class="ti ti-player-play" id="playIcon"></i>
+  </div>
+</div>
+
+<div class="controls">
+  <div class="progress-area" id="progressArea" role="slider" aria-label="Video progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+    <div class="progress-track" id="progressTrack">
+      <div class="progress-buf"></div>
+      <div class="progress-fill" id="progressFill" style="width:0%"></div>
+      <div class="scrubber" id="scrubber" style="left:0%"></div>
+    </div>
+    <div class="thumb-tooltip" id="thumbTooltip">
+      <div class="thumb-frame"><canvas id="thumbCanvas" width="144" height="81"></canvas></div>
+      <div class="thumb-ts" id="thumbTs">0:00</div>
+      <div class="thumb-arrow"></div>
+    </div>
+  </div>
+
+  <div class="meta-row">
+    <span class="time-display"><span id="curTime">0:00</span> / <span id="durTime">3:42</span></span>
+    <div class="ctrl-btns">
+      <span class="state-tag" id="stateTag" style="display:none"></span>
+      <button class="ctrl-btn" title="Volume"><i class="ti ti-volume"></i></button>
+      <button class="ctrl-btn" title="Fullscreen"><i class="ti ti-arrows-maximize"></i></button>
+    </div>
+  </div>
+</div>
+
+<div class="legend" aria-hidden="true">
+  <div class="leg-item"><div class="leg-dot" style="background:#378ADD"></div>Hover — thumbnail preview</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#639922"></div>Click — seek to position</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#BA7517"></div>Drag — scrub continuously</div>
+  <div class="leg-item"><div class="leg-dot" style="background:rgba(255,255,255,0.25);border:1px solid #888"></div>Buffer indicator</div>
+</div>
+</div>
+
+<script>
+const DURATION = 222;
+const SCENES = [
+  {t:0,   label:"Opening titles",  hue:"210,80%,14%"},
+  {t:30,  label:"City dawn",       hue:"30,70%,14%"},
+  {t:70,  label:"Forest sequence", hue:"130,50%,12%"},
+  {t:120, label:"Rainstorm",       hue:"220,60%,11%"},
+  {t:160, label:"Chase scene",     hue:"0,60%,13%"},
+  {t:200, label:"Resolution",      hue:"260,50%,13%"},
+];
+
+const THUMB_PALETTES = [
+  ["#0d2137","#1a4060","#2a6896","#4a90c4","#8bbee8"],
+  ["#1f1205","#3d2510","#7a4f20","#c08040","#e8b870"],
+  ["#081f08","#163516","#2a6030","#4a9858","#80c890"],
+  ["#0a1625","#162a45","#204060","#3070a0","#60a0d0"],
+  ["#200808","#401515","#803030","#b85050","#e08080"],
+  ["#151028","#2a2050","#483888","#7060b8","#a898e0"],
+];
+
+let currentTime = 0;
+let playing = false;
+let dragging = false;
+let hovering = false;
+let playInterval = null;
+let stateTimeout = null;
+
+const progressArea = document.getElementById('progressArea');
+const progressTrack = document.getElementById('progressTrack');
+const progressFill = document.getElementById('progressFill');
+const scrubber = document.getElementById('scrubber');
+const thumbTooltip = document.getElementById('thumbTooltip');
+const thumbTs = document.getElementById('thumbTs');
+const thumbCanvas = document.getElementById('thumbCanvas');
+const thumbCtx = thumbCanvas.getContext('2d');
+const sceneViz = document.getElementById('sceneViz');
+const svCtx = sceneViz.getContext('2d');
+const curTimeEl = document.getElementById('curTime');
+const stateTag = document.getElementById('stateTag');
+const playIcon = document.getElementById('playIcon');
+
+function fmtTime(s){
+  const m=Math.floor(s/60);
+  const sec=Math.floor(s%60);
+  return `${m}:${sec.toString().padStart(2,'0')}`;
+}
+
+function getSceneIdx(t){
+  let idx=0;
+  for(let i=0;i<SCENES.length;i++){if(t>=SCENES[i].t)idx=i;}
+  return idx;
+}
+
+function showState(label,cls){
+  clearTimeout(stateTimeout);
+  stateTag.textContent=label;
+  stateTag.className='state-tag '+cls;
+  stateTag.style.display='inline-block';
+  if(!dragging&&!hovering){
+    stateTimeout=setTimeout(()=>stateTag.style.display='none',1200);
+  }
+}
+
+function drawScene(t,ctx,w,h){
+  const idx=getSceneIdx(t);
+  const pal=THUMB_PALETTES[idx];
+  const progress=(t-SCENES[idx].t)/(((SCENES[idx+1]||{t:DURATION}).t)-SCENES[idx].t||1);
+  ctx.fillStyle=pal[0];ctx.fillRect(0,0,w,h);
+  const grad=ctx.createLinearGradient(0,0,w,h);
+  grad.addColorStop(0,pal[1]);grad.addColorStop(1,pal[2]);
+  ctx.fillStyle=grad;ctx.fillRect(0,0,w,h*0.65);
+  ctx.fillStyle=pal[3];
+  for(let i=0;i<3;i++){
+    const bx=(i*0.35+0.1+progress*0.05)*w;
+    const bh=(0.3+i*0.15)*h;
+    ctx.fillRect(bx,h-bh,w*0.06,bh);
+  }
+  ctx.strokeStyle=pal[4];ctx.lineWidth=h*0.004;
+  ctx.beginPath();
+  for(let x=0;x<=w;x+=2){
+    const y=h*0.4+Math.sin(x/w*Math.PI*4+t*0.5)*h*0.06;
+    x===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  }
+  ctx.stroke();
+  ctx.fillStyle='rgba(255,255,255,0.04)';
+  ctx.fillRect(0,h*0.62,w,h*0.38);
+}
+
+function renderMain(){
+  drawScene(currentTime,svCtx,680,382);
+}
+
+function renderThumb(t){
+  drawScene(t,thumbCtx,144,81);
+}
+
+function setProgress(pct){
+  pct=Math.max(0,Math.min(1,pct));
+  currentTime=pct*DURATION;
+  progressFill.style.width=(pct*100)+'%';
+  scrubber.style.left=(pct*100)+'%';
+  curTimeEl.textContent=fmtTime(currentTime);
+  progressArea.setAttribute('aria-valuenow',Math.round(pct*100));
+  renderMain();
+}
+
+function getPct(e){
+  const rect=progressTrack.getBoundingClientRect();
+  return (e.clientX-rect.left)/rect.width;
+}
+
+function positionTooltip(pct){
+  const rect=progressTrack.getBoundingClientRect();
+  const px=pct*rect.width;
+  const ttw=160;
+  const clamped=Math.max(ttw/2,Math.min(rect.width-ttw/2,px));
+  thumbTooltip.style.left=clamped+'px';
+}
+
+progressArea.addEventListener('mouseenter',()=>{
+  hovering=true;
+  thumbTooltip.classList.add('visible');
+  showState('Hover — preview','state-seek');
+  stateTag.style.display='inline-block';
+});
+
+progressArea.addEventListener('mouseleave',()=>{
+  if(!dragging){
+    hovering=false;
+    thumbTooltip.classList.remove('visible');
+    stateTag.style.display='none';
+  }
+});
+
+progressArea.addEventListener('mousemove',e=>{
+  const pct=getPct(e);
+  const hoverTime=Math.max(0,Math.min(DURATION,pct*DURATION));
+  thumbTs.textContent=fmtTime(hoverTime);
+  renderThumb(hoverTime);
+  positionTooltip(Math.max(0,Math.min(1,pct)));
+  if(!dragging)showState('Hover — preview','state-seek');
+});
+
+progressArea.addEventListener('click',e=>{
+  if(dragging)return;
+  const pct=getPct(e);
+  setProgress(pct);
+  showState('Seeked','state-play');
+});
+
+scrubber.addEventListener('mousedown',e=>{
+  e.preventDefault();
+  dragging=true;
+  showState('Scrubbing','state-drag');
+  stateTag.style.display='inline-block';
+  thumbTooltip.classList.add('visible');
+});
+
+document.addEventListener('mousemove',e=>{
+  if(!dragging)return;
+  const pct=getPct(e);
+  const clamped=Math.max(0,Math.min(1,pct));
+  setProgress(clamped);
+  renderThumb(currentTime);
+  thumbTs.textContent=fmtTime(currentTime);
+  positionTooltip(clamped);
+});
+
+document.addEventListener('mouseup',()=>{
+  if(dragging){
+    dragging=false;
+    stateTag.style.display='none';
+    if(!hovering)thumbTooltip.classList.remove('visible');
+  }
+});
+
+document.getElementById('playBtn').addEventListener('click',()=>{
+  playing=!playing;
+  playIcon.className=playing?'ti ti-player-pause':'ti ti-player-play';
+  if(playing){
+    playInterval=setInterval(()=>{
+      if(!dragging){
+        currentTime=Math.min(DURATION,currentTime+0.25);
+        const pct=currentTime/DURATION;
+        progressFill.style.width=(pct*100)+'%';
+        scrubber.style.left=(pct*100)+'%';
+        curTimeEl.textContent=fmtTime(currentTime);
+        progressArea.setAttribute('aria-valuenow',Math.round(pct*100));
+        renderMain();
+        if(currentTime>=DURATION){playing=false;clearInterval(playInterval);playIcon.className='ti ti-player-play';}
+      }
+    },250);
+  } else {
+    clearInterval(playInterval);
+  }
+});
+
+renderMain();
+</script>

@@ -1,0 +1,392 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.shell{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);overflow:hidden;font-family:var(--font-sans);color:var(--color-text-primary)}
+
+.top-bar{display:flex;align-items:center;gap:8px;padding:11px 16px;border-bottom:0.5px solid var(--color-border-tertiary);background:var(--color-background-secondary)}
+.breadcrumb{display:flex;align-items:center;gap:4px;flex:1;font-size:13px;color:var(--color-text-secondary)}
+.breadcrumb span{color:var(--color-text-primary);font-weight:500}
+.breadcrumb i{font-size:12px}
+.top-actions{display:flex;align-items:center;gap:6px}
+.icon-btn{width:30px;height:30px;display:flex;align-items:center;justify-content:center;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);background:transparent;cursor:pointer;color:var(--color-text-secondary);font-size:16px;transition:background .12s,color .12s}
+.icon-btn:hover{background:var(--color-background-secondary);color:var(--color-text-primary)}
+.icon-btn.active{background:#E6F1FB;color:#185FA5;border-color:#B5D4F4}
+.search-wrap{display:flex;align-items:center;gap:6px;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:0 10px;height:30px;background:var(--color-background-primary)}
+.search-wrap i{font-size:14px;color:var(--color-text-tertiary)}
+.search-wrap input{border:none;background:transparent;font-size:13px;color:var(--color-text-primary);width:140px;outline:none}
+.search-wrap input::placeholder{color:var(--color-text-tertiary)}
+
+.action-bar{height:0;overflow:hidden;transition:height .18s ease,opacity .18s ease;opacity:0;background:#E6F1FB;border-bottom:0.5px solid #B5D4F4}
+.action-bar.visible{height:46px;opacity:1}
+.ab-inner{display:flex;align-items:center;gap:8px;padding:8px 16px;height:46px}
+.sel-pill{display:flex;align-items:center;gap:6px;background:#185FA5;color:#E6F1FB;font-size:12px;font-weight:500;padding:4px 10px;border-radius:20px}
+.sel-pill i{font-size:13px}
+.ab-btns{display:flex;align-items:center;gap:6px;flex:1}
+.ab-btn{display:flex;align-items:center;gap:5px;font-size:12px;padding:5px 12px;border:0.5px solid #B5D4F4;border-radius:var(--border-radius-md);background:var(--color-background-primary);color:#0C447C;cursor:pointer;transition:background .12s}
+.ab-btn:hover{background:#B5D4F4}
+.ab-btn i{font-size:14px}
+.ab-btn.danger{color:#A32D2D;border-color:#F7C1C1;background:var(--color-background-primary)}
+.ab-btn.danger:hover{background:#F7C1C1}
+.ab-sep{width:0.5px;height:20px;background:#B5D4F4;margin:0 2px}
+.sel-all-wrap{display:flex;align-items:center;gap:6px;font-size:12px;color:#0C447C;cursor:pointer;padding:4px 6px;border-radius:var(--border-radius-md)}
+.sel-all-wrap:hover{background:#B5D4F4}
+.ab-esc{margin-left:auto;display:flex;align-items:center;gap:4px;font-size:12px;color:#185FA5;background:transparent;border:none;cursor:pointer;padding:4px 6px;border-radius:var(--border-radius-md)}
+.ab-esc:hover{background:#B5D4F4}
+.ab-esc kbd{font-size:10px;padding:1px 4px;border:0.5px solid #B5D4F4;border-radius:3px;background:var(--color-background-primary);color:#185FA5}
+
+.view-tabs{display:flex;align-items:center;gap:0;padding:8px 16px 0;border-bottom:0.5px solid var(--color-border-tertiary);background:var(--color-background-secondary)}
+.vt{display:flex;align-items:center;gap:5px;font-size:12px;padding:6px 12px;border-bottom:2px solid transparent;color:var(--color-text-secondary);cursor:pointer;margin-bottom:-0.5px;transition:color .12s}
+.vt.active{color:#185FA5;border-bottom-color:#185FA5;font-weight:500}
+.vt:hover:not(.active){color:var(--color-text-primary)}
+.vt i{font-size:14px}
+
+.col-header{display:grid;grid-template-columns:32px 18px 24px 1fr 100px 80px 70px;align-items:center;gap:0 8px;padding:6px 16px;border-bottom:0.5px solid var(--color-border-tertiary);background:var(--color-background-secondary)}
+.ch{font-size:11px;color:var(--color-text-tertiary);font-weight:500;cursor:pointer;display:flex;align-items:center;gap:3px;white-space:nowrap;user-select:none}
+.ch:hover{color:var(--color-text-secondary)}
+.ch.sorted{color:#185FA5}
+.ch i{font-size:11px}
+
+.file-list{padding:4px 0}
+.file-row{display:grid;grid-template-columns:32px 18px 24px 1fr 100px 80px 70px;align-items:center;gap:0 8px;padding:7px 16px;cursor:pointer;position:relative;transition:background .1s;user-select:none}
+.file-row:hover{background:var(--color-background-secondary)}
+.file-row.selected{background:#E6F1FB}
+.file-row.selected:hover{background:#d4e9f8}
+.file-row.cut{opacity:0.45}
+
+.drag-num{width:32px;display:flex;align-items:center;justify-content:center}
+.row-num{font-size:11px;color:var(--color-text-tertiary);font-variant-numeric:tabular-nums}
+.file-row:hover .row-num,.file-row.selected .row-num{display:none}
+.file-row:not(:hover):not(.selected) .cb-show{display:none}
+.file-row:hover .cb-show,.file-row.selected .cb-show{display:flex}
+
+.cb-wrap{width:18px;height:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.cb{width:15px;height:15px;border-radius:3px;border:1.5px solid var(--color-border-secondary);background:var(--color-background-primary);display:flex;align-items:center;justify-content:center;transition:background .1s,border-color .1s;flex-shrink:0}
+.cb.checked{background:#185FA5;border-color:#185FA5}
+.cb.checked::after{content:'';display:block;width:8px;height:5px;border-left:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(-45deg) translate(1px,-1px)}
+.cb.indeterminate{background:#E6F1FB;border-color:#185FA5}
+.cb.indeterminate::after{content:'';display:block;width:8px;height:2px;background:#185FA5;border-radius:1px}
+
+.type-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.file-icon{font-size:17px;flex-shrink:0;text-align:center;width:24px}
+.ic-folder{color:#185FA5}
+.ic-img{color:#3B6D11}
+.ic-doc{color:#0C447C}
+.ic-pdf{color:#993C1D}
+.ic-zip{color:#854F0B}
+.ic-sheet{color:#3B6D11}
+.ic-md{color:#534AB7}
+.ic-vid{color:#993556}
+
+.file-info{min-width:0}
+.file-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--color-text-primary)}
+.file-sub{font-size:11px;color:var(--color-text-tertiary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.file-tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:2px}
+.tag{font-size:10px;padding:1px 6px;border-radius:10px;font-weight:500;white-space:nowrap}
+.tag-shared{background:#E1F5EE;color:#0F6E56}
+.tag-starred{background:#FAEEDA;color:#633806}
+.tag-recent{background:#EEEDFE;color:#3C3489}
+
+.file-owner{font-size:12px;color:var(--color-text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.file-date{font-size:12px;color:var(--color-text-secondary);white-space:nowrap}
+.file-size{font-size:12px;color:var(--color-text-secondary);text-align:right;white-space:nowrap}
+
+.status-bar{display:flex;align-items:center;gap:12px;padding:7px 16px;border-top:0.5px solid var(--color-border-tertiary);background:var(--color-background-secondary)}
+.sb-item{font-size:11px;color:var(--color-text-tertiary);display:flex;align-items:center;gap:4px}
+.sb-item i{font-size:12px}
+.sb-sep{width:0.5px;height:12px;background:var(--color-border-secondary)}
+.sb-right{margin-left:auto;display:flex;align-items:center;gap:12px}
+
+.toast{position:absolute;bottom:48px;left:50%;transform:translateX(-50%);background:#2C2C2A;color:#F1EFE8;font-size:12px;padding:7px 14px;border-radius:var(--border-radius-md);white-space:nowrap;opacity:0;transition:opacity .2s;pointer-events:none;z-index:10}
+.toast.show{opacity:1}
+.wrapper{position:relative}
+
+.sel-mode-on .file-row .row-num{display:none!important}
+.sel-mode-on .file-row .cb-show{display:flex!important}
+</style>
+
+<h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">Rich bulk-selection file manager — click, shift-click, or cmd/ctrl-click rows to select. Action bar appears with bulk operations.</h2>
+
+<div class="wrapper">
+<div class="shell" id="shell">
+
+  <div class="top-bar">
+    <div class="breadcrumb">
+      <i class="ti ti-home" aria-hidden="true"></i>
+      <i class="ti ti-chevron-right" aria-hidden="true"></i>
+      <span>My Drive</span>
+      <i class="ti ti-chevron-right" aria-hidden="true"></i>
+      <span>Projects</span>
+    </div>
+    <div class="top-actions">
+      <div class="search-wrap">
+        <i class="ti ti-search" aria-hidden="true"></i>
+        <input type="text" placeholder="Search files…" id="search-input" oninput="filterFiles()">
+      </div>
+      <button class="icon-btn" id="sort-btn" title="Sort" onclick="cycleSort()"><i class="ti ti-arrows-sort" aria-hidden="true"></i></button>
+      <button class="icon-btn active" id="view-list" title="List view" onclick="setView('list')"><i class="ti ti-list" aria-hidden="true"></i></button>
+      <button class="icon-btn" id="view-grid" title="Grid view" onclick="setView('grid')"><i class="ti ti-layout-grid" aria-hidden="true"></i></button>
+      <button class="icon-btn active" id="sel-mode-btn" title="Toggle selection mode" onclick="toggleSelMode()"><i class="ti ti-checkbox" aria-hidden="true"></i></button>
+    </div>
+  </div>
+
+  <div class="action-bar" id="action-bar">
+    <div class="ab-inner">
+      <div class="sel-pill"><i class="ti ti-check" aria-hidden="true"></i><span id="sel-count-pill">0</span></div>
+      <div class="ab-btns">
+        <div class="sel-all-wrap" onclick="toggleSelectAll()"><div class="cb cb-show" id="selall-cb" style="display:flex"></div><span id="selall-label">All</span></div>
+        <div class="ab-sep"></div>
+        <button class="ab-btn" onclick="doAction('Download')"><i class="ti ti-download" aria-hidden="true"></i> Download</button>
+        <button class="ab-btn" onclick="doAction('Move to')"><i class="ti ti-folder-share" aria-hidden="true"></i> Move</button>
+        <button class="ab-btn" onclick="doAction('Copy')"><i class="ti ti-copy" aria-hidden="true"></i> Copy</button>
+        <button class="ab-btn" onclick="doAction('Share')"><i class="ti ti-share" aria-hidden="true"></i> Share</button>
+        <button class="ab-btn" onclick="doAction('Rename')"><i class="ti ti-edit" aria-hidden="true"></i> Rename</button>
+        <div class="ab-sep"></div>
+        <button class="ab-btn danger" onclick="doAction('Delete')"><i class="ti ti-trash" aria-hidden="true"></i> Delete</button>
+      </div>
+      <button class="ab-esc" onclick="clearSelection()"><kbd>Esc</kbd> Clear</button>
+    </div>
+  </div>
+
+  <div class="view-tabs">
+    <div class="vt active" onclick="filterType('all',this)"><i class="ti ti-files" aria-hidden="true"></i> All files</div>
+    <div class="vt" onclick="filterType('folder',this)"><i class="ti ti-folder" aria-hidden="true"></i> Folders</div>
+    <div class="vt" onclick="filterType('doc',this)"><i class="ti ti-file-text" aria-hidden="true"></i> Documents</div>
+    <div class="vt" onclick="filterType('img',this)"><i class="ti ti-photo" aria-hidden="true"></i> Media</div>
+    <div class="vt" onclick="filterType('starred',this)"><i class="ti ti-star" aria-hidden="true"></i> Starred</div>
+  </div>
+
+  <div class="col-header" id="col-header">
+    <div></div>
+    <div class="ch sorted" id="ch-name" onclick="sortBy('name')"><i class="ti ti-arrow-up" id="sort-icon-name" aria-hidden="true"></i></div>
+    <div></div>
+    <div class="ch" id="ch-name-lbl" onclick="sortBy('name')">Name <i class="ti ti-selector" aria-hidden="true"></i></div>
+    <div class="ch" onclick="sortBy('owner')">Owner <i class="ti ti-selector" aria-hidden="true"></i></div>
+    <div class="ch" onclick="sortBy('date')">Modified <i class="ti ti-selector" aria-hidden="true"></i></div>
+    <div class="ch" onclick="sortBy('size')">Size <i class="ti ti-selector" aria-hidden="true"></i></div>
+  </div>
+
+  <div class="file-list" id="file-list"></div>
+
+  <div class="status-bar">
+    <div class="sb-item"><i class="ti ti-files" aria-hidden="true"></i><span id="sb-count">12 items</span></div>
+    <div class="sb-sep"></div>
+    <div class="sb-item"><i class="ti ti-database" aria-hidden="true"></i><span>Used 4.7 GB of 15 GB</span></div>
+    <div class="sb-right">
+      <div class="sb-item"><i class="ti ti-keyboard" aria-hidden="true"></i><span>Shift+click range &nbsp;·&nbsp; Cmd/Ctrl+click toggle &nbsp;·&nbsp; Esc clear</span></div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+</div>
+
+<script>
+const FILES=[
+  {id:0,name:'Design Assets',type:'folder',sub:'14 items',owner:'You',date:'Today',size:'—',tags:['shared'],icon:'ti-folder',ic:'ic-folder',dot:'#185FA5',starred:false},
+  {id:1,name:'Q2 Report.docx',type:'doc',sub:'Word Document',owner:'You',date:'Yesterday',size:'240 KB',tags:['recent'],icon:'ti-file-text',ic:'ic-doc',dot:'#0C447C',starred:true},
+  {id:2,name:'Hero Image.png',type:'img',sub:'PNG · 2400×1600',owner:'Sarah K.',date:'May 28',size:'1.8 MB',tags:[],icon:'ti-photo',ic:'ic-img',dot:'#3B6D11',starred:false},
+  {id:3,name:'Project Plan.docx',type:'doc',sub:'Word Document',owner:'You',date:'May 27',size:'88 KB',tags:['shared'],icon:'ti-file-text',ic:'ic-doc',dot:'#0C447C',starred:false},
+  {id:4,name:'Brand Guidelines.pdf',type:'pdf',sub:'PDF Document',owner:'Alex M.',date:'May 25',size:'4.1 MB',tags:['shared'],icon:'ti-file-description',ic:'ic-pdf',dot:'#993C1D',starred:true},
+  {id:5,name:'Source Code.zip',type:'zip',sub:'ZIP Archive',owner:'You',date:'May 24',size:'12.3 MB',tags:[],icon:'ti-file-zip',ic:'ic-zip',dot:'#854F0B',starred:false},
+  {id:6,name:'Mockups',type:'folder',sub:'8 items',owner:'You',date:'May 23',size:'—',tags:[],icon:'ti-folder',ic:'ic-folder',dot:'#185FA5',starred:false},
+  {id:7,name:'Budget 2026.xlsx',type:'doc',sub:'Spreadsheet',owner:'You',date:'May 22',size:'312 KB',tags:['starred'],icon:'ti-table',ic:'ic-sheet',dot:'#3B6D11',starred:true},
+  {id:8,name:'Team Photo.jpg',type:'img',sub:'JPEG · 4032×3024',owner:'Sarah K.',date:'May 20',size:'3.2 MB',tags:[],icon:'ti-photo',ic:'ic-img',dot:'#3B6D11',starred:false},
+  {id:9,name:'Changelog.md',type:'doc',sub:'Markdown',owner:'You',date:'May 18',size:'18 KB',tags:[],icon:'ti-brand-markdown',ic:'ic-md',dot:'#534AB7',starred:false},
+  {id:10,name:'Promo Video.mp4',type:'img',sub:'MP4 · 1920×1080',owner:'Alex M.',date:'May 15',size:'87 MB',tags:[],icon:'ti-video',ic:'ic-vid',dot:'#993556',starred:false},
+  {id:11,name:'Archived',type:'folder',sub:'3 items',owner:'You',date:'May 10',size:'—',tags:[],icon:'ti-folder',ic:'ic-folder',dot:'#185FA5',starred:false},
+];
+
+let selected=new Set();
+let lastClicked=null;
+let selMode=false;
+let cutItems=new Set();
+let filterQ='';
+let filterT='all';
+let sortKey='name';
+let sortDir=1;
+let viewMode='list';
+
+function getVisible(){
+  return FILES.filter(f=>{
+    if(filterT==='folder'&&f.type!=='folder') return false;
+    if(filterT==='doc'&&f.type!=='doc'&&f.type!=='pdf'&&f.type!=='zip') return false;
+    if(filterT==='img'&&f.type!=='img') return false;
+    if(filterT==='starred'&&!f.starred) return false;
+    if(filterQ&&!f.name.toLowerCase().includes(filterQ.toLowerCase())) return false;
+    return true;
+  }).sort((a,b)=>{
+    let av=a[sortKey]||'',bv=b[sortKey]||'';
+    if(sortKey==='size'){
+      const p=s=>{if(s==='—')return -1;const n=parseFloat(s);if(s.includes('MB'))return n*1e6;if(s.includes('KB'))return n*1e3;return n;};
+      return (p(av)-p(bv))*sortDir;
+    }
+    return av.localeCompare(bv)*sortDir;
+  });
+}
+
+function renderList(){
+  const list=document.getElementById('file-list');
+  const vis=getVisible();
+  document.getElementById('sb-count').textContent=vis.length+' items';
+
+  if(viewMode==='grid'){
+    list.style.display='grid';
+    list.style.gridTemplateColumns='repeat(auto-fill,minmax(110px,1fr))';
+    list.style.gap='8px';
+    list.style.padding='12px 16px';
+    document.getElementById('col-header').style.display='none';
+    list.innerHTML='';
+    vis.forEach(f=>{
+      const sel=selected.has(f.id);
+      const d=document.createElement('div');
+      d.style.cssText=`border-radius:var(--border-radius-md);border:0.5px solid ${sel?'#B5D4F4':'var(--color-border-tertiary)'};background:${sel?'#E6F1FB':'var(--color-background-primary)'};padding:12px 8px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;transition:background .1s;position:relative`;
+      d.innerHTML=`<div style="position:absolute;top:6px;left:6px"><div class="cb ${sel?'checked':''}" style="${sel||selMode?'':'display:none'}"></div></div><i class="ti ${f.icon} ${f.ic}" style="font-size:28px" aria-hidden="true"></i><span style="font-size:11px;font-weight:500;text-align:center;color:var(--color-text-primary);word-break:break-all;max-width:100%">${f.name}</span><span style="font-size:10px;color:var(--color-text-tertiary)">${f.size}</span>`;
+      d.addEventListener('click',e=>handleClick(e,f.id,vis));
+      list.appendChild(d);
+    });
+    return;
+  }
+
+  list.style.display='block';
+  list.style.gridTemplateColumns='';
+  list.style.gap='';
+  list.style.padding='4px 0';
+  document.getElementById('col-header').style.display='grid';
+  list.innerHTML='';
+  vis.forEach((f,idx)=>{
+    const sel=selected.has(f.id);
+    const row=document.createElement('div');
+    row.className='file-row'+(sel?' selected':'')+(cutItems.has(f.id)?' cut':'');
+    const tagHtml=f.tags.map(t=>`<span class="tag tag-${t}">${t}</span>`).join('');
+    const starHtml=f.starred?`<i class="ti ti-star-filled" style="font-size:11px;color:#BA7517" aria-hidden="true"></i>`:'';
+    row.innerHTML=`
+      <div class="drag-num"><span class="row-num">${idx+1}</span><div class="cb cb-show ${sel?'checked':''}" style="display:none"></div></div>
+      <div class="cb-wrap"></div>
+      <div style="display:flex;align-items:center"><span class="type-dot" style="background:${f.dot}"></span></div>
+      <div class="file-info"><div class="file-name" style="display:flex;align-items:center;gap:5px"><i class="ti ${f.icon} file-icon ${f.ic}" aria-hidden="true"></i>${f.name}${starHtml}</div>${tagHtml?`<div class="file-tags">${tagHtml}</div>`:`<div class="file-sub">${f.sub}</div>`}</div>
+      <div class="file-owner">${f.owner}</div>
+      <div class="file-date">${f.date}</div>
+      <div class="file-size">${f.size}</div>`;
+    row.addEventListener('click',e=>handleClick(e,f.id,vis));
+    row.addEventListener('contextmenu',e=>{e.preventDefault();handleClick(e,f.id,vis);});
+    list.appendChild(row);
+  });
+  updateActionBar();
+}
+
+function handleClick(e,id,vis){
+  if(e.shiftKey&&lastClicked!==null){
+    const ids=vis.map(f=>f.id);
+    const a=ids.indexOf(lastClicked),b=ids.indexOf(id);
+    const lo=Math.min(a,b),hi=Math.max(a,b);
+    for(let i=lo;i<=hi;i++) selected.add(ids[i]);
+  } else if(e.metaKey||e.ctrlKey){
+    selected.has(id)?selected.delete(id):selected.add(id);
+    lastClicked=id;
+  } else {
+    if(selMode){
+      selected.has(id)?selected.delete(id):selected.add(id);
+      lastClicked=id;
+    } else if(selected.size===0){
+      selected.add(id);lastClicked=id;
+    } else if(selected.has(id)&&selected.size===1){
+      selected.clear();lastClicked=null;
+    } else {
+      selected.clear();selected.add(id);lastClicked=id;
+    }
+  }
+  renderList();
+}
+
+function updateActionBar(){
+  const bar=document.getElementById('action-bar');
+  const n=selected.size;
+  document.getElementById('sel-count-pill').textContent=n;
+  if(n>0){bar.classList.add('visible');}else{bar.classList.remove('visible');}
+  const vis=getVisible();
+  const allSel=vis.length>0&&vis.every(f=>selected.has(f.id));
+  const someSel=vis.some(f=>selected.has(f.id));
+  const cb=document.getElementById('selall-cb');
+  cb.className='cb'+(allSel?' checked':someSel?' indeterminate':'');
+  document.getElementById('selall-label').textContent=allSel?'None':'All';
+}
+
+function toggleSelectAll(){
+  const vis=getVisible();
+  const allSel=vis.every(f=>selected.has(f.id));
+  if(allSel){vis.forEach(f=>selected.delete(f.id));}
+  else{vis.forEach(f=>selected.add(f.id));}
+  renderList();
+}
+
+function clearSelection(){
+  selected.clear();lastClicked=null;
+  if(!selMode)selMode=false;
+  renderList();
+}
+
+function toggleSelMode(){
+  selMode=!selMode;
+  const btn=document.getElementById('sel-mode-btn');
+  btn.className='icon-btn'+(selMode?' active':'');
+  const shell=document.getElementById('shell');
+  selMode?shell.classList.add('sel-mode-on'):shell.classList.remove('sel-mode-on');
+  if(!selMode)clearSelection();
+  renderList();
+}
+
+function filterType(t,el){
+  filterT=t;
+  document.querySelectorAll('.vt').forEach(v=>v.classList.remove('active'));
+  el.classList.add('active');
+  renderList();
+}
+
+function filterFiles(){
+  filterQ=document.getElementById('search-input').value;
+  renderList();
+}
+
+function cycleSort(){
+  sortDir*=-1;
+  renderList();
+  showToast('Sorted '+(sortDir===1?'A→Z':'Z→A'));
+}
+
+function sortBy(key){
+  if(sortKey===key)sortDir*=-1;else{sortKey=key;sortDir=1;}
+  renderList();
+}
+
+function setView(mode){
+  viewMode=mode;
+  document.getElementById('view-list').className='icon-btn'+(mode==='list'?' active':'');
+  document.getElementById('view-grid').className='icon-btn'+(mode==='grid'?' active':'');
+  renderList();
+}
+
+function doAction(action){
+  const names=[...selected].map(id=>FILES.find(f=>f.id===id)?.name||'');
+  if(action==='Delete'){
+    showToast(names.length+' item'+(names.length>1?'s':'')+' moved to trash');
+  } else if(action==='Download'){
+    showToast('Downloading '+names.length+' item'+(names.length>1?'s':'')+'…');
+  } else {
+    sendPrompt(action+' '+names.length+' item'+(names.length>1?'s':'')+': '+names.join(', '));
+    return;
+  }
+  clearSelection();
+}
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape')clearSelection();
+  if((e.metaKey||e.ctrlKey)&&e.key==='a'){e.preventDefault();getVisible().forEach(f=>selected.add(f.id));renderList();}
+});
+
+renderList();
+</script>
