@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>Fakeify • Spotify UI Clone</title>
+  <!-- Google Fonts & Font Awesome -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #000000;
+      color: #ffffff;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Main app layout (Spotify style) */
+    .spotify-app {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    .main-view {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ========= LEFT SIDEBAR ========= */
+    .sidebar {
+      width: 240px;
+      background-color: #000000;
+      padding: 24px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      overflow-y: auto;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 1.6rem;
+      font-weight: 700;
+      padding: 0 12px;
+      margin-bottom: 8px;
+    }
+
+    .logo i {
+      color: #1db954;
+      font-size: 2rem;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 12px;
+      color: #b3b3b3;
+      font-weight: 600;
+      font-size: 0.9rem;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .nav-item:hover, .nav-item.active {
+      color: #ffffff;
+    }
+
+    .nav-item i {
+      font-size: 1.3rem;
+      width: 24px;
+    }
+
+    .playlist-section {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid #282828;
+    }
+
+    .playlist-header {
+      padding: 8px 12px;
+      color: #b3b3b3;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+
+    .playlist-item {
+      padding: 8px 12px;
+      font-size: 0.85rem;
+      color: #b3b3b3;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+
+    .playlist-item:hover {
+      color: #ffffff;
+    }
+
+    /* ========= MAIN CONTENT ========= */
+    .content {
+      flex: 1;
+      background: linear-gradient(180deg, #1f1f1f 0%, #121212 100%);
+      overflow-y: auto;
+      padding: 20px 24px;
+    }
+
+    /* Top bar */
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      position: sticky;
+      top: 0;
+      background: transparent;
+      z-index: 10;
+    }
+
+    .nav-arrows {
+      display: flex;
+      gap: 16px;
+    }
+
+    .nav-arrows i {
+      background: #0a0a0a;
+      padding: 8px;
+      border-radius: 50%;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+
+    .user-menu {
+      background: #0a0a0a;
+      padding: 6px 12px;
+      border-radius: 24px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+
+    .user-menu i {
+      font-size: 0.9rem;
+    }
+
+    /* Greeting */
+    .greeting {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 28px;
+    }
+
+    /* Section rows */
+    .section {
+      margin-bottom: 32px;
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 16px;
+    }
+
+    .section-header h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+
+    .section-header span {
+      color: #b3b3b3;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+
+    .section-header span:hover {
+      text-decoration: underline;
+    }
+
+    /* Card grid */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background: #181818;
+      padding: 16px;
+      border-radius: 8px;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+
+    .card:hover {
+      background: #282828;
+    }
+
+    .card-img {
+      width: 100%;
+      aspect-ratio: 1;
+      border-radius: 8px;
+      object-fit: cover;
+      margin-bottom: 12px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+    }
+
+    .card-title {
+      font-weight: 700;
+      font-size: 0.9rem;
+      margin-bottom: 6px;
+    }
+
+    .card-subtitle {
+      font-size: 0.75rem;
+      color: #b3b3b3;
+    }
+
+    /* ========= PLAYER BAR (bottom) ========= */
+    .player-bar {
+      background-color: #181818;
+      border-top: 1px solid #282828;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .now-playing {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 220px;
+    }
+
+    .now-playing-img {
+      width: 56px;
+      height: 56px;
+      border-radius: 4px;
+      background: #333;
+      background-image: url('https://picsum.photos/id/29/56/56');
+      background-size: cover;
+    }
+
+    .now-playing-info h4 {
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+
+    .now-playing-info p {
+      font-size: 0.7rem;
+      color: #b3b3b3;
+    }
+
+    .player-controls {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      max-width: 450px;
+    }
+
+    .control-buttons {
+      display: flex;
+      gap: 24px;
+      align-items: center;
+    }
+
+    .control-buttons i {
+      font-size: 1.2rem;
+      cursor: pointer;
+      color: #b3b3b3;
+    }
+
+    .control-buttons i:hover {
+      color: #ffffff;
+    }
+
+    .play-btn {
+      background: white;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .play-btn i {
+      color: black;
+      font-size: 0.9rem;
+    }
+
+    .progress-bar {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .progress-track {
+      flex: 1;
+      height: 4px;
+      background: #4f4f4f;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .progress-fill {
+      width: 35%;
+      height: 100%;
+      background: #1db954;
+      border-radius: 4px;
+    }
+
+    .time {
+      font-size: 0.7rem;
+      color: #b3b3b3;
+    }
+
+    .player-extras {
+      display: flex;
+      gap: 16px;
+      width: 180px;
+      justify-content: flex-end;
+    }
+
+    .player-extras i {
+      color: #b3b3b3;
+      cursor: pointer;
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 90px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #282828;
+      color: white;
+      padding: 10px 24px;
+      border-radius: 40px;
+      font-size: 0.85rem;
+      z-index: 200;
+      opacity: 0;
+      transition: 0.2s;
+      pointer-events: none;
+      white-space: nowrap;
+      border: 1px solid #1db954;
+    }
+
+    @media (max-width: 800px) {
+      .sidebar {
+        width: 80px;
+      }
+      .sidebar .logo span, .sidebar .nav-item span, .playlist-section {
+        display: none;
+      }
+      .sidebar .nav-item i {
+        margin: 0 auto;
+      }
+      .player-extras {
+        width: auto;
+      }
+      .now-playing {
+        width: 150px;
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="spotify-app">
+  <div class="main-view">
+    <!-- LEFT SIDEBAR -->
+    <div class="sidebar">
+      <div class="logo" id="logoBtn">
+        <i class="fab fa-spotify"></i>
+        <span>Fakeify</span>
+      </div>
+      <div class="nav-menu">
+        <div class="nav-item active" id="navHome"><i class="fas fa-home"></i><span>Home</span></div>
+        <div class="nav-item" id="navSearch"><i class="fas fa-search"></i><span>Search</span></div>
+        <div class="nav-item" id="navLibrary"><i class="fas fa-book"></i><span>Your Library</span></div>
+      </div>
+      <div class="playlist-section">
+        <div class="playlist-header">YOUR PLAYLISTS</div>
+        <div class="playlist-item" data-playlist="Chill Vibes">🎧 Chill Vibes</div>
+        <div class="playlist-item" data-playlist="Workout Mix">💪 Workout Mix</div>
+        <div class="playlist-item" data-playlist="Study Focus">📚 Study Focus</div>
+        <div class="playlist-item" data-playlist="Throwbacks">🕺 Throwbacks</div>
+      </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="content">
+      <div class="top-bar">
+        <div class="nav-arrows">
+          <i class="fas fa-chevron-left" id="backBtn"></i>
+          <i class="fas fa-chevron-right" id="forwardBtn"></i>
+        </div>
+        <div class="user-menu" id="userMenu">
+          <i class="fas fa-user-circle"></i>
+          <span>fake_user</span>
+          <i class="fas fa-caret-down"></i>
+        </div>
+      </div>
+
+      <div class="greeting">Good evening</div>
+
+      <!-- Featured Playlists -->
+      <div class="section">
+        <div class="section-header">
+          <h2>Featured Playlists</h2>
+          <span id="showAllFeatured">Show all</span>
+        </div>
+        <div class="card-grid" id="featuredGrid"></div>
+      </div>
+
+      <!-- Popular Albums -->
+      <div class="section">
+        <div class="section-header">
+          <h2>Popular Albums</h2>
+          <span id="showAllAlbums">Show all</span>
+        </div>
+        <div class="card-grid" id="albumsGrid"></div>
+      </div>
+
+      <!-- Recommended for you -->
+      <div class="section">
+        <div class="section-header">
+          <h2>Recommended for you</h2>
+          <span id="showAllRecommended">More</span>
+        </div>
+        <div class="card-grid" id="recommendedGrid"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM PLAYER BAR -->
+  <div class="player-bar">
+    <div class="now-playing" id="nowPlayingWidget">
+      <div class="now-playing-img" id="nowPlayingImg"></div>
+      <div class="now-playing-info">
+        <h4 id="nowPlayingTitle">Select a song</h4>
+        <p id="nowPlayingArtist">Fakeify Player</p>
+      </div>
+      <i class="far fa-heart" id="likeSongBtn" style="margin-left: auto; cursor: pointer;"></i>
+    </div>
+    <div class="player-controls">
+      <div class="control-buttons">
+        <i class="fas fa-random" id="shuffleBtn"></i>
+        <i class="fas fa-step-backward" id="prevBtn"></i>
+        <div class="play-btn" id="playPauseBtn">
+          <i class="fas fa-play" id="playIcon"></i>
+        </div>
+        <i class="fas fa-step-forward" id="nextBtn"></i>
+        <i class="fas fa-redo-alt" id="repeatBtn"></i>
+      </div>
+      <div class="progress-bar">
+        <span class="time" id="currentTime">0:00</span>
+        <div class="progress-track" id="progressTrack">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <span class="time" id="totalTime">3:45</span>
+      </div>
+    </div>
+    <div class="player-extras">
+      <i class="fas fa-volume-up" id="volumeBtn"></i>
+      <i class="fas fa-expand-alt" id="fullscreenBtn"></i>
+    </div>
+  </div>
+</div>
+
+<div id="toastMsg" class="toast">✨ Spotify UI Demo</div>
+
+<script>
+  // Fake toast notification
+  function showFakeAlert(msg, duration = 2000) {
+    const toast = document.getElementById('toastMsg');
+    toast.textContent = msg || "🎵 Demo: Spotify UI clone (fake playback)";
+    toast.style.opacity = "1";
+    setTimeout(() => toast.style.opacity = "0", duration);
+  }
+
+  // Mock data for cards
+  const featuredPlaylists = [
+    { title: "Today's Top Hits", subtitle: "50M likes", img: "https://picsum.photos/id/107/200/200", type: "playlist" },
+    { title: "RapCaviar", subtitle: "Hip-Hop", img: "https://picsum.photos/id/108/200/200", type: "playlist" },
+    { title: "Chill Lofi Beats", subtitle: "study/relax", img: "https://picsum.photos/id/26/200/200", type: "playlist" },
+    { title: "Rock Classics", subtitle: "Queen, Bowie", img: "https://picsum.photos/id/30/200/200", type: "playlist" }
+  ];
+
+  const popularAlbums = [
+    { title: "Midnights", subtitle: "Taylor Swift", img: "https://picsum.photos/id/20/200/200", type: "album" },
+    { title: "SOS", subtitle: "SZA", img: "https://picsum.photos/id/29/200/200", type: "album" },
+    { title: "Un Verano Sin Ti", subtitle: "Bad Bunny", img: "https://picsum.photos/id/91/200/200", type: "album" },
+    { title: "Harry's House", subtitle: "Harry Styles", img: "https://picsum.photos/id/15/200/200", type: "album" }
+  ];
+
+  const recommended = [
+    { title: "Indie Pop Mix", subtitle: "The Strokes, Arctic Monkeys", img: "https://picsum.photos/id/96/200/200", type: "mix" },
+    { title: "Deep Focus", subtitle: "Instrumental", img: "https://picsum.photos/id/76/200/200", type: "mix" },
+    { title: "Metal Essentials", subtitle: "Metallica, Slipknot", img: "https://picsum.photos/id/111/200/200", type: "mix" },
+    { title: "Jazz Vibes", subtitle: "Miles Davis, Coltrane", img: "https://picsum.photos/id/0/200/200", type: "mix" }
+  ];
+
+  function renderCardGrid(containerId, data) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.innerHTML = "";
+    data.forEach(item => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `
+        <img class="card-img" src="${item.img}" alt="${item.title}">
+        <div class="card-title">${item.title}</div>
+        <div class="card-subtitle">${item.subtitle}</div>
+      `;
+      card.addEventListener('click', () => {
+        showFakeAlert(`▶️ Playing "${item.title}" — ${item.subtitle} (demo playback)`);
+        updateNowPlaying(item.title, item.subtitle, item.img);
+      });
+      container.appendChild(card);
+    });
+  }
+
+  // Player simulation state
+  let isPlaying = false;
+  let currentTrack = { title: "Select a song", artist: "Fakeify Player", img: "https://picsum.photos/id/29/56/56" };
+  
+  function updateNowPlaying(title, artist, imgUrl) {
+    currentTrack = { title, artist, img: imgUrl || "https://picsum.photos/id/29/56/56" };
+    document.getElementById('nowPlayingTitle').innerText = title;
+    document.getElementById('nowPlayingArtist').innerText = artist;
+    document.getElementById('nowPlayingImg').style.backgroundImage = `url(${currentTrack.img})`;
+    document.getElementById('nowPlayingImg').style.backgroundSize = "cover";
+    if (isPlaying) {
+      // keep playing state visual
+    }
+  }
+
+  function togglePlayPause() {
+    const playIcon = document.getElementById('playIcon');
+    if (!isPlaying) {
+      isPlaying = true;
+      playIcon.className = "fas fa-pause";
+      showFakeAlert(`🎵 Now playing: "${currentTrack.title}" — ${currentTrack.artist} (fake stream)`);
+      // Simulate progress bar animation (fake)
+      animateProgress();
+    } else {
+      isPlaying = false;
+      playIcon.className = "fas fa-play";
+      showFakeAlert(`⏸️ Paused — demo player`);
+    }
+  }
+
+  let progressInterval = null;
+  let currentProgress = 35; // percentage
+
+  function animateProgress() {
+    if (progressInterval) clearInterval(progressInterval);
+    if (!isPlaying) return;
+    progressInterval = setInterval(() => {
+      if (isPlaying && currentProgress < 98) {
+        currentProgress += 1;
+        document.getElementById('progressFill').style.width = currentProgress + '%';
+        const timeSec = Math.floor((currentProgress / 100) * 225); // 3:45 = 225 sec
+        const minutes = Math.floor(timeSec / 60);
+        const seconds = timeSec % 60;
+        document.getElementById('currentTime').innerText = `${minutes}:${seconds.toString().padStart(2,'0')}`;
+      } else if (currentProgress >= 98) {
+        clearInterval(progressInterval);
+        if (isPlaying) {
+          // simulate next track
+          currentProgress = 0;
+          document.getElementById('progressFill').style.width = '0%';
+          document.getElementById('currentTime').innerText = "0:00";
+          showFakeAlert(`⏭️ Auto-next track simulated (demo)`);
+        }
+      }
+    }, 200);
+  }
+
+  function resetProgress() {
+    if (progressInterval) clearInterval(progressInterval);
+    currentProgress = 0;
+    document.getElementById('progressFill').style.width = '0%';
+    document.getElementById('currentTime').innerText = "0:00";
+    if (isPlaying) animateProgress();
+  }
+
+  function nextTrack() {
+    const demoNext = ["Blinding Lights", "Flowers", "Anti-Hero", "As It Was"];
+    const randomIdx = Math.floor(Math.random() * demoNext.length);
+    const fakeTitle = demoNext[randomIdx];
+    const fakeArtist = "Demo Artist";
+    const fakeImg = "https://picsum.photos/id/155/56/56";
+    updateNowPlaying(fakeTitle, fakeArtist, fakeImg);
+    resetProgress();
+    if (isPlaying) {
+      showFakeAlert(`⏩ Skipping to next track: "${fakeTitle}"`);
+      animateProgress();
+    } else {
+      showFakeAlert(`⏩ Next track selected: "${fakeTitle}"`);
+    }
+  }
+
+  function prevTrack() {
+    showFakeAlert(`⏪ Previous track (demo)`);
+    resetProgress();
+    if (isPlaying) animateProgress();
+  }
+
+  // render all grids
+  renderCardGrid('featuredGrid', featuredPlaylists);
+  renderCardGrid('albumsGrid', popularAlbums);
+  renderCardGrid('recommendedGrid', recommended);
+
+  // Set default now playing
+  updateNowPlaying("Lofi Study Session", "Chill Beats", "https://picsum.photos/id/26/56/56");
+
+  // bind player events
+  document.getElementById('playPauseBtn')?.addEventListener('click', togglePlayPause);
+  document.getElementById('nextBtn')?.addEventListener('click', nextTrack);
+  document.getElementById('prevBtn')?.addEventListener('click', prevTrack);
+  
+  document.getElementById('likeSongBtn')?.addEventListener('click', () => showFakeAlert(`❤️ Added "${currentTrack.title}" to Liked Songs (demo)`));
+  document.getElementById('shuffleBtn')?.addEventListener('click', () => showFakeAlert(`🔀 Shuffle mode (demo toggle)`));
+  document.getElementById('repeatBtn')?.addEventListener('click', () => showFakeAlert(`🔁 Repeat mode (demo)`));
+  document.getElementById('volumeBtn')?.addEventListener('click', () => showFakeAlert(`🔊 Volume slider would appear (demo)`));
+  document.getElementById('fullscreenBtn')?.addEventListener('click', () => showFakeAlert(`🖥️ Fullscreen viewer — demo`));
+
+  const progressTrack = document.getElementById('progressTrack');
+  progressTrack?.addEventListener('click', (e) => {
+    const rect = progressTrack.getBoundingClientRect();
+    const percent = (e.clientX - rect.left) / rect.width;
+    currentProgress = percent * 100;
+    document.getElementById('progressFill').style.width = currentProgress + '%';
+    showFakeAlert(`⏩ Seek position changed (demo)`);
+    if (isPlaying) animateProgress();
+  });
+
+  // sidebar & nav fake events
+  const navItems = ['navHome', 'navSearch', 'navLibrary'];
+  navItems.forEach(id => {
+    document.getElementById(id)?.addEventListener('click', () => showFakeAlert(`📱 Navigation: ${id.replace('nav','')} (demo)`));
+  });
+  document.getElementById('backBtn')?.addEventListener('click', () => showFakeAlert(`◀ Go back (demo navigation)`));
+  document.getElementById('forwardBtn')?.addEventListener('click', () => showFakeAlert(`▶ Go forward (demo)`));
+  document.getElementById('userMenu')?.addEventListener('click', () => showFakeAlert(`👤 Account menu — demo`));
+  document.getElementById('logoBtn')?.addEventListener('click', () => showFakeAlert(`🏠 Fakeify homepage (demo)`));
+  
+  document.querySelectorAll('.playlist-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const name = item.getAttribute('data-playlist') || item.innerText;
+      showFakeAlert(`📀 Opening playlist: "${name}" (demo)`);
+    });
+  });
+
+  document.getElementById('showAllFeatured')?.addEventListener('click', () => showFakeAlert(`✨ All featured playlists (demo)`));
+  document.getElementById('showAllAlbums')?.addEventListener('click', () => showFakeAlert(`📀 All albums (demo view)`));
+  document.getElementById('showAllRecommended')?.addEventListener('click', () => showFakeAlert(`🎧 More recommendations (demo)`));
+  
+  console.log("🎧 Spotify UI clone loaded — all interactions are demo/fake");
+</script>
+</body>
+</html>
