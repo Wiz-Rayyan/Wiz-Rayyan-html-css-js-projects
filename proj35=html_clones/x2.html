@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>X / Twitter UI Clone - Fake Feed</title>
+  <!-- Font Awesome 6 (free icons) & Google Fonts -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: #000000;
+      color: #e7e9ea;
+      line-height: 1.5;
+    }
+
+    /* app wrapper similar to X layout */
+    .x-container {
+      max-width: 1280px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 275px 1fr 350px;
+      gap: 0;
+      min-height: 100vh;
+    }
+
+    /* ========= LEFT SIDEBAR (Navigation) ========= */
+    .left-sidebar {
+      padding: 8px 12px 20px 20px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      border-right: 1px solid #2f3336;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .nav-logo {
+      font-size: 32px;
+      color: #e7e9ea;
+      padding: 12px;
+      margin-bottom: 8px;
+      display: inline-block;
+      width: fit-content;
+      border-radius: 9999px;
+      transition: background 0.2s;
+    }
+    .nav-logo:hover {
+      background: #181818;
+      cursor: pointer;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 12px;
+      font-size: 1.25rem;
+      font-weight: 500;
+      border-radius: 9999px;
+      width: fit-content;
+      transition: background 0.2s;
+      margin: 2px 0;
+      cursor: pointer;
+    }
+    .nav-item i {
+      width: 26px;
+      font-size: 1.6rem;
+    }
+    .nav-item:hover {
+      background: #181818;
+    }
+
+    .tweet-btn {
+      background: #1d9bf0;
+      color: white;
+      border: none;
+      font-weight: 700;
+      font-size: 1rem;
+      padding: 12px;
+      border-radius: 9999px;
+      width: 90%;
+      margin-top: 16px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .tweet-btn:hover {
+      background: #1a8cd8;
+    }
+
+    /* ========= MAIN FEED ========= */
+    .main-feed {
+      border-right: 1px solid #2f3336;
+      min-height: 100vh;
+    }
+
+    .feed-header {
+      position: sticky;
+      top: 0;
+      background: rgba(0,0,0,0.85);
+      backdrop-filter: blur(12px);
+      padding: 16px 16px;
+      border-bottom: 1px solid #2f3336;
+      font-weight: 700;
+      font-size: 1.25rem;
+      z-index: 10;
+    }
+
+    /* tweet composer */
+    .tweet-composer {
+      display: flex;
+      gap: 12px;
+      padding: 12px 16px;
+      border-bottom: 1px solid #2f3336;
+    }
+    .composer-avatar {
+      width: 40px;
+      height: 40px;
+      background: #1d9bf0;
+      border-radius: 50%;
+      background-image: url('https://ui-avatars.com/api/?background=1d9bf0&color=fff&bold=true&name=U');
+      background-size: cover;
+    }
+    .composer-input {
+      flex: 1;
+    }
+    .composer-input textarea {
+      width: 100%;
+      background: transparent;
+      border: none;
+      color: #e7e9ea;
+      font-size: 1.2rem;
+      font-family: inherit;
+      resize: none;
+      outline: none;
+      padding: 8px 0;
+      font-weight: 400;
+    }
+    .composer-input textarea::placeholder {
+      color: #71767b;
+    }
+    .composer-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 8px;
+    }
+    .action-icons {
+      display: flex;
+      gap: 16px;
+      color: #1d9bf0;
+    }
+    .action-icons i {
+      font-size: 1.25rem;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .action-icons i:hover {
+      color: #1a8cd8;
+    }
+    .post-tweet-btn {
+      background: #1d9bf0;
+      border: none;
+      color: white;
+      font-weight: 700;
+      padding: 8px 18px;
+      border-radius: 9999px;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+    .post-tweet-btn.disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* feed tweets */
+    .tweet {
+      padding: 12px 16px;
+      border-bottom: 1px solid #2f3336;
+      transition: background 0.2s;
+      cursor: pointer;
+    }
+    .tweet:hover {
+      background: #080808;
+    }
+    .tweet-header {
+      display: flex;
+      gap: 12px;
+    }
+    .tweet-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background-size: cover;
+    }
+    .tweet-user-info {
+      flex: 1;
+    }
+    .tweet-name-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 6px;
+    }
+    .display-name {
+      font-weight: 700;
+    }
+    .username {
+      color: #71767b;
+      font-size: 0.85rem;
+    }
+    .dot {
+      color: #71767b;
+    }
+    .timestamp {
+      color: #71767b;
+      font-size: 0.85rem;
+    }
+    .tweet-content {
+      margin: 8px 0 12px;
+      font-size: 0.95rem;
+    }
+    .tweet-media {
+      margin: 12px 0;
+      border-radius: 20px;
+      max-width: 100%;
+      max-height: 280px;
+      object-fit: cover;
+      border: 1px solid #2f3336;
+    }
+    .tweet-stats {
+      display: flex;
+      justify-content: space-between;
+      max-width: 400px;
+      margin-top: 12px;
+      color: #71767b;
+    }
+    .stat-action {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
+      transition: color 0.2s;
+      cursor: pointer;
+    }
+    .stat-action:hover {
+      color: #1d9bf0;
+    }
+    .liked-active {
+      color: #f91880;
+    }
+
+    /* ========= RIGHT SIDEBAR ========= */
+    .right-sidebar {
+      padding: 8px 20px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
+    .search-box {
+      background: #202327;
+      border-radius: 9999px;
+      padding: 12px 18px;
+      display: flex;
+      gap: 12px;
+      margin: 8px 0 20px;
+    }
+    .search-box i {
+      color: #71767b;
+    }
+    .search-box input {
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #e7e9ea;
+      width: 100%;
+    }
+    .trends-card, .follow-card {
+      background: #16181c;
+      border-radius: 20px;
+      padding: 12px 0;
+      margin-bottom: 20px;
+    }
+    .section-title {
+      font-weight: 800;
+      font-size: 1.2rem;
+      padding: 0 16px 12px;
+    }
+    .trend-item {
+      padding: 10px 16px;
+      transition: background 0.2s;
+      cursor: pointer;
+    }
+    .trend-item:hover {
+      background: #1d1f23;
+    }
+    .trend-category {
+      font-size: 0.75rem;
+      color: #71767b;
+    }
+    .trend-name {
+      font-weight: 700;
+    }
+    .follow-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 16px;
+    }
+    .follow-user {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    .follow-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background-size: cover;
+    }
+    .follow-info {
+      font-weight: 600;
+    }
+    .follow-btn-sm {
+      background: #e7e9ea;
+      color: black;
+      border: none;
+      border-radius: 9999px;
+      padding: 6px 16px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    /* toast */
+    .toast-fake {
+      position: fixed;
+      bottom: 25px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1d9bf0;
+      color: white;
+      padding: 10px 22px;
+      border-radius: 40px;
+      font-size: 0.85rem;
+      z-index: 200;
+      opacity: 0;
+      transition: opacity 0.2s;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+
+    @media (max-width: 1100px) {
+      .x-container {
+        grid-template-columns: 88px 1fr 300px;
+      }
+      .nav-item span {
+        display: none;
+      }
+      .nav-item i {
+        margin: 0 auto;
+      }
+      .tweet-btn {
+        width: 52px;
+        overflow: hidden;
+      }
+      .tweet-btn span {
+        display: none;
+      }
+      .tweet-btn::before {
+        content: "✍️";
+        font-size: 1.3rem;
+      }
+    }
+    @media (max-width: 760px) {
+      .right-sidebar {
+        display: none;
+      }
+      .x-container {
+        grid-template-columns: 88px 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="x-container">
+  <!-- LEFT SIDEBAR (X navigation) -->
+  <div class="left-sidebar">
+    <div>
+      <div class="nav-logo"><i class="fab fa-twitter"></i></div>
+      <div class="nav-item" id="navHome"><i class="fas fa-home"></i> <span>Home</span></div>
+      <div class="nav-item" id="navExplore"><i class="fas fa-hashtag"></i> <span>Explore</span></div>
+      <div class="nav-item" id="navNotifications"><i class="fas fa-bell"></i> <span>Notifications</span></div>
+      <div class="nav-item" id="navMessages"><i class="fas fa-envelope"></i> <span>Messages</span></div>
+      <div class="nav-item" id="navLists"><i class="fas fa-list-ul"></i> <span>Lists</span></div>
+      <div class="nav-item" id="navProfile"><i class="fas fa-user"></i> <span>Profile</span></div>
+      <button class="tweet-btn" id="globalTweetBtn"><span>Post</span></button>
+    </div>
+    <div class="nav-item" id="navMore"><i class="fas fa-ellipsis-h"></i> <span>More</span></div>
+  </div>
+
+  <!-- MAIN FEED -->
+  <div class="main-feed">
+    <div class="feed-header">Home</div>
+
+    <!-- Tweet composer -->
+    <div class="tweet-composer">
+      <div class="composer-avatar"></div>
+      <div class="composer-input">
+        <textarea id="tweetTextarea" rows="2" placeholder="What is happening?!"></textarea>
+        <div class="composer-actions">
+          <div class="action-icons">
+            <i class="fas fa-image" id="fakeMediaBtn"></i>
+            <i class="fas fa-chart-simple"></i>
+            <i class="fas fa-face-smile"></i>
+            <i class="fas fa-calendar"></i>
+          </div>
+          <button class="post-tweet-btn" id="postTweetBtn">Post</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Feed container (dynamic posts) -->
+    <div id="feedContainer"></div>
+  </div>
+
+  <!-- RIGHT SIDEBAR -->
+  <div class="right-sidebar">
+    <div class="search-box">
+      <i class="fas fa-search"></i>
+      <input type="text" id="fakeSearchInput" placeholder="Search X">
+    </div>
+    <div class="trends-card">
+      <div class="section-title">Trends for you</div>
+      <div class="trend-item">
+        <div class="trend-category">Trending in India</div>
+        <div class="trend-name">#FakeClone</div>
+        <div class="trend-category">12.3K posts</div>
+      </div>
+      <div class="trend-item">
+        <div class="trend-category">Technology</div>
+        <div class="trend-name">#UIChallenge</div>
+        <div class="trend-category">5,240 posts</div>
+      </div>
+      <div class="trend-item">
+        <div class="trend-category">Entertainment</div>
+        <div class="trend-name">TheWeeknd</div>
+        <div class="trend-category">22K posts</div>
+      </div>
+    </div>
+    <div class="follow-card">
+      <div class="section-title">Who to follow</div>
+      <div class="follow-row" data-suggest="sarah">
+        <div class="follow-user">
+          <div class="follow-avatar" style="background-image: url('https://ui-avatars.com/api/?background=ff5e7e&color=fff&name=SW');"></div>
+          <div class="follow-info">Sarah W.<span style="color:#71767b; font-size:0.75rem;"> @sarah_dev</span></div>
+        </div>
+        <button class="follow-btn-sm suggest-follow">Follow</button>
+      </div>
+      <div class="follow-row" data-suggest="marcus">
+        <div class="follow-user">
+          <div class="follow-avatar" style="background-image: url('https://ui-avatars.com/api/?background=1da1f2&color=fff&name=MC');"></div>
+          <div class="follow-info">Marcus C.<span style="color:#71767b; font-size:0.75rem;"> @marcux</span></div>
+        </div>
+        <button class="follow-btn-sm suggest-follow">Follow</button>
+      </div>
+      <div class="follow-row" data-suggest="priya">
+        <div class="follow-user">
+          <div class="follow-avatar" style="background-image: url('https://ui-avatars.com/api/?background=7c4dff&color=fff&name=PK');"></div>
+          <div class="follow-info">Priya K.<span style="color:#71767b; font-size:0.75rem;"> @priyax</span></div>
+        </div>
+        <button class="follow-btn-sm suggest-follow">Follow</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="globalToast" class="toast-fake">✨ Demo on X clone</div>
+
+<script>
+  // --- Fake toast
+  function showToast(msg) {
+    const toast = document.getElementById('globalToast');
+    toast.textContent = msg || "🔁 X clone demo — fake interaction";
+    toast.style.opacity = "1";
+    setTimeout(() => toast.style.opacity = "0", 1900);
+  }
+
+  // --- Fake data: posts array
+  let posts = [
+    {
+      id: 1,
+      displayName: "Elon Musk",
+      username: "@elonmusk",
+      avatar: "https://ui-avatars.com/api/?background=000000&color=fff&name=EM&size=40",
+      content: "X is the future of free speech. Also this is a fake UI clone, but looks clean!",
+      media: "https://picsum.photos/id/1/500/280",
+      timestamp: "2h",
+      likes: 845,
+      retweets: 210,
+      liked: false,
+      retweeted: false
+    },
+    {
+      id: 2,
+      displayName: "X Daily",
+      username: "@xdaily",
+      avatar: "https://ui-avatars.com/api/?background=1d9bf0&color=fff&name=XD&size=40",
+      content: "Dark mode forever. What do you think about this UI clone?",
+      media: "",
+      timestamp: "5h",
+      likes: 342,
+      retweets: 57,
+      liked: false,
+      retweeted: false
+    },
+    {
+      id: 3,
+      displayName: "Fake Tech News",
+      username: "@faketech",
+      avatar: "https://ui-avatars.com/api/?background=222&color=fff&name=FT&size=40",
+      content: "Just shipped a pixel-perfect Twitter/X clone using HTML/CSS/JS. No real backend, only UI magic ✨",
+      media: "https://picsum.photos/id/91/500/300",
+      timestamp: "8h",
+      likes: 1023,
+      retweets: 324,
+      liked: false,
+      retweeted: false
+    }
+  ];
+
+  function renderFeed() {
+    const container = document.getElementById('feedContainer');
+    if (!container) return;
+    container.innerHTML = "";
+    posts.forEach(post => {
+      const tweetDiv = document.createElement('div');
+      tweetDiv.className = 'tweet';
+      tweetDiv.dataset.id = post.id;
+      const likeClass = post.liked ? "fas fa-heart liked-active" : "far fa-heart";
+      const retweetClass = post.retweeted ? "fas fa-retweet" : "fas fa-retweet";
+      const retweetColor = post.retweeted ? "#00ba7c" : "";
+      tweetDiv.innerHTML = `
+        <div class="tweet-header">
+          <div class="tweet-avatar" style="background-image: url('${post.avatar}');"></div>
+          <div class="tweet-user-info">
+            <div class="tweet-name-row">
+              <span class="display-name">${escapeHtml(post.displayName)}</span>
+              <span class="username">${escapeHtml(post.username)}</span>
+              <span class="dot">·</span>
+              <span class="timestamp">${escapeHtml(post.timestamp)}</span>
+            </div>
+            <div class="tweet-content">${escapeHtml(post.content)}</div>
+            ${post.media ? `<img class="tweet-media" src="${post.media}" alt="media">` : ''}
+            <div class="tweet-stats">
+              <div class="stat-action comment-action" data-id="${post.id}"><i class="far fa-comment"></i> ${Math.floor(post.likes / 10)}</div>
+              <div class="stat-action retweet-action" data-id="${post.id}"><i class="${retweetClass}" style="color:${retweetColor}"></i> ${post.retweets}</div>
+              <div class="stat-action like-action" data-id="${post.id}"><i class="${likeClass}"></i> ${post.likes}</div>
+              <div class="stat-action"><i class="fas fa-chart-simple"></i> ${Math.floor(post.likes / 30)}</div>
+            </div>
+          </div>
+        </div>
+      `;
+      container.appendChild(tweetDiv);
+    });
+
+    // attach like/retweet/comment events
+    document.querySelectorAll('.like-action').forEach(el => {
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = parseInt(el.dataset.id);
+        const post = posts.find(p => p.id === id);
+        if (post) {
+          if (!post.liked) {
+            post.likes += 1;
+            post.liked = true;
+            showToast(`❤️ Liked tweet by ${post.displayName} (demo)`);
+          } else {
+            post.likes -= 1;
+            post.liked = false;
+            showToast(`💔 Unliked`);
+          }
+          renderFeed();
+        }
+      });
+    });
+    document.querySelectorAll('.retweet-action').forEach(el => {
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = parseInt(el.dataset.id);
+        const post = posts.find(p => p.id === id);
+        if (post) {
+          if (!post.retweeted) {
+            post.retweets += 1;
+            post.retweeted = true;
+            showToast(`🔁 Retweeted (fake action)`);
+          } else {
+            post.retweets -= 1;
+            post.retweeted = false;
+            showToast(`↩️ Undo retweet`);
+          }
+          renderFeed();
+        }
+      });
+    });
+    document.querySelectorAll('.comment-action').forEach(el => {
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        showToast(`💬 Comment modal would open — UI clone, no backend.`);
+      });
+    });
+  }
+
+  function addNewTweet(content) {
+    if (!content.trim()) {
+      showToast("✏️ Can't post empty tweet.");
+      return false;
+    }
+    const newPost = {
+      id: Date.now(),
+      displayName: "You (Demo)",
+      username: "@you_demo",
+      avatar: "https://ui-avatars.com/api/?background=1d9bf0&color=fff&name=You",
+      content: content,
+      media: "",
+      timestamp: "Just now",
+      likes: 0,
+      retweets: 0,
+      liked: false,
+      retweeted: false
+    };
+    posts.unshift(newPost);
+    renderFeed();
+    showToast("✅ Fake tweet posted! (no actual data saved)");
+    return true;
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/[&<>]/g, function(m) {
+      if (m === '&') return '&amp;';
+      if (m === '<') return '&lt;';
+      if (m === '>') return '&gt;';
+      return m;
+    });
+  }
+
+  // Event listeners
+  document.getElementById('postTweetBtn')?.addEventListener('click', () => {
+    const textarea = document.getElementById('tweetTextarea');
+    if (textarea.value.trim()) {
+      addNewTweet(textarea.value);
+      textarea.value = "";
+    } else {
+      showToast("Write something to post (demo)");
+    }
+  });
+
+  document.getElementById('globalTweetBtn')?.addEventListener('click', () => {
+    document.getElementById('tweetTextarea')?.focus();
+    showToast("Compose a new fake tweet ✨");
+  });
+
+  // sidebar nav fake
+  const navs = ['navHome', 'navExplore', 'navNotifications', 'navMessages', 'navLists', 'navProfile', 'navMore'];
+  navs.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('click', () => showToast(`📱 Navigation: ${id.replace('nav','')} (demo interface)`));
+  });
+
+  // fake media button & search
+  document.getElementById('fakeMediaBtn')?.addEventListener('click', () => showToast("📸 Media picker (UI demo — no real upload)"));
+  const searchInput = document.getElementById('fakeSearchInput');
+  if (searchInput) {
+    searchInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') showToast(`🔍 Searching for "${searchInput.value}" — fake X search demo`);
+    });
+  }
+
+  // follow suggestions
+  document.querySelectorAll('.suggest-follow').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const row = btn.closest('.follow-row');
+      const nameSpan = row?.querySelector('.follow-info')?.innerText || "user";
+      showToast(`➕ Followed ${nameSpan} (fake action)`);
+      btn.innerText = "Following";
+      btn.disabled = true;
+      btn.style.opacity = "0.6";
+    });
+  });
+
+  // add trend click
+  document.querySelectorAll('.trend-item').forEach(t => {
+    t.addEventListener('click', () => showToast(`📈 Trend clicked — demo trends page`));
+  });
+
+  renderFeed();
+</script>
+</body>
+</html>

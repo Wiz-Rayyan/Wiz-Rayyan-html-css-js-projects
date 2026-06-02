@@ -1,0 +1,1 @@
+The html skeleton for heavily inspired website.
