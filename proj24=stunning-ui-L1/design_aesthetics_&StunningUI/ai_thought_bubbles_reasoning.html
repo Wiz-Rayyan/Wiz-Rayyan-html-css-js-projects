@@ -1,0 +1,198 @@
+
+<style>
+  .scene { position: relative; min-height: 520px; display: flex; flex-direction: column; align-items: center; padding: 1rem 0 2rem; }
+  .avatar-row { display: flex; align-items: center; gap: 14px; margin-top: 1.5rem; z-index: 10; }
+  .avatar { width: 52px; height: 52px; border-radius: 50%; background: var(--color-background-secondary); border: 0.5px solid var(--color-border-secondary); display: flex; align-items: center; justify-content: center; font-size: 22px; }
+  .avatar-label { font-size: 13px; color: var(--color-text-secondary); }
+  .bubble-stage { position: absolute; top: 0; left: 0; right: 0; bottom: 80px; pointer-events: none; display: flex; justify-content: center; }
+  .bubble-chain { position: relative; width: 340px; display: flex; flex-direction: column-reverse; align-items: center; justify-content: flex-end; padding-top: 20px; gap: 0; }
+  .bubble-connector { width: 1px; height: 18px; border-left: 1.5px dotted var(--color-border-secondary); flex-shrink: 0; }
+  .bubble {
+    pointer-events: all;
+    cursor: pointer;
+    padding: 12px 18px;
+    border-radius: 20px;
+    background: var(--color-background-secondary);
+    border: 0.5px solid var(--color-border-secondary);
+    font-size: 13px;
+    color: var(--color-text-primary);
+    max-width: 300px;
+    text-align: center;
+    line-height: 1.5;
+    transition: transform 0.2s, box-shadow 0.2s, max-width 0.3s;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .bubble.paused { border-color: var(--color-border-primary); }
+  .bubble:hover { transform: scale(1.04); border-color: var(--color-border-primary); }
+  .bubble .step-badge {
+    display: inline-block; font-size: 10px; font-weight: 500;
+    background: var(--color-background-info); color: var(--color-text-info);
+    border-radius: 999px; padding: 1px 7px; margin-right: 6px; vertical-align: 1px;
+  }
+  .bubble .step-text { color: var(--color-text-primary); }
+  .bubble.floating { animation: floatUp 3s ease-in forwards; }
+  .bubble.landed { animation: none; opacity: 1; transform: none; }
+  @keyframes floatUp { 0% { opacity: 0; transform: translateY(20px); } 15% { opacity: 1; transform: translateY(0); } 80% { opacity: 1; transform: translateY(-2px); } 100% { opacity: 1; transform: translateY(0); } }
+  .bubble.fading { animation: fadeOut 1.5s ease forwards; }
+  @keyframes fadeOut { to { opacity: 0; transform: translateY(-50px); } }
+
+  .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.35); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+  .modal-box { background: var(--color-background-primary); border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-lg); padding: 1.5rem; max-width: 420px; width: 90%; }
+  .modal-title { font-size: 15px; font-weight: 500; margin: 0 0 1rem; color: var(--color-text-primary); }
+  .modal-step { display: flex; gap: 12px; margin-bottom: 14px; }
+  .modal-step-num { width: 24px; height: 24px; border-radius: 50%; background: var(--color-background-info); color: var(--color-text-info); font-size: 11px; font-weight: 500; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .modal-step-text { font-size: 13px; color: var(--color-text-primary); line-height: 1.6; }
+  .modal-step-detail { font-size: 12px; color: var(--color-text-secondary); margin-top: 3px; }
+  .modal-close { display: block; margin-top: 1rem; width: 100%; padding: 8px; font-size: 13px; cursor: pointer; border-radius: var(--border-radius-md); background: transparent; border: 0.5px solid var(--color-border-secondary); color: var(--color-text-secondary); }
+  .modal-close:hover { background: var(--color-background-secondary); }
+
+  .controls { display: flex; gap: 10px; margin-top: 1rem; z-index: 10; }
+  .ctrl-btn { padding: 7px 16px; font-size: 13px; cursor: pointer; border-radius: var(--border-radius-md); background: transparent; border: 0.5px solid var(--color-border-secondary); color: var(--color-text-primary); display: flex; align-items: center; gap: 6px; }
+  .ctrl-btn:hover { background: var(--color-background-secondary); }
+  .ctrl-btn:active { transform: scale(0.97); }
+  .prompt-label { font-size: 12px; color: var(--color-text-secondary); margin-top: 0.75rem; text-align: center; max-width: 340px; }
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #1D9E75; display: inline-block; animation: pulse 1.5s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+  .thinking-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--color-text-secondary); margin-bottom: 0.5rem; }
+</style>
+
+<div class="scene" id="scene">
+  <h2 class="sr-only">AI reasoning visualized as floating thought bubbles. Each bubble shows a step in the chain of thought. Click a bubble to see the full reasoning.</h2>
+
+  <div class="bubble-stage" id="stageArea">
+    <div class="bubble-chain" id="bubbleChain"></div>
+  </div>
+
+  <div class="avatar-row">
+    <div class="avatar">🤖</div>
+    <div>
+      <div class="thinking-row" id="thinkingRow" style="display:none;">
+        <span class="status-dot"></span>
+        <span>reasoning…</span>
+      </div>
+      <div class="avatar-label">AI agent</div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="ctrl-btn" id="runBtn" onclick="startReasoning()">
+      <i class="ti ti-player-play" aria-hidden="true"></i> Run reasoning
+    </button>
+    <button class="ctrl-btn" onclick="openModal()">
+      <i class="ti ti-layout-list" aria-hidden="true"></i> Full chain
+    </button>
+    <button class="ctrl-btn" onclick="resetAll()">
+      <i class="ti ti-refresh" aria-hidden="true"></i>
+    </button>
+  </div>
+  <p class="prompt-label">Click any bubble to pause · hover to expand · "Full chain" shows all steps</p>
+</div>
+
+<div class="modal-backdrop" id="modalBackdrop" style="display:none;" onclick="if(event.target===this)closeModal()">
+  <div class="modal-box">
+    <p class="modal-title"><i class="ti ti-brain" aria-hidden="true" style="margin-right:6px; font-size:16px; vertical-align:-1px;"></i>Full chain-of-thought</p>
+    <div id="modalSteps"></div>
+    <button class="modal-close" onclick="closeModal()">Close</button>
+  </div>
+</div>
+
+<script>
+const steps = [
+  { short: "Understand the question", detail: "Parse the user query, identify intent and key constraints." },
+  { short: "Decompose into sub-tasks", detail: "Break the problem: retrieve context, reason over facts, synthesize answer." },
+  { short: "Retrieve relevant context", detail: "Scan memory and knowledge base for facts matching the query." },
+  { short: "Check for contradictions", detail: "Compare retrieved facts against each other; flag any conflicts." },
+  { short: "Form candidate answers", detail: "Generate 2–3 possible responses with varying confidence levels." },
+  { short: "Score by coherence", detail: "Rank candidates: logical consistency, completeness, conciseness." },
+  { short: "Select best response", detail: "Pick the highest-scoring candidate; prepare final output." },
+];
+
+let timers = [];
+let bubbleEls = [];
+let paused = {};
+
+function resetAll() {
+  timers.forEach(t => clearTimeout(t));
+  timers = [];
+  bubbleEls = [];
+  paused = {};
+  document.getElementById('bubbleChain').innerHTML = '';
+  document.getElementById('thinkingRow').style.display = 'none';
+  document.getElementById('runBtn').disabled = false;
+}
+
+function startReasoning() {
+  resetAll();
+  document.getElementById('runBtn').disabled = true;
+  document.getElementById('thinkingRow').style.display = 'flex';
+
+  steps.forEach((step, i) => {
+    const t = setTimeout(() => {
+      addBubble(step, i);
+      if (i === steps.length - 1) {
+        document.getElementById('thinkingRow').style.display = 'none';
+        document.getElementById('runBtn').disabled = false;
+      }
+    }, i * 900);
+    timers.push(t);
+  });
+}
+
+function addBubble(step, idx) {
+  const chain = document.getElementById('bubbleChain');
+
+  if (idx > 0) {
+    const dot = document.createElement('div');
+    dot.className = 'bubble-connector';
+    chain.insertBefore(dot, chain.firstChild);
+  }
+
+  const bwrap = document.createElement('div');
+  bwrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;';
+
+  const b = document.createElement('div');
+  b.className = 'bubble floating';
+  b.innerHTML = `<span class="step-badge">${idx + 1}</span><span class="step-text">${step.short}</span>`;
+  b.title = step.detail;
+
+  b.addEventListener('click', () => {
+    if (paused[idx]) {
+      paused[idx] = false;
+      b.classList.remove('paused');
+    } else {
+      paused[idx] = true;
+      b.classList.add('paused');
+    }
+    openModal(idx);
+  });
+
+  b.addEventListener('animationend', () => {
+    b.classList.remove('floating');
+    b.classList.add('landed');
+  });
+
+  bwrap.appendChild(b);
+  chain.insertBefore(bwrap, chain.firstChild);
+  bubbleEls[idx] = b;
+}
+
+function openModal(focusIdx) {
+  const bd = document.getElementById('modalBackdrop');
+  const ms = document.getElementById('modalSteps');
+  ms.innerHTML = steps.map((s, i) => `
+    <div class="modal-step" style="${focusIdx === i ? 'background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:6px 8px;margin:-6px -8px 8px;' : ''}">
+      <div class="modal-step-num">${i+1}</div>
+      <div>
+        <div class="modal-step-text">${s.short}</div>
+        <div class="modal-step-detail">${s.detail}</div>
+      </div>
+    </div>
+  `).join('');
+  bd.style.display = 'flex';
+}
+
+function closeModal() {
+  document.getElementById('modalBackdrop').style.display = 'none';
+}
+</script>

@@ -1,0 +1,452 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-sans); background: transparent; }
+#app { width: 100%; min-height: 580px; position: relative; overflow: hidden; border-radius: var(--border-radius-lg); border: 0.5px solid var(--color-border-tertiary); background: #0a0f1e; }
+#canvas { width: 100%; height: 580px; display: block; cursor: crosshair; }
+#search-bar { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; background: rgba(10,15,30,0.85); backdrop-filter: blur(12px); border: 0.5px solid rgba(255,255,255,0.15); border-radius: 99px; padding: 8px 12px 8px 16px; width: min(420px, calc(100% - 32px)); z-index: 10; }
+#search-input { flex: 1; background: none; border: none; outline: none; font-size: 14px; color: #fff; font-family: var(--font-sans); }
+#search-input::placeholder { color: rgba(255,255,255,0.4); }
+#search-btn { background: rgba(99,120,255,0.9); border: none; border-radius: 99px; padding: 6px 14px; font-size: 13px; color: #fff; cursor: pointer; font-family: var(--font-sans); font-weight: 500; transition: background 0.2s; white-space: nowrap; }
+#search-btn:hover { background: rgba(120,140,255,1); }
+#status-bar { position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); background: rgba(10,15,30,0.85); backdrop-filter: blur(12px); border: 0.5px solid rgba(255,255,255,0.12); border-radius: 99px; padding: 8px 20px; font-size: 13px; color: rgba(255,255,255,0.7); z-index: 10; transition: opacity 0.4s; pointer-events: none; white-space: nowrap; }
+#cancel-btn { position: absolute; top: 72px; left: 50%; transform: translateX(-50%); background: rgba(220,60,60,0.85); border: none; border-radius: 99px; padding: 7px 20px; font-size: 13px; color: #fff; cursor: pointer; font-family: var(--font-sans); z-index: 10; display: none; transition: opacity 0.3s; }
+#cancel-btn:hover { background: rgba(240,80,80,1); }
+#coords { position: absolute; bottom: 16px; right: 16px; font-size: 11px; color: rgba(255,255,255,0.3); z-index: 10; font-variant-numeric: tabular-nums; }
+.pin-label { position: absolute; transform: translate(-50%, -100%); background: rgba(10,15,30,0.9); border: 0.5px solid rgba(99,120,255,0.5); border-radius: var(--border-radius-md); padding: 5px 10px; font-size: 12px; color: #fff; pointer-events: none; white-space: nowrap; z-index: 10; opacity: 0; transition: opacity 0.5s; margin-top: -8px; }
+</style>
+
+<h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">Cinematic fly-to map: search a location to trigger a camera flight animation across the globe.</h2>
+
+<div id="app">
+  <canvas id="canvas"></canvas>
+  <div id="search-bar">
+    <i class="ti ti-map-pin" style="font-size:18px;color:rgba(99,120,255,0.9);align-self:center;flex-shrink:0" aria-hidden="true"></i>
+    <input id="search-input" placeholder="Search any city or place…" autocomplete="off" />
+    <button id="search-btn"><i class="ti ti-send" aria-hidden="true"></i> Fly to</button>
+  </div>
+  <button id="cancel-btn"><i class="ti ti-player-stop" aria-hidden="true"></i> Cancel flight</button>
+  <div id="status-bar">🌍 Click "Fly to" to begin a cinematic flight</div>
+  <div id="coords"></div>
+</div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const statusBar = document.getElementById('status-bar');
+const cancelBtn = document.getElementById('cancel-btn');
+const coordsEl = document.getElementById('coords');
+const searchInput = document.getElementById('search-input');
+
+const W = () => canvas.clientWidth;
+const H = () => canvas.clientHeight;
+
+function resize() {
+  canvas.width = canvas.clientWidth * devicePixelRatio;
+  canvas.height = canvas.clientHeight * devicePixelRatio;
+  ctx.scale(devicePixelRatio, devicePixelRatio);
+}
+resize();
+window.addEventListener('resize', () => { resize(); draw(); });
+
+const CITIES = [
+  { name: "New York", lat: 40.7128, lon: -74.006 },
+  { name: "London", lat: 51.5074, lon: -0.1278 },
+  { name: "Tokyo", lat: 35.6895, lon: 139.6917 },
+  { name: "Sydney", lat: -33.8688, lon: 151.2093 },
+  { name: "Paris", lat: 48.8566, lon: 2.3522 },
+  { name: "Dubai", lat: 25.2048, lon: 55.2708 },
+  { name: "Mumbai", lat: 19.076, lon: 72.8777 },
+  { name: "São Paulo", lat: -23.5505, lon: -46.6333 },
+  { name: "Cairo", lat: 30.0444, lon: 31.2357 },
+  { name: "Moscow", lat: 55.7558, lon: 37.6173 },
+  { name: "Beijing", lat: 39.9042, lon: 116.4074 },
+  { name: "Los Angeles", lat: 34.0522, lon: -118.2437 },
+  { name: "Chicago", lat: 41.8781, lon: -87.6298 },
+  { name: "Berlin", lat: 52.52, lon: 13.405 },
+  { name: "Singapore", lat: 1.3521, lon: 103.8198 },
+  { name: "Toronto", lat: 43.6532, lon: -79.3832 },
+  { name: "Bangkok", lat: 13.7563, lon: 100.5018 },
+  { name: "Istanbul", lat: 41.0082, lon: 28.9784 },
+  { name: "Mexico City", lat: 19.4326, lon: -99.1332 },
+  { name: "Lagos", lat: 6.5244, lon: 3.3792 },
+  { name: "Mumbai", lat: 19.076, lon: 72.8777 },
+  { name: "Bhayandar", lat: 19.307, lon: 72.844 },
+  { name: "Delhi", lat: 28.6139, lon: 77.209 },
+  { name: "Bangalore", lat: 12.9716, lon: 77.5946 },
+  { name: "Chennai", lat: 13.0827, lon: 80.2707 },
+  { name: "Kolkata", lat: 22.5726, lon: 88.3639 },
+  { name: "Nairobi", lat: -1.286389, lon: 36.817223 },
+  { name: "Johannesburg", lat: -26.2041, lon: 28.0473 },
+  { name: "Buenos Aires", lat: -34.6037, lon: -58.3816 },
+  { name: "Seoul", lat: 37.5665, lon: 126.978 },
+  { name: "Jakarta", lat: -6.2088, lon: 106.8456 },
+  { name: "Kuala Lumpur", lat: 3.139, lon: 101.6869 },
+  { name: "Hong Kong", lat: 22.3193, lon: 114.1694 },
+  { name: "Riyadh", lat: 24.7136, lon: 46.6753 },
+  { name: "Karachi", lat: 24.8607, lon: 67.0011 },
+  { name: "Rome", lat: 41.9028, lon: 12.4964 },
+  { name: "Madrid", lat: 40.4168, lon: -3.7038 },
+  { name: "Amsterdam", lat: 52.3676, lon: 4.9041 },
+  { name: "Vienna", lat: 48.2082, lon: 16.3738 },
+  { name: "Warsaw", lat: 52.2297, lon: 21.0122 },
+  { name: "Stockholm", lat: 59.3293, lon: 18.0686 },
+];
+
+let cam = { lat: 20, lon: 0, zoom: 1.0, tilt: 0 };
+let targetPin = null;
+let currentPin = null;
+let flight = null;
+let cancelled = false;
+let pinBounce = 0;
+let pinBounceDir = 1;
+let animFrame = null;
+let hoverCity = null;
+
+function mercator(lat, lon) {
+  const w = W(), h = H();
+  const scale = 200 * cam.zoom;
+  const cx = w / 2;
+  const cy = h / 2;
+  const dLon = ((lon - cam.lon + 540) % 360) - 180;
+  let x = cx + dLon * (scale / 45);
+  const latRad = lat * Math.PI / 180;
+  const camLatRad = cam.lat * Math.PI / 180;
+  let y = cy - (Math.log(Math.tan(Math.PI/4 + latRad/2)) - Math.log(Math.tan(Math.PI/4 + camLatRad/2))) * scale / (Math.PI / 180 * 45);
+  if (cam.tilt !== 0) {
+    const dy = y - cy;
+    const perspective = 0.0007 * cam.tilt;
+    const scale2 = 1 / (1 + perspective * dy);
+    x = cx + (x - cx) * scale2;
+    y = cy + dy * scale2;
+  }
+  return [x, y];
+}
+
+const LAND_POLYS = [
+  [[51.5,0.12],[51.1,-0.5],[50.8,-1],[50.8,0.5],[51.5,1.5],[52,1.8],[53,1.2],[53.5,0],[53.8,-3],[54.5,-3.5],[55,-4],[55.5,-5],[56,-4],[57,-2],[57.5,-4],[58,-5],[58.7,-4],[58.5,-2],[58,0],[57,2],[56.5,2],[55,1.5],[54,0.8],[53.5,0.5],[52,1.5],[51.5,0.12]],
+  [[48.9,2.3],[48.5,2],[47.5,0.5],[46.5,-1],[46,-2],[44,-2],[43,-2.5],[42.5,-2],[43,0],[43.5,2],[44,3],[45,5],[43.5,5],[43.5,7],[44.5,8],[45,7],[47,8],[47.5,7],[48,7.5],[48.5,7],[49,8],[50,12],[51,13],[52,14],[52.5,13],[53.5,14],[54,10],[54.5,9],[54.5,8],[53,8],[52.5,7],[53,4],[52.5,3],[51.5,3],[50,2],[49.5,2],[48.9,2.3]],
+  [[37,-9],[36,-8],[36,-6],[36,-5],[37,-4],[38,-3],[39,-0.5],[40,0],[41,2],[42,3],[42.5,3],[43,5],[42.5,7],[41.5,9],[40,2],[38,0],[37,1],[36,5],[35,6],[35.5,11],[37,10],[38,13],[39,16],[37,15],[36,14],[34,10],[33,13],[34,14],[35.5,20],[36,25],[31,25],[27,34],[23,37],[22,37],[20,37],[15,37],[11,38],[8,38],[4,37],[2,38],[0,37],[-1,35],[-5,35],[-6,37],[-9,38],[-9.5,37],[-8.5,37],[-8.5,37],[-9,38],[-8,42],[-7,44],[-9,44],[-9,43],[-8,42],[-8.5,40],[-9,39],[-8,37],[-8,36],[-7,37],[-6,37],[-6,39],[-5,39],[-4,39],[-4,40],[-3,40],[-3,42],[-2,43],[0,43],[1,43],[2,42],[3,43],[4,43],[5,44],[6,44],[7,44],[8,47],[9,47],[10,48],[12,47],[13,48],[14,50],[15,50],[16,50],[17,51],[18,54],[20,54],[21,55],[22,54],[23,54],[24,55],[25,54],[24,53],[22,52],[23,50],[22,48],[24,46],[24,44],[26,44],[28,44],[29,46],[30,47],[32,47],[34,46],[34,44],[32,44],[32,42],[34,42],[36,42],[36,40],[36,37],[37,-9]],
+  [[71,30],[68,30],[66,34],[63,38],[60,44],[57,44],[55,44],[50,45],[46,43],[44,41],[42,42],[40,42],[38,40],[37,37],[36,37],[34,37],[32,34],[30,32],[25,34],[25,37],[28,40],[29,42],[30,48],[32,50],[34,55],[36,56],[38,58],[40,58],[42,60],[44,60],[46,62],[48,62],[50,60],[52,60],[54,60],[58,60],[62,58],[64,60],[66,60],[68,62],[70,62],[72,60],[74,58],[76,55],[77,52],[77,50],[80,46],[80,40],[78,36],[76,34],[74,32],[71,30]],
+  [[68,170],[66,170],[64,168],[62,166],[60,165],[58,162],[56,160],[55,160],[56,162],[57,164],[58,166],[60,169],[62,169],[64,172],[65,172],[66,170],[68,170]],
+  [[72,172],[70,168],[68,164],[66,162],[64,162],[62,162],[60,160],[58,156],[56,152],[54,148],[52,142],[50,136],[48,130],[46,124],[44,120],[42,122],[40,124],[38,126],[36,128],[35,130],[36,132],[38,130],[40,128],[42,128],[44,130],[46,134],[48,138],[50,142],[52,148],[54,154],[56,158],[58,162],[60,166],[62,170],[64,174],[66,176],[68,176],[70,174],[72,172]],
+  [[55,130],[54,128],[52,124],[50,120],[48,116],[46,110],[44,104],[42,98],[40,94],[38,88],[36,82],[35,80],[34,78],[33,74],[32,70],[30,66],[28,62],[26,58],[24,56],[22,54],[20,50],[18,48],[16,44],[14,42],[12,44],[14,46],[16,48],[18,52],[20,56],[22,60],[24,64],[26,68],[28,72],[30,76],[32,80],[34,84],[36,88],[38,92],[40,96],[42,100],[44,106],[46,112],[48,118],[50,124],[52,128],[54,132],[55,130]],
+  [[36,36],[34,36],[32,34],[30,32],[28,34],[26,34],[24,36],[22,36],[20,36],[18,38],[16,38],[14,40],[12,42],[10,42],[8,40],[6,38],[4,36],[2,36],[0,38],[-2,38],[-4,37],[-6,36],[-8,36],[-10,38],[-12,38],[-14,36],[-16,34],[-18,14],[-16,10],[-14,8],[-12,6],[-10,4],[-8,4],[-6,4],[-4,6],[-2,8],[0,8],[2,6],[4,8],[6,10],[8,12],[10,14],[12,14],[14,12],[16,12],[18,14],[20,12],[22,12],[24,16],[26,18],[28,18],[30,16],[32,16],[34,18],[36,18],[38,20],[40,22],[42,26],[44,28],[42,30],[40,32],[38,34],[36,36]],
+  [[-2,-50],[0,-52],[2,-52],[4,-52],[6,-50],[8,-48],[10,-44],[12,-40],[14,-36],[16,-32],[18,-28],[20,-24],[22,-20],[24,-16],[26,-12],[28,-8],[30,-4],[32,-2],[34,0],[36,0],[38,-2],[40,-4],[42,-8],[44,-12],[44,-16],[42,-20],[40,-22],[38,-26],[36,-30],[34,-34],[32,-38],[30,-42],[28,-46],[26,-50],[24,-54],[22,-56],[20,-52],[18,-48],[16,-44],[14,-42],[12,-44],[10,-46],[8,-48],[6,-50],[4,-52],[2,-52],[0,-52],[-2,-50]],
+  [[10,-34],[8,-36],[6,-38],[4,-40],[2,-42],[0,-42],[-2,-42],[-4,-40],[-6,-38],[-8,-36],[-10,-34],[-12,-32],[-14,-30],[-16,-28],[-18,-22],[-20,-18],[-22,-16],[-24,-14],[-26,-12],[-28,-12],[-30,-14],[-32,-16],[-34,-18],[-36,-20],[-38,-22],[-40,-24],[-42,-28],[-44,-32],[-46,-36],[-48,-40],[-50,-44],[-52,-48],[-54,-52],[-56,-54],[-58,-56],[-60,-58],[-62,-60],[-64,-58],[-62,-55],[-60,-52],[-58,-48],[-56,-44],[-54,-40],[-52,-36],[-50,-32],[-48,-28],[-46,-24],[-44,-20],[-42,-16],[-40,-12],[-38,-8],[-36,-4],[-34,0],[-32,4],[-30,8],[-28,12],[-26,14],[-24,16],[-22,14],[-20,12],[-18,10],[-16,8],[-14,6],[-12,4],[-10,2],[-8,0],[-6,-2],[-4,-4],[-2,-6],[0,-8],[2,-10],[4,-12],[6,-14],[8,-16],[10,-18],[12,-20],[14,-22],[12,-26],[10,-30],[10,-34]],
+  [[-70,10],[-72,8],[-74,6],[-76,4],[-78,2],[-80,0],[-80,-2],[-78,-4],[-76,-6],[-74,-8],[-72,-10],[-70,-12],[-68,-14],[-66,-16],[-64,-18],[-62,-20],[-60,-22],[-58,-24],[-56,-26],[-54,-28],[-52,-30],[-50,-30],[-48,-28],[-46,-24],[-44,-20],[-42,-16],[-40,-12],[-38,-8],[-36,-4],[-34,0],[-32,4],[-30,8],[-28,10],[-26,10],[-24,8],[-22,6],[-20,4],[-18,2],[-16,0],[-14,-2],[-12,-4],[-10,-6],[-8,-8],[-6,-10],[-4,-12],[-2,-12],[0,-14],[2,-14],[4,-12],[6,-10],[8,-8],[10,-6],[10,-10],[8,-14],[6,-18],[4,-22],[2,-26],[0,-30],[-2,-34],[-4,-38],[-6,-42],[-8,-44],[-10,-44],[-12,-40],[-14,-36],[-16,-30],[-18,-26],[-20,-22],[-22,-18],[-24,-14],[-26,-10],[-28,-8],[-30,-6],[-32,-4],[-34,-4],[-36,-6],[-38,-10],[-40,-14],[-42,-18],[-44,-20],[-46,-22],[-48,-24],[-50,-26],[-52,-28],[-54,-28],[-56,-26],[-58,-22],[-60,-18],[-62,-14],[-64,-10],[-66,-6],[-68,-2],[-70,2],[-70,6],[-70,10]],
+  [[-100,20],[-102,18],[-104,18],[-106,16],[-108,14],[-110,14],[-112,16],[-114,18],[-116,22],[-118,24],[-120,28],[-122,32],[-124,36],[-124,40],[-122,44],[-120,46],[-118,48],[-116,50],[-118,52],[-120,54],[-122,54],[-124,56],[-126,58],[-128,56],[-130,54],[-132,54],[-134,56],[-136,58],[-138,58],[-140,60],[-142,60],[-144,62],[-146,62],[-148,60],[-150,60],[-152,58],[-154,56],[-156,54],[-158,52],[-160,50],[-162,52],[-164,54],[-166,56],[-168,58],[-168,64],[-166,66],[-164,66],[-162,64],[-160,62],[-158,60],[-156,60],[-154,62],[-152,64],[-150,66],[-148,68],[-146,70],[-144,70],[-142,68],[-140,66],[-138,62],[-136,58],[-134,54],[-132,50],[-130,46],[-128,42],[-126,38],[-124,34],[-122,30],[-120,26],[-118,22],[-116,20],[-114,20],[-112,22],[-110,24],[-108,24],[-106,22],[-104,20],[-102,20],[-100,20]],
+  [[-60,45],[-62,44],[-64,43],[-66,42],[-68,42],[-70,43],[-72,44],[-74,45],[-76,44],[-78,44],[-80,42],[-82,42],[-84,44],[-86,44],[-88,42],[-90,40],[-88,38],[-86,36],[-84,34],[-82,30],[-80,26],[-78,22],[-76,18],[-74,14],[-72,10],[-70,8],[-68,8],[-66,10],[-64,12],[-62,14],[-60,16],[-58,14],[-56,12],[-54,10],[-52,8],[-50,6],[-52,2],[-54,-2],[-56,-6],[-58,-8],[-60,-10],[-62,-10],[-64,-8],[-66,-6],[-68,-4],[-70,-2],[-72,0],[-74,2],[-76,4],[-78,6],[-80,8],[-82,10],[-84,10],[-86,8],[-88,6],[-90,4],[-92,4],[-94,6],[-96,8],[-98,10],[-100,12],[-102,14],[-104,16],[-106,18],[-108,18],[-110,16],[-112,14],[-114,12],[-116,10],[-118,10],[-120,12],[-122,14],[-124,16],[-126,14],[-128,12],[-130,10],[-132,8],[-134,6],[-136,4],[-134,2],[-132,0],[-130,-2],[-128,-4],[-126,-6],[-124,-8],[-122,-10],[-120,-12],[-118,-14],[-116,-16],[-114,-18],[-112,-20],[-110,-22],[-108,-24],[-106,-26],[-104,-28],[-102,-28],[-100,-26],[-98,-24],[-96,-22],[-94,-20],[-92,-18],[-90,-16],[-88,-14],[-86,-12],[-84,-10],[-82,-8],[-80,-6],[-78,-4],[-76,-2],[-74,0],[-72,2],[-70,4],[-68,4],[-66,2],[-64,0],[-62,-2],[-60,-4],[-58,-6],[-56,-8],[-54,-10],[-52,-12],[-50,-14],[-50,-18],[-52,-20],[-54,-22],[-56,-22],[-58,-20],[-60,-18],[-62,-16],[-64,-14],[-66,-12],[-68,-10],[-70,-8],[-72,-6],[-74,-4],[-76,-2],[-78,0],[-80,2],[-82,4],[-84,6],[-86,8],[-88,10],[-90,12],[-92,12],[-94,10],[-96,8],[-98,6],[-100,4],[-100,8],[-98,12],[-96,16],[-94,20],[-92,24],[-90,28],[-88,32],[-86,36],[-84,38],[-82,40],[-80,42],[-78,44],[-76,46],[-74,46],[-72,46],[-70,46],[-68,44],[-66,44],[-64,44],[-62,44],[-60,45]],
+  [[-50,70],[-52,68],[-54,66],[-56,64],[-58,62],[-60,60],[-60,56],[-58,54],[-56,52],[-54,50],[-52,48],[-50,46],[-52,44],[-54,44],[-56,46],[-58,48],[-60,50],[-62,52],[-64,52],[-66,50],[-68,48],[-70,46],[-72,44],[-74,44],[-76,46],[-78,48],[-80,50],[-82,52],[-84,52],[-86,50],[-88,48],[-90,46],[-92,44],[-94,42],[-96,40],[-98,38],[-100,36],[-102,34],[-104,32],[-106,30],[-108,28],[-110,26],[-110,30],[-108,34],[-106,38],[-104,42],[-102,46],[-100,50],[-98,54],[-96,58],[-94,60],[-92,62],[-90,62],[-88,60],[-86,58],[-84,56],[-82,54],[-80,52],[-78,50],[-76,50],[-74,52],[-72,54],[-70,56],[-68,58],[-66,60],[-64,62],[-62,64],[-60,66],[-58,68],[-56,70],[-54,72],[-52,72],[-50,70]],
+  [[-165,60],[-168,58],[-170,56],[-172,54],[-174,52],[-176,50],[-178,50],[-180,52],[-178,54],[-176,56],[-174,58],[-172,60],[-170,62],[-168,64],[-166,62],[-164,60],[-162,58],[-160,56],[-158,56],[-156,58],[-154,60],[-152,62],[-150,62],[-148,60],[-146,58],[-144,56],[-142,54],[-140,52],[-138,50],[-136,50],[-134,52],[-132,54],[-130,56],[-128,58],[-126,60],[-126,64],[-128,66],[-130,68],[-132,68],[-134,66],[-136,64],[-138,62],[-140,60],[-142,58],[-144,56],[-146,54],[-148,52],[-150,50],[-152,52],[-154,54],[-156,56],[-158,58],[-160,60],[-162,60],[-164,58],[-166,56],[-168,56],[-170,58],[-172,60],[-174,62],[-172,64],[-170,62],[-168,60],[-166,58],[-164,56],[-162,54],[-160,52],[-158,50],[-158,54],[-160,58],[-162,62],[-164,64],[-166,66],[-168,68],[-170,68],[-172,66],[-170,64],[-168,62],[-166,60],[-165,60]],
+  [[-20,64],[-22,62],[-24,60],[-26,58],[-28,56],[-26,54],[-24,52],[-22,52],[-20,54],[-18,54],[-16,52],[-14,50],[-12,50],[-10,52],[-8,54],[-6,54],[-4,52],[-2,50],[0,50],[2,52],[4,54],[6,54],[4,56],[2,58],[0,60],[-2,62],[-4,62],[-6,60],[-8,58],[-10,58],[-12,60],[-14,62],[-16,62],[-18,64],[-20,64]],
+  [[146,-38],[144,-40],[142,-42],[140,-44],[138,-44],[136,-42],[134,-40],[132,-38],[130,-36],[128,-34],[130,-32],[132,-30],[134,-28],[136,-26],[138,-26],[140,-28],[142,-30],[144,-32],[146,-34],[148,-36],[150,-38],[152,-38],[154,-36],[156,-34],[158,-32],[160,-30],[158,-28],[156,-26],[154,-24],[152,-22],[150,-20],[148,-22],[146,-24],[144,-26],[142,-28],[140,-30],[138,-32],[136,-34],[134,-36],[134,-38],[136,-40],[138,-42],[140,-44],[142,-44],[144,-42],[146,-40],[148,-38],[150,-38],[148,-36],[146,-38]],
+  [[100,10],[98,12],[96,14],[94,16],[92,16],[90,14],[88,12],[86,10],[84,8],[82,6],[80,4],[78,2],[76,0],[74,-2],[72,-4],[70,-6],[72,-8],[74,-8],[76,-6],[78,-4],[80,-2],[82,0],[84,2],[86,4],[88,6],[90,8],[92,8],[94,6],[96,4],[98,2],[100,0],[102,-2],[104,-4],[106,-4],[108,-2],[110,0],[112,2],[114,4],[116,6],[118,8],[120,10],[122,12],[120,14],[118,14],[116,12],[114,10],[112,8],[110,6],[108,4],[106,4],[104,6],[102,8],[100,10]],
+];
+
+function drawMap() {
+  const w = W(), h = H();
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = '#0a0f1e';
+  ctx.fillRect(0, 0, w, h);
+
+  for (let lon = -180; lon <= 180; lon += 30) {
+    ctx.beginPath();
+    const [x0] = mercator(-85, lon);
+    const [x1, y1] = mercator(85, lon);
+    ctx.moveTo(x0, y1 + (H() - y1));
+    for (let lat = -80; lat <= 85; lat += 5) {
+      const [gx, gy] = mercator(lat, lon);
+      if (lat === -80) ctx.moveTo(gx, gy); else ctx.lineTo(gx, gy);
+    }
+    ctx.strokeStyle = 'rgba(99,120,255,0.06)';
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+  }
+  for (let lat = -60; lat <= 80; lat += 30) {
+    ctx.beginPath();
+    for (let lon2 = -180; lon2 <= 180; lon2 += 2) {
+      const [gx, gy] = mercator(lat, lon2);
+      if (lon2 === -180) ctx.moveTo(gx, gy); else ctx.lineTo(gx, gy);
+    }
+    ctx.strokeStyle = lat === 0 ? 'rgba(99,120,255,0.15)' : 'rgba(99,120,255,0.06)';
+    ctx.lineWidth = lat === 0 ? 0.8 : 0.5;
+    ctx.stroke();
+  }
+
+  LAND_POLYS.forEach(poly => {
+    ctx.beginPath();
+    poly.forEach(([lat, lon], i) => {
+      const [x, y] = mercator(lat, lon);
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(99,120,255,0.13)';
+    ctx.strokeStyle = 'rgba(99,120,255,0.35)';
+    ctx.lineWidth = 0.7;
+    ctx.fill();
+    ctx.stroke();
+  });
+
+  CITIES.forEach(city => {
+    const [x, y] = mercator(city.lat, city.lon);
+    if (x < -10 || x > w + 10 || y < -10 || y > h + 10) return;
+    ctx.beginPath();
+    ctx.arc(x, y, 2.5, 0, Math.PI * 2);
+    ctx.fillStyle = city === hoverCity ? 'rgba(200,220,255,0.95)' : 'rgba(120,150,255,0.55)';
+    ctx.fill();
+    if (cam.zoom > 1.5 || city === hoverCity) {
+      ctx.font = '500 11px var(--font-sans, sans-serif)';
+      ctx.fillStyle = city === hoverCity ? 'rgba(200,220,255,0.95)' : 'rgba(120,150,255,0.7)';
+      ctx.fillText(city.name, x + 5, y - 3);
+    }
+  });
+
+  if (currentPin) {
+    const [px, py] = mercator(currentPin.lat, currentPin.lon);
+    const bounce = Math.sin(pinBounce) * 5;
+    ctx.save();
+    ctx.shadowColor = 'rgba(99,200,255,0.5)';
+    ctx.shadowBlur = 12;
+    ctx.beginPath();
+    ctx.moveTo(px, py + bounce);
+    ctx.lineTo(px - 8, py - 16 + bounce);
+    ctx.arc(px, py - 22 + bounce, 8, Math.PI * 0.85, Math.PI * 2.15);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(99,200,255,0.95)';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(px, py - 22 + bounce, 3, 0, Math.PI * 2);
+    ctx.fillStyle = '#fff';
+    ctx.fill();
+    ctx.restore();
+
+    if (pinBounce > 0.1) {
+      ctx.font = '500 12px var(--font-sans, sans-serif)';
+      ctx.fillStyle = 'rgba(200,240,255,0.9)';
+      ctx.textAlign = 'center';
+      ctx.fillText(currentPin.name, px, py - 36 + bounce);
+      ctx.textAlign = 'left';
+    }
+  }
+
+  if (flight && !cancelled) {
+    const t = flight.progress;
+    const [fx, fy] = mercator(flight.curLat, flight.curLon);
+    ctx.beginPath();
+    const ftPoints = 20;
+    for (let i = 0; i <= ftPoints; i++) {
+      const ft = (i / ftPoints) * t;
+      const flp = bezierPoint(ft, flight.p0lat, flight.p0lon, flight.p1lat, flight.p1lon, flight.p2lat, flight.p2lon, flight.p3lat, flight.p3lon);
+      const [trailX, trailY] = mercator(flp.lat, flp.lon);
+      if (i === 0) ctx.moveTo(trailX, trailY); else ctx.lineTo(trailX, trailY);
+    }
+    ctx.strokeStyle = 'rgba(99,200,255,0.3)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 4]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.beginPath();
+    ctx.arc(fx, fy, 5, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(99,200,255,0.9)';
+    ctx.shadowColor = 'rgba(99,200,255,0.8)';
+    ctx.shadowBlur = 10;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+
+  coordsEl.textContent = `${cam.lat.toFixed(1)}°N  ${cam.lon.toFixed(1)}°E  ×${cam.zoom.toFixed(2)}`;
+}
+
+function bezierPoint(t, p0lat, p0lon, p1lat, p1lon, p2lat, p2lon, p3lat, p3lon) {
+  const mt = 1 - t;
+  const lat = mt*mt*mt*p0lat + 3*mt*mt*t*p1lat + 3*mt*t*t*p2lat + t*t*t*p3lat;
+  const lon = mt*mt*mt*p0lon + 3*mt*mt*t*p1lon + 3*mt*t*t*p2lon + t*t*t*p3lon;
+  return { lat, lon };
+}
+
+function cubicBezierEase(t) {
+  const p1x = 0.2, p1y = 0.0, p2x = 0.4, p2y = 1.05;
+  let low = 0, high = 1, mid;
+  for (let i = 0; i < 20; i++) {
+    mid = (low + high) / 2;
+    const mt = 1 - mid;
+    const cx = 3*mt*mt*mid*p1x + 3*mt*mid*mid*p2x + mid*mid*mid;
+    if (Math.abs(cx - t) < 0.001) break;
+    cx < t ? (low = mid) : (high = mid);
+  }
+  mid = (low + high) / 2;
+  const mt2 = 1 - mid;
+  return 3*mt2*mt2*mid*p1y + 3*mt2*mid*mid*p2y + mid*mid*mid;
+}
+
+function flyTo(destLat, destLon, destName) {
+  if (flight) { cancelled = true; }
+  cancelled = false;
+  currentPin = null;
+  targetPin = { lat: destLat, lon: destLon, name: destName };
+  statusBar.style.opacity = '1';
+  cancelBtn.style.display = 'block';
+
+  const fromLat = cam.lat, fromLon = cam.lon;
+  const fromZoom = cam.zoom;
+  const toZoom = 2.5;
+  const midZoom = 0.55;
+
+  const dLon = ((destLon - fromLon + 540) % 360) - 180;
+  const midLat = (fromLat + destLat) / 2;
+  const midLon = fromLon + dLon / 2;
+  const highLat = midLat + (Math.abs(destLat - fromLat) * 0.3 + 15);
+
+  const p0lat = fromLat, p0lon = fromLon;
+  const p1lat = highLat + 5, p1lon = midLon - dLon * 0.1;
+  const p2lat = highLat - 5, p2lon = midLon + dLon * 0.1;
+  const p3lat = destLat, p3lon = destLon;
+
+  const duration = 2200;
+  const startTime = performance.now();
+
+  flight = { p0lat, p0lon, p1lat, p1lon, p2lat, p2lon, p3lat, p3lon, progress: 0, curLat: fromLat, curLon: fromLon };
+
+  let lastStatus = '';
+  function animate(now) {
+    if (cancelled) {
+      flight = null;
+      cancelBtn.style.display = 'none';
+      statusBar.textContent = '✈️ Flight cancelled';
+      draw();
+      return;
+    }
+    const elapsed = now - startTime;
+    const rawT = Math.min(elapsed / duration, 1);
+    const t = cubicBezierEase(rawT);
+
+    const pos = bezierPoint(t, p0lat, p0lon, p1lat, p1lon, p2lat, p2lon, p3lat, p3lon);
+    cam.lat = pos.lat;
+    cam.lon = pos.lon;
+    flight.progress = rawT;
+    flight.curLat = pos.lat;
+    flight.curLon = pos.lon;
+
+    if (rawT < 0.5) {
+      const localT = rawT * 2;
+      cam.zoom = fromZoom + (midZoom - fromZoom) * cubicBezierEase(localT);
+      cam.tilt = localT * 15;
+      const newStatus = '🛫 Pulling up…';
+      if (newStatus !== lastStatus) { statusBar.textContent = newStatus; lastStatus = newStatus; }
+    } else {
+      const localT = (rawT - 0.5) * 2;
+      cam.zoom = midZoom + (toZoom - midZoom) * cubicBezierEase(localT);
+      cam.tilt = 15 - localT * 15;
+      const newStatus = '🛬 Descending to ' + destName + '…';
+      if (newStatus !== lastStatus) { statusBar.textContent = newStatus; lastStatus = newStatus; }
+    }
+
+    draw();
+
+    if (rawT < 1) {
+      animFrame = requestAnimationFrame(animate);
+    } else {
+      flight = null;
+      cancelBtn.style.display = 'none';
+      cam.lat = destLat;
+      cam.lon = destLon;
+      cam.zoom = toZoom;
+      cam.tilt = 0;
+      currentPin = targetPin;
+      pinBounce = Math.PI / 2;
+      pinBounceDir = 1;
+      statusBar.textContent = '📍 Arrived at ' + destName;
+      draw();
+      startPinBounce();
+    }
+  }
+  if (animFrame) cancelAnimationFrame(animFrame);
+  animFrame = requestAnimationFrame(animate);
+}
+
+function startPinBounce() {
+  let frames = 0;
+  function b() {
+    pinBounce += pinBounceDir * 0.15;
+    if (pinBounce > Math.PI) { pinBounce = Math.PI; pinBounceDir = -1; }
+    if (pinBounce < 0.0) { pinBounce = 0; return; }
+    draw();
+    frames++;
+    if (frames < 80) requestAnimationFrame(b);
+  }
+  requestAnimationFrame(b);
+}
+
+function draw() { drawMap(); }
+
+function findCity(query) {
+  const q = query.trim().toLowerCase();
+  if (!q) return null;
+  return CITIES.find(c => c.name.toLowerCase().includes(q)) || null;
+}
+
+async function geocode(query) {
+  const city = findCity(query);
+  if (city) return city;
+  const guesses = [
+    { name: query, lat: 48.8566, lon: 2.3522 },
+  ];
+  return null;
+}
+
+document.getElementById('search-btn').addEventListener('click', async () => {
+  const q = searchInput.value.trim();
+  if (!q) return;
+  const city = findCity(q);
+  if (city) {
+    flyTo(city.lat, city.lon, city.name);
+  } else {
+    statusBar.textContent = '❓ City not found. Try: London, Tokyo, Mumbai, New York…';
+    statusBar.style.opacity = '1';
+  }
+});
+
+searchInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('search-btn').click();
+});
+
+cancelBtn.addEventListener('click', () => { cancelled = true; });
+
+canvas.addEventListener('click', () => {
+  if (flight) { cancelled = true; }
+});
+
+canvas.addEventListener('mousemove', e => {
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  let found = null;
+  CITIES.forEach(city => {
+    const [cx, cy] = mercator(city.lat, city.lon);
+    if (Math.hypot(cx - mx, cy - my) < 12) found = city;
+  });
+  if (found !== hoverCity) { hoverCity = found; draw(); }
+  canvas.style.cursor = found ? 'pointer' : 'crosshair';
+});
+
+canvas.addEventListener('click', e => {
+  if (flight) { cancelled = true; return; }
+  if (hoverCity) {
+    searchInput.value = hoverCity.name;
+    flyTo(hoverCity.lat, hoverCity.lon, hoverCity.name);
+  }
+});
+
+const SUGGESTIONS = ['London', 'Tokyo', 'Sydney', 'New York', 'Dubai', 'Paris', 'Mumbai', 'São Paulo', 'Singapore', 'Cairo'];
+let sugIdx = 0;
+setInterval(() => {
+  if (!flight && document.activeElement !== searchInput) {
+    searchInput.placeholder = 'Try: ' + SUGGESTIONS[sugIdx % SUGGESTIONS.length] + '…';
+    sugIdx++;
+  }
+}, 2200);
+
+draw();
+</script>

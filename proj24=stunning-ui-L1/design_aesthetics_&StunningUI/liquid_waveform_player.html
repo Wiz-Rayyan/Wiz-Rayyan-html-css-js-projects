@@ -1,0 +1,410 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: transparent; }
+#player {
+  font-family: var(--font-sans);
+  padding: 1.5rem 1.25rem;
+  color: var(--color-text-primary);
+  user-select: none;
+}
+#track-info { margin-bottom: 1.25rem; }
+#track-title { font-size: 15px; font-weight: 500; color: var(--color-text-primary); }
+#track-sub { font-size: 13px; color: var(--color-text-secondary); margin-top: 2px; }
+#waveform-wrap {
+  position: relative;
+  height: 100px;
+  border-radius: var(--border-radius-md);
+  overflow: visible;
+  cursor: crosshair;
+  margin-bottom: 0.75rem;
+}
+#waveform {
+  display: block;
+  width: 100%;
+  height: 100px;
+  border-radius: var(--border-radius-md);
+}
+#tooltip {
+  position: absolute;
+  top: -30px;
+  background: var(--color-background-primary);
+  border: 0.5px solid var(--color-border-secondary);
+  border-radius: var(--border-radius-md);
+  padding: 3px 8px;
+  font-size: 12px;
+  color: var(--color-text-primary);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  white-space: nowrap;
+}
+#controls {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+#play-btn {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  border: 0.5px solid var(--color-border-secondary);
+  background: var(--color-background-primary);
+  color: var(--color-text-primary);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+#play-btn:hover { background: var(--color-background-secondary); }
+#play-btn i { font-size: 16px; }
+#time { font-size: 13px; color: var(--color-text-secondary); font-variant-numeric: tabular-nums; min-width: 80px; }
+#loop-info { font-size: 12px; color: var(--color-text-secondary); margin-left: auto; display: flex; align-items: center; gap: 6px; }
+#loop-badge {
+  display: none;
+  background: #0d5c2e22;
+  color: #0d5c2e;
+  border: 0.5px solid #0d5c2e55;
+  border-radius: 20px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 500;
+}
+@media (prefers-color-scheme: dark) {
+  #loop-badge { background: #1aff7022; color: #1aff70; border-color: #1aff7055; }
+}
+#hint { font-size: 11px; color: var(--color-text-tertiary); margin-top: 0.5rem; line-height: 1.6; }
+</style>
+
+<div id="player" aria-label="Liquid waveform audio player">
+  <div id="track-info">
+    <div id="track-title">Liquid Motion</div>
+    <div id="track-sub">Hover · click · drag · double-click to loop</div>
+  </div>
+  <div id="waveform-wrap">
+    <canvas id="waveform"></canvas>
+    <div id="tooltip">0:00</div>
+  </div>
+  <div id="controls">
+    <button id="play-btn" aria-label="Play / pause"><i class="ti ti-player-play"></i></button>
+    <div id="time">0:00 / 2:47</div>
+    <div id="loop-info">
+      <span id="loop-badge">⟳ Loop</span>
+    </div>
+  </div>
+  <div id="hint">Hover: timestamp · Click: jump · Drag: scrub · Double-click: set loop region</div>
+</div>
+
+<script>
+(function(){
+const canvas = document.getElementById('waveform');
+const ctx = canvas.getContext('2d');
+const wrap = document.getElementById('waveform-wrap');
+const tooltip = document.getElementById('tooltip');
+const playBtn = document.getElementById('play-btn');
+const timeEl = document.getElementById('time');
+const loopBadge = document.getElementById('loop-badge');
+
+const TOTAL = 167;
+const POINTS = 80;
+let playing = false;
+let currentTime = 0;
+let loop = { active: false, start: -1, end: -1 };
+let dragging = false;
+let dblClickStart = -1;
+let animFrame;
+let lastTS = null;
+let hoverX = -1;
+
+const seed = new Array(POINTS).fill(0).map((_,i) => {
+  return 0.18 + 0.62 * Math.abs(Math.sin(i * 0.41 + 0.7) * Math.cos(i * 0.17 + 1.1))
+       + 0.12 * Math.abs(Math.sin(i * 0.83));
+});
+
+const noise = new Array(POINTS).fill(0).map(() => Math.random() * 0.08);
+let wavePhase = 0;
+
+function resize() {
+  canvas.width = wrap.clientWidth * window.devicePixelRatio;
+  canvas.height = 100 * window.devicePixelRatio;
+  canvas.style.width = wrap.clientWidth + 'px';
+  canvas.style.height = '100px';
+}
+resize();
+window.addEventListener('resize', resize);
+
+function fmt(s) {
+  s = Math.max(0, Math.min(TOTAL, s));
+  const m = Math.floor(s / 60), sec = Math.floor(s % 60);
+  return m + ':' + String(sec).padStart(2,'0');
+}
+
+function isDark() {
+  return window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
+
+function draw() {
+  const W = canvas.width, H = canvas.height;
+  const dpr = window.devicePixelRatio;
+  ctx.clearRect(0, 0, W, H);
+
+  const progress = currentTime / TOTAL;
+  const progressPx = progress * W;
+
+  const dark = isDark();
+  const bgColor = dark ? '#0d1117' : '#f8f8f6';
+  ctx.fillStyle = bgColor;
+  const r = 8 * dpr;
+  ctx.beginPath();
+  ctx.roundRect(0, 0, W, H, r);
+  ctx.fill();
+
+  const midY = H / 2;
+  const maxAmp = H * 0.38;
+
+  function getY(i, phase) {
+    const base = seed[i];
+    const wave = 0.08 * Math.sin(i * 0.22 + phase);
+    const n = noise[i];
+    return (base + wave + n) * maxAmp;
+  }
+
+  function buildPoints(phase) {
+    const pts = [];
+    for (let i = 0; i < POINTS; i++) {
+      const x = (i / (POINTS - 1)) * W;
+      const amp = getY(i, phase);
+      pts.push({ x, amp });
+    }
+    return pts;
+  }
+
+  function drawWave(pts, xClipStart, xClipEnd, colorTop, colorBot, glowColor, glowBlur, lineWidth) {
+    if (xClipStart >= xClipEnd) return;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(xClipStart, 0, xClipEnd - xClipStart, H);
+    ctx.clip();
+
+    ctx.shadowBlur = glowBlur * dpr;
+    ctx.shadowColor = glowColor;
+    ctx.lineWidth = lineWidth * dpr;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = colorTop;
+
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, midY - pts[0].amp);
+    for (let i = 1; i < pts.length; i++) {
+      const prev = pts[i - 1], cur = pts[i];
+      const cpx = (prev.x + cur.x) / 2;
+      ctx.bezierCurveTo(cpx, midY - prev.amp, cpx, midY - cur.amp, cur.x, midY - cur.amp);
+    }
+    ctx.stroke();
+
+    ctx.strokeStyle = colorBot;
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, midY + pts[0].amp);
+    for (let i = 1; i < pts.length; i++) {
+      const prev = pts[i - 1], cur = pts[i];
+      const cpx = (prev.x + cur.x) / 2;
+      ctx.bezierCurveTo(cpx, midY + prev.amp, cpx, midY + cur.amp, cur.x, midY + cur.amp);
+    }
+    ctx.stroke();
+
+    ctx.shadowBlur = 0;
+    ctx.restore();
+  }
+
+  const pts = buildPoints(wavePhase);
+
+  if (loop.active && loop.start >= 0 && loop.end > loop.start) {
+    const lx1 = (loop.start / TOTAL) * W;
+    const lx2 = (loop.end / TOTAL) * W;
+    ctx.save();
+    ctx.fillStyle = dark ? 'rgba(26,255,112,0.08)' : 'rgba(13,92,46,0.07)';
+    ctx.fillRect(lx1, 0, lx2 - lx1, H);
+    ctx.strokeStyle = dark ? 'rgba(26,255,112,0.35)' : 'rgba(13,92,46,0.3)';
+    ctx.lineWidth = 1.5 * dpr;
+    ctx.setLineDash([4 * dpr, 3 * dpr]);
+    ctx.strokeRect(lx1, 0, lx2 - lx1, H);
+    ctx.setLineDash([]);
+    ctx.restore();
+  }
+
+  const unplayed = dark ? 'rgba(100,120,140,0.5)' : 'rgba(160,170,180,0.55)';
+  const unplayedBot = dark ? 'rgba(80,100,120,0.4)' : 'rgba(140,152,165,0.45)';
+  drawWave(pts, progressPx, W, unplayed, unplayedBot, 'transparent', 0, 1.5);
+
+  const cyanTop = dark ? '#00e5ff' : '#0097b2';
+  const cyanBot = dark ? '#00bfff' : '#0077aa';
+  const glowC = dark ? '#00e5ff' : '#00c8e8';
+  drawWave(pts, 0, progressPx, cyanTop, cyanBot, glowC, 10, 2.5);
+
+  ctx.save();
+  ctx.globalAlpha = 0.18;
+  ctx.shadowBlur = 18 * dpr;
+  ctx.shadowColor = dark ? '#00e5ff' : '#00bfff';
+  drawWave(pts, 0, progressPx, glowC, glowC, 'transparent', 0, 5);
+  ctx.globalAlpha = 1;
+  ctx.shadowBlur = 0;
+  ctx.restore();
+
+  ctx.save();
+  ctx.globalAlpha = 0.55;
+  ctx.strokeStyle = dark ? '#00e5ff' : '#0097b2';
+  ctx.lineWidth = 1.5 * dpr;
+  ctx.shadowBlur = 14 * dpr;
+  ctx.shadowColor = dark ? '#00e5ff' : '#00bfff';
+  ctx.beginPath();
+  ctx.moveTo(progressPx, H * 0.12);
+  ctx.lineTo(progressPx, H * 0.88);
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+  ctx.globalAlpha = 1;
+  ctx.restore();
+
+  if (hoverX >= 0) {
+    ctx.save();
+    ctx.strokeStyle = dark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.12)';
+    ctx.lineWidth = 1 * dpr;
+    ctx.setLineDash([3 * dpr, 3 * dpr]);
+    ctx.beginPath();
+    ctx.moveTo(hoverX * dpr, H * 0.08);
+    ctx.lineTo(hoverX * dpr, H * 0.92);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+  }
+
+  if (dblClickStart >= 0 && !loop.active) {
+    const lx1 = (dblClickStart / TOTAL) * W;
+    const lx2 = hoverX >= 0 ? hoverX * dpr : lx1;
+    if (Math.abs(lx2 - lx1) > 4) {
+      ctx.save();
+      ctx.fillStyle = dark ? 'rgba(26,255,112,0.06)' : 'rgba(13,92,46,0.05)';
+      ctx.fillRect(Math.min(lx1,lx2), 0, Math.abs(lx2-lx1), H);
+      ctx.restore();
+    }
+  }
+}
+
+function tick(ts) {
+  if (playing) {
+    if (lastTS !== null) {
+      const delta = (ts - lastTS) / 1000;
+      currentTime += delta;
+      wavePhase += delta * 1.8;
+      if (loop.active && loop.end > loop.start && currentTime >= loop.end) {
+        currentTime = loop.start;
+      }
+      if (currentTime >= TOTAL) {
+        currentTime = 0;
+        playing = false;
+        updatePlayBtn();
+      }
+    }
+    lastTS = ts;
+  } else {
+    if (playing === false) wavePhase += 0.008;
+  }
+  draw();
+  timeEl.textContent = fmt(currentTime) + ' / ' + fmt(TOTAL);
+  animFrame = requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+
+function updatePlayBtn() {
+  playBtn.innerHTML = playing
+    ? '<i class="ti ti-player-pause"></i>'
+    : '<i class="ti ti-player-play"></i>';
+}
+
+playBtn.addEventListener('click', () => {
+  playing = !playing;
+  if (playing) lastTS = null;
+  updatePlayBtn();
+});
+
+function xToTime(px) {
+  return Math.max(0, Math.min(TOTAL, (px / wrap.clientWidth) * TOTAL));
+}
+
+canvas.addEventListener('mousemove', e => {
+  const r = canvas.getBoundingClientRect();
+  const px = e.clientX - r.left;
+  hoverX = px;
+  const t = xToTime(px);
+  tooltip.textContent = fmt(t);
+  const tipW = 60;
+  let tipLeft = px - tipW / 2;
+  tipLeft = Math.max(4, Math.min(wrap.clientWidth - tipW - 4, tipLeft));
+  tooltip.style.left = tipLeft + 'px';
+  tooltip.style.opacity = '1';
+  if (dragging) {
+    currentTime = t;
+    lastTS = null;
+  }
+});
+
+canvas.addEventListener('mouseleave', () => {
+  hoverX = -1;
+  tooltip.style.opacity = '0';
+  dragging = false;
+});
+
+canvas.addEventListener('mousedown', e => {
+  dragging = true;
+  const r = canvas.getBoundingClientRect();
+  currentTime = xToTime(e.clientX - r.left);
+  lastTS = null;
+});
+
+canvas.addEventListener('mouseup', e => {
+  dragging = false;
+  const r = canvas.getBoundingClientRect();
+  currentTime = xToTime(e.clientX - r.left);
+});
+
+canvas.addEventListener('click', e => {
+  const r = canvas.getBoundingClientRect();
+  currentTime = xToTime(e.clientX - r.left);
+  lastTS = null;
+});
+
+let lastClick = 0;
+canvas.addEventListener('dblclick', e => {
+  const r = canvas.getBoundingClientRect();
+  const t = xToTime(e.clientX - r.left);
+  if (!loop.active) {
+    const delta = Math.abs(t - currentTime);
+    loop.start = Math.min(t, currentTime);
+    loop.end = Math.max(t, currentTime);
+    if (loop.end - loop.start < 2) {
+      loop.start = Math.max(0, t - 5);
+      loop.end = Math.min(TOTAL, t + 5);
+    }
+    loop.active = true;
+    loopBadge.style.display = 'inline-block';
+    loopBadge.textContent = '⟳ ' + fmt(loop.start) + ' – ' + fmt(loop.end);
+  } else {
+    loop = { active: false, start: -1, end: -1 };
+    loopBadge.style.display = 'none';
+  }
+});
+
+canvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  dragging = true;
+  const r = canvas.getBoundingClientRect();
+  currentTime = xToTime(e.touches[0].clientX - r.left);
+  lastTS = null;
+}, { passive: false });
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  const r = canvas.getBoundingClientRect();
+  currentTime = xToTime(e.touches[0].clientX - r.left);
+  lastTS = null;
+}, { passive: false });
+canvas.addEventListener('touchend', () => { dragging = false; });
+})();
+</script>

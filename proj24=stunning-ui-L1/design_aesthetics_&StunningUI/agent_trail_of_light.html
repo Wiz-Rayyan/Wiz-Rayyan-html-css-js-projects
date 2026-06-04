@@ -1,0 +1,320 @@
+
+<style>
+  :root { --orb-size: 36px; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  #stage { padding: 2rem 1.5rem 1.5rem; font-family: var(--font-sans); min-height: 420px; }
+  #timeline { display: flex; align-items: center; justify-content: center; gap: 0; margin: 2.5rem 0 1.5rem; position: relative; }
+  .step-wrap { display: flex; align-items: center; gap: 0; }
+  .connector { width: 60px; height: 3px; background: var(--color-border-tertiary); position: relative; overflow: visible; flex-shrink: 0; }
+  .connector-fill { height: 100%; width: 0%; background: #7F77DD; transition: width 0.4s ease; }
+  .orb-col { display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; position: relative; }
+  .orb { width: var(--orb-size); height: var(--orb-size); border-radius: 50%; position: relative; display: flex; align-items: center; justify-content: center; transition: transform 0.15s; }
+  .orb:hover { transform: scale(1.12); }
+  .orb-inner { width: 100%; height: 100%; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+  .step-label { font-size: 11px; color: var(--color-text-secondary); max-width: 72px; text-align: center; line-height: 1.35; user-select: none; }
+  .step-num { font-size: 11px; color: var(--color-text-tertiary); margin-top: 2px; }
+  #canvas-wrap { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+  #particle-canvas { position: absolute; top: 0; left: 0; }
+  #log { background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1rem 1.25rem; margin: 0.5rem 0; min-height: 60px; }
+  #log-title { font-size: 13px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 6px; }
+  #log-body { font-size: 12px; color: var(--color-text-secondary); line-height: 1.6; font-family: var(--font-mono); }
+  #tooltip { position: absolute; background: var(--color-background-primary); border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); padding: 8px 12px; font-size: 12px; color: var(--color-text-primary); pointer-events: none; z-index: 100; display: none; white-space: nowrap; box-shadow: none; }
+  #controls { display: flex; align-items: center; gap: 10px; margin-top: 1rem; flex-wrap: wrap; }
+  #controls button { font-size: 13px; }
+  #status { font-size: 12px; color: var(--color-text-secondary); margin-left: auto; }
+  .confetti-piece { position: absolute; border-radius: 2px; pointer-events: none; }
+  @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.18)} }
+  @keyframes morph-check { 0%{clip-path:circle(50%)} 100%{clip-path:inset(0 round 50%)} }
+  @keyframes star-pop { 0%{transform:scale(1)} 50%{transform:scale(1.3)} 100%{transform:scale(1)} }
+  @keyframes fall { to { transform: translateY(300px) rotate(360deg); opacity: 0; } }
+</style>
+
+<div id="stage">
+  <h2 class="sr-only">AI agent trail of light — step timeline showing current, completed, and upcoming steps</h2>
+  <div style="position:relative;">
+    <div id="timeline"></div>
+    <div id="canvas-wrap"><canvas id="particle-canvas"></canvas></div>
+  </div>
+  <div id="tooltip"></div>
+  <div id="log">
+    <div id="log-title">Agent log</div>
+    <div id="log-body" style="color:var(--color-text-tertiary)">Click a step or press Run to begin.</div>
+  </div>
+  <div id="controls">
+    <button id="btn-run" onclick="runAgent()">▶ Run agent</button>
+    <button id="btn-reset" onclick="resetAgent()">↺ Reset</button>
+    <span id="status"></span>
+  </div>
+</div>
+
+<script>
+const steps = [
+  { label: "Search web", action: "web_search('AI agents 2025')", duration: "0.8s", result: "14 results found" },
+  { label: "Read docs", action: "fetch_url('docs.langchain.com')", duration: "1.1s", result: "3,400 tokens read" },
+  { label: "Reason", action: "chain_of_thought(context)", duration: "2.3s", result: "Plan generated" },
+  { label: "Write code", action: "write_file('agent.py')", duration: "1.6s", result: "82 lines written" },
+  { label: "Execute", action: "run_python('agent.py')", duration: "0.9s", result: "Exit code 0 ✓" },
+];
+
+const PURPLE = { fill: '#7F77DD', dim: '#CECBF6', dark: '#3C3489', border: '#534AB7' };
+const TEAL   = { fill: '#1D9E75', dim: '#9FE1CB', dark: '#085041', border: '#0F6E56' };
+const AMBER  = { fill: '#BA7517', dim: '#FAC775', dark: '#412402', border: '#854F0B' };
+let currentStep = -1;
+let running = false;
+let orbEls = [];
+let connEls = [];
+let particles = [];
+let animId = null;
+let expanded = null;
+let confettis = [];
+
+const timeline = document.getElementById('timeline');
+const tooltip  = document.getElementById('tooltip');
+const logTitle = document.getElementById('log-title');
+const logBody  = document.getElementById('log-body');
+const status   = document.getElementById('status');
+const canvas   = document.getElementById('particle-canvas');
+const ctx      = canvas.getContext('2d');
+
+function buildTimeline() {
+  timeline.innerHTML = '';
+  orbEls = []; connEls = [];
+  steps.forEach((s, i) => {
+    if (i > 0) {
+      const cw = document.createElement('div');
+      cw.className = 'connector';
+      const cf = document.createElement('div');
+      cf.className = 'connector-fill';
+      cw.appendChild(cf);
+      timeline.appendChild(cw);
+      connEls.push(cf);
+    }
+    const wrap = document.createElement('div');
+    wrap.className = 'step-wrap';
+    const col = document.createElement('div');
+    col.className = 'orb-col';
+    col.dataset.idx = i;
+    const orb = document.createElement('div');
+    orb.className = 'orb';
+    const inner = document.createElement('div');
+    inner.className = 'orb-inner';
+    inner.id = 'orb-inner-' + i;
+    orb.appendChild(inner);
+    orb.id = 'orb-' + i;
+    const lbl = document.createElement('div');
+    lbl.className = 'step-label';
+    lbl.textContent = s.label;
+    col.appendChild(orb);
+    col.appendChild(lbl);
+    col.addEventListener('mouseenter', e => showTooltip(e, i));
+    col.addEventListener('mouseleave', hideTooltip);
+    col.addEventListener('click', () => toggleLog(i));
+    wrap.appendChild(col);
+    timeline.appendChild(wrap);
+    orbEls.push({ orb, inner, col });
+  });
+  renderStates();
+  resizeCanvas();
+}
+
+function renderStates() {
+  const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  orbEls.forEach(({ orb, inner }, i) => {
+    orb.style.animation = '';
+    if (i < currentStep) {
+      inner.style.background = dark ? PURPLE.dark : PURPLE.dim;
+      inner.style.border = `2px solid ${PURPLE.fill}`;
+      inner.innerHTML = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 10.5L8.5 15L16 7" stroke="${PURPLE.fill}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+    } else if (i === currentStep) {
+      inner.style.background = PURPLE.fill;
+      inner.style.border = `2.5px solid ${PURPLE.border}`;
+      inner.innerHTML = '';
+      orb.style.animation = 'pulse 1.2s ease-in-out infinite';
+    } else {
+      inner.style.background = dark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.05)';
+      inner.style.border = `1.5px solid var(--color-border-tertiary)`;
+      inner.innerHTML = `<span style="font-size:12px;color:var(--color-text-tertiary);font-weight:500">${i+1}</span>`;
+    }
+    if (i < currentStep && connEls[i-1]) connEls[i-1].style.width = '100%';
+    else if (i > 0 && connEls[i-1]) connEls[i-1].style.width = '0%';
+  });
+}
+
+function resizeCanvas() {
+  const tl = document.getElementById('stage');
+  canvas.width  = tl.offsetWidth;
+  canvas.height = tl.offsetHeight || 420;
+  canvas.style.width  = canvas.width + 'px';
+  canvas.style.height = canvas.height + 'px';
+}
+
+function getOrbCenter(i) {
+  const orb = orbEls[i]?.orb;
+  if (!orb) return null;
+  const sr = document.getElementById('stage').getBoundingClientRect();
+  const or = orb.getBoundingClientRect();
+  return { x: or.left - sr.left + or.width/2, y: or.top - sr.top + or.height/2 };
+}
+
+function spawnParticles(i) {
+  const c = getOrbCenter(i);
+  if (!c) return;
+  for (let k = 0; k < 8; k++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 0.5 + Math.random() * 1.2;
+    particles.push({
+      x: c.x, y: c.y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      r: 3 + Math.random() * 3,
+      alpha: 0.8 + Math.random() * 0.2,
+      decay: 0.018 + Math.random() * 0.012,
+    });
+  }
+}
+
+function drawParticles() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  particles = particles.filter(p => p.alpha > 0.02);
+  particles.forEach(p => {
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(127,119,221,${p.alpha.toFixed(2)})`;
+    ctx.fill();
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vx *= 0.97;
+    p.vy *= 0.97;
+    p.r  *= 0.97;
+    p.alpha -= p.decay;
+  });
+  if (running && currentStep >= 0 && currentStep < steps.length) spawnParticles(currentStep);
+  animId = requestAnimationFrame(drawParticles);
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function runAgent() {
+  if (running) return;
+  running = true;
+  document.getElementById('btn-run').disabled = true;
+  if (currentStep === steps.length) { resetAgent(); await sleep(200); }
+  if (animId) cancelAnimationFrame(animId);
+  drawParticles();
+  for (let i = 0; i < steps.length; i++) {
+    currentStep = i;
+    renderStates();
+    status.textContent = `Running: ${steps[i].label}…`;
+    logTitle.textContent = `▶ ${steps[i].label}`;
+    logBody.textContent  = `$ ${steps[i].action}\n  ⏱ ${steps[i].duration}`;
+    if (i > 0 && connEls[i-1]) {
+      connEls[i-1].style.transition = 'width 0.35s ease';
+      connEls[i-1].style.width = '100%';
+    }
+    await sleep(900 + Math.random() * 400);
+    logBody.textContent += `\n  ✓ ${steps[i].result}`;
+    currentStep = i + 1;
+    renderStates();
+    await sleep(150);
+  }
+  await celebrateAll();
+  running = false;
+  document.getElementById('btn-run').disabled = false;
+  status.textContent = 'Agent completed!';
+}
+
+async function celebrateAll() {
+  orbEls.forEach(({ orb, inner }, i) => {
+    const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    inner.style.background = dark ? AMBER.dark : AMBER.dim;
+    inner.style.border = `2px solid ${AMBER.fill}`;
+    inner.innerHTML = `<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2L10.8 6.8H16L11.8 9.8L13.5 14.5L9 11.5L4.5 14.5L6.2 9.8L2 6.8H7.2Z" fill="${AMBER.fill}"/></svg>`;
+    orb.style.animation = 'star-pop 0.5s ease forwards';
+    orb.style.animationDelay = (i * 0.08) + 's';
+  });
+  spawnConfetti();
+  logTitle.textContent = '🎉 All steps complete';
+  logBody.textContent  = steps.map((s, i) => `✓ ${s.label}: ${s.result}`).join('\n');
+}
+
+function spawnConfetti() {
+  const colors = ['#7F77DD','#1D9E75','#BA7517','#D4537E','#378ADD'];
+  const stage  = document.getElementById('stage');
+  for (let k = 0; k < 40; k++) {
+    const el = document.createElement('div');
+    el.className = 'confetti-piece';
+    const c = colors[Math.floor(Math.random() * colors.length)];
+    el.style.cssText = `
+      left:${10 + Math.random()*80}%;top:${Math.random()*30}%;
+      width:${5+Math.random()*6}px;height:${5+Math.random()*6}px;
+      background:${c};opacity:0.9;
+      animation: fall ${0.8+Math.random()*1.2}s ease forwards;
+      animation-delay: ${Math.random()*0.4}s;
+      transform: rotate(${Math.random()*360}deg);
+    `;
+    stage.appendChild(el);
+    confettis.push(el);
+    setTimeout(() => el.remove(), 2400);
+  }
+}
+
+function showTooltip(e, i) {
+  if (i >= steps.length) return;
+  const s = steps[i];
+  const done = i < currentStep;
+  const active = i === currentStep;
+  const sr = document.getElementById('stage').getBoundingClientRect();
+  const cr = orbEls[i].col.getBoundingClientRect();
+  tooltip.style.display = 'block';
+  tooltip.innerHTML = `
+    <div style="font-weight:500;margin-bottom:4px;color:var(--color-text-primary)">${s.label}</div>
+    <div style="color:var(--color-text-secondary)">${s.action}</div>
+    ${done ? `<div style="color:#1D9E75;margin-top:3px">✓ ${s.result} · ${s.duration}</div>` : ''}
+    ${active ? `<div style="color:#7F77DD;margin-top:3px">● Running…</div>` : ''}
+  `;
+  let tx = cr.left - sr.left + cr.width/2 - tooltip.offsetWidth/2;
+  let ty = cr.top  - sr.top  - tooltip.offsetHeight - 10;
+  if (tx < 4) tx = 4;
+  if (tx + tooltip.offsetWidth > sr.width - 4) tx = sr.width - tooltip.offsetWidth - 4;
+  if (ty < 4) ty = cr.bottom - sr.top + 6;
+  tooltip.style.left = tx + 'px';
+  tooltip.style.top  = ty + 'px';
+}
+
+function hideTooltip() { tooltip.style.display = 'none'; }
+
+function toggleLog(i) {
+  if (i >= steps.length || i > currentStep) return;
+  const s = steps[i];
+  if (expanded === i) {
+    expanded = null;
+    logTitle.textContent = 'Agent log';
+    logBody.textContent  = 'Click a step or press Run to begin.';
+  } else {
+    expanded = i;
+    logTitle.textContent = `Step ${i+1} · ${s.label}`;
+    logBody.textContent  = `$ ${s.action}\n⏱ Duration: ${s.duration}\n✓ Result: ${s.result}`;
+  }
+}
+
+function resetAgent() {
+  running = false;
+  currentStep = -1;
+  expanded = null;
+  particles = [];
+  if (animId) cancelAnimationFrame(animId);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  confettis.forEach(el => el.remove());
+  confettis = [];
+  connEls.forEach(c => { c.style.transition = 'none'; c.style.width = '0%'; });
+  orbEls.forEach(({ orb }) => orb.style.animation = '');
+  renderStates();
+  logTitle.textContent = 'Agent log';
+  logBody.textContent  = 'Click a step or press Run to begin.';
+  status.textContent   = '';
+  document.getElementById('btn-run').disabled = false;
+}
+
+buildTimeline();
+window.addEventListener('resize', () => { resizeCanvas(); });
+</script>

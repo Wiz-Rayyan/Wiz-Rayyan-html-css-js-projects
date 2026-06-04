@@ -1,0 +1,444 @@
+
+<style>
+  * { box-sizing: border-box; }
+  .recorder-wrap { display: flex; flex-direction: column; align-items: center; padding: 2rem 1rem; gap: 1.5rem; }
+  .machine { background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 2rem 2.5rem 1.75rem; display: flex; flex-direction: column; align-items: center; gap: 1.25rem; width: 520px; position: relative; }
+  .machine-label { font-size: 10px; letter-spacing: 0.18em; color: var(--color-text-tertiary); text-transform: uppercase; position: absolute; top: 14px; left: 50%; transform: translateX(-50%); white-space: nowrap; }
+  .reels-row { display: flex; align-items: center; gap: 0; width: 100%; justify-content: center; position: relative; }
+  canvas#reelCanvas { display: block; }
+  .counter-row { display: flex; align-items: center; gap: 12px; }
+  .counter-box { display: flex; gap: 3px; background: var(--color-background-primary); border: 0.5px solid var(--color-border-secondary); border-radius: 6px; padding: 6px 10px; }
+  .digit-wheel { width: 24px; height: 36px; overflow: hidden; position: relative; border-radius: 3px; background: #1a1a1a; }
+  .digit-track { display: flex; flex-direction: column; transition: transform 0.08s ease; }
+  .digit-cell { width: 24px; height: 36px; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 500; color: #f0e060; font-family: var(--font-mono), monospace; line-height: 1; }
+  .counter-sep { color: var(--color-text-tertiary); font-size: 18px; font-weight: 500; margin: 0 2px; align-self: center; }
+  .status-row { display: flex; align-items: center; gap: 8px; height: 22px; }
+  .status-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--color-background-tertiary); border: 0.5px solid var(--color-border-tertiary); transition: background 0.3s; }
+  .status-dot.active { background: #e03030; box-shadow: 0 0 6px rgba(220,48,48,0.5); animation: blink 1s ease-in-out infinite; }
+  .status-dot.paused { background: #d97b1a; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .status-text { font-size: 12px; color: var(--color-text-secondary); letter-spacing: 0.06em; min-width: 64px; }
+  .controls { display: flex; gap: 10px; align-items: center; }
+  .ctrl-btn { width: 48px; height: 48px; border-radius: 50%; border: 0.5px solid var(--color-border-secondary); background: var(--color-background-primary); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s, transform 0.1s; color: var(--color-text-primary); }
+  .ctrl-btn:hover { background: var(--color-background-secondary); }
+  .ctrl-btn:active { transform: scale(0.94); }
+  .ctrl-btn.record-btn { border-color: rgba(200,40,40,0.5); }
+  .ctrl-btn.record-btn.armed { background: #e03030; color: white; border-color: #e03030; }
+  .ctrl-btn i { font-size: 20px; }
+  .modal-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.45); border-radius: var(--border-radius-lg); display: none; align-items: center; justify-content: center; z-index: 10; }
+  .modal-overlay.open { display: flex; }
+  .modal-card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1.25rem 1.5rem; width: 220px; }
+  .modal-title { font-size: 13px; font-weight: 500; color: var(--color-text-primary); margin: 0 0 12px; }
+  .modal-close { position: absolute; top: 8px; right: 8px; background: none; border: none; cursor: pointer; color: var(--color-text-tertiary); font-size: 18px; padding: 4px; line-height: 1; }
+  .opt-group { margin-bottom: 10px; }
+  .opt-label { font-size: 11px; color: var(--color-text-tertiary); margin-bottom: 4px; letter-spacing: 0.05em; text-transform: uppercase; }
+  .opt-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+  .pill { font-size: 12px; padding: 3px 10px; border-radius: 20px; border: 0.5px solid var(--color-border-secondary); cursor: pointer; color: var(--color-text-secondary); background: transparent; transition: background 0.12s, color 0.12s; }
+  .pill.selected { background: var(--color-background-info); color: var(--color-text-info); border-color: transparent; }
+</style>
+
+<div class="recorder-wrap">
+  <h2 class="sr-only">Tape reel recorder — interactive recording indicator with spinning reels and mechanical counter</h2>
+  <div class="machine">
+    <span class="machine-label">Reel-to-Reel Recorder</span>
+    <div class="reels-row">
+      <canvas id="reelCanvas" width="440" height="220"></canvas>
+    </div>
+    <div class="counter-row">
+      <div class="counter-box" id="counterBox"></div>
+    </div>
+    <div class="status-row">
+      <div class="status-dot" id="statusDot"></div>
+      <span class="status-text" id="statusText">Stopped</span>
+    </div>
+    <div class="controls">
+      <button class="ctrl-btn" id="btnStop" title="Stop" aria-label="Stop">
+        <i class="ti ti-player-stop" aria-hidden="true"></i>
+      </button>
+      <button class="ctrl-btn record-btn" id="btnRecord" title="Record" aria-label="Record">
+        <i class="ti ti-circle" aria-hidden="true"></i>
+      </button>
+      <button class="ctrl-btn" id="btnPause" title="Pause" aria-label="Pause">
+        <i class="ti ti-player-pause" aria-hidden="true"></i>
+      </button>
+    </div>
+    <div class="modal-overlay" id="settingsModal">
+      <div class="modal-card" style="position:relative;">
+        <button class="modal-close" id="modalClose" aria-label="Close settings">×</button>
+        <p class="modal-title">Recording settings</p>
+        <div class="opt-group">
+          <div class="opt-label">Format</div>
+          <div class="opt-pills" id="fmtPills">
+            <span class="pill selected" data-grp="fmt">WAV</span>
+            <span class="pill" data-grp="fmt">MP3</span>
+            <span class="pill" data-grp="fmt">FLAC</span>
+          </div>
+        </div>
+        <div class="opt-group">
+          <div class="opt-label">Quality</div>
+          <div class="opt-pills" id="qualPills">
+            <span class="pill" data-grp="qual">Low</span>
+            <span class="pill selected" data-grp="qual">Medium</span>
+            <span class="pill" data-grp="qual">High</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const canvas = document.getElementById('reelCanvas');
+  const ctx = canvas.getContext('2d');
+  const W = 440, H = 220;
+  const isDark = () => document.documentElement.classList.contains('dark') || window.matchMedia('(prefers-color-scheme:dark)').matches;
+
+  // State
+  let state = 'stopped'; // recording | paused | stopped | reversing
+  let leftAngle = 0, rightAngle = 0;
+  let speed = 0, targetSpeed = 0;
+  let seconds = 0, lastTick = 0;
+  let tapePos = 0; // 0..1 (left full to right full during recording)
+  let reverseTimer = 0;
+  let rafId;
+
+  // Counter digits [MM, SS, CS] → [m1,m2, ':', s1,s2, '.', c1,c2]
+  let counterVal = 0; // in centiseconds
+  const counterBox = document.getElementById('counterBox');
+  
+  function buildCounter() {
+    counterBox.innerHTML = '';
+    const parts = [
+      {id:'d0'},{id:'d1'},
+      {sep:':'},
+      {id:'d2'},{id:'d3'},
+      {sep:'.'},
+      {id:'d4'},{id:'d5'}
+    ];
+    parts.forEach(p => {
+      if(p.sep){
+        const s = document.createElement('span');
+        s.className = 'counter-sep'; s.textContent = p.sep;
+        counterBox.appendChild(s);
+      } else {
+        const wrap = document.createElement('div');
+        wrap.className = 'digit-wheel'; wrap.id = p.id;
+        const track = document.createElement('div');
+        track.className = 'digit-track';
+        // 10 digits + extra for wrap
+        for(let i=0;i<11;i++){
+          const cell = document.createElement('div');
+          cell.className = 'digit-cell';
+          cell.textContent = i % 10;
+          track.appendChild(cell);
+        }
+        wrap.appendChild(track);
+        counterBox.appendChild(wrap);
+      }
+    });
+    updateCounter(0);
+  }
+
+  const digitIds = ['d0','d1','d2','d3','d4','d5'];
+  let prevDigits = [0,0,0,0,0,0];
+
+  function updateCounter(cs) {
+    const total = Math.floor(cs);
+    const mins = Math.floor(total / 6000);
+    const secs = Math.floor((total % 6000) / 100);
+    const csec = total % 100;
+    const digits = [
+      Math.floor(mins/10)%10, mins%10,
+      Math.floor(secs/10)%10, secs%10,
+      Math.floor(csec/10)%10, csec%10
+    ];
+    digits.forEach((d, i) => {
+      if(d !== prevDigits[i]) {
+        const wheel = document.getElementById(digitIds[i]);
+        if(!wheel) return;
+        const track = wheel.querySelector('.digit-track');
+        track.style.transform = `translateY(-${d * 36}px)`;
+        prevDigits[i] = d;
+      }
+    });
+  }
+
+  // Canvas drawing
+  function getThemeColors() {
+    const dark = isDark();
+    return {
+      reel: dark ? '#3a3a3a' : '#d8d4cc',
+      reelStroke: dark ? '#555' : '#aaa9a0',
+      hub: dark ? '#222' : '#b0aca4',
+      spoke: dark ? '#444' : '#c0bdb5',
+      tape: '#3a3028',
+      tapeShine: dark ? '#5a5040' : '#6a6050',
+      capstan: dark ? '#555' : '#9a9890',
+      head: dark ? '#666' : '#888680',
+      bg: dark ? '#2a2a2a' : '#e8e4dc',
+      deckLine: dark ? '#333' : '#ccc8c0',
+      recordRim: '#cc3030',
+    };
+  }
+
+  function drawReel(cx, cy, outerR, tapeR, angle, isLeft, isRecording) {
+    const c = getThemeColors();
+    ctx.save();
+    ctx.translate(cx, cy);
+
+    // Tape spool (brown ring)
+    if(tapeR > 15) {
+      ctx.beginPath();
+      ctx.arc(0, 0, tapeR, 0, Math.PI*2);
+      ctx.fillStyle = c.tape;
+      ctx.fill();
+      // shine line on tape edge
+      ctx.beginPath();
+      ctx.arc(0, 0, tapeR - 2, -0.4, 0.4);
+      ctx.strokeStyle = c.tapeShine;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    // Reel plate
+    ctx.beginPath();
+    ctx.arc(0, 0, outerR, 0, Math.PI*2);
+    ctx.fillStyle = c.reel;
+    ctx.fill();
+    ctx.strokeStyle = c.reelStroke;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.rotate(angle);
+
+    // 3 spokes
+    for(let i=0;i<3;i++){
+      ctx.rotate(Math.PI*2/3);
+      ctx.beginPath();
+      ctx.moveTo(0,0);
+      ctx.lineTo(0, -outerR+6);
+      ctx.strokeStyle = c.spoke;
+      ctx.lineWidth = 5;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+    }
+
+    // Hub
+    ctx.beginPath();
+    ctx.arc(0,0,18,0,Math.PI*2);
+    ctx.fillStyle = c.hub;
+    ctx.fill();
+    ctx.strokeStyle = c.reelStroke;
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+
+    // Record indicator dot on left reel
+    if(isLeft && isRecording){
+      ctx.beginPath();
+      ctx.arc(0, -30, 5, 0, Math.PI*2);
+      ctx.fillStyle = c.recordRim;
+      ctx.fill();
+    }
+
+    ctx.restore();
+  }
+
+  function drawTapePath(lx, ly, rx, ry, lTapeR, rTapeR) {
+    const c = getThemeColors();
+    // tape going from left reel top → over capstan/heads → right reel top
+    const lTopX = lx + 2, lTopY = ly - lTapeR + 4;
+    const rTopX = rx - 2, rTopY = ry - rTapeR + 4;
+    const midY = Math.min(lTopY, rTopY) - 6;
+    ctx.beginPath();
+    ctx.moveTo(lTopX, lTopY);
+    ctx.bezierCurveTo(lTopX+20, midY, rTopX-20, midY, rTopX, rTopY);
+    ctx.strokeStyle = c.tape;
+    ctx.lineWidth = 5;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+    ctx.strokeStyle = c.tapeShine;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+
+  function draw() {
+    const c = getThemeColors();
+    ctx.clearRect(0, 0, W, H);
+
+    // Deck background
+    ctx.fillStyle = c.bg;
+    ctx.beginPath();
+    ctx.roundRect(10, 10, W-20, H-20, 10);
+    ctx.fill();
+    ctx.strokeStyle = c.deckLine;
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+
+    // Tape guide lines on deck
+    ctx.strokeStyle = c.deckLine;
+    ctx.lineWidth = 0.5;
+    ctx.setLineDash([3,4]);
+    ctx.beginPath(); ctx.moveTo(W/2, 30); ctx.lineTo(W/2, H-30); ctx.stroke();
+    ctx.setLineDash([]);
+
+    const lx = 120, ly = 118, rx = 320, ry = 118;
+    const baseOuter = 64;
+
+    // Tape transfer: as recording goes on, left reel shrinks, right grows
+    const tp = tapePos; // 0 = full left, 1 = full right
+    const lTapeR = 30 + (1-tp) * 26; // 56 down to 30
+    const rTapeR = 12 + tp * 30;      // 12 up to 42
+
+    // Tape path
+    drawTapePath(lx, ly, rx, ry, lTapeR, rTapeR);
+
+    // Capstan/pinch roller
+    ctx.beginPath();
+    ctx.arc(222, ly+10, 6, 0, Math.PI*2);
+    ctx.fillStyle = c.capstan;
+    ctx.fill();
+    ctx.strokeStyle = c.reelStroke; ctx.lineWidth = 0.5; ctx.stroke();
+
+    // Tape head block
+    ctx.fillStyle = c.head;
+    ctx.beginPath();
+    ctx.roundRect(200, ly+2, 16, 24, 3);
+    ctx.fill();
+    ctx.strokeStyle = c.reelStroke; ctx.lineWidth = 0.5; ctx.stroke();
+
+    // Reels
+    drawReel(lx, ly, baseOuter, lTapeR, leftAngle, true, state==='recording');
+    drawReel(rx, ry, baseOuter, rTapeR, rightAngle, false, false);
+
+    // VU meter strip (simple)
+    const vuH = 8, vuY = H - 32, vuX = 370, vuW = 56;
+    ctx.fillStyle = c.deckLine;
+    ctx.beginPath(); ctx.roundRect(vuX, vuY, vuW, vuH, 3); ctx.fill();
+    if(state === 'recording') {
+      const level = 0.4 + 0.5 * Math.abs(Math.sin(Date.now()/180));
+      const segments = 8;
+      for(let i=0;i<segments;i++){
+        const frac = i/segments;
+        if(frac < level) {
+          ctx.fillStyle = frac < 0.6 ? '#3a9a3a' : frac < 0.85 ? '#d4a020' : '#cc3030';
+          ctx.beginPath();
+          ctx.roundRect(vuX + i*(vuW/segments)+1, vuY+1, vuW/segments - 2, vuH-2, 1);
+          ctx.fill();
+        }
+      }
+    }
+    const vuLabel = document.createElementNS ? null : null;
+    ctx.fillStyle = c.head;
+    ctx.font = '9px var(--font-sans, sans-serif)';
+    ctx.fillText('VU', vuX, vuY - 3);
+  }
+
+  // Animation loop
+  let lastFrame = 0;
+  function loop(ts) {
+    const dt = Math.min((ts - lastFrame) / 1000, 0.1);
+    lastFrame = ts;
+
+    // Speed interpolation
+    const accel = state === 'recording' ? 4 : 8;
+    speed += (targetSpeed - speed) * Math.min(accel * dt, 1);
+
+    // Angle update
+    leftAngle  += speed * dt * 2.1;
+    rightAngle += speed * dt * 1.8;
+
+    // Counter increment during recording
+    if(state === 'recording') {
+      counterVal += dt * 100;
+      tapePos = Math.min(1, tapePos + dt * 0.004);
+    }
+    updateCounter(counterVal);
+    draw();
+
+    // Reverse timeout
+    if(state === 'reversing') {
+      reverseTimer -= dt;
+      if(reverseTimer <= 0) {
+        state = 'stopped';
+        targetSpeed = 0;
+        counterVal = 0;
+        tapePos = 0;
+        updateCounter(0);
+        updateStatus();
+      }
+    }
+
+    rafId = requestAnimationFrame(loop);
+  }
+
+  function updateStatus() {
+    const dot = document.getElementById('statusDot');
+    const txt = document.getElementById('statusText');
+    dot.className = 'status-dot';
+    if(state === 'recording') { dot.classList.add('active'); txt.textContent = 'Recording'; }
+    else if(state === 'paused') { dot.classList.add('paused'); txt.textContent = 'Paused'; }
+    else if(state === 'reversing') { txt.textContent = 'Rewinding'; }
+    else { txt.textContent = 'Stopped'; }
+  }
+
+  document.getElementById('btnRecord').addEventListener('click', () => {
+    if(state === 'recording') return;
+    state = 'recording';
+    targetSpeed = 1;
+    document.getElementById('btnRecord').classList.add('armed');
+    updateStatus();
+  });
+
+  document.getElementById('btnPause').addEventListener('click', () => {
+    if(state === 'recording') {
+      state = 'paused';
+      targetSpeed = 0;
+      document.getElementById('btnRecord').classList.remove('armed');
+      updateStatus();
+    } else if(state === 'paused') {
+      state = 'recording';
+      targetSpeed = 1;
+      document.getElementById('btnRecord').classList.add('armed');
+      updateStatus();
+    }
+  });
+
+  document.getElementById('btnStop').addEventListener('click', () => {
+    if(state === 'stopped') return;
+    state = 'reversing';
+    targetSpeed = -0.6;
+    reverseTimer = 0.7;
+    document.getElementById('btnRecord').classList.remove('armed');
+    updateStatus();
+  });
+
+  // Click on reel canvas → settings
+  canvas.style.cursor = 'pointer';
+  canvas.addEventListener('click', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const mx = (e.clientX - rect.left) * (W / rect.width);
+    const my = (e.clientY - rect.top) * (H / rect.height);
+    const dist = (cx, cy) => Math.hypot(mx-cx, my-cy);
+    if(dist(120,118) < 70 || dist(320,118) < 70) {
+      document.getElementById('settingsModal').classList.add('open');
+    }
+  });
+
+  document.getElementById('modalClose').addEventListener('click', () => {
+    document.getElementById('settingsModal').classList.remove('open');
+  });
+
+  document.querySelectorAll('.pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      const grp = pill.dataset.grp;
+      document.querySelectorAll(`.pill[data-grp="${grp}"]`).forEach(p => p.classList.remove('selected'));
+      pill.classList.add('selected');
+    });
+  });
+
+  buildCounter();
+  lastFrame = performance.now();
+  rafId = requestAnimationFrame(loop);
+})();
+</script>

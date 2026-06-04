@@ -1,0 +1,395 @@
+
+<style>
+  :root { --c1: #7c6fcd; --c2: #38bdf8; --c3: #a78bfa; --c4: #22d3ee; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font-sans); }
+  .scene {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 32px; padding: 40px 24px 48px;
+  }
+  .stage {
+    display: flex; flex-direction: column; align-items: center; gap: 20px;
+  }
+  .state-label {
+    font-size: 12px; color: var(--color-text-secondary);
+    text-transform: uppercase; letter-spacing: 0.08em; font-weight: 500;
+  }
+  .avatar-wrap {
+    position: relative; width: 80px; height: 80px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .avatar {
+    width: 56px; height: 56px; border-radius: 50%;
+    background: var(--color-background-secondary);
+    border: 0.5px solid var(--color-border-secondary);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; position: relative; z-index: 2;
+    transition: border-color 0.3s;
+    cursor: default;
+  }
+  .avatar-wrap:hover .tooltip {
+    opacity: 1; transform: translateY(-6px);
+  }
+  .tooltip {
+    position: absolute; bottom: calc(100% + 10px); left: 50%;
+    transform: translateX(-50%) translateY(0px);
+    background: var(--color-background-primary);
+    border: 0.5px solid var(--color-border-secondary);
+    border-radius: var(--border-radius-md);
+    padding: 5px 10px; font-size: 12px; white-space: nowrap;
+    color: var(--color-text-secondary); pointer-events: none;
+    opacity: 0; transition: opacity 0.2s, transform 0.2s;
+    z-index: 10;
+  }
+  .tooltip::after {
+    content: ''; position: absolute; top: 100%; left: 50%;
+    transform: translateX(-50%);
+    border: 4px solid transparent;
+    border-top-color: var(--color-border-secondary);
+  }
+  .ring {
+    position: absolute; border-radius: 50%;
+    top: 50%; left: 50%; transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+  .particle {
+    position: absolute; border-radius: 50%;
+    top: 50%; left: 50%; pointer-events: none;
+    transform-origin: center center;
+  }
+  .demo-row {
+    display: flex; gap: 48px; justify-content: center; flex-wrap: wrap;
+  }
+  .btn-row {
+    display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;
+  }
+  .chat-preview {
+    background: var(--color-background-secondary);
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--border-radius-lg);
+    padding: 16px 20px; width: 100%; max-width: 420px;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .msg-row { display: flex; align-items: flex-end; gap: 10px; }
+  .msg-row.user { flex-direction: row-reverse; }
+  .bubble {
+    border-radius: 14px; padding: 9px 14px; font-size: 14px;
+    line-height: 1.5; max-width: 260px;
+  }
+  .bubble.user {
+    background: var(--color-background-info);
+    color: var(--color-text-info); border-bottom-right-radius: 4px;
+  }
+  .bubble.ai {
+    background: var(--color-background-primary);
+    border: 0.5px solid var(--color-border-tertiary);
+    color: var(--color-text-primary); border-bottom-left-radius: 4px;
+  }
+  .mini-avatar {
+    width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+    background: var(--color-background-secondary);
+    border: 0.5px solid var(--color-border-secondary);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; position: relative;
+  }
+  .cursor { display: inline-block; animation: blink 1s step-end infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  .status-tag {
+    font-size: 12px; padding: 3px 10px; border-radius: 20px;
+    font-weight: 500; align-self: flex-start;
+  }
+</style>
+
+<div class="scene">
+  <h2 class="sr-only">Thinking particle pulse animation demo — three states: idle, thinking, and response burst</h2>
+
+  <div style="text-align:center; padding-bottom:4px;">
+    <p style="font-size:13px; color:var(--color-text-secondary);">Three particle states — tap to explore live</p>
+  </div>
+
+  <div class="demo-row">
+    <div class="stage" id="stage-idle">
+      <div class="avatar-wrap" id="wrap-idle">
+        <div class="tooltip">AI is thinking...</div>
+        <div class="avatar" id="av-idle">✦</div>
+      </div>
+      <div class="state-label">Idle</div>
+    </div>
+    <div class="stage" id="stage-think">
+      <div class="avatar-wrap" id="wrap-think">
+        <div class="tooltip">AI is thinking...</div>
+        <div class="avatar" id="av-think">✦</div>
+      </div>
+      <div class="state-label">Thinking</div>
+    </div>
+    <div class="stage" id="stage-burst">
+      <div class="avatar-wrap" id="wrap-burst">
+        <div class="tooltip">AI is thinking...</div>
+        <div class="avatar" id="av-burst">✦</div>
+      </div>
+      <div class="state-label">Response burst</div>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button onclick="triggerSend()">Send message ↗</button>
+    <button onclick="triggerBurst()">Response arrives ↗</button>
+    <button onclick="resetAll()">Reset</button>
+  </div>
+
+  <div class="chat-preview" id="chat">
+    <div class="msg-row user">
+      <div class="bubble user" id="user-msg" style="display:none">Explain black holes briefly</div>
+    </div>
+    <div class="msg-row" id="ai-row" style="display:none">
+      <div class="mini-avatar" id="mini-av">✦</div>
+      <div class="bubble ai" id="ai-msg"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const TAU = Math.PI * 2;
+const canvases = {};
+const states = { idle: 'idle', think: 'thinking', burst: 'idle' };
+const animFrames = {};
+const particles = { idle: [], think: [], burst: [] };
+let chatPhase = 'idle';
+let chatTimeout = null;
+
+const colors = {
+  cyan: '#22d3ee', purple: '#a78bfa', blue: '#60a5fa', teal: '#2dd4bf',
+  pink: '#f472b6', indigo: '#818cf8'
+};
+const colorArr = Object.values(colors);
+
+function createCanvas(id, wrap) {
+  const c = document.createElement('canvas');
+  c.width = 200; c.height = 200;
+  c.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;z-index:1;';
+  wrap.appendChild(c);
+  canvases[id] = c;
+  return c;
+}
+
+function makeParticle(state) {
+  const angle = Math.random() * TAU;
+  const speed = state === 'think' ? (1.4 + Math.random() * 1.4) : (0.5 + Math.random() * 0.7);
+  const size = 2 + Math.random() * 3;
+  const life = state === 'burst' ? (0.6 + Math.random() * 0.8) : (0.8 + Math.random() * 1.2);
+  const startR = state === 'burst' ? (28 + Math.random() * 8) : (28 + Math.random() * 6);
+  const col = colorArr[Math.floor(Math.random() * colorArr.length)];
+  return {
+    angle, speed, size, life, maxLife: life,
+    x: 100 + Math.cos(angle) * startR,
+    y: 100 + Math.sin(angle) * startR,
+    vx: Math.cos(angle) * speed,
+    vy: Math.sin(angle) * speed,
+    color: col, opacity: 0, fadeIn: true
+  };
+}
+
+function makeBurstParticle() {
+  const angle = Math.random() * TAU;
+  const speed = 2.5 + Math.random() * 3.5;
+  const size = 2.5 + Math.random() * 3;
+  const col = colorArr[Math.floor(Math.random() * colorArr.length)];
+  return {
+    angle, speed, size, life: 1.0, maxLife: 1.0,
+    x: 100 + Math.cos(angle) * 28,
+    y: 100 + Math.sin(angle) * 28,
+    vx: Math.cos(angle) * speed,
+    vy: Math.sin(angle) * speed,
+    color: col, opacity: 0.9, fadeIn: false
+  };
+}
+
+function drawRing(ctx, alpha, r, col) {
+  ctx.beginPath();
+  ctx.arc(100, 100, r, 0, TAU);
+  ctx.strokeStyle = col + Math.round(alpha * 255).toString(16).padStart(2,'0');
+  ctx.lineWidth = 0.5;
+  ctx.stroke();
+}
+
+let ringPhase = 0;
+let thinkIntensity = 0;
+
+function animate(id) {
+  const c = canvases[id];
+  if (!c) return;
+  const ctx = c.getContext('2d');
+  const state = states[id] || 'idle';
+  const ps = particles[id];
+
+  ringPhase += 0.018;
+  if (state === 'thinking') thinkIntensity = Math.min(1, thinkIntensity + 0.025);
+  else thinkIntensity = Math.max(0, thinkIntensity - 0.04);
+
+  ctx.clearRect(0, 0, 200, 200);
+
+  // Rings
+  const ringCount = state === 'thinking' ? 3 : 2;
+  for (let i = 0; i < ringCount; i++) {
+    const phase = ringPhase + i * (TAU / ringCount);
+    const r = 32 + Math.sin(phase) * (state === 'thinking' ? 10 : 5);
+    const a = 0.08 + Math.abs(Math.sin(phase)) * (state === 'thinking' ? 0.15 : 0.07);
+    const col = i % 2 === 0 ? '#7c6fcd' : '#22d3ee';
+    drawRing(ctx, a, r, col);
+    if (state === 'thinking') {
+      drawRing(ctx, a * 0.4, r + 8 + i * 4, col);
+    }
+  }
+
+  // Spawn
+  if (state === 'idle') {
+    if (ps.length < 5 && Math.random() < 0.05) ps.push(makeParticle('idle'));
+  } else if (state === 'thinking') {
+    const target = 14;
+    if (ps.length < target && Math.random() < 0.25) ps.push(makeParticle('think'));
+  } else if (state === 'burst') {
+    if (ps.length < 24 && id === 'burst') {
+      while (ps.length < 24) ps.push(makeBurstParticle());
+    }
+  }
+
+  // Update + draw
+  for (let i = ps.length - 1; i >= 0; i--) {
+    const p = ps[i];
+    p.x += p.vx;
+    p.y += p.vy;
+    p.life -= 0.018;
+    if (p.fadeIn) {
+      p.opacity = Math.min(0.85, p.opacity + 0.06);
+      if (p.opacity >= 0.85) p.fadeIn = false;
+    } else {
+      p.opacity = Math.max(0, (p.life / p.maxLife) * 0.85);
+    }
+    if (p.life <= 0) { ps.splice(i, 1); continue; }
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, TAU);
+    ctx.fillStyle = p.color + Math.round(p.opacity * 255).toString(16).padStart(2,'0');
+    ctx.fill();
+    // glow dot
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size * 0.4, 0, TAU);
+    ctx.fillStyle = '#ffffff' + Math.round(p.opacity * 0.6 * 255).toString(16).padStart(2,'0');
+    ctx.fill();
+  }
+
+  animFrames[id] = requestAnimationFrame(() => animate(id));
+}
+
+function initAll() {
+  ['idle', 'think', 'burst'].forEach(id => {
+    const wrap = document.getElementById('wrap-' + id);
+    if (!wrap) return;
+    createCanvas(id, wrap);
+    particles[id] = [];
+    states[id] = id === 'idle' ? 'idle' : id === 'think' ? 'thinking' : 'idle';
+    animate(id);
+  });
+}
+
+function triggerSend() {
+  if (chatPhase === 'thinking') return;
+  chatPhase = 'thinking';
+  const userMsg = document.getElementById('user-msg');
+  const aiRow = document.getElementById('ai-row');
+  const aiMsg = document.getElementById('ai-msg');
+  const miniAv = document.getElementById('mini-av');
+  userMsg.style.display = 'block';
+  aiRow.style.display = 'flex';
+  aiMsg.innerHTML = '<span class="cursor">▌</span>';
+  states['burst'] = 'thinking';
+  addMiniParticles(miniAv, 'thinking');
+  clearTimeout(chatTimeout);
+  chatTimeout = setTimeout(() => {
+    triggerBurst();
+  }, 3200);
+}
+
+function triggerBurst() {
+  if (chatPhase !== 'thinking') { triggerSend(); return; }
+  chatPhase = 'responding';
+  states['burst'] = 'burst';
+  particles['burst'] = [];
+  const aiMsg = document.getElementById('ai-msg');
+  const miniAv = document.getElementById('mini-av');
+  const text = 'Black holes are regions of space where gravity is so strong that nothing — not even light — can escape. They form when massive stars collapse under their own weight.';
+  let i = 0;
+  aiMsg.innerHTML = '';
+  clearMiniParticles(miniAv);
+  const type = setInterval(() => {
+    if (i < text.length) {
+      aiMsg.textContent = text.slice(0, ++i);
+    } else {
+      clearInterval(type);
+      chatPhase = 'done';
+      states['burst'] = 'idle';
+    }
+  }, 22);
+  setTimeout(() => { particles['burst'] = []; states['burst'] = 'idle'; }, 1400);
+}
+
+let miniAnimId = null;
+let miniParticles = [];
+
+function addMiniParticles(el, state) {
+  clearMiniParticles(el);
+  const c = document.createElement('canvas');
+  c.width = 60; c.height = 60;
+  c.id = 'mini-canvas';
+  c.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;z-index:1;';
+  el.appendChild(c);
+  const ctx = c.getContext('2d');
+  miniParticles = [];
+  let phase = 0;
+  function loop() {
+    ctx.clearRect(0, 0, 60, 60);
+    phase += 0.03;
+    if (miniParticles.length < 8 && Math.random() < 0.3) {
+      const a = Math.random() * TAU;
+      miniParticles.push({
+        x: 30 + Math.cos(a) * 13, y: 30 + Math.sin(a) * 13,
+        vx: Math.cos(a) * 0.9, vy: Math.sin(a) * 0.9,
+        size: 1.5 + Math.random() * 1.5, life: 1, maxLife: 1,
+        color: colorArr[Math.floor(Math.random() * colorArr.length)], opacity: 0.8
+      });
+    }
+    for (let i = miniParticles.length - 1; i >= 0; i--) {
+      const p = miniParticles[i];
+      p.x += p.vx; p.y += p.vy;
+      p.life -= 0.022;
+      p.opacity = Math.max(0, (p.life / p.maxLife) * 0.85);
+      if (p.life <= 0) { miniParticles.splice(i, 1); continue; }
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, TAU);
+      ctx.fillStyle = p.color + Math.round(p.opacity * 255).toString(16).padStart(2,'0');
+      ctx.fill();
+    }
+    miniAnimId = requestAnimationFrame(loop);
+  }
+  loop();
+}
+
+function clearMiniParticles(el) {
+  cancelAnimationFrame(miniAnimId);
+  const old = document.getElementById('mini-canvas');
+  if (old) old.remove();
+  miniParticles = [];
+}
+
+function resetAll() {
+  clearTimeout(chatTimeout);
+  chatPhase = 'idle';
+  states['burst'] = 'idle';
+  particles['burst'] = [];
+  document.getElementById('user-msg').style.display = 'none';
+  document.getElementById('ai-row').style.display = 'none';
+  document.getElementById('ai-msg').innerHTML = '';
+  const miniAv = document.getElementById('mini-av');
+  clearMiniParticles(miniAv);
+}
+
+initAll();
+</script>

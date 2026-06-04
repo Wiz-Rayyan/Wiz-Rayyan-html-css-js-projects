@@ -1,0 +1,316 @@
+
+<style>
+  #viz-wrap { position: relative; width: 100%; background: #0a0a12; border-radius: 12px; overflow: hidden; }
+  #spectrum-canvas { display: block; width: 100%; cursor: crosshair; }
+  #eq-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: none; }
+  .controls { display: flex; gap: 10px; align-items: center; padding: 10px 14px; background: #0a0a12; border-radius: 0 0 12px 12px; flex-wrap: wrap; }
+  .btn { background: rgba(255,255,255,0.08); border: 0.5px solid rgba(255,255,255,0.18); color: #ccc; font-size: 13px; padding: 6px 14px; border-radius: 6px; cursor: pointer; transition: background 0.15s; }
+  .btn:hover { background: rgba(255,255,255,0.16); }
+  .btn.active { background: rgba(100,220,255,0.18); border-color: #44d4ff; color: #44d4ff; }
+  .info-label { font-size: 12px; color: rgba(255,255,255,0.35); margin-left: auto; }
+  #file-input { display: none; }
+  #drag-hint { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); font-size: 11px; color: rgba(255,255,255,0.25); pointer-events: none; white-space: nowrap; }
+  #eq-label { position: absolute; top: 10px; right: 14px; font-size: 11px; color: #44d4ff; display: none; pointer-events: none; }
+  #peak-label { position: absolute; top: 28px; left: 50%; transform: translateX(-50%); font-size: 11px; color: #ff80d5; pointer-events: none; opacity: 0; transition: opacity 0.3s; }
+</style>
+<h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);">Audio frequency spectrum visualizer with animated bars and rain particles</h2>
+<div id="viz-wrap">
+  <canvas id="spectrum-canvas" height="320"></canvas>
+  <div id="drag-hint">drag to sculpt EQ · click bar to seek · load music below</div>
+  <div id="eq-label">EQ ACTIVE</div>
+  <div id="peak-label" id="peak-label"></div>
+</div>
+<div class="controls">
+  <button class="btn" id="demo-btn">▶ demo tone</button>
+  <button class="btn" id="file-btn">♪ load file</button>
+  <input type="file" id="file-input" accept="audio/*">
+  <button class="btn" id="eq-btn">EQ off</button>
+  <button class="btn" id="rain-btn active" style="background:rgba(100,220,255,0.18);border-color:#44d4ff;color:#44d4ff;">rain on</button>
+  <span class="info-label" id="freq-info">hover a bar</span>
+</div>
+
+<script>
+const canvas = document.getElementById('spectrum-canvas');
+const ctx = canvas.getContext('2d');
+const wrap = document.getElementById('viz-wrap');
+const eqLabel = document.getElementById('eq-label');
+const peakLabel = document.getElementById('peak-label');
+const freqInfo = document.getElementById('freq-info');
+
+let audioCtx, analyser, source, gainNode, eqFilters = [];
+let animId, running = false, eqActive = false, rainActive = true;
+let eqGains = [], BAR_COUNT = 64;
+let particles = [], peakBarIndex = -1, peakFrames = 0;
+let isDragging = false, dragStart = null;
+let dataArray, bufferLength;
+let demoOscillators = [], demoRunning = false;
+
+const W = () => canvas.width;
+const H = () => canvas.height;
+
+function initCanvas() {
+  canvas.width = wrap.clientWidth;
+  canvas.height = 320;
+}
+initCanvas();
+window.addEventListener('resize', () => { initCanvas(); });
+
+function initAudio() {
+  if (audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  analyser = audioCtx.createAnalyser();
+  analyser.fftSize = 2048;
+  bufferLength = analyser.frequencyBinCount;
+  dataArray = new Uint8Array(bufferLength);
+  gainNode = audioCtx.createGain();
+
+  const freqs = [60, 150, 300, 600, 1200, 2400, 4800, 9600, 16000];
+  eqGains = new Array(BAR_COUNT).fill(0);
+  eqFilters = freqs.map((freq, i) => {
+    const f = audioCtx.createBiquadFilter();
+    f.type = i === 0 ? 'lowshelf' : i === freqs.length - 1 ? 'highshelf' : 'peaking';
+    f.frequency.value = freq;
+    f.gain.value = 0;
+    return f;
+  });
+  let chain = gainNode;
+  eqFilters.forEach(f => { chain.connect(f); chain = f; });
+  chain.connect(analyser);
+  analyser.connect(audioCtx.destination);
+}
+
+function barColor(norm, alpha) {
+  const r1=[0,220,255], r2=[180,60,255], r3=[255,80,200];
+  let r,g,b;
+  if (norm < 0.5) {
+    const t = norm * 2;
+    r = r1[0]+(r2[0]-r1[0])*t; g = r1[1]+(r2[1]-r1[1])*t; b = r1[2]+(r2[2]-r1[2])*t;
+  } else {
+    const t = (norm-0.5)*2;
+    r = r2[0]+(r3[0]-r2[0])*t; g = r2[1]+(r3[1]-r2[1])*t; b = r2[2]+(r3[2]-r2[2])*t;
+  }
+  return `rgba(${Math.round(r)},${Math.round(g)},${Math.round(b)},${alpha})`;
+}
+
+function draw() {
+  animId = requestAnimationFrame(draw);
+  const w = W(), h = H();
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = '#0a0a12';
+  ctx.fillRect(0, 0, w, h);
+
+  let freqs = new Uint8Array(bufferLength);
+  if (analyser) { analyser.getByteFrequencyData(freqs); }
+  else { freqs = new Uint8Array(BAR_COUNT); }
+
+  const pad = 6, barW = (w - pad * (BAR_COUNT + 1)) / BAR_COUNT;
+  let maxAmp = 0, maxIdx = 0;
+
+  for (let i = 0; i < BAR_COUNT; i++) {
+    const bin = Math.floor((i / BAR_COUNT) * (bufferLength * 0.6));
+    let amp = analyser ? (freqs[bin] / 255) : 0;
+    amp = Math.max(0, Math.min(1, amp + (eqGains[i] || 0) / 30));
+    if (amp > maxAmp) { maxAmp = amp; maxIdx = i; }
+
+    const barH = amp * (h - 30);
+    const x = pad + i * (barW + pad);
+    const y = h - barH;
+    const norm = i / BAR_COUNT;
+
+    const grad = ctx.createLinearGradient(0, y, 0, h);
+    grad.addColorStop(0, barColor(norm, 0.95));
+    grad.addColorStop(1, barColor(norm, 0.3));
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.roundRect(x, y, barW, barH, [3, 3, 0, 0]);
+    ctx.fill();
+
+    if (amp > 0.6) {
+      ctx.shadowColor = barColor(norm, 0.6);
+      ctx.shadowBlur = 8;
+      ctx.fillRect(x, y, barW, 2);
+      ctx.shadowBlur = 0;
+    }
+
+    if (amp > 0.7 && rainActive && Math.random() < 0.18) {
+      spawnParticle(x + barW / 2, y, norm);
+    }
+  }
+
+  if (maxAmp > 0.75) {
+    peakBarIndex = maxIdx; peakFrames = 20;
+    const freq = Math.round((maxIdx / BAR_COUNT) * 8000);
+    peakLabel.textContent = `peak ${freq > 1000 ? (freq/1000).toFixed(1)+'kHz' : freq+'Hz'}`;
+    peakLabel.style.opacity = '1';
+  }
+  if (peakFrames > 0) peakFrames--;
+  if (peakFrames === 0) peakLabel.style.opacity = '0';
+
+  updateParticles(h);
+
+  if (eqActive) {
+    ctx.fillStyle = 'rgba(68,212,255,0.04)';
+    eqGains.forEach((g, i) => {
+      if (Math.abs(g) > 0.1) {
+        const x = pad + i * (barW + pad);
+        const gh = Math.abs(g / 12) * (h * 0.3);
+        const y = g > 0 ? h / 2 - gh : h / 2;
+        ctx.fillRect(x, y, barW, gh);
+      }
+    });
+  }
+}
+
+function spawnParticle(x, y, norm) {
+  particles.push({
+    x, y,
+    vx: (Math.random() - 0.5) * 1.5,
+    vy: -(Math.random() * 2 + 1),
+    r: Math.random() * 2.5 + 1,
+    life: 1, decay: Math.random() * 0.02 + 0.015,
+    norm
+  });
+}
+
+function updateParticles(h) {
+  particles = particles.filter(p => p.life > 0);
+  particles.forEach(p => {
+    p.vy += 0.12;
+    p.x += p.vx; p.y += p.vy;
+    p.life -= p.decay;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fillStyle = barColor(p.norm, p.life);
+    ctx.shadowColor = barColor(p.norm, p.life * 0.5);
+    ctx.shadowBlur = 4;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  });
+}
+
+function startDemo() {
+  initAudio();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  stopDemo();
+  demoRunning = true;
+  const freqs = [55, 110, 220, 330, 440, 660, 880, 1100, 1760, 3520];
+  freqs.forEach((f, i) => {
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    osc.type = ['sine','triangle','sawtooth','square'][i % 4];
+    osc.frequency.value = f;
+    g.gain.value = 0.03 + Math.random() * 0.03;
+    osc.connect(g);
+    g.connect(gainNode);
+    osc.start();
+    demoOscillators.push({ osc, g });
+    setInterval(() => {
+      g.gain.setTargetAtTime(0.01 + Math.random() * 0.07, audioCtx.currentTime, 0.2);
+      osc.frequency.setTargetAtTime(f * (0.9 + Math.random() * 0.3), audioCtx.currentTime, 0.3);
+    }, 300 + i * 80);
+  });
+  document.getElementById('demo-btn').textContent = '■ stop demo';
+  document.getElementById('demo-btn').classList.add('active');
+  if (!running) { running = true; draw(); }
+}
+
+function stopDemo() {
+  demoOscillators.forEach(({ osc, g }) => { try { osc.stop(); } catch(e){} });
+  demoOscillators = [];
+  demoRunning = false;
+  document.getElementById('demo-btn').textContent = '▶ demo tone';
+  document.getElementById('demo-btn').classList.remove('active');
+}
+
+document.getElementById('demo-btn').addEventListener('click', () => {
+  if (demoRunning) stopDemo();
+  else startDemo();
+});
+
+document.getElementById('file-btn').addEventListener('click', () => document.getElementById('file-input').click());
+document.getElementById('file-input').addEventListener('change', e => {
+  const file = e.target.files[0]; if (!file) return;
+  stopDemo();
+  initAudio();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  if (source) { try { source.stop(); } catch(err){} }
+  const reader = new FileReader();
+  reader.onload = ev => {
+    audioCtx.decodeAudioData(ev.target.result, buf => {
+      source = audioCtx.createBufferSource();
+      source.buffer = buf;
+      source.connect(gainNode);
+      source.loop = true;
+      source.start(0);
+      if (!running) { running = true; draw(); }
+    });
+  };
+  reader.readAsArrayBuffer(file);
+});
+
+document.getElementById('eq-btn').addEventListener('click', () => {
+  eqActive = !eqActive;
+  const btn = document.getElementById('eq-btn');
+  btn.textContent = eqActive ? 'EQ on' : 'EQ off';
+  btn.classList.toggle('active', eqActive);
+  eqLabel.style.display = eqActive ? 'block' : 'none';
+  if (!eqActive) { eqGains.fill(0); eqFilters.forEach(f => f.gain.value = 0); }
+});
+
+document.getElementById('rain-btn').addEventListener('click', () => {
+  rainActive = !rainActive;
+  const btn = document.getElementById('rain-btn');
+  btn.textContent = rainActive ? 'rain on' : 'rain off';
+  btn.classList.toggle('active', rainActive);
+  if (!rainActive) particles = [];
+});
+
+function barIndexAt(clientX) {
+  const rect = canvas.getBoundingClientRect();
+  const x = (clientX - rect.left) * (canvas.width / rect.width);
+  const pad = 6, barW = (W() - pad * (BAR_COUNT + 1)) / BAR_COUNT;
+  return Math.max(0, Math.min(BAR_COUNT - 1, Math.floor(x / (barW + pad))));
+}
+
+function freqAt(idx) {
+  return Math.round((idx / BAR_COUNT) * 8000);
+}
+
+canvas.addEventListener('mousemove', e => {
+  const idx = barIndexAt(e.clientX);
+  const f = freqAt(idx);
+  freqInfo.textContent = `${f > 999 ? (f/1000).toFixed(1)+'kHz' : f+'Hz'} · bar ${idx+1}`;
+  if (isDragging && eqActive) {
+    const rect = canvas.getBoundingClientRect();
+    const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+    const norm = 1 - (y / canvas.height);
+    eqGains[idx] = (norm - 0.5) * 24;
+    const filterIdx = Math.floor((idx / BAR_COUNT) * eqFilters.length);
+    if (eqFilters[filterIdx]) eqFilters[filterIdx].gain.value = eqGains[idx];
+  }
+});
+
+canvas.addEventListener('mousedown', e => {
+  isDragging = true; dragStart = barIndexAt(e.clientX);
+});
+
+canvas.addEventListener('mouseup', e => {
+  if (!isDragging) return;
+  const idx = barIndexAt(e.clientX);
+  if (Math.abs(idx - dragStart) < 2 && source) {
+    const pct = idx / BAR_COUNT;
+    if (source.buffer) {
+      const seekTime = pct * source.buffer.duration;
+      try { source.stop(); } catch(err){}
+      const ns = audioCtx.createBufferSource();
+      ns.buffer = source.buffer; ns.loop = true;
+      ns.connect(gainNode); ns.start(0, seekTime);
+      source = ns;
+    }
+  }
+  isDragging = false;
+});
+canvas.addEventListener('mouseleave', () => { isDragging = false; });
+
+if (!running) { running = true; draw(); }
+</script>

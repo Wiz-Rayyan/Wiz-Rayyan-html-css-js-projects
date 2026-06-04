@@ -1,0 +1,151 @@
+
+<style>
+h2.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+.app{padding:1.5rem 0;max-width:660px}
+textarea{width:100%;min-height:130px;resize:vertical;font-size:14px;padding:10px 12px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-primary);font-family:var(--font-sans);box-sizing:border-box;line-height:1.6}
+textarea:focus{outline:none;border-color:var(--color-border-primary)}
+.controls{display:flex;align-items:center;gap:10px;margin-top:10px}
+button{font-size:14px;padding:7px 16px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-primary);cursor:pointer;font-family:var(--font-sans);transition:background 0.15s}
+button:hover{background:var(--color-background-secondary)}
+button:active{transform:scale(0.98)}
+button.primary{background:var(--color-background-secondary);border-color:var(--color-border-primary)}
+.badge{font-size:12px;color:var(--color-text-secondary);margin-left:auto}
+.bullets{margin-top:1.5rem;list-style:none;padding:0;display:flex;flex-direction:column;gap:4px}
+.bullet-item{opacity:0;transform:translateX(-20px);transition:none;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-tertiary);background:var(--color-background-primary);overflow:hidden}
+.bullet-item.visible{animation:slideIn 0.35s cubic-bezier(0.25,0.8,0.25,1) forwards}
+@keyframes slideIn{from{opacity:0;transform:translateX(-20px)}to{opacity:1;transform:translateX(0)}}
+.bullet-header{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;cursor:pointer;user-select:none}
+.bullet-header:hover{background:var(--color-background-secondary)}
+.check-wrap{flex-shrink:0;width:22px;height:22px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--color-background-success);margin-top:1px}
+.check-wrap i{font-size:13px;color:var(--color-text-success);display:block;opacity:0}
+.check-wrap i.spin{animation:spinIn 0.4s ease forwards}
+@keyframes spinIn{from{opacity:0;transform:rotate(0deg) scale(0.4)}to{opacity:1;transform:rotate(360deg) scale(1)}}
+.bullet-text{font-size:14px;color:var(--color-text-primary);line-height:1.5;flex:1;padding-top:1px}
+.expand-icon{font-size:14px;color:var(--color-text-tertiary);transition:transform 0.2s;flex-shrink:0;margin-top:2px}
+.bullet-item.open .expand-icon{transform:rotate(180deg)}
+.detail{max-height:0;overflow:hidden;transition:max-height 0.3s ease}
+.bullet-item.open .detail{max-height:200px}
+.detail-inner{padding:0 14px 12px 46px;font-size:13px;color:var(--color-text-secondary);line-height:1.6;border-top:0.5px solid var(--color-border-tertiary);padding-top:8px;margin:0 0 0 0}
+.source-tip{display:none;font-size:12px;color:var(--color-text-tertiary);font-style:italic;padding:4px 14px 8px 46px;line-height:1.5}
+.bullet-header:hover ~ .source-tip,.source-tip:hover{display:block}
+.status{font-size:13px;color:var(--color-text-secondary);margin-top:12px;min-height:20px}
+.loader{display:inline-block;width:12px;height:12px;border:1.5px solid var(--color-border-secondary);border-top-color:var(--color-text-secondary);border-radius:50%;animation:spin 0.7s linear infinite;vertical-align:middle;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+
+<div class="app">
+  <h2 class="sr-only">AI text summarizer that reveals bullet points one by one with animations</h2>
+
+  <textarea id="input" placeholder="Paste any text here — an article, email, notes, or anything you'd like summarized…"></textarea>
+
+  <div class="controls">
+    <button class="primary" id="btn" onclick="summarize()"><i class="ti ti-sparkles" aria-hidden="true"></i> Summarize ↗</button>
+    <button onclick="clearAll()"><i class="ti ti-refresh" aria-hidden="true"></i> Clear</button>
+    <span class="badge" id="char-count">0 chars</span>
+  </div>
+
+  <div class="status" id="status"></div>
+  <ul class="bullets" id="bullets" aria-live="polite" aria-label="Summary bullets"></ul>
+</div>
+
+<script>
+const input = document.getElementById('input');
+const status = document.getElementById('status');
+const bulletList = document.getElementById('bullets');
+const charCount = document.getElementById('char-count');
+
+input.addEventListener('input', () => {
+  charCount.textContent = input.value.length + ' chars';
+});
+
+function clearAll() {
+  input.value = '';
+  charCount.textContent = '0 chars';
+  bulletList.innerHTML = '';
+  status.textContent = '';
+}
+
+function addBullet(text, detail, source, delay) {
+  const li = document.createElement('li');
+  li.className = 'bullet-item';
+  li.setAttribute('role', 'listitem');
+  li.innerHTML = `
+    <div class="bullet-header" onclick="toggleDetail(this.parentElement)" tabindex="0" role="button" aria-expanded="false">
+      <span class="check-wrap"><i class="ti ti-check" aria-hidden="true"></i></span>
+      <span class="bullet-text">${text}</span>
+      <i class="ti ti-chevron-down expand-icon" aria-hidden="true"></i>
+    </div>
+    <div class="source-tip" title="Original source">${source}</div>
+    <div class="detail" role="region"><div class="detail-inner">${detail}</div></div>
+  `;
+  bulletList.appendChild(li);
+
+  setTimeout(() => {
+    li.classList.add('visible');
+    setTimeout(() => {
+      const icon = li.querySelector('.ti-check');
+      if (icon) icon.classList.add('spin');
+    }, 200);
+  }, delay);
+}
+
+function toggleDetail(item) {
+  const open = item.classList.toggle('open');
+  const btn = item.querySelector('.bullet-header');
+  btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+
+async function summarize() {
+  const text = input.value.trim();
+  if (!text) { status.textContent = 'Paste some text first.'; return; }
+
+  bulletList.innerHTML = '';
+  status.innerHTML = '<span class="loader"></span>Analyzing text…';
+
+  const prompt = `You are a summarizer. Given the input text, return ONLY a JSON array of 4–6 objects. No markdown, no preamble, just raw JSON.
+Each object must have:
+- "bullet": a concise summary point (max 15 words)
+- "detail": 1–2 sentence expansion of the bullet point
+- "source": a short verbatim phrase (5–10 words) from the original text that inspired this bullet
+
+Input text:
+"""
+${text.slice(0, 3000)}
+"""
+
+Return only a JSON array. No backticks, no explanation.`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    const data = await res.json();
+    const raw = data.content?.map(c => c.text || '').join('').trim();
+
+    let bullets;
+    try {
+      const clean = raw.replace(/^```[a-z]*\n?/i, '').replace(/```$/,'').trim();
+      bullets = JSON.parse(clean);
+    } catch(e) {
+      status.textContent = 'Could not parse response. Try again.';
+      return;
+    }
+
+    status.textContent = '';
+
+    bullets.forEach((b, i) => {
+      addBullet(b.bullet, b.detail, b.source || '—', i * 280 + 80);
+    });
+
+  } catch(e) {
+    status.textContent = 'Something went wrong. Please try again.';
+  }
+}
+</script>

@@ -1,0 +1,366 @@
+
+<h2 class="sr-only">Interactive 3D terrain map with elevation, drag to rotate, hover for elevation, click to place pins</h2>
+<div id="terrain-container" style="position:relative;width:100%;height:520px;overflow:hidden;border-radius:var(--border-radius-lg);border:0.5px solid var(--color-border-tertiary);background:#0a0e1a;">
+  <canvas id="terrainCanvas" style="display:block;width:100%;height:100%;"></canvas>
+  <div id="tooltip" style="position:absolute;display:none;background:rgba(10,14,26,0.85);color:#e8f0ff;font-size:12px;padding:6px 10px;border-radius:6px;border:0.5px solid rgba(100,150,255,0.3);pointer-events:none;backdrop-filter:blur(4px);font-family:var(--font-mono,monospace);"></div>
+  <div id="pin-info" style="position:absolute;display:none;background:rgba(10,14,26,0.9);color:#e8f0ff;font-size:11px;padding:8px 12px;border-radius:8px;border:0.5px solid rgba(100,200,150,0.4);pointer-events:none;line-height:1.6;font-family:var(--font-mono,monospace);"></div>
+  <div style="position:absolute;top:12px;left:12px;display:flex;flex-direction:column;gap:6px;pointer-events:none;">
+    <div style="background:rgba(10,14,26,0.7);color:#a0b4cc;font-size:11px;padding:5px 10px;border-radius:5px;border:0.5px solid rgba(100,150,255,0.2);">drag: rotate · scroll: zoom · click: pin</div>
+  </div>
+  <div id="legend" style="position:absolute;bottom:12px;right:12px;background:rgba(10,14,26,0.7);border-radius:6px;border:0.5px solid rgba(100,150,255,0.2);padding:8px 12px;pointer-events:none;">
+    <div style="color:#a0b4cc;font-size:10px;margin-bottom:5px;letter-spacing:0.05em;">ELEVATION (m)</div>
+    <canvas id="legendCanvas" width="120" height="12" style="display:block;border-radius:2px;"></canvas>
+    <div style="display:flex;justify-content:space-between;color:#6a84a0;font-size:10px;margin-top:3px;font-family:var(--font-mono,monospace);">
+      <span>0</span><span>2500</span><span>5000</span>
+    </div>
+  </div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+  const container = document.getElementById('terrain-container');
+  const canvas = document.getElementById('terrainCanvas');
+  const tooltip = document.getElementById('tooltip');
+  const pinInfo = document.getElementById('pin-info');
+
+  const W = container.clientWidth, H = container.clientHeight;
+  canvas.width = W * devicePixelRatio; canvas.height = H * devicePixelRatio;
+
+  const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:false});
+  renderer.setPixelRatio(devicePixelRatio);
+  renderer.setSize(W, H);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.1;
+
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0x0a1428, 0.018);
+  scene.background = new THREE.Color(0x0a0e1a);
+
+  const camera = new THREE.PerspectiveCamera(55, W/H, 0.1, 200);
+  camera.position.set(0, 18, 28);
+  camera.lookAt(0, 0, 0);
+
+  const ambientLight = new THREE.AmbientLight(0x334466, 0.6);
+  scene.add(ambientLight);
+
+  const sun = new THREE.DirectionalLight(0xffeedd, 1.8);
+  sun.position.set(20, 35, 15);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048);
+  sun.shadow.camera.near = 0.5;
+  sun.shadow.camera.far = 120;
+  sun.shadow.camera.left = -40;
+  sun.shadow.camera.right = 40;
+  sun.shadow.camera.top = 40;
+  sun.shadow.camera.bottom = -40;
+  scene.add(sun);
+
+  const fillLight = new THREE.DirectionalLight(0x2244aa, 0.4);
+  fillLight.position.set(-15, 10, -10);
+  scene.add(fillLight);
+
+  const GRID = 128;
+  function smoothstep(x){ return x*x*(3-2*x); }
+  function lerp(a,b,t){ return a+(b-a)*t; }
+  function noise2d(x,y,seed){
+    const h = Math.sin(x*127.1+y*311.7+seed)*43758.5453123;
+    return h - Math.floor(h);
+  }
+  function smoothNoise(x,y,seed){
+    const ix=Math.floor(x), iy=Math.floor(y);
+    const fx=x-ix, fy=y-iy;
+    const ux=smoothstep(fx), uy=smoothstep(fy);
+    return lerp(
+      lerp(noise2d(ix,iy,seed),noise2d(ix+1,iy,seed),ux),
+      lerp(noise2d(ix,iy+1,seed),noise2d(ix+1,iy+1,seed),ux),
+      uy
+    );
+  }
+  function fbm(x,y){
+    let v=0,a=0.5;
+    for(let i=0;i<7;i++){
+      const s=Math.pow(2,i);
+      v+=a*smoothNoise(x*s,y*s,i*137.5);
+      a*=0.5;
+    }
+    return v;
+  }
+
+  const heightData = new Float32Array((GRID+1)*(GRID+1));
+  const SIZE = 40;
+  for(let j=0;j<=GRID;j++){
+    for(let i=0;i<=GRID;i++){
+      const nx=(i/GRID)*4-2, ny=(j/GRID)*4-2;
+      const ridge = Math.pow(fbm(nx+0.5,ny+0.5),1.4)*1.2;
+      const base = fbm(nx*0.7,ny*0.7)*0.5;
+      const mountain = Math.pow(Math.max(0,1-Math.sqrt(nx*nx*0.6+ny*ny*0.6)*0.5),1.2)*0.8;
+      let h = (ridge*0.7+base*0.3)*(1+mountain*0.8);
+      h = Math.pow(Math.max(0,h),1.3);
+      heightData[j*(GRID+1)+i] = h;
+    }
+  }
+
+  const geom = new THREE.PlaneGeometry(SIZE, SIZE, GRID, GRID);
+  geom.rotateX(-Math.PI/2);
+  const pos = geom.attributes.position;
+  const MAX_H = 12;
+  for(let i=0;i<pos.count;i++){
+    const h = heightData[i];
+    pos.setY(i, h*MAX_H);
+  }
+  pos.needsUpdate = true;
+  geom.computeVertexNormals();
+
+  const colors = new Float32Array(pos.count*3);
+  const WATER_Y = 0.3;
+  for(let i=0;i<pos.count;i++){
+    const h = heightData[i];
+    const y = pos.getY(i);
+    let r,g,b;
+    if(y < WATER_Y){
+      r=0.05;g=0.18;b=0.45;
+    } else {
+      const t = Math.min(1, h);
+      if(t<0.25){
+        const s=t/0.25;
+        r=lerp(0.2,0.22,s);g=lerp(0.5,0.4,s);b=lerp(0.15,0.12,s);
+      } else if(t<0.5){
+        const s=(t-0.25)/0.25;
+        r=lerp(0.22,0.35,s);g=lerp(0.40,0.33,s);b=lerp(0.12,0.18,s);
+      } else if(t<0.72){
+        const s=(t-0.5)/0.22;
+        r=lerp(0.35,0.48,s);g=lerp(0.33,0.38,s);b=lerp(0.18,0.28,s);
+      } else if(t<0.88){
+        const s=(t-0.72)/0.16;
+        r=lerp(0.48,0.72,s);g=lerp(0.38,0.68,s);b=lerp(0.28,0.62,s);
+      } else {
+        const s=(t-0.88)/0.12;
+        r=lerp(0.72,0.97,s);g=lerp(0.68,0.97,s);b=lerp(0.62,0.98,s);
+      }
+    }
+    colors[i*3]=r; colors[i*3+1]=g; colors[i*3+2]=b;
+  }
+  geom.setAttribute('color', new THREE.BufferAttribute(colors,3));
+
+  const mat = new THREE.MeshStandardMaterial({
+    vertexColors:true, roughness:0.85, metalness:0.05,
+    shadowSide:THREE.DoubleSide
+  });
+  const mesh = new THREE.Mesh(geom, mat);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  scene.add(mesh);
+
+  const waterGeo = new THREE.PlaneGeometry(SIZE, SIZE);
+  waterGeo.rotateX(-Math.PI/2);
+  const waterMat = new THREE.MeshStandardMaterial({
+    color:0x0a3060, transparent:true, opacity:0.65, roughness:0.1, metalness:0.2
+  });
+  const water = new THREE.Mesh(waterGeo, waterMat);
+  water.position.y = WATER_Y - 0.02;
+  scene.add(water);
+
+  const mistGeo = new THREE.PlaneGeometry(SIZE*0.9, SIZE*0.9);
+  mistGeo.rotateX(-Math.PI/2);
+  const mistMat = new THREE.MeshStandardMaterial({
+    color:0x8ab0cc, transparent:true, opacity:0.08, roughness:1, depthWrite:false
+  });
+  const mist = new THREE.Mesh(mistGeo, mistMat);
+  mist.position.y = WATER_Y + 0.4;
+  scene.add(mist);
+
+  const mist2 = new THREE.Mesh(
+    new THREE.PlaneGeometry(SIZE*0.6, SIZE*0.6),
+    new THREE.MeshStandardMaterial({color:0xaac8dd,transparent:true,opacity:0.05,roughness:1,depthWrite:false})
+  );
+  mist2.geometry.rotateX(-Math.PI/2);
+  mist2.position.y = WATER_Y + 0.9;
+  scene.add(mist2);
+
+  const stars = [];
+  const starGeo = new THREE.BufferGeometry();
+  const starPos = new Float32Array(400*3);
+  for(let i=0;i<400;i++){
+    starPos[i*3]=(Math.random()-0.5)*120;
+    starPos[i*3+1]=Math.random()*30+15;
+    starPos[i*3+2]=(Math.random()-0.5)*120;
+  }
+  starGeo.setAttribute('position',new THREE.BufferAttribute(starPos,3));
+  const starMat = new THREE.PointsMaterial({color:0xaaccff,size:0.08,transparent:true,opacity:0.6});
+  scene.add(new THREE.Points(starGeo,starMat));
+
+  const pins = [];
+  const pinGroup = new THREE.Group();
+  scene.add(pinGroup);
+
+  const raycaster = new THREE.Raycaster();
+  const mouse = new THREE.Vector2();
+
+  let isDragging=false, lastX=0, lastY=0;
+  let rotY=0, rotX=0.32, zoom=1;
+  let hoveredElevation = null;
+
+  function getTerrainHeight(nx, ny){
+    const ix = (nx+SIZE/2)/SIZE*GRID;
+    const iy = (ny+SIZE/2)/SIZE*GRID;
+    const i = Math.floor(Math.max(0,Math.min(GRID,iy))) * (GRID+1) + Math.floor(Math.max(0,Math.min(GRID,ix)));
+    return heightData[i]||0;
+  }
+
+  function addPin(x, z, elevation){
+    const y = elevation * MAX_H + 0.3;
+    const shaft = new THREE.CylinderGeometry(0.07,0.07,1.2,8);
+    const head = new THREE.SphereGeometry(0.22,12,12);
+    const pinMat = new THREE.MeshStandardMaterial({color:0x22ee88,emissive:0x0a6633,roughness:0.3});
+    const shaftM = new THREE.Mesh(shaft,pinMat);
+    const headM = new THREE.Mesh(head,pinMat);
+    headM.position.y = 0.6+0.22;
+    const group = new THREE.Group();
+    group.add(shaftM); group.add(headM);
+    group.position.set(x, y+0.6, z);
+    group.scale.set(0,0,0);
+    pinGroup.add(group);
+    const data = {group, t:0, phase:'in', x, z, elevation};
+    pins.push(data);
+    return data;
+  }
+
+  function getNormalizedCoords(event){
+    const rect = canvas.getBoundingClientRect();
+    const cx = event.touches ? event.touches[0].clientX : event.clientX;
+    const cy = event.touches ? event.touches[0].clientY : event.clientY;
+    return {
+      nx: ((cx-rect.left)/rect.width)*2-1,
+      ny: -((cy-rect.top)/rect.height)*2+1,
+      cx, cy
+    };
+  }
+
+  canvas.addEventListener('mousedown', e=>{isDragging=true;lastX=e.clientX;lastY=e.clientY;});
+  canvas.addEventListener('touchstart',e=>{isDragging=true;lastX=e.touches[0].clientX;lastY=e.touches[0].clientY;},{passive:true});
+  window.addEventListener('mouseup',()=>isDragging=false);
+  window.addEventListener('touchend',()=>isDragging=false);
+
+  canvas.addEventListener('mousemove',e=>{
+    if(isDragging){
+      const dx=e.clientX-lastX, dy=e.clientY-lastY;
+      rotY+=dx*0.005; rotX+=dy*0.005;
+      rotX=Math.max(-0.15,Math.min(1.1,rotX));
+      lastX=e.clientX; lastY=e.clientY;
+      tooltip.style.display='none';
+    } else {
+      const {nx,ny,cx,cy}=getNormalizedCoords(e);
+      mouse.set(nx,ny);
+      raycaster.setFromCamera(mouse,camera);
+      const hits=raycaster.intersectObject(mesh);
+      if(hits.length){
+        const pt=hits[0].point;
+        const h=getTerrainHeight(pt.x,pt.z);
+        const elev=Math.round(h*5000);
+        tooltip.innerHTML='<span style="color:#66ffaa">▲</span> '+elev+' m';
+        const rect=canvas.getBoundingClientRect();
+        tooltip.style.left=(cx-rect.left+12)+'px';
+        tooltip.style.top=(cy-rect.top-28)+'px';
+        tooltip.style.display='block';
+      } else {
+        tooltip.style.display='none';
+      }
+    }
+  });
+
+  let clickMoved=false;
+  canvas.addEventListener('mousedown',()=>{clickMoved=false;});
+  canvas.addEventListener('mousemove',()=>{if(isDragging)clickMoved=true;});
+  canvas.addEventListener('mouseup',e=>{
+    if(clickMoved)return;
+    const {nx,ny,cx,cy}=getNormalizedCoords(e);
+    mouse.set(nx,ny);
+    raycaster.setFromCamera(mouse,camera);
+    const hits=raycaster.intersectObject(mesh);
+    if(hits.length){
+      const pt=hits[0].point;
+      const h=getTerrainHeight(pt.x,pt.z);
+      const pd = addPin(pt.x,pt.z,h);
+      const lat=(pt.z/SIZE*4).toFixed(3), lon=(pt.x/SIZE*4).toFixed(3);
+      const elev=Math.round(h*5000);
+      pd.lat=lat; pd.lon=lon; pd.elev=elev;
+      const rect=canvas.getBoundingClientRect();
+      pinInfo.innerHTML='📍 <b style="color:#66ffaa">Pin dropped</b><br>lat '+lat+' · lon '+lon+'<br>elevation: '+elev+' m';
+      pinInfo.style.left=(cx-rect.left+14)+'px';
+      pinInfo.style.top=(cy-rect.top-70)+'px';
+      pinInfo.style.display='block';
+      setTimeout(()=>pinInfo.style.display='none',3000);
+    }
+  });
+
+  canvas.addEventListener('wheel',e=>{
+    zoom*=(1+e.deltaY*0.001);
+    zoom=Math.max(0.5,Math.min(3.5,zoom));
+    e.preventDefault();
+  },{passive:false});
+
+  let touchDist=null;
+  canvas.addEventListener('touchmove',e=>{
+    if(e.touches.length===2){
+      const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+      if(touchDist!==null){ zoom*=touchDist/d; zoom=Math.max(0.5,Math.min(3.5,zoom)); }
+      touchDist=d;
+    } else if(isDragging&&e.touches.length===1){
+      const dx=e.touches[0].clientX-lastX, dy=e.touches[0].clientY-lastY;
+      rotY+=dx*0.005; rotX+=dy*0.005;
+      rotX=Math.max(-0.15,Math.min(1.1,rotX));
+      lastX=e.touches[0].clientX; lastY=e.touches[0].clientY;
+    }
+    e.preventDefault();
+  },{passive:false});
+  canvas.addEventListener('touchend',()=>{touchDist=null;});
+
+  const legendCanvas = document.getElementById('legendCanvas');
+  const lctx = legendCanvas.getContext('2d');
+  const lg = lctx.createLinearGradient(0,0,120,0);
+  lg.addColorStop(0,'#0a2e73');
+  lg.addColorStop(0.05,'#336622');
+  lg.addColorStop(0.3,'#598833');
+  lg.addColorStop(0.55,'#857a50');
+  lg.addColorStop(0.78,'#b8afa0');
+  lg.addColorStop(1,'#f8f8fc');
+  lctx.fillStyle=lg; lctx.fillRect(0,0,120,12);
+
+  const clock = new THREE.Clock();
+  let frame=0;
+  function animate(){
+    requestAnimationFrame(animate);
+    const dt=clock.getDelta(); frame++;
+    const BASE=26, r=BASE*zoom;
+    camera.position.x=Math.sin(rotY)*r*Math.cos(rotX);
+    camera.position.y=r*Math.sin(rotX)+2;
+    camera.position.z=Math.cos(rotY)*r*Math.cos(rotX);
+    camera.lookAt(0,2,0);
+    camera.aspect = container.clientWidth/container.clientHeight;
+    camera.updateProjectionMatrix();
+
+    mist.material.opacity = 0.06+Math.sin(frame*0.008)*0.02;
+    mist2.material.opacity = 0.04+Math.cos(frame*0.006)*0.015;
+    mist.position.y = WATER_Y+0.4+Math.sin(frame*0.01)*0.1;
+    water.material.opacity = 0.55+Math.sin(frame*0.015)*0.06;
+
+    for(let i=pins.length-1;i>=0;i--){
+      const p=pins[i];
+      if(p.phase==='in'){
+        p.t+=dt*3;
+        if(p.t<0.7){ const s=p.t/0.7; p.group.scale.setScalar(s); }
+        else if(p.t<1.0){ const s=1+(p.t-0.7)/0.3*0.2; p.group.scale.setScalar(s); }
+        else { p.group.scale.setScalar(0.8); p.phase='idle'; }
+      } else if(p.phase==='idle'){
+        const bob=0.04*Math.sin(frame*0.05+i);
+        p.group.position.y=(p.elevation*MAX_H+0.3+0.6)+bob;
+      }
+    }
+
+    renderer.render(scene, camera);
+  }
+  animate();
+})();
+</script>

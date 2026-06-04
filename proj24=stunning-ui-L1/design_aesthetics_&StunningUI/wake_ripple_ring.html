@@ -1,0 +1,261 @@
+
+<style>
+  :root { --siri: #00c6df; --google: #4285f4; --alexa: #00caff; --alexa-accent: #f90; }
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+
+  .stage {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 32px; padding: 2rem 0;
+  }
+
+  .assistants {
+    display: flex; gap: 48px; justify-content: center; flex-wrap: wrap;
+  }
+
+  .device-wrap {
+    display: flex; flex-direction: column; align-items: center; gap: 14px;
+  }
+
+  .device-label {
+    font-size: 13px; color: var(--color-text-secondary);
+    font-family: var(--font-sans); letter-spacing: 0.02em;
+  }
+
+  .ripple-root {
+    position: relative; width: 96px; height: 96px;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .ring {
+    position: absolute; width: 96px; height: 96px;
+    border-radius: 50%; border: 2px solid;
+    transform: scale(0); opacity: 0;
+    pointer-events: none;
+  }
+
+  .icon-btn {
+    position: relative; z-index: 10;
+    width: 56px; height: 56px; border-radius: 50%;
+    border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    background: var(--color-background-primary);
+    border: 1.5px solid var(--color-border-secondary);
+  }
+  .icon-btn:active { transform: scale(0.93); }
+  .icon-btn svg { width: 26px; height: 26px; }
+
+  .icon-btn.listening {
+    animation: glow-pulse 1s ease-in-out infinite alternate;
+  }
+
+  @keyframes glow-pulse {
+    from { box-shadow: 0 0 0 0px var(--glow-color, #888); }
+    to   { box-shadow: 0 0 0 10px transparent; }
+  }
+
+  .ring.expand {
+    animation: ripple-out 1s ease-out forwards;
+  }
+  .ring.shrink {
+    animation: ripple-shrink 0.5s ease-in forwards;
+  }
+  .ring.continuous {
+    animation: ripple-out 1s ease-out infinite;
+  }
+
+  @keyframes ripple-out {
+    0%   { transform: scale(0); opacity: 0.65; }
+    100% { transform: scale(3.2); opacity: 0; }
+  }
+  @keyframes ripple-shrink {
+    0%   { transform: scale(3.2); opacity: 0.5; }
+    100% { transform: scale(0); opacity: 0; }
+  }
+
+  .controls {
+    display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;
+    padding: 0 1rem;
+  }
+
+  button.ctrl {
+    font-family: var(--font-sans); font-size: 13px;
+    padding: 8px 16px; border-radius: var(--border-radius-md);
+    border: 0.5px solid var(--color-border-secondary);
+    background: var(--color-background-primary);
+    color: var(--color-text-primary);
+    cursor: pointer; transition: background 0.12s;
+  }
+  button.ctrl:hover { background: var(--color-background-secondary); }
+  button.ctrl:active { transform: scale(0.97); }
+
+  .status-bar {
+    font-size: 13px; color: var(--color-text-secondary);
+    font-family: var(--font-sans); min-height: 20px;
+    text-align: center;
+  }
+
+  .legend {
+    display: flex; gap: 20px; flex-wrap: wrap; justify-content: center;
+  }
+  .leg-item {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; color: var(--color-text-secondary);
+    font-family: var(--font-sans);
+  }
+  .leg-dot { width: 10px; height: 10px; border-radius: 50%; }
+</style>
+
+<div class="stage">
+  <div class="assistants" id="assistants"></div>
+  <div class="controls">
+    <button class="ctrl" onclick="triggerAll('wake')">🎤 Say wake word (all)</button>
+    <button class="ctrl" onclick="triggerAll('false')">❌ False wake (all)</button>
+    <button class="ctrl" onclick="triggerAll('longpress')">⏱ Long press (all)</button>
+    <button class="ctrl" onclick="triggerAll('stop')">Stop</button>
+  </div>
+  <div class="status-bar" id="status">Click an icon or use controls above</div>
+  <div class="legend">
+    <div class="leg-item"><div class="leg-dot" style="background:#00c6df"></div>Siri</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#4285f4"></div>Google</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#f90"></div>Alexa</div>
+  </div>
+</div>
+
+<script>
+const assistants = [
+  {
+    id: 'siri', label: 'Hey Siri', color: '#00c6df',
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="#00c6df" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>`
+  },
+  {
+    id: 'google', label: 'OK Google', color: '#4285f4',
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="9" stroke="#4285f4"/>
+      <path d="M12 8v4l3 3" stroke="#ea4335"/>
+      <circle cx="12" cy="12" r="2" fill="#4285f4"/>
+    </svg>`
+  },
+  {
+    id: 'alexa', label: 'Alexa', color: '#f90',
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="#f90" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="12" rx="6" ry="9"/><path d="M6 12h12"/><path d="M8.5 7.5C9.5 9 10.5 10 12 10s2.5-1 3.5-2.5"/><path d="M8.5 16.5C9.5 15 10.5 14 12 14s2.5 1 3.5 2.5"/></svg>`
+  }
+];
+
+const container = document.getElementById('assistants');
+
+assistants.forEach(a => {
+  const wrap = document.createElement('div');
+  wrap.className = 'device-wrap';
+
+  const label = document.createElement('div');
+  label.className = 'device-label';
+  label.textContent = a.label;
+
+  const root = document.createElement('div');
+  root.className = 'ripple-root';
+  root.id = 'root-' + a.id;
+
+  for (let i = 0; i < 3; i++) {
+    const ring = document.createElement('div');
+    ring.className = 'ring';
+    ring.id = `ring-${a.id}-${i}`;
+    ring.style.borderColor = a.color;
+    root.appendChild(ring);
+  }
+
+  const btn = document.createElement('button');
+  btn.className = 'icon-btn';
+  btn.id = 'btn-' + a.id;
+  btn.style.setProperty('--glow-color', a.color);
+  btn.innerHTML = a.icon;
+  btn.setAttribute('aria-label', a.label + ' wake button');
+  btn.onclick = () => triggerOne(a.id, 'wake');
+  btn.addEventListener('contextmenu', e => { e.preventDefault(); triggerOne(a.id, 'longpress'); });
+
+  let pressTimer;
+  btn.addEventListener('pointerdown', () => {
+    pressTimer = setTimeout(() => triggerOne(a.id, 'longpress'), 600);
+  });
+  btn.addEventListener('pointerup', () => clearTimeout(pressTimer));
+  btn.addEventListener('pointerleave', () => clearTimeout(pressTimer));
+
+  root.appendChild(btn);
+  wrap.appendChild(root);
+  wrap.appendChild(label);
+  container.appendChild(wrap);
+});
+
+const states = {};
+assistants.forEach(a => states[a.id] = 'idle');
+
+function clearRings(id) {
+  for (let i = 0; i < 3; i++) {
+    const r = document.getElementById(`ring-${id}-${i}`);
+    r.className = 'ring';
+    void r.offsetWidth;
+  }
+}
+
+function setBtn(id, listening) {
+  const btn = document.getElementById('btn-' + id);
+  if (listening) btn.classList.add('listening');
+  else btn.classList.remove('listening');
+}
+
+function triggerOne(id, mode) {
+  if (states[id] === mode && mode === 'longpress') {
+    stopOne(id); return;
+  }
+  stopOne(id);
+  states[id] = mode;
+
+  const a = assistants.find(x => x.id === id);
+  const statusMap = { wake: `Listening — ${a.label}`, false: `False wake — ${a.label}`, longpress: `Long press — ${a.label} (continuous)` };
+  document.getElementById('status').textContent = statusMap[mode] || '';
+
+  if (mode === 'wake') {
+    setBtn(id, true);
+    for (let i = 0; i < 3; i++) {
+      const r = document.getElementById(`ring-${id}-${i}`);
+      setTimeout(() => {
+        r.classList.add('expand');
+      }, i * 200);
+    }
+    setTimeout(() => { setBtn(id, false); states[id] = 'idle'; document.getElementById('status').textContent = 'Ready'; }, 1400);
+  } else if (mode === 'false') {
+    setBtn(id, false);
+    for (let i = 0; i < 3; i++) {
+      const r = document.getElementById(`ring-${id}-${i}`);
+      r.style.transform = 'scale(2)'; r.style.opacity = '0.5';
+      setTimeout(() => {
+        r.style.transform = ''; r.style.opacity = '';
+        r.classList.add('shrink');
+      }, i * 80);
+    }
+    setTimeout(() => { states[id] = 'idle'; document.getElementById('status').textContent = 'Ready'; }, 800);
+  } else if (mode === 'longpress') {
+    setBtn(id, true);
+    for (let i = 0; i < 3; i++) {
+      const r = document.getElementById(`ring-${id}-${i}`);
+      setTimeout(() => { r.classList.add('continuous'); }, i * 330);
+    }
+  }
+}
+
+function stopOne(id) {
+  clearRings(id);
+  setBtn(id, false);
+  states[id] = 'idle';
+}
+
+function triggerAll(mode) {
+  if (mode === 'stop') {
+    assistants.forEach(a => stopOne(a.id));
+    document.getElementById('status').textContent = 'Stopped';
+    return;
+  }
+  assistants.forEach(a => triggerOne(a.id, mode));
+}
+</script>

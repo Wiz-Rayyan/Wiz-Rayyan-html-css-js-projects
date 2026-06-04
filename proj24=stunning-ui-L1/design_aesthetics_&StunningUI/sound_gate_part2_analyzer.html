@@ -1,0 +1,399 @@
+
+<style>
+  * { box-sizing: border-box; }
+  #root2 { padding: 1rem 0; font-family: var(--font-sans); }
+  .panel { background: var(--color-background-secondary); border-radius: var(--border-radius-lg); border: 0.5px solid var(--color-border-tertiary); padding: 1rem 1.25rem; margin-bottom: 1rem; }
+  .panel-title { font-size: 12px; color: var(--color-text-secondary); margin: 0 0 10px; font-weight: 500; text-transform: none; letter-spacing: 0; }
+  canvas { display: block; width: 100%; border-radius: var(--border-radius-md); background: #0a0a0a; }
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 1rem; }
+  .stat { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 10px 12px; }
+  .stat-label { font-size: 11px; color: var(--color-text-secondary); margin-bottom: 3px; }
+  .stat-val { font-size: 20px; font-weight: 500; color: var(--color-text-primary); font-variant-numeric: tabular-nums; }
+  .stat-unit { font-size: 11px; color: var(--color-text-secondary); margin-left: 2px; }
+  .controls-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 1rem; }
+  .controls-row button { flex: 1; min-width: 100px; font-size: 13px; }
+  .mode-row { display: flex; gap: 6px; margin-bottom: 1rem; }
+  .mode-btn { flex: 1; font-size: 12px; padding: 6px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-secondary); background: transparent; color: var(--color-text-secondary); cursor: pointer; transition: background 0.1s, color 0.1s; }
+  .mode-btn.active { background: var(--color-background-primary); color: var(--color-text-primary); border-color: var(--color-border-primary); font-weight: 500; }
+  .slider-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .slider-row label { font-size: 13px; color: var(--color-text-secondary); min-width: 90px; }
+  .slider-row input { flex: 1; }
+  .slider-row span { font-size: 13px; font-weight: 500; color: var(--color-text-primary); min-width: 36px; text-align: right; }
+  .history-bar-wrap { height: 60px; border-radius: var(--border-radius-md); background: #0a0a0a; overflow: hidden; position: relative; display: flex; align-items: flex-end; gap: 1px; padding: 0 2px 2px; }
+  .h-bar { flex: 1; border-radius: 2px 2px 0 0; min-width: 3px; transition: height 0.08s; }
+  .badge-row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .ev-badge { font-size: 11px; padding: 3px 8px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-tertiary); color: var(--color-text-secondary); }
+  .ev-badge.clap { background: var(--color-background-success); color: var(--color-text-success); border-color: var(--color-border-success); }
+  .ev-badge.loud { background: var(--color-background-warning); color: var(--color-text-warning); border-color: var(--color-border-warning); }
+  .ev-badge.silence { background: var(--color-background-secondary); color: var(--color-text-tertiary); }
+</style>
+
+<div id="root2">
+  <h2 class="sr-only">Sound gate analyzer — waveform, spectrum, and event detection for audio input</h2>
+
+  <div class="stats-row">
+    <div class="stat"><div class="stat-label">Peak dB</div><div class="stat-val" id="s-peak">—</div></div>
+    <div class="stat"><div class="stat-label">RMS dB</div><div class="stat-val" id="s-rms">—</div></div>
+    <div class="stat"><div class="stat-label">Dominant Hz</div><div class="stat-val" id="s-freq">—</div></div>
+    <div class="stat"><div class="stat-label">Events</div><div class="stat-val" id="s-events">0</div></div>
+  </div>
+
+  <div class="mode-row">
+    <button class="mode-btn active" id="mode-wave" onclick="setMode('wave')">Waveform</button>
+    <button class="mode-btn" id="mode-spec" onclick="setMode('spectrum')">Spectrum</button>
+    <button class="mode-btn" id="mode-bars" onclick="setMode('bars')">Freq bars</button>
+    <button class="mode-btn" id="mode-circ" onclick="setMode('circular')">Circular</button>
+  </div>
+
+  <div class="panel" style="padding: 0.75rem; margin-bottom: 1rem;">
+    <canvas id="viz-canvas" height="200"></canvas>
+  </div>
+
+  <div class="panel" style="padding: 0.75rem 1rem 1rem;">
+    <div class="panel-title">Level history</div>
+    <div class="history-bar-wrap" id="hist-wrap"></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">Settings</div>
+    <div class="slider-row">
+      <label>Smoothing</label>
+      <input type="range" id="sl-smooth" min="0" max="95" value="75" step="1">
+      <span id="sv-smooth">75</span>
+    </div>
+    <div class="slider-row">
+      <label>Gain</label>
+      <input type="range" id="sl-gain" min="1" max="10" value="3" step="1">
+      <span id="sv-gain">3×</span>
+    </div>
+    <div class="slider-row">
+      <label>Gate threshold</label>
+      <input type="range" id="sl-thresh" min="5" max="95" value="40" step="1">
+      <span id="sv-thresh">40%</span>
+    </div>
+  </div>
+
+  <div class="controls-row">
+    <button id="mic-btn2" onclick="toggleMic()">Enable mic</button>
+    <button onclick="testSignal()">Test signal</button>
+    <button onclick="clearEvents()">Clear events</button>
+  </div>
+
+  <div style="margin-bottom: 6px; font-size: 12px; color: var(--color-text-secondary);">Detected events</div>
+  <div class="badge-row" id="event-log"><span class="ev-badge silence">No events yet</span></div>
+</div>
+
+<script>
+let audioCtx2, analyser2, micStream2, gainNode2;
+let isMicOn = false;
+let vizMode = 'wave';
+let eventCount = 0;
+let histData = new Array(80).fill(0);
+let rafId2;
+let gateOpen2 = false;
+let testActive = false;
+let testPhase = 0;
+
+const canvas = document.getElementById('viz-canvas');
+const ctx2 = canvas.getContext('2d');
+const histWrap = document.getElementById('hist-wrap');
+
+for (let i = 0; i < 80; i++) {
+  const b = document.createElement('div');
+  b.className = 'h-bar';
+  b.style.background = '#1a3a1a';
+  b.style.height = '2px';
+  histWrap.appendChild(b);
+}
+
+function setMode(m) {
+  vizMode = m;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('mode-' + m).classList.add('active');
+}
+
+document.getElementById('sl-smooth').addEventListener('input', function() {
+  document.getElementById('sv-smooth').textContent = this.value;
+  if (analyser2) analyser2.smoothingTimeConstant = parseInt(this.value) / 100;
+});
+document.getElementById('sl-gain').addEventListener('input', function() {
+  document.getElementById('sv-gain').textContent = this.value + '×';
+  if (gainNode2) gainNode2.gain.value = parseInt(this.value);
+});
+document.getElementById('sl-thresh').addEventListener('input', function() {
+  document.getElementById('sv-thresh').textContent = this.value + '%';
+});
+
+function getThreshold() { return parseInt(document.getElementById('sl-thresh').value); }
+
+function logEvent(type, label) {
+  const el = document.getElementById('event-log');
+  const first = el.querySelector('.silence');
+  if (first) el.innerHTML = '';
+  const b = document.createElement('span');
+  b.className = 'ev-badge ' + type;
+  b.textContent = label;
+  el.insertBefore(b, el.firstChild);
+  while (el.children.length > 8) el.removeChild(el.lastChild);
+  eventCount++;
+  document.getElementById('s-events').textContent = eventCount;
+}
+
+function drawWave(data) {
+  const W = canvas.clientWidth || 600, H = 200;
+  canvas.width = W * window.devicePixelRatio;
+  canvas.height = H * window.devicePixelRatio;
+  ctx2.scale(window.devicePixelRatio, window.devicePixelRatio);
+  ctx2.fillStyle = '#0a0a0a';
+  ctx2.fillRect(0, 0, W, H);
+  ctx2.strokeStyle = gateOpen2 ? '#22c55e' : '#dc2626';
+  ctx2.lineWidth = 1.5;
+  ctx2.beginPath();
+  const step = W / data.length;
+  for (let i = 0; i < data.length; i++) {
+    const v = (data[i] / 128) - 1;
+    const y = H / 2 + v * (H / 2 - 8);
+    i === 0 ? ctx2.moveTo(0, y) : ctx2.lineTo(i * step, y);
+  }
+  ctx2.stroke();
+  ctx2.strokeStyle = '#f59e0b44';
+  ctx2.lineWidth = 0.5;
+  ctx2.beginPath();
+  ctx2.moveTo(0, H / 2);
+  ctx2.lineTo(W, H / 2);
+  ctx2.stroke();
+}
+
+function drawSpectrum(data) {
+  const W = canvas.clientWidth || 600, H = 200;
+  canvas.width = W * window.devicePixelRatio;
+  canvas.height = H * window.devicePixelRatio;
+  ctx2.scale(window.devicePixelRatio, window.devicePixelRatio);
+  ctx2.fillStyle = '#0a0a0a';
+  ctx2.fillRect(0, 0, W, H);
+  const n = data.length;
+  for (let i = 0; i < n; i++) {
+    const x = (i / n) * W;
+    const h = (data[i] / 255) * H;
+    const hue = 120 + (data[i] / 255) * 60;
+    ctx2.fillStyle = gateOpen2 ? `hsl(${hue},80%,45%)` : `hsl(0,60%,${30 + data[i] / 255 * 20}%)`;
+    ctx2.fillRect(x, H - h, W / n, h);
+  }
+}
+
+function drawBars(data) {
+  const W = canvas.clientWidth || 600, H = 200;
+  canvas.width = W * window.devicePixelRatio;
+  canvas.height = H * window.devicePixelRatio;
+  ctx2.scale(window.devicePixelRatio, window.devicePixelRatio);
+  ctx2.fillStyle = '#0a0a0a';
+  ctx2.fillRect(0, 0, W, H);
+  const bands = 32;
+  const bw = (W - bands * 2) / bands;
+  for (let i = 0; i < bands; i++) {
+    const slice = Math.floor(i * data.length / bands);
+    const val = data[slice] / 255;
+    const h = val * (H - 8);
+    const x = i * (bw + 2) + 1;
+    ctx2.fillStyle = gateOpen2
+      ? `hsl(${100 + val * 60},75%,${35 + val * 25}%)`
+      : `hsl(${val * 20},60%,${20 + val * 20}%)`;
+    ctx2.fillRect(x, H - h - 2, bw, h);
+  }
+}
+
+function drawCircular(data) {
+  const W = canvas.clientWidth || 600, H = 200;
+  canvas.width = W * window.devicePixelRatio;
+  canvas.height = H * window.devicePixelRatio;
+  ctx2.scale(window.devicePixelRatio, window.devicePixelRatio);
+  ctx2.fillStyle = '#0a0a0a';
+  ctx2.fillRect(0, 0, W, H);
+  const cx = W / 2, cy = H / 2, r = Math.min(W, H) / 2 - 30;
+  const n = Math.min(data.length, 128);
+  ctx2.strokeStyle = gateOpen2 ? '#22c55e44' : '#dc262644';
+  ctx2.lineWidth = 0.5;
+  ctx2.beginPath();
+  ctx2.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx2.stroke();
+  for (let i = 0; i < n; i++) {
+    const angle = (i / n) * Math.PI * 2 - Math.PI / 2;
+    const val = (data[i] / 255) * 0.6;
+    const r0 = r * (1 - val);
+    const r1 = r * (1 + val * 0.5);
+    ctx2.strokeStyle = gateOpen2 ? `hsl(${120 + val * 60},70%,50%)` : `hsl(0,65%,${30 + val * 30}%)`;
+    ctx2.lineWidth = 1;
+    ctx2.beginPath();
+    ctx2.moveTo(cx + Math.cos(angle) * r0, cy + Math.sin(angle) * r0);
+    ctx2.lineTo(cx + Math.cos(angle) * r1, cy + Math.sin(angle) * r1);
+    ctx2.stroke();
+  }
+}
+
+function updateHistory(pct) {
+  histData.push(pct);
+  if (histData.length > 80) histData.shift();
+  const bars = histWrap.querySelectorAll('.h-bar');
+  const thresh = getThreshold();
+  bars.forEach((b, i) => {
+    const v = histData[i] || 0;
+    const h = Math.max(2, (v / 100) * 56);
+    b.style.height = h + 'px';
+    b.style.background = v >= thresh ? '#22c55e88' : '#dc262655';
+  });
+}
+
+let prevGateState2 = false;
+let lastEventTime = 0;
+
+function frame() {
+  if (analyser2 && isMicOn) {
+    const tdata = new Uint8Array(analyser2.fftSize);
+    const fdata = new Uint8Array(analyser2.frequencyBinCount);
+    analyser2.getByteTimeDomainData(tdata);
+    analyser2.getByteFrequencyData(fdata);
+
+    let sum = 0, peak = 0;
+    for (let i = 0; i < tdata.length; i++) {
+      const v = Math.abs((tdata[i] - 128) / 128);
+      sum += v * v;
+      if (v > peak) peak = v;
+    }
+    const rms = Math.sqrt(sum / tdata.length);
+    const pct = Math.min(100, Math.round(rms * 400));
+    const peakDb = peak > 0.001 ? Math.round(20 * Math.log10(peak)) : -60;
+    const rmsDb = rms > 0.001 ? Math.round(20 * Math.log10(rms)) : -60;
+
+    let maxF = 0, maxBin = 0;
+    for (let i = 0; i < fdata.length; i++) { if (fdata[i] > maxF) { maxF = fdata[i]; maxBin = i; } }
+    const sampleRate = audioCtx2 ? audioCtx2.sampleRate : 44100;
+    const domFreq = Math.round(maxBin * sampleRate / (analyser2.fftSize));
+
+    document.getElementById('s-peak').innerHTML = peakDb + '<span class="stat-unit">dB</span>';
+    document.getElementById('s-rms').innerHTML = rmsDb + '<span class="stat-unit">dB</span>';
+    document.getElementById('s-freq').innerHTML = domFreq > 50 ? domFreq + '<span class="stat-unit">Hz</span>' : '—';
+
+    const thresh = getThreshold();
+    gateOpen2 = pct >= thresh;
+
+    const now = Date.now();
+    if (gateOpen2 && !prevGateState2 && now - lastEventTime > 300) {
+      const tag = peakDb > -10 ? 'clap' : 'loud';
+      logEvent(tag, tag === 'clap' ? 'Clap/peak' : 'Gate open');
+      lastEventTime = now;
+    }
+    if (!gateOpen2 && prevGateState2 && now - lastEventTime > 300) {
+      logEvent('silence', 'Gate closed');
+      lastEventTime = now;
+    }
+    prevGateState2 = gateOpen2;
+
+    updateHistory(pct);
+    if (vizMode === 'wave') drawWave(tdata);
+    else if (vizMode === 'spectrum') drawSpectrum(fdata);
+    else if (vizMode === 'bars') drawBars(fdata);
+    else drawCircular(fdata);
+  } else if (testActive) {
+    runTestFrame();
+  } else {
+    const W = canvas.clientWidth || 600, H = 200;
+    if (canvas.width !== W) { canvas.width = W; canvas.height = H; }
+    ctx2.fillStyle = '#0a0a0a';
+    ctx2.fillRect(0, 0, W, H);
+    ctx2.strokeStyle = '#1a2a1a';
+    ctx2.lineWidth = 1;
+    ctx2.beginPath();
+    const mid = H / 2;
+    ctx2.moveTo(0, mid);
+    ctx2.lineTo(W, mid);
+    ctx2.stroke();
+    ctx2.fillStyle = '#334433';
+    ctx2.font = '12px var(--font-sans)';
+    ctx2.textAlign = 'center';
+    ctx2.fillText('Enable mic or run test signal', W / 2, mid + 4);
+  }
+  rafId2 = requestAnimationFrame(frame);
+}
+
+let testSignalData = [];
+function testSignal() {
+  testActive = true;
+  testPhase = 0;
+  const frames = 120;
+  let f = 0;
+  const tdata = new Uint8Array(512);
+  const fdata = new Uint8Array(256);
+  const run = () => {
+    f++;
+    const env = f < 20 ? f / 20 : f < 80 ? 1 : Math.max(0, 1 - (f - 80) / 40);
+    for (let i = 0; i < tdata.length; i++) {
+      const t = i / tdata.length;
+      tdata[i] = 128 + Math.round(env * 90 * Math.sin(t * Math.PI * 12 + f * 0.4));
+    }
+    for (let i = 0; i < fdata.length; i++) {
+      fdata[i] = i < 30 ? Math.round(env * 200 * Math.exp(-i / 8)) : Math.round(env * 40 * Math.random());
+    }
+    let sum = 0, peak = 0;
+    for (let i = 0; i < tdata.length; i++) {
+      const v = Math.abs((tdata[i] - 128) / 128);
+      sum += v * v; if (v > peak) peak = v;
+    }
+    const rms = Math.sqrt(sum / tdata.length);
+    const pct = Math.min(100, Math.round(rms * 400));
+    const peakDb = peak > 0.001 ? Math.round(20 * Math.log10(peak)) : -60;
+    const rmsDb = rms > 0.001 ? Math.round(20 * Math.log10(rms)) : -60;
+    document.getElementById('s-peak').innerHTML = peakDb + '<span class="stat-unit">dB</span>';
+    document.getElementById('s-rms').innerHTML = rmsDb + '<span class="stat-unit">dB</span>';
+    document.getElementById('s-freq').innerHTML = '440<span class="stat-unit">Hz</span>';
+    const thresh = getThreshold();
+    gateOpen2 = pct >= thresh;
+    const now = Date.now();
+    if (gateOpen2 && !prevGateState2 && now - lastEventTime > 300) { logEvent('clap', 'Test burst'); lastEventTime = now; }
+    if (!gateOpen2 && prevGateState2 && now - lastEventTime > 300) { logEvent('silence', 'Gate closed'); lastEventTime = now; }
+    prevGateState2 = gateOpen2;
+    updateHistory(pct);
+    if (vizMode === 'wave') drawWave(tdata);
+    else if (vizMode === 'spectrum') drawSpectrum(fdata);
+    else if (vizMode === 'bars') drawBars(fdata);
+    else drawCircular(fdata);
+    if (f < frames) requestAnimationFrame(run);
+    else testActive = false;
+  };
+  requestAnimationFrame(run);
+}
+
+async function toggleMic() {
+  if (isMicOn) {
+    isMicOn = false;
+    if (micStream2) micStream2.getTracks().forEach(t => t.stop());
+    if (audioCtx2) audioCtx2.close();
+    analyser2 = null; gainNode2 = null;
+    document.getElementById('mic-btn2').textContent = 'Enable mic';
+    return;
+  }
+  try {
+    micStream2 = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    audioCtx2 = new (window.AudioContext || window.webkitAudioContext)();
+    analyser2 = audioCtx2.createAnalyser();
+    analyser2.fftSize = 1024;
+    analyser2.smoothingTimeConstant = parseInt(document.getElementById('sl-smooth').value) / 100;
+    gainNode2 = audioCtx2.createGain();
+    gainNode2.gain.value = parseInt(document.getElementById('sl-gain').value);
+    audioCtx2.createMediaStreamSource(micStream2).connect(gainNode2);
+    gainNode2.connect(analyser2);
+    isMicOn = true;
+    document.getElementById('mic-btn2').textContent = 'Disable mic';
+    logEvent('loud', 'Mic started');
+  } catch(e) {
+    document.getElementById('mic-btn2').textContent = 'Mic blocked';
+  }
+}
+
+function clearEvents() {
+  document.getElementById('event-log').innerHTML = '<span class="ev-badge silence">No events yet</span>';
+  eventCount = 0;
+  document.getElementById('s-events').textContent = '0';
+}
+
+frame();
+</script>

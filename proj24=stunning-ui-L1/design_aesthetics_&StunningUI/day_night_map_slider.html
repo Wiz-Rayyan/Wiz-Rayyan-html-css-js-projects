@@ -1,0 +1,305 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font-sans); }
+  #wrap { position: relative; width: 100%; user-select: none; }
+  #sky { width: 100%; height: 360px; position: relative; overflow: hidden; }
+  #city-layer { position: absolute; bottom: 0; left: 0; width: 100%; height: 220px; }
+  #ground { position: absolute; bottom: 0; left: 0; width: 100%; height: 40px; }
+  #sun-moon { position: absolute; width: 44px; height: 44px; border-radius: 50%; transition: none; }
+  #flare { position: absolute; width: 120px; height: 120px; border-radius: 50%; opacity: 0; pointer-events: none; }
+  #controls { padding: 18px 20px 14px; background: var(--color-background-primary); border-top: 0.5px solid var(--color-border-tertiary); }
+  #time-display { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  #time-label { font-size: 22px; font-weight: 500; color: var(--color-text-primary); letter-spacing: -0.5px; }
+  #phase-badge { font-size: 12px; padding: 4px 10px; border-radius: 99px; font-weight: 500; }
+  input[type=range] { width: 100%; cursor: pointer; }
+  #tick-row { display: flex; justify-content: space-between; margin-top: 8px; padding: 0 2px; }
+  #tick-row span { font-size: 11px; color: var(--color-text-tertiary); }
+  canvas { position: absolute; top: 0; left: 0; pointer-events: none; }
+</style>
+
+<h2 class="sr-only">Interactive time-of-day map lighting simulator — drag the slider to change sky, city, and lighting from midnight through to the next night</h2>
+
+<div id="wrap">
+  <div id="sky">
+    <canvas id="c"></canvas>
+    <div id="flare"></div>
+    <div id="sun-moon"></div>
+    <svg id="city-layer" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 220" preserveAspectRatio="none"></svg>
+    <div id="ground"></div>
+  </div>
+  <div id="controls">
+    <div id="time-display">
+      <span id="time-label">12:00</span>
+      <span id="phase-badge">Noon</span>
+    </div>
+    <input type="range" id="slider" min="0" max="1440" value="720" step="1" aria-label="Time of day slider, 0 to 24 hours">
+    <div id="tick-row">
+      <span>12 AM</span><span>6 AM</span><span>12 PM</span><span>6 PM</span><span>12 AM</span>
+    </div>
+  </div>
+</div>
+
+<script>
+const slider = document.getElementById('slider');
+const timeLabel = document.getElementById('time-label');
+const phaseBadge = document.getElementById('phase-badge');
+const sky = document.getElementById('sky');
+const sunMoon = document.getElementById('sun-moon');
+const flare = document.getElementById('flare');
+const ground = document.getElementById('ground');
+const cityLayer = document.getElementById('city-layer');
+const canvas = document.getElementById('c');
+
+function lerp(a, b, t) { return a + (b - a) * t; }
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+function lerpRGB(c1, c2, t) {
+  return [Math.round(lerp(c1[0],c2[0],t)), Math.round(lerp(c1[1],c2[1],t)), Math.round(lerp(c1[2],c2[2],t))];
+}
+function rgb(c) { return `rgb(${c[0]},${c[1]},${c[2]})`; }
+function easeInOut(t) { return t<0.5 ? 2*t*t : -1+(4-2*t)*t; }
+
+const PHASES = [
+  { name:"Midnight",  badgeBg:"#1a1f3a", badgeC:"#8892cc" },
+  { name:"Pre-dawn",  badgeBg:"#1c2a4a", badgeC:"#7aadd0" },
+  { name:"Sunrise",   badgeBg:"#c0531c", badgeC:"#ffe0c0" },
+  { name:"Morning",   badgeBg:"#1e6bb8", badgeC:"#cce4ff" },
+  { name:"Noon",      badgeBg:"#0e5fa3", badgeC:"#ddf0ff" },
+  { name:"Afternoon", badgeBg:"#1e6bb8", badgeC:"#cce4ff" },
+  { name:"Sunset",    badgeBg:"#8b2a10", badgeC:"#ffd8c0" },
+  { name:"Dusk",      badgeBg:"#1c2a4a", badgeC:"#9ab0d8" },
+  { name:"Night",     badgeBg:"#111830", badgeC:"#6677bb" },
+];
+
+const SKY_KEYS = [
+  { t:0,    top:[8,12,45],     bot:[12,18,60]  },  // midnight
+  { t:300,  top:[10,15,55],    bot:[14,22,75]  },  // pre-dawn
+  { t:360,  top:[30,20,80],    bot:[200,80,40] },   // pre-sunrise glow
+  { t:390,  top:[255,140,40],  bot:[255,200,100] }, // sunrise
+  { t:480,  top:[100,160,255], bot:[200,230,255] }, // morning
+  { t:720,  top:[50,120,220],  bot:[200,225,255] }, // noon
+  { t:960,  top:[80,140,230],  bot:[210,230,255] }, // afternoon
+  { t:1050, top:[200,80,30],   bot:[255,180,80] },  // sunset
+  { t:1110, top:[80,30,90],    bot:[180,60,50] },   // dusk
+  { t:1200, top:[8,12,45],     bot:[12,18,60]  },   // night
+  { t:1440, top:[8,12,45],     bot:[12,18,60]  },
+];
+
+function getSkyColors(minutes) {
+  for (let i = 0; i < SKY_KEYS.length - 1; i++) {
+    const a = SKY_KEYS[i], b = SKY_KEYS[i+1];
+    if (minutes >= a.t && minutes <= b.t) {
+      const t = easeInOut((minutes - a.t) / (b.t - a.t));
+      return { top: lerpRGB(a.top, b.top, t), bot: lerpRGB(a.bot, b.bot, t) };
+    }
+  }
+  return { top: SKY_KEYS[0].top, bot: SKY_KEYS[0].bot };
+}
+
+function getPhase(m) {
+  if (m < 60 || m >= 1320) return PHASES[0];
+  if (m < 330) return PHASES[1];
+  if (m < 420) return PHASES[2];
+  if (m < 600) return PHASES[3];
+  if (m < 840) return PHASES[4];
+  if (m < 1020) return PHASES[5];
+  if (m < 1110) return PHASES[6];
+  if (m < 1200) return PHASES[7];
+  return PHASES[8];
+}
+
+function sunPosition(minutes) {
+  const W = sky.offsetWidth || 680;
+  const H = sky.offsetHeight || 360;
+  const dayStart = 360, dayEnd = 1080;
+  const t = clamp((minutes - dayStart) / (dayEnd - dayStart), 0, 1);
+  const angle = Math.PI * t;
+  const x = lerp(0.05, 0.95, t) * W;
+  const y = H * 0.85 - Math.sin(angle) * H * 0.82;
+  return { x, y, t };
+}
+
+function moonPosition(minutes) {
+  const W = sky.offsetWidth || 680;
+  const H = sky.offsetHeight || 360;
+  let t;
+  if (minutes < 360) t = (minutes + 1080) / 1440;
+  else if (minutes >= 1080) t = (minutes - 1080) / 1440;
+  else return null;
+  const angle = Math.PI * ((minutes < 360 ? minutes + 1080 : minutes - 1080) / 1440);
+  const x = lerp(0.05, 0.95, t < 0 ? 0 : t > 1 ? 1 : t) * W;
+  const y = H * 0.85 - Math.sin(angle) * H * 0.72;
+  return { x, y };
+}
+
+function drawCanvas(minutes) {
+  const W = sky.offsetWidth || 680;
+  const H = sky.offsetHeight || 360;
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  const sc = getSkyColors(minutes);
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, rgb(sc.top));
+  grad.addColorStop(1, rgb(sc.bot));
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  const isNight = minutes < 360 || minutes >= 1080;
+  if (!isNight) {
+    const sp = sunPosition(minutes);
+    const sunRadius = 22;
+    const atmo = ctx.createRadialGradient(sp.x, sp.y, 0, sp.x, sp.y, sunRadius * 5);
+    let atmoc;
+    if (minutes >= 360 && minutes < 450) atmoc = 'rgba(255,160,60,';
+    else if (minutes >= 1020 && minutes < 1110) atmoc = 'rgba(255,100,30,';
+    else atmoc = 'rgba(255,230,100,';
+    atmo.addColorStop(0, atmoc + '0.4)');
+    atmo.addColorStop(1, atmoc + '0)');
+    ctx.fillStyle = atmo; ctx.beginPath();
+    ctx.arc(sp.x, sp.y, sunRadius * 5, 0, Math.PI*2); ctx.fill();
+  }
+
+  if (isNight) {
+    const stars = [[0.1,0.08],[0.2,0.15],[0.35,0.05],[0.5,0.12],[0.65,0.07],[0.8,0.18],[0.9,0.09],
+                   [0.15,0.25],[0.45,0.22],[0.7,0.28],[0.85,0.35],[0.05,0.38],[0.3,0.32],[0.6,0.18],[0.92,0.22]];
+    const twinkle = (Math.sin(Date.now()/1000) + 1) / 2;
+    stars.forEach(([fx,fy], i) => {
+      const alpha = 0.4 + 0.5 * ((i % 2 === 0) ? twinkle : 1 - twinkle);
+      ctx.beginPath();
+      ctx.arc(fx * W, fy * H, i % 3 === 0 ? 1.5 : 1, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(255,255,255,${alpha})`; ctx.fill();
+    });
+  }
+}
+
+const buildings = [];
+const rng = (s) => { let x = Math.sin(s)*10000; return x - Math.floor(x); };
+for (let i = 0; i < 22; i++) {
+  const x = i * 32 - 5;
+  const w = 24 + rng(i*3)*16;
+  const h = 50 + rng(i*7)*120;
+  const floors = Math.floor(h / 12);
+  const windows = [];
+  for (let f = 0; f < floors; f++) {
+    for (let wc = 0; wc < Math.floor(w/10); wc++) {
+      const lit = rng(i*100+f*10+wc) > 0.4;
+      windows.push({ x: x + 4 + wc*10, y: 210 - h + 6 + f*12, lit });
+    }
+  }
+  buildings.push({ x, w, h, windows });
+}
+
+const streetLights = [40, 120, 200, 280, 360, 440, 520, 600, 670].map(x => ({ x, h: 28 }));
+
+function buildCityLayer(minutes) {
+  const isNight = minutes < 360 || minutes >= 1110;
+  const isDusk = minutes >= 1050 && minutes < 1200;
+  const isEve = minutes >= 960 && minutes < 1080;
+  const windowLit = isNight || isDusk || (isEve && minutes > 1010);
+  const lightsOn = isNight || isDusk;
+  const lightAlpha = isDusk ? clamp((minutes - 1050) / 80, 0, 1) : isNight ? 1 : 0;
+
+  let nightFactor = 0;
+  if (minutes < 360) nightFactor = 1 - clamp((minutes - 300) / 90, 0, 1);
+  else if (minutes >= 1110) nightFactor = clamp((minutes - 1110) / 90, 0, 1);
+  const dawnFactor = (minutes >= 360 && minutes < 500) ? 1 - clamp((minutes-360)/120,0,1) : 0;
+
+  const buildingBase = `hsl(220,${Math.round(lerp(8,20,nightFactor))}%,${Math.round(lerp(22,12,nightFactor))}%)`;
+  const buildingFace = `hsl(220,${Math.round(lerp(10,22,nightFactor))}%,${Math.round(lerp(30,16,nightFactor))}%)`;
+
+  let svg = `<rect x="0" y="180" width="680" height="40" fill="${buildingBase}"/>`;
+
+  buildings.forEach(b => {
+    svg += `<rect x="${b.x}" y="${210-b.h}" width="${b.w}" height="${b.h}" fill="${buildingFace}" rx="1"/>`;
+    if (windowLit) {
+      b.windows.forEach(win => {
+        if (win.lit) {
+          svg += `<rect x="${win.x}" y="${win.y}" width="5" height="7" fill="rgba(255,220,120,0.85)" rx="1"/>`;
+        }
+      });
+    }
+  });
+
+  if (lightsOn) {
+    streetLights.forEach(sl => {
+      const a = lightAlpha;
+      svg += `<line x1="${sl.x}" y1="${210-sl.h}" x2="${sl.x}" y2="210" stroke="rgba(180,180,180,${a*0.8})" stroke-width="1.5"/>`;
+      svg += `<ellipse cx="${sl.x}" cy="${210-sl.h}" rx="3" ry="2" fill="rgba(255,200,80,${a})"/>`;
+      svg += `<ellipse cx="${sl.x}" cy="${210-sl.h+4}" rx="${8+a*6}" ry="${4+a*4}" fill="rgba(255,180,60,${a*0.22})"/>`;
+    });
+  }
+
+  cityLayer.innerHTML = svg;
+}
+
+function updateSunMoon(minutes) {
+  const W = sky.offsetWidth || 680;
+  const H = sky.offsetHeight || 360;
+  const isNight = minutes < 360 || minutes >= 1080;
+  const isNear = minutes >= 330 && minutes < 420 || minutes >= 1050 && minutes < 1140;
+
+  if (!isNight) {
+    const sp = sunPosition(minutes);
+    sunMoon.style.cssText = `position:absolute;width:44px;height:44px;border-radius:50%;left:${sp.x - 22}px;top:${sp.y - 22}px;`;
+    let sunColor;
+    if (minutes < 420 || minutes > 1020) sunColor = '#ff9040';
+    else if (minutes < 540 || minutes > 900) sunColor = '#ffcc50';
+    else sunColor = '#fff5c0';
+    sunMoon.style.background = sunColor;
+    sunMoon.style.boxShadow = `0 0 ${minutes < 480 || minutes > 960 ? 24 : 40}px ${sunColor}`;
+
+    const showFlare = (minutes >= 355 && minutes < 430) || (minutes >= 1040 && minutes < 1100);
+    if (showFlare) {
+      const fa = Math.sin(((minutes - (minutes < 500 ? 355 : 1040)) / 70) * Math.PI);
+      flare.style.cssText = `position:absolute;width:180px;height:180px;border-radius:50%;left:${sp.x-90}px;top:${sp.y-90}px;opacity:${fa*0.5};background:radial-gradient(circle,rgba(255,200,80,0.7) 0%,transparent 70%);pointer-events:none;`;
+    } else {
+      flare.style.opacity = '0';
+    }
+  } else {
+    const mp = moonPosition(minutes);
+    if (mp) {
+      sunMoon.style.cssText = `position:absolute;width:38px;height:38px;border-radius:50%;left:${mp.x-19}px;top:${mp.y-19}px;background:#ccd6f0;box-shadow:0 0 16px rgba(160,180,255,0.5);`;
+    } else {
+      sunMoon.style.cssText = 'display:none';
+    }
+    flare.style.opacity = '0';
+  }
+}
+
+function formatTime(minutes) {
+  const h = Math.floor(minutes / 60) % 24;
+  const m = minutes % 60;
+  const ampm = h < 12 ? 'AM' : 'PM';
+  const hh = h % 12 || 12;
+  return `${hh}:${String(m).padStart(2,'0')} ${ampm}`;
+}
+
+function update() {
+  const minutes = parseInt(slider.value);
+  timeLabel.textContent = formatTime(minutes);
+  const phase = getPhase(minutes);
+  phaseBadge.textContent = phase.name;
+  phaseBadge.style.background = phase.badgeBg;
+  phaseBadge.style.color = phase.badgeC;
+
+  drawCanvas(minutes);
+  buildCityLayer(minutes);
+  updateSunMoon(minutes);
+
+  const isNight = minutes < 360 || minutes >= 1080;
+  ground.style.background = isNight ? '#0d1220' : (minutes < 540 || minutes > 1000) ? '#1a2d14' : '#2a4a20';
+}
+
+slider.addEventListener('input', update);
+
+let animFrame;
+function animStars() {
+  const m = parseInt(slider.value);
+  if (m < 360 || m >= 1080) { drawCanvas(m); }
+  animFrame = requestAnimationFrame(animStars);
+}
+animStars();
+
+window.addEventListener('resize', update);
+update();
+</script>

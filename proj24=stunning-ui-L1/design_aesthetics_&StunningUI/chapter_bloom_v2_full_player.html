@@ -1,0 +1,322 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+.player { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); overflow: hidden; font-family: var(--font-sans); }
+.player-header { padding: 1.25rem 1.5rem 1rem; border-bottom: 0.5px solid var(--color-border-tertiary); display: flex; align-items: center; gap: 14px; }
+.cover { width: 56px; height: 56px; border-radius: var(--border-radius-md); background: #EEEDFE; display: flex; align-items: center; justify-content: center; color: #534AB7; font-size: 26px; flex-shrink: 0; border: 0.5px solid #AFA9EC; }
+.meta { flex: 1; min-width: 0; }
+.meta-title { font-size: 15px; font-weight: 500; color: var(--color-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.meta-sub { font-size: 12px; color: var(--color-text-secondary); margin-top: 2px; }
+.header-actions { display: flex; gap: 8px; }
+.icon-btn { width: 32px; height: 32px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-tertiary); background: transparent; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--color-text-secondary); font-size: 16px; transition: background 0.15s, color 0.15s; }
+.icon-btn:hover { background: var(--color-background-secondary); color: var(--color-text-primary); }
+.icon-btn.liked { color: #D4537E; border-color: #ED93B1; background: #FBEAF0; }
+
+.timeline-section { padding: 1rem 1.5rem 0.75rem; }
+.bloom-track-wrap { position: relative; height: 64px; cursor: pointer; display: flex; align-items: center; }
+.track-bg { position: absolute; left: 0; right: 0; height: 3px; background: var(--color-border-tertiary); border-radius: 2px; }
+.track-fill { position: absolute; left: 0; height: 3px; background: #7F77DD; border-radius: 2px; width: 0%; }
+.time-row { display: flex; justify-content: space-between; font-size: 11px; color: var(--color-text-tertiary); margin-top: 4px; font-variant-numeric: tabular-nums; }
+.chapter-badge { text-align: center; min-height: 24px; margin: 0.5rem 0; }
+.chapter-badge span { display: inline-block; font-size: 12px; font-weight: 500; padding: 3px 12px; border-radius: 20px; opacity: 0; transform: translateY(6px); transition: opacity 0.35s, transform 0.35s; }
+.chapter-badge span.show { opacity: 1; transform: translateY(0); }
+
+.controls { display: flex; align-items: center; justify-content: center; gap: 16px; padding: 0.5rem 1.5rem 1rem; }
+.ctrl-btn { background: transparent; border: none; cursor: pointer; color: var(--color-text-secondary); font-size: 20px; transition: color 0.15s, transform 0.1s; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; }
+.ctrl-btn:hover { color: var(--color-text-primary); }
+.ctrl-btn:active { transform: scale(0.92); }
+.play-main { width: 48px; height: 48px; border-radius: 50%; background: #7F77DD; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 20px; transition: background 0.15s, transform 0.1s; }
+.play-main:hover { background: #534AB7; }
+.play-main:active { transform: scale(0.95); }
+.speed-btn { font-size: 11px; font-weight: 500; color: var(--color-text-secondary); background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); padding: 4px 8px; cursor: pointer; transition: background 0.15s; }
+.speed-btn:hover { background: var(--color-background-primary); }
+
+.chapter-list { border-top: 0.5px solid var(--color-border-tertiary); }
+.ch-list-header { padding: 0.75rem 1.5rem 0.5rem; font-size: 11px; font-weight: 500; color: var(--color-text-tertiary); letter-spacing: 0.04em; text-transform: uppercase; }
+.ch-row { display: flex; align-items: center; gap: 12px; padding: 0.6rem 1.5rem; cursor: pointer; transition: background 0.15s; border-bottom: 0.5px solid var(--color-border-tertiary); }
+.ch-row:last-child { border-bottom: none; }
+.ch-row:hover { background: var(--color-background-secondary); }
+.ch-row.active { background: #EEEDFE; }
+.ch-dot-wrap { width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.ch-info { flex: 1; min-width: 0; }
+.ch-name { font-size: 13px; color: var(--color-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ch-row.active .ch-name { color: #3C3489; font-weight: 500; }
+.ch-dur { font-size: 11px; color: var(--color-text-tertiary); flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.ch-jump { font-size: 11px; color: #7F77DD; opacity: 0; transition: opacity 0.15s; }
+.ch-row:hover .ch-jump { opacity: 1; }
+
+.tooltip-box { position: absolute; background: var(--color-background-primary); border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); padding: 5px 10px; font-size: 11px; color: var(--color-text-secondary); pointer-events: none; white-space: nowrap; opacity: 0; transition: opacity 0.15s; z-index: 10; top: -36px; transform: translateX(-50%); }
+.tooltip-box.show { opacity: 1; }
+</style>
+
+<div style="padding: 1.5rem;">
+<h2 class="sr-only">Full podcast player with chapter bloom timeline — 10 chapters, playback controls, and chapter list</h2>
+
+<div class="player">
+  <div class="player-header">
+    <div class="cover"><i class="ti ti-brand-spotify" aria-hidden="true"></i></div>
+    <div class="meta">
+      <div class="meta-title">The History of Everything</div>
+      <div class="meta-sub">Cosmos Weekly · Ep. 47 · 38 min</div>
+    </div>
+    <div class="header-actions">
+      <button class="icon-btn" id="likeBtn" aria-label="Like"><i class="ti ti-heart" aria-hidden="true"></i></button>
+      <button class="icon-btn" aria-label="Download"><i class="ti ti-download" aria-hidden="true"></i></button>
+      <button class="icon-btn" aria-label="Share"><i class="ti ti-share" aria-hidden="true"></i></button>
+    </div>
+  </div>
+
+  <div class="timeline-section">
+    <div class="bloom-track-wrap" id="trackWrap">
+      <div class="track-bg"></div>
+      <div class="track-fill" id="trackFill"></div>
+    </div>
+    <div class="time-row">
+      <span id="tCurrent">0:00</span>
+      <span id="tTotal">0:00</span>
+    </div>
+    <div class="chapter-badge"><span id="chBadge"></span></div>
+  </div>
+
+  <div class="controls">
+    <button class="speed-btn" id="speedBtn">1×</button>
+    <button class="ctrl-btn" id="prevBtn" aria-label="Previous chapter"><i class="ti ti-player-skip-back" aria-hidden="true"></i></button>
+    <button class="ctrl-btn" aria-label="Rewind 15s" id="rewBtn"><i class="ti ti-rotate-clockwise" aria-hidden="true" style="transform:scaleX(-1);display:inline-block"></i></button>
+    <button class="play-main" id="playBtn" aria-label="Play"><i class="ti ti-player-play" aria-hidden="true"></i></button>
+    <button class="ctrl-btn" aria-label="Forward 15s" id="fwdBtn"><i class="ti ti-rotate-clockwise" aria-hidden="true"></i></button>
+    <button class="ctrl-btn" id="nextBtn" aria-label="Next chapter"><i class="ti ti-player-skip-forward" aria-hidden="true"></i></button>
+    <button class="icon-btn" aria-label="Queue"><i class="ti ti-list" aria-hidden="true"></i></button>
+  </div>
+
+  <div class="chapter-list">
+    <div class="ch-list-header">Chapters</div>
+    <div id="chapterList"></div>
+  </div>
+</div>
+</div>
+
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <symbol id="fl" viewBox="-10 -10 20 20">
+      <ellipse cx="0" cy="-5.5" rx="2.2" ry="4.5" fill="currentColor" opacity="0.9"/>
+      <ellipse cx="0" cy="-5.5" rx="2.2" ry="4.5" fill="currentColor" opacity="0.9" transform="rotate(60)"/>
+      <ellipse cx="0" cy="-5.5" rx="2.2" ry="4.5" fill="currentColor" opacity="0.9" transform="rotate(120)"/>
+      <ellipse cx="0" cy="-5.5" rx="2.2" ry="4.5" fill="currentColor" opacity="0.9" transform="rotate(180)"/>
+      <ellipse cx="0" cy="-5.5" rx="2.2" ry="4.5" fill="currentColor" opacity="0.9" transform="rotate(240)"/>
+      <ellipse cx="0" cy="-5.5" rx="2.2" ry="4.5" fill="currentColor" opacity="0.9" transform="rotate(300)"/>
+      <circle cx="0" cy="0" r="3.5" fill="currentColor"/>
+    </symbol>
+  </defs>
+</svg>
+
+<script>
+const DURATION = 228;
+const speeds = [1, 1.5, 2, 0.5];
+let speedIdx = 0;
+
+const chapters = [
+  { title: "Cold open",           time: 0,   color: "#7F77DD", bg: "#EEEDFE", text: "#3C3489" },
+  { title: "Big bang primer",     time: 18,  color: "#1D9E75", bg: "#E1F5EE", text: "#085041" },
+  { title: "First light",         time: 36,  color: "#378ADD", bg: "#E6F1FB", text: "#0C447C" },
+  { title: "Star formation",      time: 55,  color: "#BA7517", bg: "#FAEEDA", text: "#412402" },
+  { title: "Galaxies collide",    time: 74,  color: "#D85A30", bg: "#FAECE7", text: "#4A1B0C" },
+  { title: "Birth of the sun",    time: 95,  color: "#D4537E", bg: "#FBEAF0", text: "#4B1528" },
+  { title: "Earth takes shape",   time: 116, color: "#639922", bg: "#EAF3DE", text: "#173404" },
+  { title: "First life",          time: 142, color: "#7F77DD", bg: "#EEEDFE", text: "#3C3489" },
+  { title: "Age of dinosaurs",    time: 168, color: "#D85A30", bg: "#FAECE7", text: "#4A1B0C" },
+  { title: "The human chapter",   time: 198, color: "#1D9E75", bg: "#E1F5EE", text: "#085041" },
+];
+
+let simTime = 0, playing = false, raf = null, startReal = 0, startSim = 0;
+let currentChapter = -1;
+const markers = [];
+
+const trackWrap  = document.getElementById('trackWrap');
+const trackFill  = document.getElementById('trackFill');
+const tCurrent   = document.getElementById('tCurrent');
+const tTotal     = document.getElementById('tTotal');
+const chBadge    = document.getElementById('chBadge');
+const playBtn    = document.getElementById('playBtn');
+const chList     = document.getElementById('chapterList');
+const speedBtn   = document.getElementById('speedBtn');
+const likeBtn    = document.getElementById('likeBtn');
+
+tTotal.textContent = fmt(DURATION);
+
+function fmt(s) { return Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0'); }
+
+chapters.forEach((ch, i) => {
+  const pct = ch.time / DURATION * 100;
+
+  const wrap = document.createElement('div');
+  wrap.style.cssText = `position:absolute;left:${pct}%;top:50%;transform:translate(-50%,-50%);z-index:5;width:24px;height:24px;display:flex;align-items:center;justify-content:center;cursor:pointer;`;
+
+  const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svg.setAttribute('width','24'); svg.setAttribute('height','24');
+  svg.setAttribute('viewBox','-12 -12 24 24');
+  svg.style.overflow='visible';
+  svg.style.transition='transform 0.35s cubic-bezier(.34,1.56,.64,1)';
+
+  const dot = document.createElementNS('http://www.w3.org/2000/svg','circle');
+  dot.setAttribute('r','4'); dot.setAttribute('cx','0'); dot.setAttribute('cy','0');
+  dot.setAttribute('fill', ch.color);
+  dot.style.transition = 'opacity 0.3s';
+
+  const fl = document.createElementNS('http://www.w3.org/2000/svg','use');
+  fl.setAttribute('href','#fl');
+  fl.setAttribute('color', ch.color);
+  fl.style.opacity = '0';
+  fl.style.transition = 'opacity 0.4s';
+
+  svg.appendChild(dot); svg.appendChild(fl);
+
+  const tip = document.createElement('div');
+  tip.className = 'tooltip-box';
+  tip.innerHTML = `<strong style="color:var(--color-text-primary)">${ch.title}</strong> · ${fmt(ch.time)}`;
+
+  wrap.appendChild(svg); wrap.appendChild(tip);
+  wrap.addEventListener('mouseenter', () => { tip.classList.add('show'); });
+  wrap.addEventListener('mouseleave', () => { tip.classList.remove('show'); });
+  wrap.addEventListener('click', e => { e.stopPropagation(); jumpTo(i); });
+  trackWrap.appendChild(wrap);
+  markers.push({ wrap, svg, dot, fl, bloomed: false, tip });
+
+  const row = document.createElement('div');
+  row.className = 'ch-row';
+  row.dataset.idx = i;
+  const next = chapters[i+1];
+  const dur = next ? (next.time - ch.time) : (DURATION - ch.time);
+
+  const dotWrap = document.createElement('div');
+  dotWrap.className = 'ch-dot-wrap';
+  const ds = document.createElementNS('http://www.w3.org/2000/svg','svg');
+  ds.setAttribute('width','14'); ds.setAttribute('height','14'); ds.setAttribute('viewBox','-7 -7 14 14');
+  ds.style.overflow = 'visible';
+  ds.style.transition = 'transform 0.3s cubic-bezier(.34,1.56,.64,1)';
+  const dc = document.createElementNS('http://www.w3.org/2000/svg','circle');
+  dc.setAttribute('r','4'); dc.setAttribute('cx','0'); dc.setAttribute('cy','0'); dc.setAttribute('fill', ch.color);
+  const dfl = document.createElementNS('http://www.w3.org/2000/svg','use');
+  dfl.setAttribute('href','#fl'); dfl.setAttribute('color', ch.color); dfl.style.opacity='0'; dfl.style.transition='opacity 0.3s';
+  dc.style.transition='opacity 0.3s';
+  ds.appendChild(dc); ds.appendChild(dfl);
+  dotWrap.appendChild(ds);
+
+  const info = document.createElement('div'); info.className = 'ch-info';
+  info.innerHTML = `<div class="ch-name">${ch.title}</div>`;
+  const durEl2 = document.createElement('span'); durEl2.className = 'ch-dur'; durEl2.textContent = fmt(dur);
+  const jump = document.createElement('span'); jump.className = 'ch-jump'; jump.innerHTML = '<i class="ti ti-arrow-right" aria-hidden="true"></i>';
+
+  row.appendChild(dotWrap); row.appendChild(info); row.appendChild(durEl2); row.appendChild(jump);
+  row.addEventListener('click', () => jumpTo(i));
+  chList.appendChild(row);
+
+  markers[i].listRow = row;
+  markers[i].listSvg = ds;
+  markers[i].listDot = dc;
+  markers[i].listFl = dfl;
+});
+
+function bloomMarker(i) {
+  const m = markers[i];
+  if (m.bloomed) return;
+  m.bloomed = true;
+  m.dot.style.opacity = '0'; m.fl.style.opacity = '1';
+  m.svg.style.transform = 'scale(1.5)';
+  m.listDot.style.opacity = '0'; m.listFl.style.opacity = '1';
+  m.listSvg.style.transform = 'scale(1.4)';
+  setTimeout(() => { m.svg.style.transform = 'scale(1)'; m.listSvg.style.transform = 'scale(1)'; }, 400);
+}
+function unbloomMarker(i) {
+  const m = markers[i];
+  m.bloomed = false;
+  m.dot.style.opacity = '1'; m.fl.style.opacity = '0';
+  m.svg.style.transform = 'scale(1)';
+  m.listDot.style.opacity = '1'; m.listFl.style.opacity = '0';
+}
+function pulseMarker(i) {
+  const m = markers[i];
+  m.svg.style.transform = 'scale(1.9)';
+  setTimeout(() => { m.svg.style.transform = 'scale(1.1)'; setTimeout(() => m.svg.style.transform = 'scale(1)', 150); }, 150);
+}
+
+function updateChapter(ci) {
+  if (ci === currentChapter) return;
+  currentChapter = ci;
+  chBadge.classList.remove('show');
+  setTimeout(() => {
+    if (ci >= 0) {
+      const ch = chapters[ci];
+      chBadge.textContent = ch.title;
+      chBadge.style.background = ch.bg;
+      chBadge.style.color = ch.text;
+      chBadge.classList.add('show');
+    } else {
+      chBadge.textContent = '';
+    }
+  }, 120);
+  markers.forEach((m, j) => m.listRow.classList.toggle('active', j === ci));
+  if (ci >= 0) {
+    const row = markers[ci].listRow;
+    row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+}
+
+function applyTime(t) {
+  simTime = Math.min(Math.max(t, 0), DURATION);
+  trackFill.style.width = (simTime/DURATION*100)+'%';
+  tCurrent.textContent = fmt(simTime);
+  let ci = -1;
+  for (let i = chapters.length-1; i >= 0; i--) { if (simTime >= chapters[i].time) { ci = i; break; } }
+  chapters.forEach((_, i) => {
+    if (i <= ci) { if (!markers[i].bloomed) bloomMarker(i); }
+    else { if (markers[i].bloomed) unbloomMarker(i); }
+  });
+  updateChapter(ci);
+  if (simTime >= DURATION) stopPlay();
+}
+
+function tick(now) {
+  const elapsed = (now - startReal)/1000 * 8 * speeds[speedIdx];
+  applyTime(startSim + elapsed);
+  if (playing) raf = requestAnimationFrame(tick);
+}
+function startPlay() {
+  if (simTime >= DURATION) applyTime(0);
+  playing = true; startReal = performance.now(); startSim = simTime;
+  playBtn.innerHTML = '<i class="ti ti-player-pause" aria-hidden="true"></i>';
+  raf = requestAnimationFrame(tick);
+}
+function stopPlay() {
+  playing = false; cancelAnimationFrame(raf);
+  playBtn.innerHTML = '<i class="ti ti-player-play" aria-hidden="true"></i>';
+}
+function jumpTo(i) {
+  stopPlay(); applyTime(chapters[i].time); pulseMarker(i);
+}
+
+playBtn.addEventListener('click', () => playing ? stopPlay() : startPlay());
+
+trackWrap.addEventListener('click', e => {
+  const r = trackWrap.getBoundingClientRect();
+  stopPlay(); applyTime(((e.clientX - r.left)/r.width)*DURATION);
+});
+
+document.getElementById('rewBtn').addEventListener('click', () => { stopPlay(); applyTime(simTime - 15); });
+document.getElementById('fwdBtn').addEventListener('click', () => { stopPlay(); applyTime(simTime + 15); });
+document.getElementById('prevBtn').addEventListener('click', () => {
+  let prev = 0;
+  for (let i = chapters.length-1; i >= 0; i--) { if (chapters[i].time < simTime - 2) { prev = i; break; } }
+  jumpTo(prev);
+});
+document.getElementById('nextBtn').addEventListener('click', () => {
+  const ci = chapters.findIndex(c => c.time > simTime);
+  if (ci >= 0) jumpTo(ci);
+});
+speedBtn.addEventListener('click', () => {
+  speedIdx = (speedIdx+1) % speeds.length;
+  speedBtn.textContent = speeds[speedIdx]+'×';
+});
+likeBtn.addEventListener('click', () => likeBtn.classList.toggle('liked'));
+
+applyTime(0);
+</script>

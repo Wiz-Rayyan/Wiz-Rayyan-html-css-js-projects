@@ -1,0 +1,258 @@
+
+<style>
+  * { box-sizing: border-box; }
+  .wrap { padding: 2rem 1rem; display: flex; flex-direction: column; align-items: center; gap: 2rem; }
+  .prompt-area { width: 100%; max-width: 560px; display: flex; gap: 8px; }
+  .prompt-area input { flex: 1; font-size: 14px; }
+  .prompt-area button { white-space: nowrap; font-size: 14px; padding: 0 16px; }
+  .gauge-row { display: flex; align-items: center; justify-content: center; gap: 3rem; flex-wrap: wrap; }
+  .gauge-wrap { position: relative; width: 220px; height: 220px; cursor: pointer; }
+  .gauge-wrap svg { width: 220px; height: 220px; overflow: visible; }
+  .gauge-label { font-size: 12px; color: var(--color-text-secondary); text-align: center; margin-top: 6px; }
+  .details-panel { min-width: 220px; max-width: 280px; }
+  .panel-title { font-size: 13px; font-weight: 500; color: var(--color-text-secondary); margin: 0 0 12px; }
+  .token-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .token-word { font-size: 13px; font-family: var(--font-mono); color: var(--color-text-primary); min-width: 80px; }
+  .token-bar-bg { flex: 1; height: 6px; border-radius: 3px; background: var(--color-background-secondary); overflow: hidden; }
+  .token-bar { height: 100%; border-radius: 3px; transition: width 0.8s cubic-bezier(0.34,1.56,0.64,1); }
+  .token-pct { font-size: 12px; color: var(--color-text-secondary); min-width: 34px; text-align: right; }
+  .meta-row { display: flex; gap: 12px; margin-top: 1rem; flex-wrap: wrap; }
+  .meta-chip { font-size: 11px; padding: 3px 10px; border-radius: 99px; border: 0.5px solid var(--color-border-secondary); color: var(--color-text-secondary); background: var(--color-background-secondary); }
+  .regen-hint { font-size: 11px; color: var(--color-text-tertiary); margin-top: 8px; text-align: center; }
+  .response-box { width: 100%; max-width: 560px; background: var(--color-background-secondary); border-radius: var(--border-radius-lg); padding: 14px 16px; font-size: 14px; color: var(--color-text-primary); line-height: 1.6; min-height: 48px; border: 0.5px solid var(--color-border-tertiary); }
+  .response-box.loading { color: var(--color-text-tertiary); font-style: italic; }
+  .temp-row { display: flex; align-items: center; gap: 10px; width: 100%; max-width: 560px; }
+  .temp-row label { font-size: 13px; color: var(--color-text-secondary); white-space: nowrap; }
+  .temp-row input { flex: 1; }
+  .temp-val { font-size: 13px; font-weight: 500; min-width: 28px; color: var(--color-text-primary); }
+</style>
+
+<div class="wrap">
+  <h2 class="sr-only">AI Confidence Gauge — animated circular gauge showing response confidence score with per-token breakdown</h2>
+
+  <div class="prompt-area">
+    <input id="userPrompt" type="text" placeholder="Ask something… e.g. What is quantum entanglement?" value="What is quantum entanglement?" />
+    <button id="askBtn" onclick="generate()"><i class="ti ti-sparkles" aria-hidden="true"></i> Ask AI ↗</button>
+  </div>
+
+  <div class="temp-row">
+    <label for="tempSlider"><i class="ti ti-thermometer" aria-hidden="true" style="font-size:16px;vertical-align:-2px;margin-right:4px"></i>Temperature</label>
+    <input type="range" id="tempSlider" min="0" max="2" step="0.1" value="0.7" oninput="document.getElementById('tempVal').textContent=parseFloat(this.value).toFixed(1)"/>
+    <span class="temp-val" id="tempVal">0.7</span>
+  </div>
+
+  <div class="gauge-row">
+    <div>
+      <div class="gauge-wrap" id="gaugeWrap" onclick="regenerate()" title="Click to regenerate with current temperature">
+        <svg viewBox="0 0 220 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="gaugeTitle gaugeDesc">
+          <title id="gaugeTitle">Confidence gauge</title>
+          <desc id="gaugeDesc">Circular gauge showing AI response confidence percentage</desc>
+          <defs>
+            <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#E24B4A"/>
+              <stop offset="45%" stop-color="#EF9F27"/>
+              <stop offset="100%" stop-color="#639922"/>
+            </linearGradient>
+            <filter id="glow">
+              <feGaussianBlur stdDeviation="3" result="blur"/>
+              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+
+          <circle cx="110" cy="110" r="88" fill="none" stroke-width="14"
+            style="stroke: var(--color-background-secondary)"/>
+
+          <circle id="trackArc" cx="110" cy="110" r="88" fill="none" stroke="url(#gaugeGrad)" stroke-width="14"
+            stroke-linecap="round" stroke-dasharray="553" stroke-dashoffset="553"
+            transform="rotate(-90 110 110)" style="transition: stroke-dashoffset 1s cubic-bezier(0.34,1.56,0.64,1)"/>
+
+          <circle cx="110" cy="110" r="68" fill="none" stroke-width="0.5"
+            style="stroke: var(--color-border-tertiary)"/>
+
+          <text id="pctText" x="110" y="104" text-anchor="middle" font-size="36" font-weight="500"
+            style="fill: var(--color-text-primary); font-family: var(--font-sans);">–</text>
+          <text x="110" y="126" text-anchor="middle" font-size="11"
+            style="fill: var(--color-text-secondary); font-family: var(--font-sans);">confidence</text>
+
+          <g id="needle" transform="rotate(-90 110 110)" style="transition: transform 1s cubic-bezier(0.34,1.56,0.64,1)">
+            <line x1="110" y1="110" x2="110" y2="36" stroke-width="2.5" stroke-linecap="round"
+              style="stroke: var(--color-text-primary)"/>
+            <circle cx="110" cy="110" r="5" style="fill: var(--color-text-primary)"/>
+          </g>
+
+          <text id="lowLabel" x="26" y="170" font-size="10" style="fill: #E24B4A; font-family: var(--font-sans);">low</text>
+          <text id="highLabel" x="178" y="170" font-size="10" style="fill: #639922; font-family: var(--font-sans);">high</text>
+
+          <circle id="hoverRing" cx="110" cy="110" r="104" fill="transparent" stroke="none"/>
+        </svg>
+        <div class="gauge-label">click to regenerate</div>
+      </div>
+    </div>
+
+    <div class="details-panel" id="detailsPanel">
+      <p class="panel-title">per-token confidence</p>
+      <div id="tokenRows">
+        <div style="font-size:13px; color: var(--color-text-tertiary); font-style: italic;">Ask a question to see breakdown</div>
+      </div>
+      <div class="meta-row" id="metaRow"></div>
+    </div>
+  </div>
+
+  <div class="response-box loading" id="responseBox">Response will appear here…</div>
+  <div class="regen-hint" id="regenHint"></div>
+</div>
+
+<script>
+const circumference = 2 * Math.PI * 88;
+let currentScore = 0;
+let currentTokens = [];
+let isLoading = false;
+
+function scoreToColor(s) {
+  if (s < 40) return '#E24B4A';
+  if (s < 65) return '#EF9F27';
+  return '#639922';
+}
+
+function setGauge(score, animate) {
+  const offset = circumference - (score / 100) * circumference;
+  const arc = document.getElementById('trackArc');
+  const needle = document.getElementById('needle');
+  const pct = document.getElementById('pctText');
+
+  if (!animate) {
+    arc.style.transition = 'none';
+    needle.style.transition = 'none';
+  } else {
+    arc.style.transition = 'stroke-dashoffset 1s cubic-bezier(0.34,1.56,0.64,1)';
+    needle.style.transition = 'transform 1s cubic-bezier(0.34,1.56,0.64,1)';
+  }
+
+  arc.setAttribute('stroke-dashoffset', offset);
+  const deg = -90 + (score / 100) * 360;
+  needle.setAttribute('transform', `rotate(${deg} 110 110)`);
+  pct.textContent = score + '%';
+  pct.style.fill = scoreToColor(score);
+}
+
+function renderTokens(tokens) {
+  const container = document.getElementById('tokenRows');
+  container.innerHTML = '';
+  tokens.forEach(t => {
+    const row = document.createElement('div');
+    row.className = 'token-row';
+    const color = scoreToColor(t.conf);
+    row.innerHTML = `
+      <span class="token-word">${t.word}</span>
+      <div class="token-bar-bg"><div class="token-bar" style="width:0%; background:${color}" data-target="${t.conf}"></div></div>
+      <span class="token-pct">${t.conf}%</span>`;
+    container.appendChild(row);
+  });
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      container.querySelectorAll('.token-bar').forEach(b => {
+        b.style.width = b.dataset.target + '%';
+      });
+    });
+  });
+}
+
+function renderMeta(score, temp) {
+  const meta = document.getElementById('metaRow');
+  const label = score >= 75 ? 'high confidence' : score >= 50 ? 'moderate' : 'uncertain';
+  meta.innerHTML = `
+    <span class="meta-chip"><i class="ti ti-thermometer" aria-hidden="true"></i> temp ${parseFloat(temp).toFixed(1)}</span>
+    <span class="meta-chip" style="color:${scoreToColor(score)}">${label}</span>`;
+}
+
+function wordsFrom(text) {
+  return text.split(/\s+/).filter(Boolean).slice(0, 12);
+}
+
+function fakeTokenConf(overallScore) {
+  return wordsFrom(currentResponseText || 'the answer is here').map(w => {
+    const variance = Math.floor((Math.random() - 0.5) * 40);
+    const c = Math.min(99, Math.max(8, overallScore + variance));
+    return { word: w, conf: c };
+  });
+}
+
+let currentResponseText = '';
+
+async function generate(isRegen) {
+  if (isLoading) return;
+  isLoading = true;
+
+  const prompt = document.getElementById('userPrompt').value.trim();
+  if (!prompt) { isLoading = false; return; }
+
+  const temp = parseFloat(document.getElementById('tempSlider').value);
+  const btn = document.getElementById('askBtn');
+  btn.disabled = true;
+
+  setGauge(0, false);
+  document.getElementById('pctText').textContent = '…';
+  document.getElementById('responseBox').className = 'response-box loading';
+  document.getElementById('responseBox').textContent = 'Thinking…';
+  document.getElementById('tokenRows').innerHTML = '<div style="font-size:13px;color:var(--color-text-tertiary);font-style:italic">Generating…</div>';
+  document.getElementById('metaRow').innerHTML = '';
+  if (isRegen) document.getElementById('regenHint').textContent = `Regenerating at temperature ${temp.toFixed(1)}…`;
+
+  try {
+    const sys = `You are a helpful assistant. Respond concisely (2-4 sentences). After your response, on a new line, output CONFIDENCE_SCORE: followed by an integer 1-100 representing how confident you are in your answer (higher = more certain, factual topics score higher, speculative ones lower). Temperature hint: ${temp} (higher temp = lower confidence).`;
+
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: sys,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    const data = await res.json();
+    const full = data.content.map(b => b.text || '').join('');
+
+    const match = full.match(/CONFIDENCE_SCORE:\s*(\d+)/i);
+    const score = match ? Math.min(99, Math.max(1, parseInt(match[1]))) : Math.floor(50 + Math.random() * 30);
+    const responseText = full.replace(/CONFIDENCE_SCORE:\s*\d+/i, '').trim();
+
+    currentResponseText = responseText;
+    currentScore = score;
+
+    document.getElementById('responseBox').className = 'response-box';
+    document.getElementById('responseBox').textContent = responseText;
+
+    setTimeout(() => {
+      setGauge(score, true);
+      currentTokens = fakeTokenConf(score);
+      renderTokens(currentTokens);
+      renderMeta(score, temp);
+      if (isRegen) document.getElementById('regenHint').textContent = `Regenerated • score changed from ${currentScore} → ${score}`;
+    }, 100);
+
+  } catch (e) {
+    document.getElementById('responseBox').textContent = 'Error contacting API. Please try again.';
+    document.getElementById('responseBox').className = 'response-box loading';
+  }
+
+  isLoading = false;
+  btn.disabled = false;
+}
+
+function regenerate() {
+  generate(true);
+}
+
+const gaugeWrap = document.getElementById('gaugeWrap');
+gaugeWrap.addEventListener('mouseenter', () => {
+  if (currentTokens.length) {
+    gaugeWrap.style.opacity = '0.85';
+  }
+});
+gaugeWrap.addEventListener('mouseleave', () => {
+  gaugeWrap.style.opacity = '1';
+});
+</script>

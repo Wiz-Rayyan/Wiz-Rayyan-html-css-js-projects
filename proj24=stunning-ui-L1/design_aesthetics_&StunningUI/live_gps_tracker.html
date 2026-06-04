@@ -1,0 +1,298 @@
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans)}
+#wrap{display:flex;flex-direction:column;gap:12px;padding:1rem 0}
+#map-container{position:relative;width:100%;height:420px;background:#0f1923;border-radius:var(--border-radius-lg);overflow:hidden;border:0.5px solid var(--color-border-tertiary)}
+canvas#map{position:absolute;inset:0;width:100%;height:100%}
+#hud{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.stat{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 12px}
+.stat-label{font-size:11px;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
+.stat-val{font-size:20px;font-weight:500;color:var(--color-text-primary)}
+.stat-unit{font-size:11px;color:var(--color-text-secondary);margin-left:2px}
+#gauge-wrap{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 12px;display:flex;align-items:center;gap:12px}
+canvas#gauge{display:block}
+#ctrl{display:flex;gap:8px;align-items:center}
+button{cursor:pointer}
+#status-pill{font-size:12px;padding:4px 10px;border-radius:20px;border:0.5px solid var(--color-border-tertiary);color:var(--color-text-secondary);background:var(--color-background-secondary)}
+#status-pill.active{background:#1a3a2a;color:#4ade80;border-color:#4ade8044}
+</style>
+<h2 class="sr-only">Live GPS tracker showing your real-time position, heading, speed and movement trail on a map</h2>
+<div id="wrap">
+  <div id="map-container"><canvas id="map"></canvas></div>
+  <div id="hud">
+    <div class="stat"><div class="stat-label">Speed</div><div><span class="stat-val" id="s-speed">0</span><span class="stat-unit">km/h</span></div></div>
+    <div class="stat"><div class="stat-label">Heading</div><div><span class="stat-val" id="s-head">—</span><span class="stat-unit">°</span></div></div>
+    <div class="stat"><div class="stat-label">Accuracy</div><div><span class="stat-val" id="s-acc">—</span><span class="stat-unit">m</span></div></div>
+    <div class="stat"><div class="stat-label">Trail pts</div><div><span class="stat-val" id="s-trail">0</span><span class="stat-unit">/20</span></div></div>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+    <button id="btn-gps" onclick="startGPS()">📡 Start GPS</button>
+    <button id="btn-sim" onclick="toggleSim()">▶ Simulate route</button>
+    <span id="status-pill">idle</span>
+  </div>
+</div>
+<script>
+const canvas = document.getElementById('map');
+const ctx = canvas.getContext('2d');
+
+let W, H;
+function resize(){
+  const r = canvas.parentElement.getBoundingClientRect();
+  W = canvas.width = r.width * devicePixelRatio;
+  H = canvas.height = r.height * devicePixelRatio;
+  canvas.style.width = r.width+'px';
+  canvas.style.height = r.height+'px';
+  draw();
+}
+window.addEventListener('resize', resize);
+
+const MAX_TRAIL = 20;
+const LERP_SPEED = 0.08;
+
+let state = {
+  lat: 19.298, lng: 72.854,
+  dispLat: 19.298, dispLng: 72.854,
+  heading: 45, dispHeading: 45,
+  speed: 0, accuracy: 15,
+  trail: [], tick: 0
+};
+let gpsWatch = null, simInterval = null, simRunning = false;
+let isDark = false;
+
+function lerp(a,b,t){return a+(b-a)*t}
+function headingLabel(h){
+  const dirs=['N','NE','E','SE','S','SW','W','NW'];
+  return dirs[Math.round(h/45)%8];
+}
+
+function latLngToXY(lat,lng){
+  const cx = W/2, cy = H/2;
+  const scale = W * 0.00012;
+  const x = cx + (lng - state.dispLng) * scale * 85;
+  const y = cy - (lat - state.dispLat) * scale * 110;
+  return [x,y];
+}
+
+function drawGrid(){
+  const isDarkMode = window.matchMedia('(prefers-color-scheme:dark)').matches;
+  ctx.strokeStyle = isDarkMode ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.06)';
+  ctx.lineWidth = 1;
+  for(let i=0;i<W;i+=W/12){ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i,H);ctx.stroke();}
+  for(let j=0;j<H;j+=H/8){ctx.beginPath();ctx.moveTo(0,j);ctx.lineTo(W,j);ctx.stroke();}
+}
+
+function drawTrail(){
+  const trail = state.trail;
+  for(let i=0;i<trail.length;i++){
+    const [x,y] = latLngToXY(trail[i].lat, trail[i].lng);
+    const alpha = (i+1)/trail.length * 0.7;
+    const r = Math.max(2, (i+1)/trail.length * 6);
+    ctx.beginPath();
+    ctx.arc(x,y,r*devicePixelRatio,0,Math.PI*2);
+    ctx.fillStyle = `rgba(96,165,250,${alpha})`;
+    ctx.fill();
+  }
+  if(trail.length>1){
+    ctx.beginPath();
+    ctx.moveTo(...latLngToXY(trail[0].lat,trail[0].lng));
+    for(let i=1;i<trail.length;i++) ctx.lineTo(...latLngToXY(trail[i].lat,trail[i].lng));
+    ctx.strokeStyle='rgba(96,165,250,0.25)';
+    ctx.lineWidth=1.5*devicePixelRatio;
+    ctx.stroke();
+  }
+}
+
+function drawAccuracyCircle(cx,cy){
+  const scale = W * 0.00012;
+  const r = state.accuracy * scale * 3;
+  ctx.beginPath();
+  ctx.arc(cx,cy,r,0,Math.PI*2);
+  ctx.fillStyle='rgba(96,165,250,0.06)';
+  ctx.fill();
+  ctx.strokeStyle='rgba(96,165,250,0.25)';
+  ctx.lineWidth=1*devicePixelRatio;
+  ctx.setLineDash([4*devicePixelRatio,4*devicePixelRatio]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function drawHeadingCone(cx,cy,heading){
+  const len = 36*devicePixelRatio;
+  const spread = 0.35;
+  const rad = (heading-90)*Math.PI/180;
+  const tip = [cx+Math.cos(rad)*len, cy+Math.sin(rad)*len];
+  const l = [cx+Math.cos(rad-spread)*len*0.5, cy+Math.sin(rad-spread)*len*0.5];
+  const r = [cx+Math.cos(rad+spread)*len*0.5, cy+Math.sin(rad+spread)*len*0.5];
+  ctx.beginPath();
+  ctx.moveTo(tip[0],tip[1]);
+  ctx.lineTo(l[0],l[1]);
+  ctx.lineTo(r[0],r[1]);
+  ctx.closePath();
+  ctx.fillStyle='rgba(250,204,21,0.85)';
+  ctx.fill();
+}
+
+function drawDot(cx,cy){
+  const t = state.tick;
+  const pulse = 0.5+0.5*Math.sin(t*0.08);
+  const pr = (18+pulse*8)*devicePixelRatio;
+  ctx.beginPath();
+  ctx.arc(cx,cy,pr,0,Math.PI*2);
+  ctx.fillStyle=`rgba(96,165,250,${0.12*pulse})`;
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(cx,cy,8*devicePixelRatio,0,Math.PI*2);
+  ctx.fillStyle='rgba(96,165,250,1)';
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(cx,cy,8*devicePixelRatio,0,Math.PI*2);
+  ctx.strokeStyle='rgba(255,255,255,0.9)';
+  ctx.lineWidth=2*devicePixelRatio;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(cx,cy,3*devicePixelRatio,0,Math.PI*2);
+  ctx.fillStyle='white';
+  ctx.fill();
+}
+
+function drawSpeedGauge(speed){
+  const gx=W-70*devicePixelRatio, gy=H-70*devicePixelRatio, gr=45*devicePixelRatio;
+  ctx.beginPath();
+  ctx.arc(gx,gy,gr,0,Math.PI*2);
+  ctx.fillStyle='rgba(15,25,35,0.85)';
+  ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,0.15)';
+  ctx.lineWidth=1.5*devicePixelRatio;
+  ctx.stroke();
+  const startA = Math.PI*0.75, endA = Math.PI*2.25;
+  ctx.beginPath();
+  ctx.arc(gx,gy,gr-8*devicePixelRatio,startA,endA);
+  ctx.strokeStyle='rgba(255,255,255,0.1)';
+  ctx.lineWidth=4*devicePixelRatio;
+  ctx.lineCap='round';
+  ctx.stroke();
+  const maxSpeed=120, frac=Math.min(speed/maxSpeed,1);
+  const needleA = startA + frac*(endA-startA);
+  ctx.beginPath();
+  ctx.arc(gx,gy,gr-8*devicePixelRatio,startA,needleA);
+  ctx.strokeStyle=speed>80?'#f87171':speed>40?'#fbbf24':'#4ade80';
+  ctx.lineWidth=4*devicePixelRatio;
+  ctx.stroke();
+  const nx=gx+Math.cos(needleA)*(gr-12)*devicePixelRatio;
+  const ny=gy+Math.sin(needleA)*(gr-12)*devicePixelRatio;
+  ctx.beginPath();
+  ctx.moveTo(gx,gy);
+  ctx.lineTo(nx,ny);
+  ctx.strokeStyle='white';
+  ctx.lineWidth=2*devicePixelRatio;
+  ctx.stroke();
+  ctx.fillStyle='white';
+  ctx.font=`${500} ${11*devicePixelRatio}px var(--font-sans)`;
+  ctx.textAlign='center';
+  ctx.textBaseline='middle';
+  ctx.fillText(Math.round(speed),gx,gy+8*devicePixelRatio);
+}
+
+function draw(){
+  if(!W) return;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#0f1923';
+  ctx.fillRect(0,0,W,H);
+  drawGrid();
+  state.dispLat = lerp(state.dispLat, state.lat, LERP_SPEED);
+  state.dispLng = lerp(state.dispLng, state.lng, LERP_SPEED);
+  state.dispHeading = lerp(state.dispHeading, state.heading, LERP_SPEED);
+  const [cx,cy] = [W/2, H/2];
+  drawTrail();
+  drawAccuracyCircle(cx,cy);
+  drawHeadingCone(cx,cy,state.dispHeading);
+  drawDot(cx,cy);
+  drawSpeedGauge(state.speed);
+  document.getElementById('s-speed').textContent = Math.round(state.speed);
+  document.getElementById('s-head').textContent = Math.round(state.heading);
+  document.getElementById('s-acc').textContent = Math.round(state.accuracy);
+  document.getElementById('s-trail').textContent = state.trail.length;
+  state.tick++;
+  requestAnimationFrame(draw);
+}
+
+function pushTrail(){
+  state.trail.push({lat:state.lat, lng:state.lng});
+  if(state.trail.length>MAX_TRAIL) state.trail.shift();
+}
+
+function setStatusPill(text, active=false){
+  const p = document.getElementById('status-pill');
+  p.textContent = text;
+  p.className = 'status-pill' + (active?' active':'');
+}
+
+function startGPS(){
+  if(gpsWatch) {navigator.geolocation.clearWatch(gpsWatch); gpsWatch=null; setStatusPill('idle'); return;}
+  if(!navigator.geolocation){setStatusPill('no GPS support'); return;}
+  setStatusPill('acquiring…');
+  let lastLat=null, lastLng=null, lastTime=null;
+  gpsWatch = navigator.geolocation.watchPosition(pos=>{
+    const now = Date.now();
+    if(lastLat!==null){
+      const dt = (now-lastTime)/1000;
+      const dlat = pos.coords.latitude-lastLat;
+      const dlng = pos.coords.longitude-lastLng;
+      if(dlat||dlng) state.heading = (Math.atan2(dlng,dlat)*180/Math.PI+360)%360;
+    }
+    pushTrail();
+    state.lat = pos.coords.latitude;
+    state.lng = pos.coords.longitude;
+    state.accuracy = pos.coords.accuracy||15;
+    state.speed = (pos.coords.speed||0)*3.6;
+    lastLat=state.lat; lastLng=state.lng; lastTime=now;
+    setStatusPill('tracking', true);
+  }, err=>{setStatusPill('GPS error: '+err.message);},{enableHighAccuracy:true,maximumAge:2000});
+}
+
+const ROUTE = [
+  {lat:19.298,lng:72.854,h:45,s:12},
+  {lat:19.299,lng:72.855,h:60,s:22},
+  {lat:19.300,lng:72.856,h:80,s:38},
+  {lat:19.301,lng:72.857,h:90,s:55},
+  {lat:19.302,lng:72.858,h:75,s:60},
+  {lat:19.303,lng:72.859,h:50,s:45},
+  {lat:19.303,lng:72.860,h:20,s:30},
+  {lat:19.304,lng:72.860,h:5,s:18},
+  {lat:19.305,lng:72.860,h:350,s:25},
+  {lat:19.306,lng:72.859,h:310,s:40},
+  {lat:19.307,lng:72.858,h:270,s:55},
+  {lat:19.307,lng:72.856,h:250,s:60},
+  {lat:19.306,lng:72.854,h:220,s:48},
+  {lat:19.304,lng:72.853,h:180,s:30},
+  {lat:19.302,lng:72.853,h:160,s:20},
+  {lat:19.300,lng:72.854,h:130,s:12},
+  {lat:19.299,lng:72.854,h:90,s:8},
+  {lat:19.298,lng:72.854,h:45,s:0},
+];
+let simIdx=0;
+
+function toggleSim(){
+  if(simRunning){
+    clearInterval(simInterval); simInterval=null; simRunning=false;
+    document.getElementById('btn-sim').textContent='▶ Simulate route';
+    setStatusPill('idle'); return;
+  }
+  simRunning=true;
+  simIdx=0;
+  state.trail=[];
+  document.getElementById('btn-sim').textContent='⏹ Stop simulation';
+  setStatusPill('simulating…', true);
+  simInterval = setInterval(()=>{
+    const pt = ROUTE[simIdx];
+    pushTrail();
+    state.lat=pt.lat; state.lng=pt.lng;
+    state.heading=pt.h; state.speed=pt.s;
+    state.accuracy = 8+Math.random()*12;
+    simIdx=(simIdx+1)%ROUTE.length;
+  },800);
+}
+
+resize();
+draw();
+</script>

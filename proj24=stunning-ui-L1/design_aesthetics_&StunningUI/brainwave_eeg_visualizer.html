@@ -1,0 +1,214 @@
+
+<style>
+  .bw-wrap { padding: 1.5rem 0; font-family: var(--font-sans); }
+  .bw-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+  .bw-title { font-size: 13px; font-weight: 500; color: var(--color-text-secondary); letter-spacing: 0.08em; text-transform: uppercase; }
+  .bw-status { font-size: 13px; font-weight: 500; padding: 4px 12px; border-radius: 20px; transition: all 0.4s ease; }
+  .bw-canvas-wrap { position: relative; border-radius: var(--border-radius-lg); overflow: hidden; background: transparent; border: 0.5px solid var(--color-border-tertiary); }
+  canvas { display: block; width: 100%; }
+  .bw-controls { display: flex; gap: 10px; margin-top: 1rem; flex-wrap: wrap; }
+  .bw-btn { font-size: 13px; padding: 6px 16px; border-radius: 20px; border: 0.5px solid var(--color-border-secondary); background: transparent; color: var(--color-text-secondary); cursor: pointer; transition: all 0.2s; }
+  .bw-btn:hover { background: var(--color-background-secondary); color: var(--color-text-primary); }
+  .bw-btn.active { border-color: transparent; color: #fff; }
+  .bw-tooltip { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); font-size: 12px; color: var(--color-text-secondary); background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: 6px; padding: 4px 10px; pointer-events: none; opacity: 0; transition: opacity 0.3s; white-space: nowrap; }
+  .bw-meta { display: flex; gap: 24px; margin-top: 1rem; }
+  .bw-stat { display: flex; flex-direction: column; gap: 2px; }
+  .bw-stat-label { font-size: 11px; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: 0.06em; }
+  .bw-stat-val { font-size: 18px; font-weight: 500; color: var(--color-text-primary); font-variant-numeric: tabular-nums; }
+</style>
+
+<div class="bw-wrap">
+  <h2 class="sr-only">Brain wave EEG visualizer — animated neural activity display</h2>
+
+  <div class="bw-header">
+    <span class="bw-title">Neural Activity Monitor</span>
+    <span class="bw-status" id="statusBadge">● Idle</span>
+  </div>
+
+  <div class="bw-canvas-wrap" id="canvasWrap">
+    <canvas id="eegCanvas" height="200"></canvas>
+    <div class="bw-tooltip" id="tooltip"></div>
+  </div>
+
+  <div class="bw-controls">
+    <button class="bw-btn" id="btnSimple" onclick="setMode('simple')">Simple task</button>
+    <button class="bw-btn" id="btnModerate" onclick="setMode('moderate')">Moderate task</button>
+    <button class="bw-btn" id="btnComplex" onclick="setMode('complex')">Complex task</button>
+    <button class="bw-btn" id="btnRespond" onclick="setMode('respond')">Send response</button>
+    <button class="bw-btn" id="btnIdle" onclick="setMode('idle')">Reset</button>
+  </div>
+
+  <div class="bw-meta">
+    <div class="bw-stat">
+      <span class="bw-stat-label">Frequency</span>
+      <span class="bw-stat-val" id="freqVal">0.0 Hz</span>
+    </div>
+    <div class="bw-stat">
+      <span class="bw-stat-label">Amplitude</span>
+      <span class="bw-stat-val" id="ampVal">0.0 μV</span>
+    </div>
+    <div class="bw-stat">
+      <span class="bw-stat-label">State</span>
+      <span class="bw-stat-val" id="stateVal">Resting</span>
+    </div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('eegCanvas');
+const ctx = canvas.getContext('2d');
+const wrap = document.getElementById('canvasWrap');
+const tooltip = document.getElementById('tooltip');
+const statusBadge = document.getElementById('statusBadge');
+
+const MODES = {
+  idle:     { freq: 0, amp: 0, label: 'Resting',    statusTxt: '● Idle',          statusBg: 'transparent', statusColor: 'var(--color-text-tertiary)', state: 'idle',     thought: null },
+  simple:   { freq: 1, amp: 22, label: 'Focused',   statusTxt: '● Thinking',       statusBg: '#0891b2', statusColor: '#fff', state: 'thinking', thought: 'Processing simple request…' },
+  moderate: { freq: 2.8, amp: 36, label: 'Active',  statusTxt: '⬡ Processing',    statusBg: '#059669', statusColor: '#fff', state: 'thinking', thought: 'Analyzing context and reasoning…' },
+  complex:  { freq: 5, amp: 52, label: 'Intense',   statusTxt: '◈ Deep compute',  statusBg: '#7c3aed', statusColor: '#fff', state: 'thinking', thought: 'Multi-step inference underway…' },
+  respond:  { freq: 0, amp: 0, label: 'Speaking',   statusTxt: '✓ Speaking',       statusBg: '#2563eb', statusColor: '#fff', state: 'respond', thought: 'Response ready — transmitting…' },
+};
+
+let mode = 'idle';
+let targetFreq = 0, targetAmp = 0;
+let currentFreq = 0, currentAmp = 0;
+let phase = 0;
+let hovered = false;
+let rafId;
+let waveChannels = [
+  { offset: 0,    phaseShift: 0,      ampMult: 1.0  },
+  { offset: 60,   phaseShift: 0.6,    ampMult: 0.55 },
+  { offset: 120,  phaseShift: 1.3,    ampMult: 0.35 },
+];
+
+const W_LOGICAL = 680;
+const H = 200;
+
+function resize() {
+  const dpr = window.devicePixelRatio || 1;
+  const displayW = wrap.clientWidth || 680;
+  canvas.width = displayW * dpr;
+  canvas.height = H * dpr;
+  ctx.scale(dpr, dpr);
+  canvas.style.height = H + 'px';
+}
+resize();
+window.addEventListener('resize', () => { resize(); });
+
+function lerp(a, b, t) { return a + (b - a) * t; }
+
+function setMode(m) {
+  mode = m;
+  const cfg = MODES[m];
+  targetFreq = cfg.freq;
+  targetAmp = cfg.amp;
+
+  statusBadge.textContent = cfg.statusTxt;
+  statusBadge.style.background = cfg.statusBg;
+  statusBadge.style.color = cfg.statusColor;
+  statusBadge.style.borderColor = cfg.statusBg === 'transparent' ? 'var(--color-border-secondary)' : 'transparent';
+
+  document.getElementById('stateVal').textContent = cfg.label;
+
+  document.querySelectorAll('.bw-btn').forEach(b => b.classList.remove('active'));
+  const activeBtn = document.getElementById('btn' + m.charAt(0).toUpperCase() + m.slice(1));
+  if (activeBtn) {
+    activeBtn.classList.add('active');
+    activeBtn.style.background = cfg.statusBg !== 'transparent' ? cfg.statusBg : 'var(--color-background-secondary)';
+    activeBtn.style.color = cfg.statusBg !== 'transparent' ? '#fff' : 'var(--color-text-primary)';
+  }
+
+  if (cfg.thought) {
+    tooltip.textContent = cfg.thought;
+    tooltip.style.opacity = '1';
+    setTimeout(() => { if (!hovered) tooltip.style.opacity = '0'; }, 2500);
+  } else {
+    tooltip.style.opacity = '0';
+  }
+}
+
+wrap.addEventListener('mouseenter', () => {
+  hovered = true;
+  const cfg = MODES[mode];
+  if (cfg.thought) { tooltip.textContent = cfg.thought; tooltip.style.opacity = '1'; }
+});
+wrap.addEventListener('mouseleave', () => {
+  hovered = false;
+  tooltip.style.opacity = '0';
+});
+
+function getWaveColor(amp) {
+  if (amp < 5)  return { r: 100, g: 180, b: 200 };
+  if (amp < 30) return { r: 6,   g: 182, b: 212 };
+  if (amp < 42) return { r: 16,  g: 185, b: 129 };
+  return { r: 139, g: 92, b: 246 };
+}
+
+function drawFrame() {
+  const lerpSpeed = 0.04;
+  currentFreq = lerp(currentFreq, targetFreq, lerpSpeed * 1.2);
+  currentAmp  = lerp(currentAmp,  targetAmp,  lerpSpeed);
+
+  const displayW = wrap.clientWidth || 680;
+  ctx.clearRect(0, 0, displayW, H);
+
+  const col = getWaveColor(currentAmp);
+  const baseY = H / 2;
+
+  waveChannels.forEach((ch, ci) => {
+    const channelY = baseY + ch.offset - 60;
+    const alphaBase = ci === 0 ? 0.9 : ci === 1 ? 0.5 : 0.28;
+    const ampScaled = currentAmp * ch.ampMult;
+
+    ctx.beginPath();
+    ctx.moveTo(0, channelY);
+
+    for (let x = 0; x <= displayW; x += 2) {
+      const t = x / displayW;
+      const freqRads = currentFreq * 2 * Math.PI;
+
+      let y = channelY;
+      if (ampScaled > 0.5) {
+        const primary = Math.sin(freqRads * t * 8 + phase + ch.phaseShift) * ampScaled;
+        const secondary = Math.sin(freqRads * t * 14 + phase * 1.3 + ch.phaseShift) * ampScaled * 0.25;
+        const noise = Math.sin(freqRads * t * 3.7 + phase * 0.7 + ci) * ampScaled * 0.1;
+        y = channelY + primary + secondary + noise;
+      }
+
+      if (x === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+
+    ctx.strokeStyle = `rgba(${col.r},${col.g},${col.b},${alphaBase})`;
+    ctx.lineWidth = ci === 0 ? 2 : ci === 1 ? 1.2 : 0.7;
+    ctx.stroke();
+
+    if (ci === 0 && ampScaled > 2) {
+      const grad = ctx.createLinearGradient(0, channelY - ampScaled, 0, channelY + ampScaled);
+      grad.addColorStop(0, `rgba(${col.r},${col.g},${col.b},0.06)`);
+      grad.addColorStop(0.5, `rgba(${col.r},${col.g},${col.b},0.14)`);
+      grad.addColorStop(1, `rgba(${col.r},${col.g},${col.b},0.06)`);
+      ctx.strokeStyle = 'transparent';
+      ctx.fillStyle = grad;
+      ctx.fill();
+    }
+  });
+
+  if (mode === 'respond' && currentAmp < 3) {
+    ctx.fillStyle = `rgba(${col.r},${col.g},${col.b},0.7)`;
+    ctx.font = '500 13px var(--font-sans)';
+    ctx.textAlign = 'center';
+    ctx.fillText('◉  Speaking', displayW / 2, H / 2 + 5);
+  }
+
+  const speed = currentFreq > 0.1 ? currentFreq * 0.022 : 0.005;
+  phase += speed;
+
+  document.getElementById('freqVal').textContent = currentFreq.toFixed(1) + ' Hz';
+  document.getElementById('ampVal').textContent = (currentAmp * 0.9).toFixed(1) + ' μV';
+
+  rafId = requestAnimationFrame(drawFrame);
+}
+
+drawFrame();
+</script>

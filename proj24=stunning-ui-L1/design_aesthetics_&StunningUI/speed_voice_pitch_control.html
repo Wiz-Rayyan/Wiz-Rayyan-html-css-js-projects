@@ -1,0 +1,167 @@
+<style>
+.pitch-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:2rem 2rem 1.5rem;max-width:420px;margin:1.5rem auto;}
+.icon-stage{display:flex;align-items:center;justify-content:center;height:120px;position:relative;}
+.pitch-icon{font-size:72px;transition:transform 0.15s ease,filter 0.2s ease;display:block;line-height:1;user-select:none;}
+.speed-badge{font-size:22px;font-weight:500;color:var(--color-text-primary);text-align:center;margin:0.25rem 0 1.5rem;letter-spacing:-0.5px;transition:color 0.3s;}
+.pitch-label{font-size:13px;color:var(--color-text-secondary);text-align:center;margin-bottom:1.25rem;min-height:18px;transition:color 0.3s;}
+.slider-row{display:flex;align-items:center;gap:10px;margin-bottom:1.5rem;}
+.slider-row input[type=range]{flex:1;}
+.slider-end{font-size:11px;color:var(--color-text-tertiary);}
+.presets{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;}
+.preset-btn{font-size:12px;padding:5px 10px;border-radius:20px;border:0.5px solid var(--color-border-secondary);background:var(--color-background-secondary);color:var(--color-text-secondary);cursor:pointer;transition:background 0.15s,color 0.15s,border-color 0.15s;}
+.preset-btn:hover{background:var(--color-background-tertiary);}
+.preset-btn.active{background:var(--color-background-info);color:var(--color-text-info);border-color:var(--color-border-info);}
+.wave-bar{display:inline-block;width:4px;margin:0 1.5px;border-radius:2px;animation:wave 0.8s ease-in-out infinite;}
+.wave-bar:nth-child(2){animation-delay:0.1s;}
+.wave-bar:nth-child(3){animation-delay:0.2s;}
+.wave-bar:nth-child(4){animation-delay:0.15s;}
+.wave-bar:nth-child(5){animation-delay:0.05s;}
+@keyframes wave{0%,100%{transform:scaleY(0.3)}50%{transform:scaleY(1)}}
+.wave-wrap{display:flex;align-items:center;justify-content:center;height:28px;margin-bottom:0.5rem;gap:0;}
+</style>
+
+<div class="pitch-card" role="region" aria-label="Speed and voice pitch control">
+  <h2 class="sr-only">Playback speed control with voice pitch visualization</h2>
+
+  <div class="icon-stage">
+    <span class="pitch-icon" id="pitchIcon" aria-live="polite" aria-label="pitch character">🗣️</span>
+  </div>
+
+  <div class="wave-wrap" id="waveWrap">
+    <span class="wave-bar" id="w1" style="height:20px;background:#378ADD;"></span>
+    <span class="wave-bar" id="w2" style="height:26px;background:#378ADD;"></span>
+    <span class="wave-bar" id="w3" style="height:22px;background:#378ADD;"></span>
+    <span class="wave-bar" id="w4" style="height:18px;background:#378ADD;"></span>
+    <span class="wave-bar" id="w5" style="height:24px;background:#378ADD;"></span>
+  </div>
+
+  <div class="speed-badge" id="speedBadge">1.0×</div>
+  <div class="pitch-label" id="pitchLabel">Normal voice</div>
+
+  <div class="slider-row">
+    <span class="slider-end">0.5×</span>
+    <input type="range" id="speedSlider" min="0" max="100" value="50" step="1" aria-label="Playback speed">
+    <span class="slider-end">2×</span>
+  </div>
+
+  <div class="presets" id="presets">
+    <button class="preset-btn" data-speed="0.5">0.5×</button>
+    <button class="preset-btn" data-speed="0.75">0.75×</button>
+    <button class="preset-btn active" data-speed="1">1×</button>
+    <button class="preset-btn" data-speed="1.25">1.25×</button>
+    <button class="preset-btn" data-speed="1.5">1.5×</button>
+    <button class="preset-btn" data-speed="2">2×</button>
+  </div>
+</div>
+
+<script>
+const presets=[0.5,0.75,1,1.25,1.5,2];
+const icon=document.getElementById('pitchIcon');
+const badge=document.getElementById('speedBadge');
+const label=document.getElementById('pitchLabel');
+const slider=document.getElementById('speedSlider');
+const wBars=[document.getElementById('w1'),document.getElementById('w2'),document.getElementById('w3'),document.getElementById('w4'),document.getElementById('w5')];
+
+const configs={
+  low:{emoji:'🐻',color:'#7F77DD',label:'Deep, slow voice',labelColor:'#7F77DD',waveColor:'#7F77DD',animDur:1.4,waveH:[14,20,16,12,18]},
+  mid:{emoji:'🗣️',color:'#378ADD',label:'Normal voice',labelColor:'#378ADD',waveColor:'#378ADD',animDur:0.8,waveH:[20,26,22,18,24]},
+  high:{emoji:'🐿️',color:'#D4537E',label:'High-pitched, fast voice',labelColor:'#D4537E',waveColor:'#D4537E',animDur:0.45,waveH:[28,36,32,24,34]}
+};
+
+function speedFromSlider(v){
+  const t=v/100;
+  return parseFloat((0.5+t*1.5).toFixed(2));
+}
+
+function sliderFromSpeed(s){
+  return Math.round(((s-0.5)/1.5)*100);
+}
+
+function getConfig(speed){
+  if(speed<=0.75) return configs.low;
+  if(speed>=1.5) return configs.high;
+  return configs.mid;
+}
+
+function lerp(a,b,t){return a+(b-a)*t;}
+
+function blendConfig(speed){
+  if(speed<0.75){
+    const t=(speed-0.5)/0.25;
+    return blend(configs.low,configs.mid,t);
+  } else if(speed>1.5){
+    const t=(speed-1.5)/0.5;
+    return blend(configs.mid,configs.high,t);
+  } else if(speed<1){
+    const t=(speed-0.75)/0.25;
+    return blend(configs.low,configs.mid,t);
+  } else if(speed>1){
+    const t=(speed-1)/0.5;
+    return blend(configs.mid,configs.high,t);
+  }
+  return configs.mid;
+}
+
+function blend(a,b,t){
+  return {
+    emoji:t<0.5?a.emoji:b.emoji,
+    waveColor:lerpColor(a.waveColor,b.waveColor,t),
+    animDur:lerp(a.animDur,b.animDur,t),
+    waveH:a.waveH.map((h,i)=>Math.round(lerp(h,b.waveH[i],t))),
+    label:t<0.5?a.label:b.label,
+    labelColor:lerpColor(a.labelColor,b.labelColor,t)
+  };
+}
+
+function lerpColor(c1,c2,t){
+  const p=v=>parseInt(v,16);
+  const hex=c=>c.replace('#','');
+  const r1=p(hex(c1).slice(0,2)),g1=p(hex(c1).slice(2,4)),b1=p(hex(c1).slice(4,6));
+  const r2=p(hex(c2).slice(0,2)),g2=p(hex(c2).slice(2,4)),b2=p(hex(c2).slice(4,6));
+  const r=Math.round(lerp(r1,r2,t)).toString(16).padStart(2,'0');
+  const g=Math.round(lerp(g1,g2,t)).toString(16).padStart(2,'0');
+  const b=Math.round(lerp(b1,b2,t)).toString(16).padStart(2,'0');
+  return '#'+r+g+b;
+}
+
+function update(speed,animate){
+  const cfg=blendConfig(speed);
+  const scale=1+((speed-1)*0.08);
+  const rot=(speed-1)*6;
+
+  icon.textContent=cfg.emoji;
+  icon.style.transform=`scale(${scale}) rotate(${rot}deg)`;
+  badge.textContent=speed.toFixed(2).replace(/\.?0+$/,'')+'×';
+  label.textContent=cfg.label;
+  label.style.color=cfg.labelColor;
+
+  wBars.forEach((b,i)=>{
+    b.style.height=cfg.waveH[i]+'px';
+    b.style.background=cfg.waveColor;
+    b.style.animationDuration=cfg.animDur+'s';
+  });
+
+  document.querySelectorAll('.preset-btn').forEach(btn=>{
+    const ps=parseFloat(btn.dataset.speed);
+    btn.classList.toggle('active',Math.abs(ps-speed)<0.01);
+  });
+}
+
+slider.addEventListener('input',()=>{
+  const s=speedFromSlider(parseInt(slider.value));
+  update(s,false);
+});
+
+document.getElementById('presets').addEventListener('click',e=>{
+  const btn=e.target.closest('.preset-btn');
+  if(!btn) return;
+  const s=parseFloat(btn.dataset.speed);
+  slider.value=sliderFromSpeed(s);
+  update(s,true);
+  if(navigator.vibrate) navigator.vibrate(30);
+  btn.style.transform='scale(0.93)';
+  setTimeout(()=>btn.style.transform='',120);
+});
+
+update(1,false);
+</script>

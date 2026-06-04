@@ -1,0 +1,373 @@
+
+<style>
+  .me-wrap { padding: 1rem 0; font-family: var(--font-sans); }
+  .me-toolbar { display: flex; align-items: center; gap: 16px; margin-bottom: 12px; flex-wrap: wrap; }
+  .me-label { font-size: 13px; color: var(--color-text-secondary); white-space: nowrap; }
+  .me-btn { padding: 6px 14px; font-size: 13px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-secondary); background: var(--color-background-primary); color: var(--color-text-primary); cursor: pointer; display: flex; align-items: center; gap: 6px; }
+  .me-btn:hover { background: var(--color-background-secondary); }
+  .me-btn:active { transform: scale(0.97); }
+  .me-btn.primary { background: #0e8a6e; color: #fff; border-color: #0e8a6e; }
+  .me-btn.primary:hover { background: #0b7560; }
+  .me-btn:disabled { opacity: 0.4; cursor: default; }
+  .canvas-wrap { position: relative; border-radius: var(--border-radius-lg); overflow: hidden; border: 0.5px solid var(--color-border-tertiary); cursor: crosshair; user-select: none; }
+  #baseCanvas, #strokeCanvas, #sparkCanvas { position: absolute; top: 0; left: 0; }
+  #baseCanvas { position: relative; }
+  .me-hint { font-size: 12px; color: var(--color-text-tertiary); margin-top: 8px; text-align: center; }
+  .brush-dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid #00e5c0; display: inline-block; vertical-align: middle; }
+  .size-val { font-size: 13px; font-weight: 500; min-width: 32px; color: var(--color-text-primary); }
+  .status-bar { font-size: 12px; color: var(--color-text-secondary); margin-top: 6px; min-height: 18px; text-align: center; }
+</style>
+
+<div class="me-wrap" role="region" aria-label="Magic eraser inpainting tool">
+  <h2 class="sr-only">Magic eraser: paint over an area to remove or regenerate image content</h2>
+
+  <div class="me-toolbar">
+    <span class="me-label"><i class="ti ti-brush" aria-hidden="true"></i> Brush size</span>
+    <input type="range" id="brushSize" min="10" max="100" value="30" step="1" style="width:110px;">
+    <span class="size-val" id="sizeVal">30px</span>
+    <div class="brush-dot" id="brushDot" style="width:30px;height:30px;"></div>
+    <div style="flex:1;"></div>
+    <button class="me-btn" id="undoBtn" disabled><i class="ti ti-arrow-back-up" aria-hidden="true"></i> Undo</button>
+    <button class="me-btn primary" id="genBtn" disabled><i class="ti ti-sparkles" aria-hidden="true"></i> Generate</button>
+  </div>
+
+  <div class="canvas-wrap" id="canvasWrap">
+    <canvas id="baseCanvas" width="660" height="400"></canvas>
+    <canvas id="strokeCanvas" width="660" height="400" style="position:absolute;top:0;left:0;"></canvas>
+    <canvas id="sparkCanvas" width="660" height="400" style="position:absolute;top:0;left:0;pointer-events:none;"></canvas>
+  </div>
+
+  <p class="me-hint">Paint over any area, then click <strong>Generate</strong> to magically regenerate it.</p>
+  <div class="status-bar" id="statusBar">Paint over the image to get started</div>
+</div>
+
+<script>
+(function(){
+  const base = document.getElementById('baseCanvas');
+  const stroke = document.getElementById('strokeCanvas');
+  const spark = document.getElementById('sparkCanvas');
+  const bCtx = base.getContext('2d');
+  const sCtx = stroke.getContext('2d');
+  const spCtx = spark.getContext('2d');
+  const brushSlider = document.getElementById('brushSize');
+  const sizeVal = document.getElementById('sizeVal');
+  const brushDot = document.getElementById('brushDot');
+  const undoBtn = document.getElementById('undoBtn');
+  const genBtn = document.getElementById('genBtn');
+  const statusBar = document.getElementById('statusBar');
+
+  let brushR = 30, painting = false, hasStrokes = false;
+  let strokeHistory = [];
+  let particles = [];
+  let animId = null;
+  let generated = false;
+
+  const W = 660, H = 400;
+
+  function drawScene(ctx) {
+    const g1 = ctx.createLinearGradient(0, 0, W, H);
+    g1.addColorStop(0, '#1a2a3a');
+    g1.addColorStop(1, '#0d1f30');
+    ctx.fillStyle = g1;
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#162535';
+    for(let i = 0; i < 6; i++) {
+      ctx.beginPath();
+      ctx.ellipse(80+i*100, 300+Math.sin(i)*30, 60+i*8, 40+i*5, 0.2+i*0.1, 0, Math.PI*2);
+      ctx.fill();
+    }
+    const g2 = ctx.createLinearGradient(0, 60, 0, 200);
+    g2.addColorStop(0, '#5b8dd9');
+    g2.addColorStop(1, '#2a4f8a');
+    ctx.fillStyle = g2;
+    for(let i = 0; i < 80; i++) {
+      const x = (i/80)*W, y = 60+Math.sin(i*0.3)*18+Math.sin(i*0.7)*10;
+      const w2 = W/80+1, h2 = 200-y;
+      ctx.fillRect(x, y, w2, h2);
+    }
+    ctx.fillStyle = '#e8d5a3';
+    for(let i = 0; i < 5; i++) {
+      const cx2 = 60+i*130, cy2 = 80+Math.cos(i*1.3)*25;
+      ctx.beginPath();
+      ctx.ellipse(cx2, cy2, 35+i*5, 20+i*3, i*0.15, 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.fillStyle = '#a0c840';
+    for(let i = 0; i < 12; i++) {
+      const tx = 30+i*55, ty = 300, tr = 15+Math.sin(i*1.1)*5;
+      ctx.beginPath();
+      ctx.ellipse(tx, ty-tr*1.5, tr, tr*1.8, 0, 0, Math.PI*2);
+      ctx.fill();
+      ctx.fillStyle = '#5a7a20';
+      ctx.fillRect(tx-2, ty, 4, 30);
+      ctx.fillStyle = '#a0c840';
+    }
+    ctx.fillStyle = 'rgba(255,200,80,0.9)';
+    ctx.beginPath();
+    ctx.arc(580, 60, 32, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,220,130,0.25)';
+    ctx.beginPath();
+    ctx.arc(580, 60, 55, 0, Math.PI*2);
+    ctx.fill();
+    for(let i = 0; i < 120; i++) {
+      const sx = Math.random()*W, sy = Math.random()*200;
+      ctx.fillStyle = `rgba(255,255,255,${Math.random()*0.6+0.2})`;
+      ctx.fillRect(sx, sy, 1.5, 1.5);
+    }
+  }
+
+  drawScene(bCtx);
+
+  function drawAlt(ctx) {
+    const g = ctx.createLinearGradient(0, 0, W, H);
+    g.addColorStop(0, '#0d2a1e');
+    g.addColorStop(1, '#051a10');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#0a4028';
+    for(let i = 0; i < 40; i++) {
+      const rx = Math.random()*W, ry = 200+Math.random()*200;
+      ctx.beginPath();
+      ctx.ellipse(rx, ry, 20+Math.random()*40, 10+Math.random()*20, Math.random(), 0, Math.PI*2);
+      ctx.fill();
+    }
+    for(let i = 0; i < 12; i++) {
+      ctx.fillStyle = '#1a7a50';
+      const fx = i*60, fy2 = 180+Math.sin(i*0.8)*40;
+      ctx.beginPath();
+      ctx.moveTo(fx, fy2);
+      ctx.bezierCurveTo(fx-30, fy2-60, fx+30, fy2-80, fx+10, fy2-120);
+      ctx.bezierCurveTo(fx+40, fy2-80, fx+60, fy2-40, fx+50, fy2);
+      ctx.fill();
+    }
+    ctx.fillStyle = 'rgba(150,220,255,0.7)';
+    ctx.beginPath();
+    ctx.arc(120, 80, 25, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(200,240,255,0.3)';
+    ctx.beginPath();
+    ctx.arc(120, 80, 45, 0, Math.PI*2);
+    ctx.fill();
+    for(let i = 0; i < 80; i++) {
+      const sx = Math.random()*W, sy = Math.random()*180;
+      ctx.fillStyle = `rgba(180,255,200,${Math.random()*0.5+0.1})`;
+      ctx.fillRect(sx, sy, 1.5, 1.5);
+    }
+  }
+
+  function getBrushR() { return parseInt(brushSlider.value); }
+
+  brushSlider.addEventListener('input', () => {
+    const r = getBrushR();
+    brushR = r;
+    sizeVal.textContent = r + 'px';
+    brushDot.style.width = Math.max(8, Math.min(r, 50)) + 'px';
+    brushDot.style.height = Math.max(8, Math.min(r, 50)) + 'px';
+  });
+
+  function getPos(e) {
+    const rect = stroke.getBoundingClientRect();
+    const scaleX = W / rect.width;
+    const scaleY = H / rect.height;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
+  }
+
+  function paint(e) {
+    if (!painting) return;
+    const { x, y } = getPos(e);
+    sCtx.globalCompositeOperation = 'source-over';
+    sCtx.beginPath();
+    sCtx.arc(x, y, brushR, 0, Math.PI*2);
+    sCtx.fillStyle = 'rgba(0,229,192,0.28)';
+    sCtx.fill();
+    sCtx.beginPath();
+    sCtx.arc(x, y, brushR);
+    sCtx.strokeStyle = 'rgba(0,229,192,0.9)';
+    sCtx.lineWidth = 2;
+    sCtx.stroke();
+    strokeHistory.push({ x, y, r: brushR });
+    hasStrokes = true;
+    undoBtn.disabled = false;
+    genBtn.disabled = false;
+    statusBar.textContent = 'Area painted — click Generate to regenerate it';
+  }
+
+  stroke.addEventListener('mousedown', e => { painting = true; paint(e); });
+  stroke.addEventListener('mousemove', paint);
+  stroke.addEventListener('mouseup', () => { painting = false; });
+  stroke.addEventListener('mouseleave', () => { painting = false; });
+  stroke.addEventListener('touchstart', e => { e.preventDefault(); painting = true; paint(e); }, {passive:false});
+  stroke.addEventListener('touchmove', e => { e.preventDefault(); paint(e); }, {passive:false});
+  stroke.addEventListener('touchend', () => { painting = false; });
+
+  undoBtn.addEventListener('click', () => {
+    if (!strokeHistory.length) return;
+    reverseSparkle(() => {
+      strokeHistory = [];
+      sCtx.clearRect(0, 0, W, H);
+      hasStrokes = false;
+      undoBtn.disabled = true;
+      genBtn.disabled = true;
+      generated = false;
+      statusBar.textContent = 'Paint over the image to get started';
+    });
+  });
+
+  genBtn.addEventListener('click', () => {
+    if (!hasStrokes) return;
+    genBtn.disabled = true;
+    undoBtn.disabled = true;
+    statusBar.textContent = 'Generating new content...';
+    spawnSparkles(strokeHistory, () => {
+      crossfadeIn();
+    });
+  });
+
+  function spawnSparkles(strokes, onDone) {
+    particles = [];
+    const AURA = ['#00e5c0','#00ffd5','#80ffe8','#ffffff','#40f0c0'];
+    const count = Math.min(strokes.length * 4, 320);
+    for(let i = 0; i < count; i++) {
+      const s = strokes[Math.floor(Math.random()*strokes.length)];
+      const ang = Math.random()*Math.PI*2;
+      const sp = 1+Math.random()*3;
+      particles.push({
+        x: s.x + (Math.random()-0.5)*s.r,
+        y: s.y + (Math.random()-0.5)*s.r,
+        vx: Math.cos(ang)*sp, vy: Math.sin(ang)*sp - 1,
+        life: 1, decay: 0.015+Math.random()*0.02,
+        r: 1.5+Math.random()*3,
+        col: AURA[Math.floor(Math.random()*AURA.length)],
+        twinkle: Math.random()*Math.PI*2
+      });
+    }
+    let elapsed = 0;
+    function tick() {
+      spCtx.clearRect(0, 0, W, H);
+      particles.forEach(p => {
+        p.x += p.vx; p.y += p.vy; p.life -= p.decay;
+        p.twinkle += 0.2;
+        if (p.life <= 0) return;
+        const alpha = p.life * (0.5+0.5*Math.sin(p.twinkle));
+        spCtx.globalAlpha = alpha;
+        spCtx.fillStyle = p.col;
+        spCtx.beginPath();
+        spCtx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+        spCtx.fill();
+      });
+      spCtx.globalAlpha = 1;
+      particles = particles.filter(p => p.life > 0);
+      elapsed++;
+      if (elapsed < 90 || particles.length > 0) {
+        animId = requestAnimationFrame(tick);
+      } else {
+        spCtx.clearRect(0, 0, W, H);
+        if (onDone) onDone();
+      }
+    }
+    if (animId) cancelAnimationFrame(animId);
+    tick();
+  }
+
+  function crossfadeIn() {
+    const tmp = document.createElement('canvas');
+    tmp.width = W; tmp.height = H;
+    const tCtx = tmp.getContext('2d');
+    drawScene(tCtx);
+    tCtx.save();
+    tCtx.globalCompositeOperation = 'destination-in';
+    strokeHistory.forEach(s => {
+      tCtx.beginPath();
+      tCtx.arc(s.x, s.y, s.r+6, 0, Math.PI*2);
+      tCtx.fill();
+    });
+    tCtx.restore();
+    const newImg = document.createElement('canvas');
+    newImg.width = W; newImg.height = H;
+    const nCtx = newImg.getContext('2d');
+    drawAlt(nCtx);
+    nCtx.save();
+    nCtx.globalCompositeOperation = 'destination-in';
+    strokeHistory.forEach(s => {
+      nCtx.beginPath();
+      nCtx.arc(s.x, s.y, s.r+6, 0, Math.PI*2);
+      nCtx.fill();
+    });
+    nCtx.restore();
+    let t = 0;
+    const dur = 45;
+    function fade() {
+      const alpha = t/dur;
+      const scale = 0.9 + 0.1 * alpha;
+      sCtx.clearRect(0, 0, W, H);
+      sCtx.globalAlpha = 1 - alpha * 0.3;
+      sCtx.globalCompositeOperation = 'source-over';
+      sCtx.save();
+      sCtx.translate(W/2, H/2);
+      sCtx.scale(scale, scale);
+      sCtx.translate(-W/2, -H/2);
+      sCtx.drawImage(newImg, 0, 0);
+      sCtx.restore();
+      sCtx.globalAlpha = 1;
+      t++;
+      if (t <= dur) {
+        requestAnimationFrame(fade);
+      } else {
+        sCtx.clearRect(0, 0, W, H);
+        bCtx.drawImage(newImg, 0, 0);
+        strokeHistory = [];
+        hasStrokes = false;
+        generated = true;
+        undoBtn.disabled = false;
+        genBtn.disabled = false;
+        statusBar.textContent = 'Done! Paint again to regenerate another area';
+      }
+    }
+    fade();
+  }
+
+  function reverseSparkle(onDone) {
+    const cx = strokeHistory.reduce((s,p)=>s+p.x,0)/Math.max(strokeHistory.length,1);
+    const cy = strokeHistory.reduce((s,p)=>s+p.y,0)/Math.max(strokeHistory.length,1);
+    const AURA = ['#00e5c0','#80ffe8','#ffffff'];
+    let ps2 = [];
+    for(let i = 0; i < 160; i++) {
+      const ang = Math.random()*Math.PI*2;
+      const dist = 20+Math.random()*120;
+      ps2.push({
+        x: cx + Math.cos(ang)*dist,
+        y: cy + Math.sin(ang)*dist,
+        tx: cx, ty: cy,
+        life: 1, decay: 0.025+Math.random()*0.02,
+        r: 1.5+Math.random()*2.5,
+        col: AURA[Math.floor(Math.random()*AURA.length)]
+      });
+    }
+    function tick2() {
+      spCtx.clearRect(0, 0, W, H);
+      ps2.forEach(p => {
+        p.x += (p.tx-p.x)*0.08;
+        p.y += (p.ty-p.y)*0.08;
+        p.life -= p.decay;
+        if (p.life <= 0) return;
+        spCtx.globalAlpha = p.life;
+        spCtx.fillStyle = p.col;
+        spCtx.beginPath();
+        spCtx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+        spCtx.fill();
+      });
+      spCtx.globalAlpha = 1;
+      ps2 = ps2.filter(p => p.life > 0);
+      if (ps2.length > 0) requestAnimationFrame(tick2);
+      else {
+        spCtx.clearRect(0, 0, W, H);
+        if (onDone) onDone();
+      }
+    }
+    tick2();
+  }
+})();
+</script>

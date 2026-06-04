@@ -1,0 +1,250 @@
+
+<style>
+  .vw-wrap { display:flex; flex-direction:column; align-items:center; gap:24px; padding:2rem 0; }
+  .vw-card { background:var(--color-background-primary); border:0.5px solid var(--color-border-tertiary); border-radius:var(--border-radius-lg); padding:2rem; width:100%; max-width:560px; box-sizing:border-box; }
+  .vw-title { font-size:14px; color:var(--color-text-secondary); text-align:center; margin:0 0 20px; }
+  #waveCanvas { width:100%; height:120px; border-radius:8px; background:var(--color-background-secondary); cursor:pointer; display:block; }
+  .vw-controls { display:flex; align-items:center; justify-content:center; gap:12px; margin-top:20px; }
+  .vw-btn { display:flex; align-items:center; gap:6px; padding:8px 18px; border-radius:var(--border-radius-md); border:0.5px solid var(--color-border-secondary); background:transparent; color:var(--color-text-primary); font-size:14px; cursor:pointer; transition:background 0.15s; }
+  .vw-btn:hover { background:var(--color-background-secondary); }
+  .vw-btn.primary { background:var(--color-text-primary); color:var(--color-background-primary); border-color:transparent; }
+  .vw-btn.primary:hover { opacity:0.85; }
+  .vw-btn:disabled { opacity:0.4; cursor:default; }
+  .vw-status { font-size:13px; color:var(--color-text-secondary); text-align:center; min-height:20px; }
+  .vw-timer { font-size:22px; font-weight:500; color:var(--color-text-primary); font-variant-numeric:tabular-nums; min-width:60px; text-align:center; }
+  .vw-dot { width:8px; height:8px; border-radius:50%; background:#e24b4a; flex-shrink:0; }
+  .vw-dot.pulse { animation:pulse 1s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  .spinner { width:18px; height:18px; border:2px solid var(--color-border-secondary); border-top-color:var(--color-text-primary); border-radius:50%; animation:spin 0.6s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+</style>
+
+<h2 class="sr-only">Voice waveform recorder — click the microphone to start recording and see your voice visualized as animated frequency bars.</h2>
+
+<div class="vw-wrap">
+  <div class="vw-card">
+    <p class="vw-title" id="canvasLabel">Click the canvas to play back your recording</p>
+    <canvas id="waveCanvas" title="Waveform visualizer — click to play back"></canvas>
+
+    <div class="vw-controls">
+      <div class="vw-dot" id="recDot" style="opacity:0"></div>
+      <div class="vw-timer" id="timer">0:00</div>
+      <button class="vw-btn" id="micBtn" onclick="toggleRecord()" aria-label="Start recording">
+        <i class="ti ti-microphone" aria-hidden="true"></i> Record
+      </button>
+      <button class="vw-btn primary" id="submitBtn" onclick="submitAudio()" disabled aria-label="Submit recording">
+        <i class="ti ti-send" aria-hidden="true"></i> Send
+      </button>
+    </div>
+    <div class="vw-status" id="status">Allow microphone access and press Record to begin.</div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('waveCanvas');
+const ctx = canvas.getContext('2d');
+const micBtn = document.getElementById('micBtn');
+const submitBtn = document.getElementById('submitBtn');
+const statusEl = document.getElementById('status');
+const timerEl = document.getElementById('timer');
+const recDot = document.getElementById('recDot');
+const canvasLabel = document.getElementById('canvasLabel');
+
+let audioCtx, analyser, source, stream;
+let mediaRecorder, chunks = [];
+let recordedBlob = null, audioPlayer = null;
+let isRecording = false, isPlayingBack = false, isSubmitting = false;
+let animFrame, idleFrame;
+let startTime = 0, timerInterval;
+let dataArray, bufferLen;
+let idlePhase = 0;
+
+function resizeCanvas() {
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * window.devicePixelRatio;
+  canvas.height = rect.height * window.devicePixelRatio;
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+function getBarColor(norm, x, totalW) {
+  const t = Math.max(0, Math.min(1, norm));
+  const r1=0, g1=229, b1=255;
+  const r2=160, g2=50, b2=255;
+  const r = Math.round(r1 + (r2-r1)*t);
+  const g = Math.round(g1 + (g2-g1)*t);
+  const b = Math.round(b1 + (b2-b1)*t);
+  return `rgba(${r},${g},${b},${0.5 + 0.5*t})`;
+}
+
+function drawIdle(timestamp) {
+  idlePhase += 0.04;
+  const W = canvas.width / window.devicePixelRatio;
+  const H = canvas.height / window.devicePixelRatio;
+  ctx.clearRect(0,0,W,H);
+  const bars = 48, gap = 2;
+  const bw = (W - gap*(bars-1)) / bars;
+  for (let i=0; i<bars; i++) {
+    const x = i*(bw+gap);
+    const phase = idlePhase + i*0.25;
+    const amp = 0.08 + 0.06*Math.sin(phase);
+    const bh = amp * H;
+    const y = (H - bh) / 2;
+    ctx.fillStyle = `rgba(100,200,255,${0.25 + 0.15*Math.sin(phase)})`;
+    ctx.beginPath();
+    ctx.roundRect(x, y, bw, bh, 2);
+    ctx.fill();
+  }
+  idleFrame = requestAnimationFrame(drawIdle);
+}
+
+function drawLive() {
+  analyser.getByteFrequencyData(dataArray);
+  const W = canvas.width / window.devicePixelRatio;
+  const H = canvas.height / window.devicePixelRatio;
+  ctx.clearRect(0,0,W,H);
+  const bars = 48, gap = 2;
+  const bw = (W - gap*(bars-1)) / bars;
+  const step = Math.floor(bufferLen / bars);
+  for (let i=0; i<bars; i++) {
+    let sum=0;
+    for(let j=0;j<step;j++) sum += dataArray[i*step+j];
+    const avg = sum/step;
+    const norm = avg/255;
+    const bh = Math.max(4, norm * H * 0.95);
+    const y = (H - bh) / 2;
+    ctx.fillStyle = getBarColor(norm, i, bars);
+    ctx.beginPath();
+    ctx.roundRect(i*(bw+gap), y, bw, bh, 2);
+    ctx.fill();
+  }
+  animFrame = requestAnimationFrame(drawLive);
+}
+
+function drawSubmitting() {
+  const W = canvas.width / window.devicePixelRatio;
+  const H = canvas.height / window.devicePixelRatio;
+  ctx.clearRect(0,0,W,H);
+  const bars = 48, gap = 2;
+  const bw = (W - gap*(bars-1)) / bars;
+  const center = bars/2;
+  for(let i=0;i<bars;i++) {
+    const dist = Math.abs(i - center) / center;
+    const norm = Math.max(0, 1 - dist*2.5);
+    const bh = Math.max(2, norm * H * 0.6);
+    const y = (H-bh)/2;
+    ctx.fillStyle = getBarColor(norm*0.6, i, bars);
+    ctx.beginPath();
+    ctx.roundRect(i*(bw+gap), y, bw, bh, 2);
+    ctx.fill();
+  }
+}
+
+function formatTime(s) {
+  const m = Math.floor(s/60);
+  return `${m}:${String(s%60).padStart(2,'0')}`;
+}
+
+async function toggleRecord() {
+  if (isRecording) stopRecording();
+  else await startRecording();
+}
+
+async function startRecording() {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({audio:true});
+    audioCtx = new AudioContext();
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 512;
+    bufferLen = analyser.frequencyBinCount;
+    dataArray = new Uint8Array(bufferLen);
+    source = audioCtx.createMediaStreamSource(stream);
+    source.connect(analyser);
+
+    mediaRecorder = new MediaRecorder(stream);
+    chunks = [];
+    mediaRecorder.ondataavailable = e => chunks.push(e.data);
+    mediaRecorder.onstop = () => {
+      recordedBlob = new Blob(chunks, {type:'audio/webm'});
+      submitBtn.disabled = false;
+      canvasLabel.textContent = 'Click the waveform to play back your recording';
+    };
+    mediaRecorder.start();
+    isRecording = true;
+
+    cancelAnimationFrame(idleFrame);
+    drawLive();
+
+    recDot.style.opacity = '1';
+    recDot.classList.add('pulse');
+    micBtn.innerHTML = '<i class="ti ti-square" aria-hidden="true"></i> Stop';
+    submitBtn.disabled = true;
+    statusEl.textContent = 'Recording… speak naturally.';
+    canvasLabel.textContent = 'Recording your voice';
+
+    startTime = 0;
+    timerEl.textContent = '0:00';
+    timerInterval = setInterval(() => {
+      startTime++;
+      timerEl.textContent = formatTime(startTime);
+    }, 1000);
+
+  } catch(e) {
+    statusEl.textContent = 'Microphone access denied. Please allow it and try again.';
+  }
+}
+
+function stopRecording() {
+  isRecording = false;
+  mediaRecorder.stop();
+  stream.getTracks().forEach(t=>t.stop());
+  source.disconnect();
+  cancelAnimationFrame(animFrame);
+  clearInterval(timerInterval);
+
+  recDot.style.opacity = '0';
+  recDot.classList.remove('pulse');
+  micBtn.innerHTML = '<i class="ti ti-microphone" aria-hidden="true"></i> Record';
+  statusEl.textContent = `Recorded ${formatTime(startTime)}. Click waveform to preview, or Send.`;
+  idleFrame = requestAnimationFrame(drawIdle);
+}
+
+canvas.addEventListener('click', () => {
+  if (isRecording || isSubmitting || !recordedBlob) return;
+  if (isPlayingBack && audioPlayer) { audioPlayer.pause(); audioPlayer.currentTime=0; isPlayingBack=false; statusEl.textContent='Playback stopped.'; return; }
+  const url = URL.createObjectURL(recordedBlob);
+  audioPlayer = new Audio(url);
+  audioPlayer.play();
+  isPlayingBack = true;
+  statusEl.textContent = 'Playing back… click again to stop.';
+  audioPlayer.onended = () => { isPlayingBack=false; statusEl.textContent='Playback finished. Press Send when ready.'; };
+});
+
+function submitAudio() {
+  if (isSubmitting) return;
+  isSubmitting = true;
+  cancelAnimationFrame(idleFrame);
+  drawSubmitting();
+  micBtn.disabled = true;
+  submitBtn.innerHTML = '<div class="spinner"></div>';
+  submitBtn.disabled = true;
+  statusEl.textContent = 'Sending…';
+  canvasLabel.textContent = 'Uploading your message';
+
+  setTimeout(() => {
+    statusEl.textContent = 'Message sent! Ready for a new recording.';
+    canvasLabel.textContent = 'Click Record to start a new message';
+    submitBtn.innerHTML = '<i class="ti ti-send" aria-hidden="true"></i> Send';
+    micBtn.disabled = false;
+    submitBtn.disabled = true;
+    isSubmitting = false;
+    recordedBlob = null;
+    startTime = 0;
+    timerEl.textContent = '0:00';
+    idleFrame = requestAnimationFrame(drawIdle);
+  }, 2000);
+}
+
+idleFrame = requestAnimationFrame(drawIdle);
+</script>

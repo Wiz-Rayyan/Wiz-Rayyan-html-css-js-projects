@@ -1,0 +1,219 @@
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+#root{font-family:var(--font-sans);padding:1rem 0;display:flex;flex-direction:column;gap:12px}
+#player-bar{display:flex;align-items:center;gap:12px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:12px 16px}
+#play-btn{width:36px;height:36px;border-radius:50%;border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background 0.15s}
+#play-btn:hover{background:var(--color-background-tertiary)}
+#timeline{flex:1;cursor:pointer}
+#time-label{font-size:13px;color:var(--color-text-secondary);min-width:64px;text-align:right;font-variant-numeric:tabular-nums}
+#search-bar{display:flex;gap:8px;align-items:center}
+#search-input{flex:1;font-size:14px;padding:6px 12px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-primary)}
+#search-input:focus{outline:none;box-shadow:0 0 0 2px rgba(128,90,213,0.25)}
+.search-nav-btn{border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);border-radius:var(--border-radius-md);padding:6px 10px;cursor:pointer;font-size:13px;color:var(--color-text-secondary)}
+.search-nav-btn:hover{background:var(--color-background-secondary)}
+#match-count{font-size:13px;color:var(--color-text-tertiary);min-width:60px}
+#transcript{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:20px 24px;max-height:340px;overflow-y:auto;line-height:2;font-size:15px;color:var(--color-text-primary);scroll-behavior:smooth}
+.para{margin-bottom:1rem}
+.speaker{font-size:12px;font-weight:500;color:var(--color-text-tertiary);display:block;margin-bottom:4px;letter-spacing:0.04em}
+.word{cursor:pointer;border-radius:4px;padding:1px 2px;transition:background 0.12s,color 0.12s;display:inline-block}
+.word:hover{background:var(--color-background-secondary)}
+.word.active{background:linear-gradient(90deg,#f59e0b,#f97316);color:#1a0a00;font-weight:500;animation:none}
+.word.pulse{animation:pulse 0.35s ease-out}
+.word.match{background:#fef08a;color:#713f12;border-radius:3px}
+.word.match-focus{background:#fbbf24;color:#451a03;outline:2px solid #f59e0b;outline-offset:1px}
+@keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.22)}100%{transform:scale(1)}}
+</style>
+<div id="root">
+  <h2 class="sr-only">Interactive transcript with word-by-word playback highlighting</h2>
+
+  <div id="player-bar">
+    <button id="play-btn" aria-label="Play">
+      <i class="ti ti-player-play" style="font-size:16px;color:var(--color-text-primary)" id="play-icon"></i>
+    </button>
+    <input type="range" id="timeline" min="0" max="100" value="0" step="0.1" aria-label="Playback position">
+    <span id="time-label">0:00 / 1:43</span>
+  </div>
+
+  <div id="search-bar">
+    <input id="search-input" placeholder="Search transcript…" aria-label="Search transcript" />
+    <button class="search-nav-btn" id="prev-btn" title="Previous match"><i class="ti ti-arrow-up" aria-hidden="true"></i></button>
+    <button class="search-nav-btn" id="next-btn" title="Next match"><i class="ti ti-arrow-down" aria-hidden="true"></i></button>
+    <span id="match-count"></span>
+  </div>
+
+  <div id="transcript" role="region" aria-live="polite" aria-label="Transcript"></div>
+</div>
+
+<script>
+const RAW = [
+  {speaker:"Host",words:[
+    {t:0.0,w:"Welcome"},{t:0.6,w:"to"},{t:0.85,w:"today's"},{t:1.2,w:"episode."},{t:1.9,w:"I'm"},{t:2.1,w:"really"},{t:2.5,w:"excited"},{t:3.0,w:"to"},{t:3.2,w:"have"},{t:3.45,w:"you"},{t:3.65,w:"here."},
+  ]},
+  {speaker:"Guest",words:[
+    {t:4.5,w:"Thank"},{t:4.9,w:"you"},{t:5.2,w:"so"},{t:5.5,w:"much"},{t:5.9,w:"for"},{t:6.2,w:"having"},{t:6.7,w:"me."},{t:7.4,w:"It's"},{t:7.7,w:"a"},{t:7.9,w:"genuine"},{t:8.5,w:"pleasure."},
+  ]},
+  {speaker:"Host",words:[
+    {t:9.5,w:"Today"},{t:9.9,w:"we're"},{t:10.3,w:"talking"},{t:10.8,w:"about"},{t:11.2,w:"the"},{t:11.4,w:"future"},{t:11.9,w:"of"},{t:12.1,w:"artificial"},{t:12.9,w:"intelligence"},{t:13.8,w:"and"},{t:14.1,w:"how"},{t:14.4,w:"it"},{t:14.6,w:"shapes"},{t:15.1,w:"our"},{t:15.4,w:"everyday"},{t:16.0,w:"lives."},
+  ]},
+  {speaker:"Guest",words:[
+    {t:17.0,w:"Absolutely."},{t:18.0,w:"The"},{t:18.3,w:"pace"},{t:18.7,w:"of"},{t:18.95,w:"change"},{t:19.5,w:"has"},{t:19.8,w:"been"},{t:20.1,w:"truly"},{t:20.6,w:"remarkable."},{t:21.5,w:"We're"},{t:21.9,w:"seeing"},{t:22.4,w:"breakthroughs"},{t:23.2,w:"in"},{t:23.4,w:"language,"},{t:23.9,w:"vision,"},{t:24.4,w:"and"},{t:24.65,w:"reasoning"},{t:25.3,w:"that"},{t:25.6,w:"would"},{t:25.9,w:"have"},{t:26.2,w:"seemed"},{t:26.7,w:"impossible"},{t:27.5,w:"just"},{t:27.8,w:"a"},{t:28.0,w:"decade"},{t:28.5,w:"ago."},
+  ]},
+  {speaker:"Host",words:[
+    {t:29.5,w:"And"},{t:29.8,w:"what"},{t:30.1,w:"do"},{t:30.3,w:"you"},{t:30.5,w:"think"},{t:30.9,w:"is"},{t:31.1,w:"the"},{t:31.3,w:"single"},{t:31.8,w:"biggest"},{t:32.4,w:"opportunity"},{t:33.2,w:"right"},{t:33.6,w:"now?"},
+  ]},
+  {speaker:"Guest",words:[
+    {t:34.5,w:"Healthcare,"},{t:35.2,w:"without"},{t:35.7,w:"question."},{t:36.5,w:"AI"},{t:36.9,w:"can"},{t:37.2,w:"help"},{t:37.5,w:"doctors"},{t:38.0,w:"diagnose"},{t:38.6,w:"conditions"},{t:39.3,w:"earlier,"},{t:39.9,w:"personalise"},{t:40.5,w:"treatments,"},{t:41.1,w:"and"},{t:41.3,w:"dramatically"},{t:42.0,w:"reduce"},{t:42.5,w:"errors."},{t:43.3,w:"The"},{t:43.5,w:"potential"},{t:44.0,w:"to"},{t:44.2,w:"save"},{t:44.5,w:"millions"},{t:45.1,w:"of"},{t:45.3,w:"lives"},{t:45.8,w:"is"},{t:46.1,w:"real."},
+  ]},
+  {speaker:"Host",words:[
+    {t:47.2,w:"That's"},{t:47.6,w:"a"},{t:47.8,w:"powerful"},{t:48.4,w:"point."},{t:49.0,w:"What"},{t:49.3,w:"about"},{t:49.6,w:"the"},{t:49.8,w:"risks?"},{t:50.5,w:"People"},{t:51.0,w:"often"},{t:51.4,w:"worry"},{t:51.9,w:"about"},{t:52.2,w:"job"},{t:52.5,w:"displacement."},
+  ]},
+  {speaker:"Guest",words:[
+    {t:53.5,w:"It's"},{t:53.8,w:"a"},{t:54.0,w:"fair"},{t:54.3,w:"concern."},{t:55.0,w:"History"},{t:55.5,w:"shows"},{t:55.9,w:"that"},{t:56.2,w:"new"},{t:56.5,w:"technology"},{t:57.1,w:"displaces"},{t:57.8,w:"some"},{t:58.2,w:"roles"},{t:58.6,w:"but"},{t:58.9,w:"creates"},{t:59.4,w:"many"},{t:59.8,w:"others."},{t:60.5,w:"The"},{t:60.8,w:"key"},{t:61.2,w:"is"},{t:61.4,w:"reskilling"},{t:62.1,w:"and"},{t:62.4,w:"equitable"},{t:63.0,w:"access"},{t:63.5,w:"to"},{t:63.7,w:"the"},{t:63.9,w:"benefits."},
+  ]},
+  {speaker:"Host",words:[
+    {t:65.0,w:"Beautifully"},{t:65.7,w:"put."},{t:66.3,w:"Before"},{t:66.7,w:"we"},{t:66.9,w:"wrap"},{t:67.3,w:"up,"},{t:67.7,w:"what's"},{t:68.0,w:"one"},{t:68.3,w:"thing"},{t:68.6,w:"listeners"},{t:69.2,w:"can"},{t:69.5,w:"do"},{t:69.7,w:"today"},{t:70.1,w:"to"},{t:70.3,w:"stay"},{t:70.7,w:"ahead?"},
+  ]},
+  {speaker:"Guest",words:[
+    {t:71.5,w:"Stay"},{t:71.9,w:"curious."},{t:72.6,w:"Experiment"},{t:73.2,w:"with"},{t:73.5,w:"AI"},{t:73.8,w:"tools"},{t:74.2,w:"in"},{t:74.4,w:"your"},{t:74.65,w:"own"},{t:74.9,w:"work."},{t:75.6,w:"You"},{t:75.85,w:"don't"},{t:76.2,w:"need"},{t:76.5,w:"to"},{t:76.7,w:"be"},{t:76.9,w:"an"},{t:77.1,w:"engineer"},{t:77.7,w:"to"},{t:77.9,w:"benefit"},{t:78.5,w:"enormously"},{t:79.3,w:"from"},{t:79.6,w:"what's"},{t:80.0,w:"already"},{t:80.6,w:"available."},{t:81.4,w:"The"},{t:81.7,w:"tools"},{t:82.0,w:"are"},{t:82.2,w:"here."},{t:82.9,w:"Use"},{t:83.2,w:"them."},
+  ]},
+  {speaker:"Host",words:[
+    {t:84.2,w:"Perfect"},{t:84.7,w:"note"},{t:85.0,w:"to"},{t:85.2,w:"end"},{t:85.5,w:"on."},{t:86.1,w:"Thank"},{t:86.5,w:"you"},{t:86.7,w:"so"},{t:86.9,w:"much"},{t:87.3,w:"for"},{t:87.5,w:"joining"},{t:88.1,w:"us"},{t:88.4,w:"today."},
+  ]},
+];
+
+const DURATION = 89;
+
+const transcript = document.getElementById('transcript');
+const timelineEl = document.getElementById('timeline');
+const timeLabel = document.getElementById('time-label');
+const playBtn = document.getElementById('play-btn');
+const playIcon = document.getElementById('play-icon');
+const searchInput = document.getElementById('search-input');
+const matchCount = document.getElementById('match-count');
+
+let allWords = [];
+let currentWord = null;
+let isPlaying = false;
+let currentTime = 0;
+let raf = null;
+let lastTick = null;
+let matches = [];
+let matchIdx = -1;
+
+function fmt(s){const m=Math.floor(s/60);return m+':'+(Math.floor(s%60)+'').padStart(2,'0')}
+
+RAW.forEach(para=>{
+  const block = document.createElement('p');
+  block.className='para';
+  const spk = document.createElement('span');
+  spk.className='speaker';
+  spk.textContent=para.speaker.toUpperCase();
+  block.appendChild(spk);
+  para.words.forEach(({t,w})=>{
+    const span = document.createElement('span');
+    span.className='word';
+    span.textContent=w+' ';
+    span.dataset.t=t;
+    span.addEventListener('click',()=>seekTo(t,span));
+    block.appendChild(span);
+    allWords.push({t,el:span});
+  });
+  transcript.appendChild(block);
+});
+
+function seekTo(t,el){
+  currentTime=t;
+  timelineEl.value=(t/DURATION)*100;
+  timeLabel.textContent=fmt(t)+' / '+fmt(DURATION);
+  highlight(t);
+  if(el){
+    el.classList.add('pulse');
+    el.addEventListener('animationend',()=>el.classList.remove('pulse'),{once:true});
+  }
+}
+
+function highlight(t){
+  let active=null;
+  for(let i=0;i<allWords.length;i++){
+    if(allWords[i].t<=t&&(i===allWords.length-1||allWords[i+1].t>t)){
+      active=allWords[i];
+    }
+  }
+  if(active&&active!==currentWord){
+    if(currentWord)currentWord.el.classList.remove('active');
+    active.el.classList.add('active');
+    currentWord=active;
+    active.el.scrollIntoView({behavior:'smooth',block:'nearest'});
+  }
+  if(t>=DURATION-0.1&&isPlaying)stop();
+}
+
+function tick(ts){
+  if(!lastTick)lastTick=ts;
+  const dt=(ts-lastTick)/1000;
+  lastTick=ts;
+  currentTime=Math.min(currentTime+dt,DURATION);
+  timelineEl.value=(currentTime/DURATION)*100;
+  timeLabel.textContent=fmt(currentTime)+' / '+fmt(DURATION);
+  highlight(currentTime);
+  if(isPlaying)raf=requestAnimationFrame(tick);
+}
+
+function play(){
+  isPlaying=true;
+  lastTick=null;
+  playIcon.className='ti ti-player-pause';
+  raf=requestAnimationFrame(tick);
+}
+
+function stop(){
+  isPlaying=false;
+  playIcon.className='ti ti-player-play';
+  if(raf)cancelAnimationFrame(raf);
+}
+
+playBtn.addEventListener('click',()=>{
+  if(isPlaying)stop();
+  else{if(currentTime>=DURATION-0.1)currentTime=0;play();}
+});
+
+timelineEl.addEventListener('input',()=>{
+  currentTime=(timelineEl.value/100)*DURATION;
+  timeLabel.textContent=fmt(currentTime)+' / '+fmt(DURATION);
+  highlight(currentTime);
+});
+
+function applySearch(){
+  const q=searchInput.value.trim().toLowerCase();
+  allWords.forEach(({el})=>el.classList.remove('match','match-focus'));
+  matches=[];matchIdx=-1;
+  if(!q){matchCount.textContent='';return;}
+  allWords.forEach(({el})=>{
+    if(el.textContent.trim().toLowerCase().replace(/[^a-z]/g,'').includes(q.replace(/[^a-z]/g,''))){
+      el.classList.add('match');
+      matches.push(el);
+    }
+  });
+  matchCount.textContent=matches.length?`1 / ${matches.length}`:'No matches';
+  if(matches.length){matchIdx=0;focusMatch();}
+}
+
+function focusMatch(){
+  matches.forEach(e=>e.classList.remove('match-focus'));
+  if(matches.length){
+    matches[matchIdx].classList.add('match-focus');
+    matches[matchIdx].scrollIntoView({behavior:'smooth',block:'nearest'});
+    matchCount.textContent=`${matchIdx+1} / ${matches.length}`;
+  }
+}
+
+searchInput.addEventListener('input',applySearch);
+document.getElementById('next-btn').addEventListener('click',()=>{
+  if(!matches.length)return;
+  matchIdx=(matchIdx+1)%matches.length;focusMatch();
+});
+document.getElementById('prev-btn').addEventListener('click',()=>{
+  if(!matches.length)return;
+  matchIdx=(matchIdx-1+matches.length)%matches.length;focusMatch();
+});
+</script>

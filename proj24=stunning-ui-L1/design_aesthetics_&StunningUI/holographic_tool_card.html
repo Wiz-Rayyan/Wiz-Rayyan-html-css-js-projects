@@ -1,0 +1,225 @@
+
+<style>
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(32px) rotateX(5deg) scale(0.95); }
+    to   { opacity: 1; transform: translateY(0)   rotateX(5deg) scale(1);    }
+  }
+  @keyframes expand {
+    from { transform: rotateX(5deg) scale(1);    }
+    to   { transform: rotateX(5deg) scale(1.05); }
+  }
+  @keyframes toast {
+    0%   { opacity: 0; transform: translateY(8px); }
+    15%  { opacity: 1; transform: translateY(0);   }
+    80%  { opacity: 1; }
+    100% { opacity: 0; }
+  }
+  @keyframes progress {
+    from { width: 100%; }
+    to   { width: 0%;   }
+  }
+  .tool-card {
+    position: relative;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 14px;
+    padding: 14px 16px;
+    cursor: pointer;
+    perspective: 800px;
+    animation: slideUp 0.35s cubic-bezier(0.34,1.56,0.64,1) forwards;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    transform: rotateX(5deg);
+  }
+  .tool-card:hover {
+    transform: rotateX(5deg) scale(1.05);
+    border-color: rgba(255,255,255,0.32);
+  }
+  .tool-card .progress-bar {
+    position: absolute;
+    bottom: 0; left: 0;
+    height: 2px;
+    border-radius: 0 0 14px 14px;
+    background: linear-gradient(90deg, #a78bfa, #38bdf8);
+    animation: progress 5s linear forwards;
+  }
+  .toast {
+    position: absolute;
+    bottom: -36px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--color-background-primary);
+    border: 0.5px solid var(--color-border-secondary);
+    border-radius: var(--border-radius-md);
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--color-text-primary);
+    white-space: nowrap;
+    pointer-events: none;
+    animation: toast 2s ease forwards;
+  }
+  .close-btn {
+    position: absolute;
+    top: 8px; right: 10px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: rgba(255,255,255,0.5);
+    font-size: 16px;
+    line-height: 1;
+    padding: 2px 4px;
+    transition: color 0.15s;
+  }
+  .close-btn:hover { color: rgba(255,255,255,0.9); }
+  .detail-extra {
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    transition: max-height 0.25s ease, opacity 0.2s ease, margin 0.2s ease;
+  }
+  .tool-card:hover .detail-extra {
+    max-height: 120px;
+    opacity: 1;
+    margin-top: 10px;
+  }
+</style>
+
+<h2 class="sr-only">Holographic tool card demo — shows animated AI tool call cards with hover, copy, and dismiss interactions</h2>
+
+<div style="background: linear-gradient(135deg,#1e1b4b 0%,#0f2540 50%,#0c2035 100%); border-radius: 18px; padding: 28px 24px 48px; min-height: 480px; position: relative; overflow: hidden;">
+
+  <div style="position: absolute; top: -80px; left: -80px; width: 280px; height: 280px; border-radius: 50%; background: rgba(139,92,246,0.12); pointer-events: none;"></div>
+  <div style="position: absolute; bottom: -60px; right: -60px; width: 220px; height: 220px; border-radius: 50%; background: rgba(56,189,248,0.1); pointer-events: none;"></div>
+
+  <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 20px;">
+    <div style="width: 8px; height: 8px; border-radius: 50%; background: #a78bfa; box-shadow: 0 0 6px #a78bfa;"></div>
+    <span style="font-size: 11px; font-weight: 500; color: rgba(255,255,255,0.45); letter-spacing: 0.08em; text-transform: uppercase;">Agent tool calls</span>
+  </div>
+
+  <div style="display: flex; gap: 10px; margin-bottom: 28px; flex-wrap: wrap;">
+    <button onclick="triggerCard('search')" style="background: rgba(167,139,250,0.15); border: 0.5px solid rgba(167,139,250,0.3); color: #c4b5fd; border-radius: 8px; padding: 7px 14px; font-size: 13px; cursor: pointer; transition: background 0.15s;">
+      <i class="ti ti-search" style="font-size:14px; vertical-align:-2px; margin-right:5px;" aria-hidden="true"></i>Trigger Search
+    </button>
+    <button onclick="triggerCard('calc')" style="background: rgba(56,189,248,0.12); border: 0.5px solid rgba(56,189,248,0.25); color: #7dd3fc; border-radius: 8px; padding: 7px 14px; font-size: 13px; cursor: pointer; transition: background 0.15s;">
+      <i class="ti ti-math" style="font-size:14px; vertical-align:-2px; margin-right:5px;" aria-hidden="true"></i>Trigger Calculator
+    </button>
+    <button onclick="triggerCard('api')" style="background: rgba(52,211,153,0.1); border: 0.5px solid rgba(52,211,153,0.22); color: #6ee7b7; border-radius: 8px; padding: 7px 14px; font-size: 13px; cursor: pointer; transition: background 0.15s;">
+      <i class="ti ti-plug" style="font-size:14px; vertical-align:-2px; margin-right:5px;" aria-hidden="true"></i>Trigger API
+    </button>
+  </div>
+
+  <div id="cards-zone" style="display: flex; flex-direction: column; gap: 12px; position: relative;"></div>
+</div>
+
+<script>
+const TOOL_DATA = {
+  search: {
+    icon: 'ti-search',
+    color: '#a78bfa',
+    accentRgb: '167,139,250',
+    label: 'Web search',
+    params: [
+      { key: 'query', val: '"Claude Sonnet 4 capabilities"' },
+      { key: 'max_results', val: '5' }
+    ],
+    result: '4 results found — Anthropic blog, TechCrunch, VentureBeat, HN thread',
+    detail: 'Searched in 0.38s · Top result: anthropic.com/news · Safe search: on'
+  },
+  calc: {
+    icon: 'ti-math',
+    color: '#38bdf8',
+    accentRgb: '56,189,248',
+    label: 'Calculator',
+    params: [
+      { key: 'expression', val: 'compound(1000, 0.07, 12, 30)' }
+    ],
+    result: '$7,612.26 — 30 years @ 7% compounded monthly',
+    detail: 'Computed in <1ms · Precision: IEEE 754 double · No overflow'
+  },
+  api: {
+    icon: 'ti-plug',
+    color: '#34d399',
+    accentRgb: '52,211,153',
+    label: 'API call',
+    params: [
+      { key: 'endpoint', val: 'GET /v1/weather?city=Mumbai' },
+      { key: 'auth', val: 'Bearer ••••••••' }
+    ],
+    result: '29°C, humidity 78%, scattered clouds — Mumbai, IN',
+    detail: 'Status 200 · Latency 142ms · Cached: false · Rate limit: 98/100'
+  }
+};
+
+function triggerCard(type) {
+  const data = TOOL_DATA[type];
+  const zone = document.getElementById('cards-zone');
+
+  const card = document.createElement('div');
+  card.className = 'tool-card';
+  card.setAttribute('role', 'region');
+  card.setAttribute('aria-label', data.label + ' tool result');
+
+  let paramsHtml = data.params.map(p =>
+    `<div style="display:flex; gap:8px; align-items:baseline;">
+      <span style="font-size:11px; color:rgba(255,255,255,0.4); min-width:68px; font-family:var(--font-mono);">${p.key}</span>
+      <span style="font-size:12px; color:rgba(255,255,255,0.75); font-family:var(--font-mono);">${p.val}</span>
+    </div>`
+  ).join('');
+
+  card.innerHTML = `
+    <button class="close-btn" aria-label="Dismiss card"><i class="ti ti-x" aria-hidden="true"></i></button>
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+      <div style="width:34px; height:34px; border-radius:8px; background:rgba(${data.accentRgb},0.18); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+        <i class="ti ${data.icon}" style="font-size:18px; color:${data.color};" aria-hidden="true"></i>
+      </div>
+      <div>
+        <div style="font-size:13px; font-weight:500; color:rgba(255,255,255,0.9);">${data.label}</div>
+        <div style="font-size:11px; color:rgba(255,255,255,0.38); margin-top:1px;">Parameters</div>
+      </div>
+      <div style="margin-left:auto; font-size:10px; background:rgba(${data.accentRgb},0.15); color:${data.color}; border-radius:5px; padding:3px 8px; border:0.5px solid rgba(${data.accentRgb},0.25);">LIVE</div>
+    </div>
+    <div style="background:rgba(0,0,0,0.2); border-radius:8px; padding:8px 10px; margin-bottom:10px; display:flex; flex-direction:column; gap:4px;">
+      ${paramsHtml}
+    </div>
+    <div style="display:flex; align-items:flex-start; gap:6px;">
+      <i class="ti ti-circle-check" style="font-size:14px; color:${data.color}; margin-top:1px; flex-shrink:0;" aria-hidden="true"></i>
+      <span style="font-size:12.5px; color:rgba(255,255,255,0.82); line-height:1.5;">${data.result}</span>
+    </div>
+    <div class="detail-extra">
+      <div style="border-top:0.5px solid rgba(255,255,255,0.1); padding-top:8px;">
+        <span style="font-size:11px; color:rgba(255,255,255,0.38);">${data.detail}</span>
+      </div>
+    </div>
+    <div class="progress-bar" style="background:linear-gradient(90deg, ${data.color}, rgba(${data.accentRgb},0.4));"></div>
+  `;
+
+  let dismissed = false;
+  function dismiss() {
+    if (dismissed) return;
+    dismissed = true;
+    card.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+    card.style.opacity = '0';
+    card.style.transform = 'translateY(-8px) rotateX(5deg) scale(0.97)';
+    setTimeout(() => card.remove(), 320);
+  }
+
+  card.querySelector('.close-btn').addEventListener('click', (e) => { e.stopPropagation(); dismiss(); });
+  setTimeout(dismiss, 5000);
+
+  card.addEventListener('click', () => {
+    navigator.clipboard?.writeText(data.result).catch(() => {});
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.innerHTML = '<i class="ti ti-clipboard-check" style="font-size:13px; vertical-align:-2px; margin-right:5px;" aria-hidden="true"></i>Copied to clipboard';
+    card.appendChild(toast);
+    setTimeout(() => toast.remove(), 2100);
+  });
+
+  zone.prepend(card);
+
+  const all = zone.querySelectorAll('.tool-card');
+  if (all.length > 3) all[all.length - 1].remove();
+}
+</script>

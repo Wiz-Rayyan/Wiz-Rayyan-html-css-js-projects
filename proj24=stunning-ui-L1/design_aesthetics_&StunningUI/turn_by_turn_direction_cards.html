@@ -1,0 +1,163 @@
+
+<style>
+  .map-container { position: relative; width: 100%; height: 320px; background: var(--color-background-secondary); border-radius: var(--border-radius-lg); border: 0.5px solid var(--color-border-tertiary); overflow: hidden; margin-bottom: 16px; }
+  .cards-section { padding: 0 0 1rem; }
+  .cards-scroll { display: flex; gap: 12px; overflow-x: auto; padding: 8px 4px 12px; scrollbar-width: thin; }
+  .cards-scroll::-webkit-scrollbar { height: 4px; }
+  .cards-scroll::-webkit-scrollbar-thumb { background: var(--color-border-secondary); border-radius: 2px; }
+  .step-card { flex: 0 0 180px; background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 14px; cursor: pointer; transition: transform 0.2s, border-color 0.2s; user-select: none; }
+  .step-card.active { border-color: #1D9E75; transform: scale(1.05); box-shadow: 0 0 0 2px #1D9E75; }
+  .step-card:hover:not(.active) { border-color: var(--color-border-primary); }
+  .card-icon { width: 36px; height: 36px; border-radius: 50%; background: var(--color-background-secondary); display: flex; align-items: center; justify-content: center; margin-bottom: 10px; font-size: 18px; }
+  .step-card.active .card-icon { background: #E1F5EE; color: #0F6E56; }
+  .card-dist { font-size: 12px; color: var(--color-text-secondary); margin-bottom: 3px; }
+  .card-street { font-size: 13px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 4px; line-height: 1.3; }
+  .card-instr { font-size: 11px; color: var(--color-text-secondary); line-height: 1.4; }
+  .voice-btn { display: flex; align-items: center; gap: 5px; margin-top: 10px; padding: 4px 8px; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); font-size: 11px; background: none; color: var(--color-text-secondary); cursor: pointer; }
+  .voice-btn:hover { background: var(--color-background-secondary); }
+  .route-label { position: absolute; top: 12px; left: 12px; background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); padding: 5px 10px; font-size: 12px; font-weight: 500; color: var(--color-text-primary); }
+  .step-info { position: absolute; bottom: 12px; left: 12px; right: 12px; background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); padding: 8px 12px; display: flex; align-items: center; gap: 10px; }
+  .step-info-icon { font-size: 20px; color: #1D9E75; }
+  .step-info-text { font-size: 12px; font-weight: 500; color: var(--color-text-primary); }
+  .step-info-sub { font-size: 11px; color: var(--color-text-secondary); }
+  .section-label { font-size: 12px; color: var(--color-text-secondary); margin-bottom: 4px; padding: 0 4px; display: flex; align-items: center; justify-content: space-between; }
+  .total-info { font-size: 11px; color: var(--color-text-secondary); }
+</style>
+
+<h2 class="sr-only">Turn-by-turn direction cards with interactive map preview</h2>
+
+<div class="map-container" id="mapWrap">
+  <svg id="mapSvg" width="100%" height="100%" viewBox="0 0 680 320" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg"></svg>
+  <div class="route-label">🗺 Downtown Route · 4.2 km</div>
+  <div class="step-info" id="stepInfo">
+    <i class="ti ti-arrow-up step-info-icon" id="stepIcon" aria-hidden="true"></i>
+    <div>
+      <div class="step-info-text" id="stepInfoText">Head north on Main St</div>
+      <div class="step-info-sub" id="stepInfoSub">0.3 km · Stay on main road</div>
+    </div>
+  </div>
+</div>
+
+<div class="cards-section">
+  <div class="section-label">
+    <span>Directions</span>
+    <span class="total-info" id="totalInfo">Step 1 of 7</span>
+  </div>
+  <div class="cards-scroll" id="cardsScroll"></div>
+</div>
+
+<script>
+const steps = [
+  { icon: "ti-arrow-up",     street: "Main St",        dist: "0.3 km",  instr: "Head north toward the traffic light",    voice: "Head north on Main Street for 300 meters",       color: "#1D9E75" },
+  { icon: "ti-arrow-right",  street: "Oak Ave",         dist: "0.6 km",  instr: "Turn right onto Oak Avenue",             voice: "Turn right onto Oak Avenue. Continue 600 meters", color: "#1D9E75" },
+  { icon: "ti-arrow-left",   street: "Elm Blvd",        dist: "0.4 km",  instr: "Turn left at the roundabout",            voice: "Turn left at the roundabout onto Elm Boulevard", color: "#1D9E75" },
+  { icon: "ti-arrow-up",     street: "Bridge Rd",       dist: "0.9 km",  instr: "Continue straight over the bridge",      voice: "Continue straight on Bridge Road for 900 meters", color: "#1D9E75" },
+  { icon: "ti-arrow-right",  street: "Park St",         dist: "0.2 km",  instr: "Turn right at the park entrance",        voice: "Turn right onto Park Street",                    color: "#1D9E75" },
+  { icon: "ti-arrow-left",   street: "River Lane",      dist: "0.5 km",  instr: "Turn left after the café",               voice: "Turn left onto River Lane after the café",        color: "#1D9E75" },
+  { icon: "ti-flag",         street: "City Hall Plaza", dist: "0.3 km",  instr: "Arrive at destination on the left",      voice: "You have arrived at City Hall Plaza",            color: "#185FA5" },
+];
+
+const waypoints = [
+  {x: 80,  y: 260}, {x: 80,  y: 180}, {x: 200, y: 180},
+  {x: 200, y: 130}, {x: 420, y: 130}, {x: 500, y: 130},
+  {x: 500, y: 200}, {x: 600, y: 200}
+];
+
+let active = 0;
+
+function buildMap(activeIdx) {
+  const svg = document.getElementById('mapSvg');
+  svg.innerHTML = '';
+
+  const defs = document.createElementNS('http://www.w3.org/2000/svg','defs');
+  defs.innerHTML = `<pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" stroke-width="0.3" opacity="0.15"/></pattern>`;
+  svg.appendChild(defs);
+
+  const gridRect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+  gridRect.setAttribute('width','100%'); gridRect.setAttribute('height','100%');
+  gridRect.setAttribute('fill','url(#grid)');
+  svg.appendChild(gridRect);
+
+  const blockData = [
+    [120,155,160,90],[300,155,180,60],[500,90,120,60],
+    [300,215,160,60],[120,55,80,60],[440,200,80,70]
+  ];
+  blockData.forEach(([x,y,w,h]) => {
+    const r = document.createElementNS('http://www.w3.org/2000/svg','rect');
+    r.setAttribute('x',x); r.setAttribute('y',y); r.setAttribute('width',w); r.setAttribute('height',h);
+    r.setAttribute('fill','var(--color-border-tertiary)'); r.setAttribute('rx','4'); r.setAttribute('opacity','0.5');
+    svg.appendChild(r);
+  });
+
+  for (let i = 0; i < waypoints.length - 1; i++) {
+    const a = waypoints[i], b = waypoints[i+1];
+    const isActive = i === activeIdx;
+    const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1',a.x); line.setAttribute('y1',a.y);
+    line.setAttribute('x2',b.x); line.setAttribute('y2',b.y);
+    line.setAttribute('stroke', isActive ? '#1D9E75' : '#9FE1CB');
+    line.setAttribute('stroke-width', isActive ? '6' : '3');
+    line.setAttribute('stroke-linecap','round');
+    svg.appendChild(line);
+  }
+
+  waypoints.forEach((pt, i) => {
+    if (i === 0 || i === waypoints.length - 1 || i - 1 === activeIdx) {
+      const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      c.setAttribute('cx',pt.x); c.setAttribute('cy',pt.y);
+      c.setAttribute('r', i - 1 === activeIdx ? '8' : '5');
+      c.setAttribute('fill', i === waypoints.length-1 ? '#185FA5' : '#1D9E75');
+      c.setAttribute('stroke','var(--color-background-primary)'); c.setAttribute('stroke-width','2');
+      svg.appendChild(c);
+    }
+  });
+}
+
+function buildCards() {
+  const scroll = document.getElementById('cardsScroll');
+  scroll.innerHTML = '';
+  steps.forEach((s, i) => {
+    const card = document.createElement('div');
+    card.className = 'step-card' + (i === active ? ' active' : '');
+    card.innerHTML = `
+      <div class="card-icon"><i class="ti ${s.icon}" aria-hidden="true"></i></div>
+      <div class="card-dist">${s.dist}</div>
+      <div class="card-street">${s.street}</div>
+      <div class="card-instr">${s.instr}</div>
+      <button class="voice-btn" aria-label="Play voice instruction for step ${i+1}"><i class="ti ti-volume" aria-hidden="true" style="font-size:13px"></i> Play</button>
+    `;
+    card.querySelector('.voice-btn').addEventListener('click', e => {
+      e.stopPropagation();
+      speak(s.voice);
+    });
+    card.addEventListener('click', () => setActive(i));
+    scroll.appendChild(card);
+  });
+}
+
+function setActive(idx) {
+  active = idx;
+  const s = steps[idx];
+  document.getElementById('stepIcon').className = `ti ${s.icon} step-info-icon`;
+  document.getElementById('stepInfoText').textContent = s.instr;
+  document.getElementById('stepInfoSub').textContent = `${s.dist} · Step ${idx+1} of ${steps.length}`;
+  document.getElementById('totalInfo').textContent = `Step ${idx+1} of ${steps.length}`;
+  buildMap(idx);
+  buildCards();
+  const scroll = document.getElementById('cardsScroll');
+  const card = scroll.children[idx];
+  if (card) card.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+}
+
+function speak(text) {
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = 0.95;
+    window.speechSynthesis.speak(u);
+  }
+}
+
+buildMap(0);
+buildCards();
+</script>

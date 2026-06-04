@@ -1,0 +1,244 @@
+
+<style>
+  #hm-wrap { padding: 1rem 0; font-family: var(--font-sans); }
+  #hm-canvas-wrap { position: relative; border-radius: var(--border-radius-lg); overflow: hidden; background: #0a0e1a; }
+  #hm-base { display: block; width: 100%; }
+  #hm-heat { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; transition: opacity 0.6s ease; pointer-events: none; }
+  #hm-heat.visible { opacity: 1; }
+  #hm-tooltip { position: absolute; background: rgba(10,14,26,0.88); border: 0.5px solid rgba(255,255,255,0.18); border-radius: 6px; padding: 5px 10px; font-size: 12px; color: #e8eaf0; pointer-events: none; display: none; z-index: 10; white-space: nowrap; }
+  #hm-controls { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; margin-top: 12px; }
+  .hm-label { font-size: 13px; color: var(--color-text-secondary); }
+  .hm-val { font-size: 13px; font-weight: 500; color: var(--color-text-primary); min-width: 28px; }
+  #hm-toggle { font-size: 13px; padding: 5px 14px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-secondary); background: transparent; color: var(--color-text-primary); cursor: pointer; display: flex; align-items: center; gap: 6px; }
+  #hm-toggle:hover { background: var(--color-background-secondary); }
+  .hm-legend { display: flex; align-items: center; gap: 6px; margin-top: 10px; }
+  .hm-legend-bar { width: 180px; height: 8px; border-radius: 4px; background: linear-gradient(to right, #2244bb, #22bb88, #ddcc11, #ff3311); }
+  .hm-legend-label { font-size: 11px; color: var(--color-text-secondary); }
+</style>
+
+<div id="hm-wrap">
+  <div id="hm-canvas-wrap">
+    <canvas id="hm-base"></canvas>
+    <canvas id="hm-heat"></canvas>
+    <div id="hm-tooltip"></div>
+  </div>
+  <div id="hm-controls">
+    <button id="hm-toggle"><i class="ti ti-flame" aria-hidden="true"></i> Toggle heatmap</button>
+    <span class="hm-label">Intensity</span>
+    <input type="range" min="1" max="100" value="60" id="hm-intensity" step="1" style="width:130px">
+    <span class="hm-val" id="hm-ival">60</span>
+    <span class="hm-label" style="margin-left:auto">Pulse speed</span>
+    <input type="range" min="1" max="10" value="4" id="hm-speed" step="1" style="width:90px">
+    <span class="hm-val" id="hm-sval">4</span>
+  </div>
+  <div class="hm-legend">
+    <span class="hm-legend-label">sparse</span>
+    <div class="hm-legend-bar"></div>
+    <span class="hm-legend-label">dense</span>
+  </div>
+</div>
+
+<script>
+(function() {
+  const W = 680, H = 340;
+  const base = document.getElementById('hm-base');
+  const heat = document.getElementById('hm-heat');
+  const tip = document.getElementById('hm-tooltip');
+  const wrap = document.getElementById('hm-canvas-wrap');
+  const toggle = document.getElementById('hm-toggle');
+  const iSlider = document.getElementById('hm-intensity');
+  const sSlider = document.getElementById('hm-speed');
+  const iVal = document.getElementById('hm-ival');
+  const sVal = document.getElementById('hm-sval');
+
+  base.width = W; base.height = H;
+  heat.width = W; heat.height = H;
+  heat.style.width = '100%'; heat.style.height = '100%';
+  base.style.width = '100%'; base.style.height = 'auto';
+
+  const bc = base.getContext('2d');
+  const hc = heat.getContext('2d');
+
+  const rng = (s) => { let x = Math.sin(s+1)*10000; return x - Math.floor(x); };
+
+  const clusters = [
+    {cx:160,cy:100,r:90,n:28,seed:1},
+    {cx:420,cy:200,r:110,n:38,seed:7},
+    {cx:580,cy:80,r:70,n:18,seed:3},
+    {cx:100,cy:270,r:60,n:14,seed:11},
+    {cx:320,cy:290,r:80,n:22,seed:5},
+    {cx:520,cy:290,r:55,n:10,seed:9},
+  ];
+
+  const points = [];
+  let pid = 0;
+  clusters.forEach(cl => {
+    for(let i=0;i<cl.n;i++){
+      const a = rng(cl.seed*100+i)*Math.PI*2;
+      const d = rng(cl.seed*200+i)*cl.r;
+      const x = Math.round(cl.cx + Math.cos(a)*d);
+      const y = Math.round(cl.cy + Math.sin(a)*d);
+      const density = Math.round(20 + rng(cl.seed*300+i)*80);
+      const radius = 18 + rng(cl.seed*400+i)*28;
+      points.push({x,y,density,radius,id:pid++,cx:cl.cx,cy:cl.cy});
+    }
+  });
+
+  function drawBase() {
+    bc.clearRect(0,0,W,H);
+    bc.fillStyle = '#0a0e1a';
+    bc.fillRect(0,0,W,H);
+    for(let gx=0;gx<=W;gx+=40){
+      bc.beginPath(); bc.moveTo(gx,0); bc.lineTo(gx,H);
+      bc.strokeStyle='rgba(255,255,255,0.04)'; bc.lineWidth=0.5; bc.stroke();
+    }
+    for(let gy=0;gy<=H;gy+=40){
+      bc.beginPath(); bc.moveTo(0,gy); bc.lineTo(W,gy);
+      bc.strokeStyle='rgba(255,255,255,0.04)'; bc.lineWidth=0.5; bc.stroke();
+    }
+    points.forEach(p => {
+      bc.beginPath();
+      bc.arc(p.x, p.y, 3, 0, Math.PI*2);
+      const alpha = 0.3 + (p.density/100)*0.55;
+      bc.fillStyle = `rgba(180,210,255,${alpha})`;
+      bc.fill();
+    });
+  }
+
+  function densityColor(v) {
+    const t = Math.max(0, Math.min(1, v));
+    let r,g,b;
+    if(t < 0.33) {
+      const s = t/0.33;
+      r = Math.round(20 + s*(10));
+      g = Math.round(60 + s*(160));
+      b = Math.round(200 + s*(-60));
+    } else if(t < 0.66) {
+      const s = (t-0.33)/0.33;
+      r = Math.round(30 + s*(210));
+      g = Math.round(220 + s*(10));
+      b = Math.round(140 + s*(-120));
+    } else {
+      const s = (t-0.66)/0.34;
+      r = Math.round(240 + s*(15));
+      g = Math.round(230 - s*(200));
+      b = Math.round(20 - s*(10));
+    }
+    return [r,g,b];
+  }
+
+  let heatVisible = false;
+  let baseIntensity = 0.60;
+  let pulseSpeed = 4;
+  let frame = 0;
+  let raf = null;
+
+  function drawHeat(pulse) {
+    hc.clearRect(0,0,W,H);
+    hc.globalCompositeOperation = 'source-over';
+    hc.fillStyle = 'rgba(5,8,18,0.92)';
+    hc.fillRect(0,0,W,H);
+    hc.globalCompositeOperation = 'lighter';
+
+    const intensity = baseIntensity * (0.72 + 0.28 * pulse);
+
+    points.forEach(p => {
+      const r = p.radius * (0.85 + 0.15 * pulse);
+      const norm = p.density / 100;
+      const [cr,cg,cb] = densityColor(norm);
+      const alpha = intensity * (0.35 + norm * 0.55);
+
+      const grad = hc.createRadialGradient(p.x, p.y, 0, p.x, p.y, r);
+      grad.addColorStop(0, `rgba(${cr},${cg},${cb},${Math.min(1, alpha * 1.5)})`);
+      grad.addColorStop(0.4, `rgba(${cr},${cg},${cb},${Math.min(1, alpha * 0.8)})`);
+      grad.addColorStop(1, `rgba(${cr},${cg},${cb},0)`);
+
+      hc.beginPath();
+      hc.arc(p.x, p.y, r, 0, Math.PI*2);
+      hc.fillStyle = grad;
+      hc.fill();
+    });
+    hc.globalCompositeOperation = 'source-over';
+  }
+
+  function loop() {
+    frame++;
+    const t = frame * 0.012 * (pulseSpeed / 4);
+    const pulse = 0.5 + 0.5 * Math.sin(t);
+    if(heatVisible) drawHeat(pulse);
+    raf = requestAnimationFrame(loop);
+  }
+
+  drawBase();
+  raf = requestAnimationFrame(loop);
+
+  toggle.addEventListener('click', () => {
+    heatVisible = !heatVisible;
+    if(heatVisible) {
+      heat.classList.add('visible');
+      toggle.innerHTML = '<i class="ti ti-flame-off" aria-hidden="true"></i> Hide heatmap';
+    } else {
+      heat.classList.remove('visible');
+      toggle.innerHTML = '<i class="ti ti-flame" aria-hidden="true"></i> Toggle heatmap';
+    }
+  });
+
+  iSlider.addEventListener('input', () => {
+    baseIntensity = parseInt(iSlider.value) / 100;
+    iVal.textContent = iSlider.value;
+  });
+
+  sSlider.addEventListener('input', () => {
+    pulseSpeed = parseInt(sSlider.value);
+    sVal.textContent = sSlider.value;
+  });
+
+  function getScale() {
+    return base.getBoundingClientRect().width / W;
+  }
+
+  wrap.addEventListener('mousemove', (e) => {
+    const rect = wrap.getBoundingClientRect();
+    const scale = getScale();
+    const mx = (e.clientX - rect.left) / scale;
+    const my = (e.clientY - rect.top) / scale;
+    let closest = null, best = Infinity;
+    points.forEach(p => {
+      const d = Math.hypot(p.x - mx, p.y - my);
+      if(d < best && d < 22) { best = d; closest = p; }
+    });
+    if(closest) {
+      tip.style.display = 'block';
+      tip.textContent = `Density: ${closest.density}  ·  (${closest.x}, ${closest.y})`;
+      const tx = Math.min(e.clientX - rect.left + 10, rect.width - 160);
+      const ty = Math.max(e.clientY - rect.top - 36, 4);
+      tip.style.left = tx + 'px';
+      tip.style.top = ty + 'px';
+      wrap.style.cursor = 'crosshair';
+    } else {
+      tip.style.display = 'none';
+      wrap.style.cursor = 'default';
+    }
+  });
+
+  wrap.addEventListener('mouseleave', () => {
+    tip.style.display = 'none';
+  });
+
+  wrap.addEventListener('click', (e) => {
+    const rect = wrap.getBoundingClientRect();
+    const scale = getScale();
+    const mx = (e.clientX - rect.left) / scale;
+    const my = (e.clientY - rect.top) / scale;
+    let closest = null, best = Infinity;
+    points.forEach(p => {
+      const d = Math.hypot(p.x - mx, p.y - my);
+      if(d < best && d < 22) { best = d; closest = p; }
+    });
+    if(closest) {
+      tip.style.display = 'block';
+      tip.textContent = `📍 Point #${closest.id}  Density: ${closest.density}  (${closest.x}, ${closest.y})`;
+    }
+  });
+})();
+</script>

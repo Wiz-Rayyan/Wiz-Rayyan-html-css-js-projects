@@ -1,0 +1,303 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans)}
+#root{padding:2rem 1.5rem;display:flex;flex-direction:column;gap:1.5rem}
+#textarea{width:100%;height:90px;resize:none;font-size:14px;padding:10px 12px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-background-secondary);color:var(--color-text-primary);font-family:var(--font-sans);outline:none;transition:border-color .2s}
+#textarea:focus{border-color:var(--color-border-primary)}
+#meter-area{display:flex;flex-direction:column;gap:8px}
+#meter-row{display:flex;align-items:center;gap:12px}
+#meter-wrap{flex:1;position:relative;height:22px;cursor:pointer}
+#meter-bg{width:100%;height:100%;border-radius:20px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);overflow:hidden;position:relative}
+#meter-fill{height:100%;border-radius:20px;width:0%;transition:width .3s ease,background-color .4s ease;background:#22c55e}
+#meter-glow{position:absolute;inset:0;border-radius:20px;pointer-events:none;opacity:0}
+#counter-row{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--color-text-secondary)}
+#counter-label{font-variant-numeric:tabular-nums}
+#breakdown{display:flex;gap:16px;font-size:12px;color:var(--color-text-tertiary)}
+#breakdown span b{color:var(--color-text-secondary);font-weight:500}
+#canvas{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:999}
+#tooltip{position:fixed;display:none;background:var(--color-background-primary);border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:10px 14px;font-size:13px;color:var(--color-text-primary);box-shadow:0 4px 16px rgba(0,0,0,.08);z-index:1000;min-width:160px}
+#tooltip .tt-row{display:flex;justify-content:space-between;gap:20px;padding:2px 0}
+#tooltip .tt-label{color:var(--color-text-secondary)}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(60px);background:#ef4444;color:#fff;padding:8px 18px;border-radius:20px;font-size:13px;font-weight:500;opacity:0;transition:all .4s ease;z-index:1001;pointer-events:none;white-space:nowrap}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#gen-btn{padding:7px 18px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:transparent;color:var(--color-text-primary);font-size:13px;cursor:pointer;font-family:var(--font-sans);transition:background .15s}
+#gen-btn:hover{background:var(--color-background-secondary)}
+#reset-btn{padding:7px 14px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:transparent;color:var(--color-text-secondary);font-size:13px;cursor:pointer;font-family:var(--font-sans);transition:background .15s}
+#reset-btn:hover{background:var(--color-background-secondary)}
+.btn-row{display:flex;gap:8px;align-items:center}
+#model-sel{padding:6px 10px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-background-secondary);color:var(--color-text-primary);font-size:13px;font-family:var(--font-sans);cursor:pointer}
+</style>
+
+<div id="root">
+  <h2 class="sr-only">Token usage meter — tracks how many tokens you've used in a conversation</h2>
+
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+    <div>
+      <p style="font-size:15px;font-weight:500;color:var(--color-text-primary)">Token usage meter</p>
+      <p style="font-size:12px;color:var(--color-text-secondary);margin-top:2px">Type below or simulate AI generation</p>
+    </div>
+    <div class="btn-row">
+      <select id="model-sel">
+        <option value="200000">Claude (200K)</option>
+        <option value="128000">GPT-4o (128K)</option>
+        <option value="32000">GPT-3.5 (32K)</option>
+        <option value="8192">Claude Haiku (8K)</option>
+      </select>
+    </div>
+  </div>
+
+  <textarea id="textarea" placeholder="Type here — tokens count as you type…"></textarea>
+
+  <div class="btn-row">
+    <button id="gen-btn">Simulate AI response ↗</button>
+    <button id="reset-btn">Reset</button>
+  </div>
+
+  <div id="meter-area">
+    <div id="meter-row">
+      <div id="meter-wrap">
+        <div id="meter-bg"><div id="meter-fill"></div></div>
+        <div id="meter-glow"></div>
+      </div>
+      <span id="pct-label" style="font-size:12px;font-weight:500;min-width:36px;text-align:right;color:var(--color-text-secondary)">0%</span>
+    </div>
+    <div id="counter-row">
+      <span id="counter-label">0 / 200,000 tokens</span>
+      <div id="breakdown">
+        <span>Input: <b id="inp-ct">0</b></span>
+        <span>Output: <b id="out-ct">0</b></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<canvas id="canvas"></canvas>
+<div id="tooltip">
+  <div class="tt-row"><span class="tt-label">Input tokens</span><span id="tt-in">0</span></div>
+  <div class="tt-row"><span class="tt-label">Output tokens</span><span id="tt-out">0</span></div>
+  <div class="tt-row" style="border-top:0.5px solid var(--color-border-tertiary);margin-top:6px;padding-top:6px"><span class="tt-label" style="font-weight:500">Total</span><b id="tt-total">0</b></div>
+</div>
+<div id="toast">⚠ Approaching token limit!</div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const fill = document.getElementById('meter-fill');
+const meterWrap = document.getElementById('meter-wrap');
+const meterBg = document.getElementById('meter-bg');
+const counterLabel = document.getElementById('counter-label');
+const pctLabel = document.getElementById('pct-label');
+const inpCt = document.getElementById('inp-ct');
+const outCt = document.getElementById('out-ct');
+const textarea = document.getElementById('textarea');
+const tooltip = document.getElementById('tooltip');
+const toast = document.getElementById('toast');
+const ttIn = document.getElementById('tt-in');
+const ttOut = document.getElementById('tt-out');
+const ttTotal = document.getElementById('tt-total');
+const genBtn = document.getElementById('gen-btn');
+const resetBtn = document.getElementById('reset-btn');
+const modelSel = document.getElementById('model-sel');
+
+let inputTokens = 0, outputTokens = 0;
+let maxTokens = 200000;
+let particles = [];
+let animFrame;
+let pulseInterval = null;
+let toastTimeout = null;
+let generating = false;
+let genInterval = null;
+let warned = false;
+
+function resize(){canvas.width=window.innerWidth;canvas.height=window.innerHeight}
+resize();
+window.addEventListener('resize',resize);
+
+function approxTokens(text){return Math.max(0,Math.ceil(text.length/4))}
+
+function getColor(pct){
+  if(pct<0.7) return '#22c55e';
+  if(pct<0.9) return '#f59e0b';
+  return '#ef4444';
+}
+
+function getMeterRect(){
+  const r = meterBg.getBoundingClientRect();
+  return r;
+}
+
+function spawnParticles(count, fromEl){
+  const src = fromEl.getBoundingClientRect();
+  const srcX = src.left + src.width/2 + (Math.random()-0.5)*src.width*0.4;
+  const srcY = src.top + src.height/2 + (Math.random()-0.5)*src.height*0.4;
+  const mr = getMeterRect();
+  const destX = mr.left + Math.random()*mr.width*0.6 + mr.width*0.1;
+  const destY = mr.top + mr.height/2;
+  const cp1x = srcX + (destX-srcX)*0.3 + (Math.random()-0.5)*80;
+  const cp1y = srcY - 60 - Math.random()*60;
+  const cp2x = destX - (destX-srcX)*0.2 + (Math.random()-0.5)*40;
+  const cp2y = destY - 30 - Math.random()*30;
+  for(let i=0;i<count;i++){
+    particles.push({
+      sx:srcX,sy:srcY,cp1x,cp1y,cp2x,cp2y,dx:destX,dy:destY,
+      t:-(Math.random()*0.3),speed:0.012+Math.random()*0.01,
+      r:2+Math.random()*1.5,
+      alpha:0,done:false,
+      color:getColor((inputTokens+outputTokens)/maxTokens)
+    });
+  }
+  if(!animFrame) loop();
+}
+
+function bezier(t,p0,p1,p2,p3){
+  const mt=1-t;
+  return mt*mt*mt*p0+3*mt*mt*t*p1+3*mt*t*t*p2+t*t*t*p3;
+}
+
+function loop(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  let alive=false;
+  particles.forEach(p=>{
+    if(p.done) return;
+    p.t+=p.speed;
+    const tc=Math.max(0,Math.min(1,p.t));
+    if(p.t<0){alive=true;return;}
+    const x=bezier(tc,p.sx,p.cp1x,p.cp2x,p.dx);
+    const y=bezier(tc,p.sy,p.cp1y,p.cp2y,p.dy);
+    const fade=tc<0.1?tc/0.1:tc>0.85?(1-tc)/0.15:1;
+    ctx.globalAlpha=Math.min(1,fade)*0.85;
+    ctx.fillStyle=p.color;
+    ctx.beginPath();
+    ctx.arc(x,y,p.r,0,Math.PI*2);
+    ctx.fill();
+    if(tc>=1) p.done=true;
+    else alive=true;
+  });
+  ctx.globalAlpha=1;
+  particles=particles.filter(p=>!p.done&&p.t<1.2);
+  if(alive||particles.length) animFrame=requestAnimationFrame(loop);
+  else animFrame=null;
+}
+
+function update(){
+  const total = inputTokens + outputTokens;
+  const pct = Math.min(1, total/maxTokens);
+  const pctPct = Math.round(pct*100);
+  fill.style.width = pctPct+'%';
+  fill.style.background = getColor(pct);
+  counterLabel.textContent = total.toLocaleString()+' / '+maxTokens.toLocaleString()+' tokens';
+  pctLabel.textContent = pctPct+'%';
+  inpCt.textContent = inputTokens.toLocaleString();
+  outCt.textContent = outputTokens.toLocaleString();
+  ttIn.textContent = inputTokens.toLocaleString();
+  ttOut.textContent = outputTokens.toLocaleString();
+  ttTotal.textContent = total.toLocaleString();
+
+  if(pct>=0.9 && !warned){
+    warned=true;
+    startPulse();
+    showToast();
+  }
+  if(pct<0.9 && warned){
+    warned=false;
+    stopPulse();
+  }
+}
+
+function startPulse(){
+  if(pulseInterval) return;
+  let up=true;
+  pulseInterval=setInterval(()=>{
+    fill.style.opacity=up?'0.6':'1';
+    up=!up;
+  },420);
+}
+function stopPulse(){
+  if(pulseInterval){clearInterval(pulseInterval);pulseInterval=null;}
+  fill.style.opacity='1';
+}
+function showToast(){
+  toast.classList.add('show');
+  if(toastTimeout) clearTimeout(toastTimeout);
+  toastTimeout=setTimeout(()=>toast.classList.remove('show'),3500);
+}
+
+textarea.addEventListener('input',()=>{
+  const prev = inputTokens;
+  inputTokens = approxTokens(textarea.value);
+  if(inputTokens > prev){
+    const delta = inputTokens - prev;
+    const n = Math.min(Math.max(1,Math.floor(delta*1.5)),12);
+    spawnParticles(n, textarea);
+  }
+  update();
+});
+
+let genText = "The token meter works by estimating tokens from character count, typically around 4 characters per token for English text. As you type or as the AI generates a response, small particles animate along a Bézier curve path into the progress bar. The bar's color transitions from green to amber to red as usage increases, and when you approach 90% of the context limit, the meter pulses and a warning toast appears. Hover over the meter to see the input/output token breakdown.";
+let genIdx = 0;
+
+genBtn.addEventListener('click',()=>{
+  if(generating) return;
+  generating=true;
+  genIdx=0;
+  genBtn.disabled=true;
+  genBtn.textContent='Generating…';
+  let charBatch = '';
+  let lastOut = outputTokens;
+  genInterval = setInterval(()=>{
+    if(genIdx>=genText.length){
+      clearInterval(genInterval);
+      generating=false;
+      genBtn.disabled=false;
+      genBtn.textContent='Simulate AI response ↗';
+      return;
+    }
+    const step = Math.ceil(1+Math.random()*3);
+    charBatch += genText.slice(genIdx, genIdx+step);
+    genIdx += step;
+    outputTokens = approxTokens(charBatch);
+    const delta = outputTokens - lastOut;
+    if(delta>0){
+      spawnParticles(Math.min(delta*2,8), genBtn);
+      lastOut = outputTokens;
+    }
+    update();
+  },55);
+});
+
+resetBtn.addEventListener('click',()=>{
+  inputTokens=0; outputTokens=0;
+  textarea.value='';
+  warned=false;
+  stopPulse();
+  toast.classList.remove('show');
+  if(genInterval) clearInterval(genInterval);
+  generating=false;
+  genBtn.disabled=false;
+  genBtn.textContent='Simulate AI response ↗';
+  update();
+});
+
+modelSel.addEventListener('change',()=>{
+  maxTokens=parseInt(modelSel.value);
+  warned=false;
+  stopPulse();
+  update();
+});
+
+meterWrap.addEventListener('mouseenter',e=>{
+  tooltip.style.display='block';
+  moveTooltip(e);
+});
+meterWrap.addEventListener('mousemove',moveTooltip);
+meterWrap.addEventListener('mouseleave',()=>tooltip.style.display='none');
+function moveTooltip(e){
+  let x=e.clientX+14, y=e.clientY-60;
+  if(x+175>window.innerWidth) x=e.clientX-185;
+  tooltip.style.left=x+'px';
+  tooltip.style.top=y+'px';
+}
+
+update();
+</script>

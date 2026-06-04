@@ -1,0 +1,434 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+#shell{
+  background:#06070d;
+  border-radius:16px;
+  padding:0;
+  overflow:hidden;
+  position:relative;
+  font-family:var(--font-sans);
+}
+#bg-canvas{display:block;position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;}
+#content{position:relative;z-index:1;padding:1.5rem 1.5rem 1.25rem;}
+#meta{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.25rem;}
+#track-left{}
+#track-name{font-size:15px;font-weight:500;color:#e8eaf0;letter-spacing:0.01em;}
+#track-artist{font-size:12px;color:#5a6070;margin-top:3px;}
+#track-right{display:flex;gap:8px;align-items:center;}
+.pill{font-size:11px;padding:3px 10px;border-radius:20px;border:0.5px solid;font-weight:500;}
+.pill-cyan{background:rgba(0,210,255,0.1);color:#00d2ff;border-color:rgba(0,210,255,0.25);}
+.pill-off{background:rgba(255,255,255,0.04);color:#5a6070;border-color:rgba(255,255,255,0.08);}
+#wave-outer{
+  position:relative;
+  height:130px;
+  border-radius:10px;
+  overflow:hidden;
+  cursor:crosshair;
+  background:rgba(255,255,255,0.025);
+  border:0.5px solid rgba(255,255,255,0.06);
+  margin-bottom:1rem;
+}
+#wc{display:block;width:100%;height:130px;}
+#tip{
+  position:absolute;
+  top:-34px;
+  background:#0e1118;
+  border:0.5px solid rgba(0,210,255,0.35);
+  border-radius:8px;
+  padding:4px 10px;
+  font-size:11px;
+  color:#00d2ff;
+  pointer-events:none;
+  opacity:0;
+  transition:opacity 0.12s;
+  white-space:nowrap;
+  font-variant-numeric:tabular-nums;
+}
+#progress-row{display:flex;justify-content:space-between;margin-bottom:1rem;}
+#prog-bar-wrap{flex:1;position:relative;height:3px;background:rgba(255,255,255,0.08);border-radius:2px;cursor:pointer;margin:0 12px;top:8px;}
+#prog-fill{height:3px;border-radius:2px;background:linear-gradient(90deg,#0077b6,#00d2ff);width:0%;}
+#prog-head{position:absolute;top:-4px;width:11px;height:11px;border-radius:50%;background:#00d2ff;box-shadow:0 0 8px #00d2ff;transform:translateX(-50%);left:0%;transition:left 0.05s;}
+#t-cur{font-size:12px;color:#5a6070;font-variant-numeric:tabular-nums;}
+#t-tot{font-size:12px;color:#5a6070;font-variant-numeric:tabular-nums;}
+#controls{display:flex;align-items:center;gap:14px;}
+.ctrl-btn{
+  width:36px;height:36px;border-radius:50%;
+  background:rgba(255,255,255,0.05);
+  border:0.5px solid rgba(255,255,255,0.1);
+  color:#8892a4;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;
+  transition:all 0.15s;
+  flex-shrink:0;
+}
+.ctrl-btn:hover{background:rgba(0,210,255,0.12);border-color:rgba(0,210,255,0.3);color:#00d2ff;}
+#play-btn{
+  width:44px;height:44px;border-radius:50%;
+  background:linear-gradient(135deg,#0077b6,#00d2ff);
+  border:none;color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;
+  box-shadow:0 0 18px rgba(0,210,255,0.4);
+  transition:all 0.15s;
+  flex-shrink:0;
+}
+#play-btn:hover{box-shadow:0 0 28px rgba(0,210,255,0.6);transform:scale(1.06);}
+#play-btn i{font-size:17px;}
+#vol-row{display:flex;align-items:center;gap:8px;margin-left:auto;}
+#vol-row i{font-size:15px;color:#5a6070;}
+#vol{width:70px;accent-color:#00d2ff;}
+#loop-tag{
+  display:none;
+  font-size:11px;font-weight:500;
+  color:#00e676;
+  background:rgba(0,230,118,0.1);
+  border:0.5px solid rgba(0,230,118,0.25);
+  border-radius:20px;
+  padding:3px 9px;
+}
+#freq-row{display:flex;gap:4px;margin-top:1rem;padding-top:0.75rem;border-top:0.5px solid rgba(255,255,255,0.05);}
+.freq-bar{flex:1;height:32px;border-radius:4px;background:rgba(255,255,255,0.03);border:0.5px solid rgba(255,255,255,0.06);position:relative;overflow:hidden;cursor:pointer;transition:border-color 0.2s;}
+.freq-bar:hover{border-color:rgba(0,210,255,0.3);}
+.freq-fill{position:absolute;bottom:0;left:0;width:100%;border-radius:3px;transition:height 0.18s;}
+.freq-label{position:absolute;bottom:4px;width:100%;text-align:center;font-size:10px;color:#3a4050;}
+</style>
+
+<div id="shell">
+  <canvas id="bg-canvas"></canvas>
+  <div id="content">
+    <div id="meta">
+      <div id="track-left">
+        <div id="track-name">Liquid Motion — Redux</div>
+        <div id="track-artist">ambient · 432 hz · stereo</div>
+      </div>
+      <div id="track-right">
+        <span class="pill pill-cyan" id="loop-tag">⟳ loop</span>
+        <span class="pill pill-off">FLAC</span>
+        <span class="pill pill-off">96kHz</span>
+      </div>
+    </div>
+
+    <div id="wave-outer">
+      <canvas id="wc"></canvas>
+      <div id="tip">0:00</div>
+    </div>
+
+    <div id="progress-row">
+      <span id="t-cur">0:00</span>
+      <div id="prog-bar-wrap">
+        <div id="prog-fill"></div>
+        <div id="prog-head"></div>
+      </div>
+      <span id="t-tot">2:47</span>
+    </div>
+
+    <div id="controls">
+      <button class="ctrl-btn" id="shuf-btn" aria-label="shuffle"><i class="ti ti-arrows-shuffle"></i></button>
+      <button class="ctrl-btn" id="prev-btn" aria-label="previous"><i class="ti ti-player-skip-back"></i></button>
+      <button id="play-btn" aria-label="play/pause"><i class="ti ti-player-play" id="play-icon"></i></button>
+      <button class="ctrl-btn" id="next-btn" aria-label="next"><i class="ti ti-player-skip-forward"></i></button>
+      <button class="ctrl-btn" id="loop-btn" aria-label="loop"><i class="ti ti-repeat"></i></button>
+      <div id="vol-row">
+        <i class="ti ti-volume" aria-hidden="true"></i>
+        <input type="range" id="vol" min="0" max="100" value="80" step="1">
+      </div>
+    </div>
+
+    <div id="freq-row">
+      <div class="freq-bar" data-band="0"><div class="freq-fill" id="fb0" style="background:linear-gradient(180deg,#0060aa,#00d2ff);height:55%"></div><div class="freq-label">32</div></div>
+      <div class="freq-bar" data-band="1"><div class="freq-fill" id="fb1" style="background:linear-gradient(180deg,#0070bb,#00d2ff);height:70%"></div><div class="freq-label">64</div></div>
+      <div class="freq-bar" data-band="2"><div class="freq-fill" id="fb2" style="background:linear-gradient(180deg,#0077b6,#00d2ff);height:85%"></div><div class="freq-label">125</div></div>
+      <div class="freq-bar" data-band="3"><div class="freq-fill" id="fb3" style="background:linear-gradient(180deg,#0088c8,#00d2ff);height:60%"></div><div class="freq-label">250</div></div>
+      <div class="freq-bar" data-band="4"><div class="freq-fill" id="fb4" style="background:linear-gradient(180deg,#009ad0,#00e0ff);height:75%"></div><div class="freq-label">500</div></div>
+      <div class="freq-bar" data-band="5"><div class="freq-fill" id="fb5" style="background:linear-gradient(180deg,#00a8d8,#00e5ff);height:50%"></div><div class="freq-label">1k</div></div>
+      <div class="freq-bar" data-band="6"><div class="freq-fill" id="fb6" style="background:linear-gradient(180deg,#00b8e0,#00eaff);height:40%"></div><div class="freq-label">2k</div></div>
+      <div class="freq-bar" data-band="7"><div class="freq-fill" id="fb7" style="background:linear-gradient(180deg,#00c8e8,#00eeff);height:30%"></div><div class="freq-label">4k</div></div>
+      <div class="freq-bar" data-band="8"><div class="freq-fill" id="fb8" style="background:linear-gradient(180deg,#00d0f0,#00f2ff);height:22%"></div><div class="freq-label">8k</div></div>
+      <div class="freq-bar" data-band="9"><div class="freq-fill" id="fb9" style="background:linear-gradient(180deg,#00d8f8,#00f5ff);height:15%"></div><div class="freq-label">16k</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+const TOTAL = 167;
+const PTS = 90;
+let playing = false, currentTime = 0, phase = 0, lastTS = null, raf;
+let hoverPx = -1, dragging = false;
+let loop = {on:false, s:-1, e:-1};
+let loopMode = false;
+
+const waveOuter = document.getElementById('wave-outer');
+const wc = document.getElementById('wc');
+const ctx = wc.getContext('2d');
+const bgC = document.getElementById('bg-canvas');
+const bgX = bgC.getContext('2d');
+const tip = document.getElementById('tip');
+const playIcon = document.getElementById('play-icon');
+const tCur = document.getElementById('t-cur');
+const tTot = document.getElementById('t-tot');
+const progFill = document.getElementById('prog-fill');
+const progHead = document.getElementById('prog-head');
+const loopTag = document.getElementById('loop-tag');
+const loopBtn = document.getElementById('loop-btn');
+
+const fbEls = Array.from({length:10},(_,i)=>document.getElementById('fb'+i));
+const freqBase = [55,70,85,60,75,50,40,30,22,15];
+const freqNoise = freqBase.map(()=>0);
+
+function resize(){
+  const W = waveOuter.clientWidth;
+  wc.width = W * devicePixelRatio; wc.height = 130 * devicePixelRatio;
+  wc.style.width = W+'px'; wc.style.height = '130px';
+  bgC.width = bgC.parentElement.clientWidth * devicePixelRatio;
+  bgC.height = bgC.parentElement.clientHeight * devicePixelRatio;
+  bgC.style.width = bgC.parentElement.clientWidth+'px';
+  bgC.style.height = bgC.parentElement.clientHeight+'px';
+}
+resize();
+window.addEventListener('resize', resize);
+
+const seedAmp = Array.from({length:PTS},(_,i)=>
+  0.22 + 0.55*Math.abs(Math.sin(i*0.38+0.9)*Math.cos(i*0.19+0.5))
+  + 0.15*Math.abs(Math.sin(i*0.71+2.1))
+);
+
+function fmt(s){
+  s = Math.max(0,Math.min(TOTAL,s));
+  return Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');
+}
+
+function drawBg(){
+  const W = bgC.width, H = bgC.height;
+  bgX.clearRect(0,0,W,H);
+  const p = currentTime/TOTAL;
+  const cx1 = W*0.3, cy1 = H*0.6;
+  const cx2 = W*0.75, cy2 = H*0.35;
+  const r1 = W*0.55, r2 = W*0.4;
+  const alpha = playing ? 0.028 + 0.012*Math.sin(phase*0.7) : 0.018;
+
+  const g1 = bgX.createRadialGradient(cx1,cy1,0,cx1,cy1,r1);
+  g1.addColorStop(0,`rgba(0,120,180,${alpha})`);
+  g1.addColorStop(1,'rgba(0,0,0,0)');
+  bgX.fillStyle = g1; bgX.fillRect(0,0,W,H);
+
+  const g2 = bgX.createRadialGradient(cx2,cy2,0,cx2,cy2,r2);
+  g2.addColorStop(0,`rgba(0,200,255,${alpha*0.7})`);
+  g2.addColorStop(1,'rgba(0,0,0,0)');
+  bgX.fillStyle = g2; bgX.fillRect(0,0,W,H);
+}
+
+function buildPts(ph){
+  return Array.from({length:PTS},(_,i)=>{
+    const base = seedAmp[i];
+    const w1 = 0.1*Math.sin(i*0.25+ph);
+    const w2 = 0.06*Math.sin(i*0.55+ph*1.3);
+    const w3 = 0.04*Math.cos(i*0.9+ph*0.8);
+    return {x:(i/(PTS-1))*wc.width, amp:(base+w1+w2+w3)*wc.height*0.37};
+  });
+}
+
+function drawGlowLine(pts, xA, xB, strokeStyle, shadow, shadowBlur, lw, midY){
+  if(xA>=xB) return;
+  ctx.save();
+  ctx.beginPath(); ctx.rect(xA,0,xB-xA,wc.height); ctx.clip();
+  ctx.shadowColor=shadow; ctx.shadowBlur=shadowBlur;
+  ctx.strokeStyle=strokeStyle; ctx.lineWidth=lw;
+  ctx.lineCap='round'; ctx.lineJoin='round';
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, midY-pts[0].amp);
+  for(let i=1;i<pts.length;i++){
+    const p=pts[i-1],c=pts[i],mx=(p.x+c.x)/2;
+    ctx.bezierCurveTo(mx,midY-p.amp,mx,midY-c.amp,c.x,midY-c.amp);
+  }
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, midY+pts[0].amp);
+  for(let i=1;i<pts.length;i++){
+    const p=pts[i-1],c=pts[i],mx=(p.x+c.x)/2;
+    ctx.bezierCurveTo(mx,midY+p.amp,mx,midY+c.amp,c.x,midY+c.amp);
+  }
+  ctx.stroke();
+  ctx.shadowBlur=0; ctx.restore();
+}
+
+function drawFill(pts, xA, xB, colorTop, colorBot, midY){
+  if(xA>=xB) return;
+  ctx.save();
+  ctx.beginPath(); ctx.rect(xA,0,xB-xA,wc.height); ctx.clip();
+  ctx.globalAlpha=0.07;
+
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, midY-pts[0].amp);
+  for(let i=1;i<pts.length;i++){
+    const p=pts[i-1],c=pts[i],mx=(p.x+c.x)/2;
+    ctx.bezierCurveTo(mx,midY-p.amp,mx,midY-c.amp,c.x,midY-c.amp);
+  }
+  ctx.lineTo(pts[pts.length-1].x, midY);
+  ctx.lineTo(pts[0].x, midY);
+  ctx.closePath();
+  ctx.fillStyle=colorTop; ctx.fill();
+
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, midY+pts[0].amp);
+  for(let i=1;i<pts.length;i++){
+    const p=pts[i-1],c=pts[i],mx=(p.x+c.x)/2;
+    ctx.bezierCurveTo(mx,midY+p.amp,mx,midY+c.amp,c.x,midY+c.amp);
+  }
+  ctx.lineTo(pts[pts.length-1].x, midY);
+  ctx.lineTo(pts[0].x, midY);
+  ctx.closePath();
+  ctx.fillStyle=colorBot; ctx.fill();
+
+  ctx.globalAlpha=1; ctx.restore();
+}
+
+function draw(){
+  const W=wc.width, H=wc.height, dpr=devicePixelRatio;
+  ctx.clearRect(0,0,W,H);
+  const mid=H/2, prog=(currentTime/TOTAL)*W;
+  const pts=buildPts(phase);
+
+  if(loop.on && loop.s>=0 && loop.e>loop.s){
+    const lx1=(loop.s/TOTAL)*W, lx2=(loop.e/TOTAL)*W;
+    ctx.save();
+    ctx.fillStyle='rgba(0,230,118,0.07)'; ctx.fillRect(lx1,0,lx2-lx1,H);
+    ctx.strokeStyle='rgba(0,230,118,0.3)'; ctx.lineWidth=1*dpr;
+    ctx.setLineDash([4*dpr,3*dpr]); ctx.strokeRect(lx1,0,lx2-lx1,H);
+    ctx.setLineDash([]); ctx.restore();
+  }
+
+  drawFill(pts, 0, W, '#00aaff', '#0044cc', mid);
+  drawGlowLine(pts, prog, W, 'rgba(60,80,120,0.4)', 'transparent', 0, 1.2*dpr, mid);
+
+  drawFill(pts, 0, prog, '#00d2ff', '#0088cc', mid);
+  ctx.save(); ctx.globalAlpha=0.22;
+  drawGlowLine(pts, 0, prog, '#00d2ff', '#00d2ff', 22*dpr, 5*dpr, mid);
+  ctx.globalAlpha=1; ctx.restore();
+  drawGlowLine(pts, 0, prog, '#00d2ff', '#00d2ff', 12*dpr, 2*dpr, mid);
+  drawGlowLine(pts, 0, prog, '#ffffff', 'transparent', 0, 0.8*dpr, mid);
+
+  const scanAlpha = playing ? 0.06 + 0.04*Math.sin(phase*2) : 0.04;
+  ctx.save();
+  ctx.strokeStyle=`rgba(0,210,255,${scanAlpha})`;
+  ctx.lineWidth=1.5*dpr; ctx.setLineDash([2*dpr,6*dpr]);
+  for(let x=0;x<W;x+=W/12){
+    ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke();
+  }
+  ctx.setLineDash([]); ctx.restore();
+
+  if(prog>0 && prog<W){
+    ctx.save();
+    ctx.strokeStyle='rgba(0,210,255,0.9)'; ctx.lineWidth=1.5*dpr;
+    ctx.shadowColor='#00d2ff'; ctx.shadowBlur=14*dpr;
+    ctx.beginPath(); ctx.moveTo(prog,H*0.05); ctx.lineTo(prog,H*0.95); ctx.stroke();
+    ctx.shadowBlur=0;
+    ctx.fillStyle='#00d2ff';
+    ctx.shadowColor='#00d2ff'; ctx.shadowBlur=10*dpr;
+    ctx.beginPath(); ctx.arc(prog,mid,3.5*dpr,0,Math.PI*2); ctx.fill();
+    ctx.shadowBlur=0; ctx.restore();
+  }
+
+  if(hoverPx>=0){
+    ctx.save();
+    ctx.strokeStyle='rgba(0,210,255,0.25)'; ctx.lineWidth=1*dpr;
+    ctx.setLineDash([3*dpr,3*dpr]);
+    ctx.beginPath(); ctx.moveTo(hoverPx*dpr,0); ctx.lineTo(hoverPx*dpr,H); ctx.stroke();
+    ctx.setLineDash([]); ctx.restore();
+  }
+}
+
+function updateFreqBars(){
+  const speed = playing ? 1 : 0.3;
+  fbEls.forEach((el,i)=>{
+    const target = freqBase[i] + (playing ? 25*Math.sin(phase*(0.8+i*0.15)+i*0.7)*Math.abs(Math.sin(phase*0.3+i)) : 0);
+    freqNoise[i] += (target - freqNoise[i]) * 0.12 * speed;
+    el.style.height = Math.max(8, Math.round(freqNoise[i]))+'%';
+  });
+}
+
+function updateUI(){
+  const p = currentTime/TOTAL;
+  const pct = (p*100).toFixed(2)+'%';
+  progFill.style.width = pct;
+  progHead.style.left = pct;
+  tCur.textContent = fmt(currentTime);
+}
+
+function tick(ts){
+  if(playing){
+    if(lastTS!==null){
+      const dt=(ts-lastTS)/1000;
+      currentTime=Math.min(TOTAL,currentTime+dt);
+      phase+=dt*2.2;
+      if(loop.on && loop.e>loop.s && currentTime>=loop.e) currentTime=loop.s;
+      if(currentTime>=TOTAL){ currentTime=0; playing=false; playIcon.className='ti ti-player-play'; }
+    }
+    lastTS=ts;
+  } else {
+    lastTS=null;
+    phase+=0.006;
+  }
+  drawBg(); draw(); updateUI(); updateFreqBars();
+  raf=requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+
+document.getElementById('play-btn').onclick=()=>{
+  playing=!playing;
+  playIcon.className=playing?'ti ti-player-pause':'ti ti-player-play';
+};
+
+function xToTime(px){ return Math.max(0,Math.min(TOTAL,(px/waveOuter.clientWidth)*TOTAL)); }
+
+wc.addEventListener('mousemove',e=>{
+  const r=waveOuter.getBoundingClientRect(), px=e.clientX-r.left;
+  hoverPx=px;
+  const t=xToTime(px);
+  tip.textContent=fmt(t);
+  const tl=Math.max(4,Math.min(waveOuter.clientWidth-56,px-28));
+  tip.style.left=tl+'px'; tip.style.opacity='1';
+  if(dragging){ currentTime=t; lastTS=null; }
+});
+wc.addEventListener('mouseleave',()=>{ hoverPx=-1; tip.style.opacity='0'; dragging=false; });
+wc.addEventListener('mousedown',e=>{
+  dragging=true;
+  const r=waveOuter.getBoundingClientRect();
+  currentTime=xToTime(e.clientX-r.left); lastTS=null;
+});
+wc.addEventListener('mouseup',e=>{
+  dragging=false;
+  const r=waveOuter.getBoundingClientRect();
+  currentTime=xToTime(e.clientX-r.left); lastTS=null;
+});
+wc.addEventListener('dblclick',e=>{
+  const r=waveOuter.getBoundingClientRect();
+  const t=xToTime(e.clientX-r.left);
+  if(!loop.on){
+    loop.s=Math.max(0,t-7); loop.e=Math.min(TOTAL,t+7); loop.on=true;
+    loopTag.style.display='inline-block';
+  } else { loop={on:false,s:-1,e:-1}; loopTag.style.display='none'; }
+});
+
+document.getElementById('prog-bar-wrap').addEventListener('click',e=>{
+  const r=e.currentTarget.getBoundingClientRect();
+  currentTime=Math.max(0,Math.min(TOTAL,((e.clientX-r.left)/r.width)*TOTAL));
+  lastTS=null;
+});
+
+loopBtn.addEventListener('click',()=>{
+  loopMode=!loopMode;
+  loopBtn.style.color=loopMode?'#00d2ff':'';
+  loopBtn.style.borderColor=loopMode?'rgba(0,210,255,0.4)':'';
+});
+
+document.getElementById('prev-btn').onclick=()=>{ currentTime=0; lastTS=null; };
+document.getElementById('next-btn').onclick=()=>{ currentTime=Math.min(TOTAL,currentTime+15); lastTS=null; };
+document.getElementById('shuf-btn').onclick=()=>{ currentTime=Math.random()*TOTAL; lastTS=null; };
+
+wc.addEventListener('touchstart',e=>{ e.preventDefault(); dragging=true; const r=waveOuter.getBoundingClientRect(); currentTime=xToTime(e.touches[0].clientX-r.left); lastTS=null; },{passive:false});
+wc.addEventListener('touchmove',e=>{ e.preventDefault(); const r=waveOuter.getBoundingClientRect(); currentTime=xToTime(e.touches[0].clientX-r.left); lastTS=null; },{passive:false});
+wc.addEventListener('touchend',()=>{ dragging=false; });
+})();
+</script>

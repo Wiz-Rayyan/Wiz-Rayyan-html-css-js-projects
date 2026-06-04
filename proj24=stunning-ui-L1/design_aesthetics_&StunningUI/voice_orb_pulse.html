@@ -1,0 +1,275 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: transparent; }
+  #stage {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; padding: 2.5rem 1rem 2rem;
+    min-height: 420px; position: relative;
+  }
+  #orb-wrap {
+    position: relative; width: 180px; height: 180px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 2rem;
+  }
+  .ring {
+    position: absolute; border-radius: 50%;
+    border: 1.5px solid rgba(56, 189, 248, 0.55);
+    width: 180px; height: 180px;
+    animation: none; pointer-events: none;
+  }
+  #orb {
+    width: 120px; height: 120px; border-radius: 50%;
+    position: relative; z-index: 2;
+    transition: transform 0.08s ease, background 0.4s ease;
+    cursor: pointer;
+    background: radial-gradient(circle at 38% 35%, #60b8f5 0%, #1a6bbf 45%, #0a2e70 100%);
+  }
+  #orb.listening {
+    background: radial-gradient(circle at 38% 35%, #a0f0ff 0%, #0cc8e8 45%, #046080 100%);
+  }
+  #orb.processing {
+    background: radial-gradient(circle at 38% 35%, #c4a0ff 0%, #7c3aed 45%, #2e0a70 100%);
+    animation: spin 1.6s linear infinite;
+  }
+  #orb.responding {
+    background: radial-gradient(circle at 38% 35%, #a0f0ff 0%, #0cc8e8 45%, #046080 100%);
+  }
+  @keyframes spin { to { transform: rotate(360deg) scale(1); } }
+  @keyframes breathe {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.07); }
+  }
+  @keyframes ring-out {
+    0% { transform: scale(1); opacity: 0.55; }
+    100% { transform: scale(2.6); opacity: 0; }
+  }
+  @keyframes flash { 0%,100% { opacity:1; } 50% { opacity: 0.45; } }
+  #state-label {
+    font-size: 13px; color: var(--color-text-secondary);
+    letter-spacing: 0.08em; text-transform: uppercase;
+    margin-bottom: 1.5rem; height: 18px;
+  }
+  #controls {
+    display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;
+  }
+  #controls button {
+    font-size: 13px; padding: 6px 16px; border-radius: 20px;
+    cursor: pointer;
+  }
+  #controls button.active {
+    background: var(--color-background-info);
+    color: var(--color-text-info);
+    border-color: var(--color-border-info);
+  }
+  #waveform {
+    display: none; align-items: flex-end; justify-content: center;
+    gap: 3px; height: 120px; width: 120px;
+    position: relative; z-index: 2;
+  }
+  .bar {
+    width: 7px; border-radius: 3px;
+    background: linear-gradient(to top, #0cc8e8, #a0f0ff);
+    transition: height 0.1s ease;
+  }
+  #mic-hint {
+    font-size: 12px; color: var(--color-text-secondary);
+    margin-top: 1rem; text-align: center; opacity: 0.7;
+  }
+</style>
+
+<h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">Voice orb assistant — interactive demo with idle, listening, processing, and responding states</h2>
+
+<div id="stage">
+  <div id="orb-wrap">
+    <div class="ring" id="r1"></div>
+    <div class="ring" id="r2"></div>
+    <div class="ring" id="r3"></div>
+    <div id="orb"></div>
+    <div id="waveform"></div>
+  </div>
+  <div id="state-label">Idle</div>
+  <div id="controls">
+    <button id="btn-idle">Idle</button>
+    <button id="btn-listen">Wake word</button>
+    <button id="btn-speak">Speaking</button>
+    <button id="btn-process">Processing</button>
+    <button id="btn-respond">Response</button>
+    <button id="btn-mic">🎤 Use mic</button>
+  </div>
+  <div id="mic-hint">Click a state or use your mic</div>
+</div>
+
+<script>
+const orb = document.getElementById('orb');
+const waveform = document.getElementById('waveform');
+const label = document.getElementById('state-label');
+const rings = [document.getElementById('r1'), document.getElementById('r2'), document.getElementById('r3')];
+let currentState = 'idle';
+let breatheAnim = null;
+let speakInterval = null;
+let waveInterval = null;
+let micStream = null;
+let audioCtx = null;
+let analyser = null;
+let micActive = false;
+let bars = [];
+
+function clearAll() {
+  orb.className = '';
+  orb.style.transform = '';
+  orb.style.animation = '';
+  rings.forEach(r => { r.style.animation = 'none'; r.style.opacity = '0'; });
+  if (speakInterval) { clearInterval(speakInterval); speakInterval = null; }
+  if (waveInterval) { clearInterval(waveInterval); waveInterval = null; }
+  waveform.style.display = 'none';
+  orb.style.display = 'block';
+  waveform.innerHTML = '';
+  bars = [];
+}
+
+function setState(s) {
+  clearAll();
+  currentState = s;
+  document.querySelectorAll('#controls button').forEach(b => b.classList.remove('active'));
+  const map = {idle:'btn-idle',listening:'btn-listen',speaking:'btn-speak',processing:'btn-process',responding:'btn-respond'};
+  const el = document.getElementById(map[s]);
+  if (el) el.classList.add('active');
+
+  if (s === 'idle') {
+    label.textContent = 'Idle';
+    orb.style.animation = 'breathe 3.2s ease-in-out infinite';
+    orb.style.background = 'radial-gradient(circle at 38% 35%, #60b8f5 0%, #1a6bbf 45%, #0a2e70 100%)';
+  }
+
+  if (s === 'listening') {
+    label.textContent = 'Listening';
+    orb.classList.add('listening');
+    orb.style.animation = 'flash 0.3s ease 2, breathe 2s ease-in-out 0.6s infinite';
+    fireRings();
+    setTimeout(() => { if (currentState === 'listening') setState('speaking'); }, 900);
+  }
+
+  if (s === 'speaking') {
+    label.textContent = 'Speaking';
+    orb.classList.add('listening');
+    orb.style.animation = '';
+    speakInterval = setInterval(() => {
+      if (!micActive) {
+        const v = 1 + Math.random() * 0.35;
+        orb.style.transform = `scale(${v.toFixed(2)})`;
+      }
+    }, 90);
+  }
+
+  if (s === 'processing') {
+    label.textContent = 'Processing';
+    orb.classList.add('processing');
+    fireRings(true);
+    let hue = 270;
+    speakInterval = setInterval(() => {
+      hue = (hue + 3) % 360;
+      const lightness = 40 + 15 * Math.sin(hue * Math.PI / 180);
+      orb.style.background = `radial-gradient(circle at 38% 35%, hsl(${hue+30},90%,80%) 0%, hsl(${hue},75%,${lightness}%) 50%, hsl(${hue-20},80%,18%) 100%)`;
+    }, 40);
+  }
+
+  if (s === 'responding') {
+    label.textContent = 'Response';
+    orb.style.display = 'none';
+    waveform.style.display = 'flex';
+    const count = 10;
+    for (let i = 0; i < count; i++) {
+      const b = document.createElement('div');
+      b.className = 'bar';
+      b.style.height = '6px';
+      waveform.appendChild(b);
+      bars.push(b);
+    }
+    waveInterval = setInterval(() => {
+      bars.forEach((b, i) => {
+        const h = 10 + Math.abs(Math.sin(Date.now() / 220 + i * 0.7)) * 85 + Math.random() * 12;
+        b.style.height = h.toFixed(1) + 'px';
+      });
+    }, 60);
+  }
+}
+
+function fireRings(loop) {
+  const delays = [0, 200, 420];
+  rings.forEach((r, i) => {
+    r.style.opacity = '0.55';
+    r.style.animation = 'none';
+    setTimeout(() => {
+      r.style.animation = `ring-out ${loop ? 1.6 : 0.8}s ease-out ${loop ? 'infinite' : '1'}`;
+    }, delays[i]);
+  });
+}
+
+function setMicScale(vol) {
+  const scale = 1 + vol * 0.55;
+  orb.style.transform = `scale(${scale.toFixed(3)})`;
+}
+
+document.getElementById('btn-idle').onclick = () => setState('idle');
+document.getElementById('btn-listen').onclick = () => setState('listening');
+document.getElementById('btn-speak').onclick = () => { setState('idle'); setTimeout(() => setState('speaking'), 50); };
+document.getElementById('btn-process').onclick = () => setState('processing');
+document.getElementById('btn-respond').onclick = () => setState('responding');
+
+document.getElementById('btn-mic').onclick = async () => {
+  if (micActive) {
+    micActive = false;
+    if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+    if (audioCtx) { audioCtx.close(); audioCtx = null; analyser = null; }
+    document.getElementById('btn-mic').textContent = '🎤 Use mic';
+    document.getElementById('mic-hint').textContent = 'Click a state or use your mic';
+    setState('idle');
+    return;
+  }
+  try {
+    micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 256;
+    const src = audioCtx.createMediaStreamSource(micStream);
+    src.connect(analyser);
+    micActive = true;
+    document.getElementById('btn-mic').textContent = '🔴 Stop mic';
+    document.getElementById('mic-hint').textContent = 'Mic active — orb reacts to your voice';
+    setState('speaking');
+
+    const data = new Uint8Array(analyser.frequencyBinCount);
+    let silenceFrames = 0;
+    let voiceFrames = 0;
+
+    function tick() {
+      if (!micActive) return;
+      requestAnimationFrame(tick);
+      analyser.getByteFrequencyData(data);
+      let sum = 0;
+      for (let i = 0; i < data.length; i++) sum += data[i];
+      const avg = sum / data.length / 255;
+      setMicScale(avg);
+
+      if (avg > 0.06) {
+        voiceFrames++;
+        silenceFrames = 0;
+        if (voiceFrames === 4 && currentState !== 'speaking') setState('speaking');
+      } else {
+        silenceFrames++;
+        voiceFrames = 0;
+        if (silenceFrames > 40 && currentState === 'speaking') {
+          setState('processing');
+          setTimeout(() => { if (currentState === 'processing') setState('idle'); }, 1600);
+        }
+      }
+    }
+    tick();
+  } catch (e) {
+    document.getElementById('mic-hint').textContent = 'Mic access denied — try the state buttons instead';
+  }
+};
+
+setState('idle');
+</script>

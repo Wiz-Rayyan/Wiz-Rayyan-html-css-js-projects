@@ -1,0 +1,380 @@
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+#map-container{
+  position:relative;width:100%;height:520px;
+  background:var(--color-background-secondary);
+  border-radius:var(--border-radius-lg);
+  border:0.5px solid var(--color-border-tertiary);
+  overflow:hidden;cursor:crosshair;user-select:none;
+}
+.map-bg{position:absolute;inset:0;overflow:hidden}
+.grid-line{position:absolute;background:var(--color-border-tertiary)}
+.road{position:absolute;border-radius:20px}
+.park{position:absolute;border-radius:var(--border-radius-md)}
+.block{position:absolute;border-radius:4px}
+.water{position:absolute;border-radius:40px}
+.hint{
+  position:absolute;bottom:14px;left:50%;transform:translateX(-50%);
+  font-size:13px;color:var(--color-text-secondary);
+  background:var(--color-background-primary);
+  border:0.5px solid var(--color-border-tertiary);
+  padding:6px 14px;border-radius:20px;pointer-events:none;
+  transition:opacity .3s;white-space:nowrap;
+}
+.pin{
+  position:absolute;width:32px;height:42px;
+  transform-origin:50% 100%;
+  cursor:grab;pointer-events:all;
+  transition:filter .15s;
+  touch-action:none;
+}
+.pin:active{cursor:grabbing}
+.pin svg{width:100%;height:100%;display:block;overflow:visible}
+.pin.dragging svg .pin-shadow{opacity:1;transform:scale(1.6) translateY(6px)}
+.pin-shadow{
+  opacity:0;
+  transition:opacity .2s,transform .2s;
+  transform-origin:center;
+}
+.delete-btn{
+  position:absolute;width:20px;height:20px;border-radius:50%;
+  background:var(--color-background-danger);color:var(--color-text-danger);
+  border:0.5px solid var(--color-border-danger);
+  font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  opacity:0;transition:opacity .15s;pointer-events:none;
+  transform:translate(-50%,-50%);
+}
+.pin-group:hover .delete-btn{opacity:1;pointer-events:all}
+.pin-group{position:absolute;pointer-events:none}
+.label{
+  position:absolute;
+  font-size:11px;color:var(--color-text-secondary);
+  background:var(--color-background-primary);
+  border:0.5px solid var(--color-border-tertiary);
+  padding:2px 7px;border-radius:10px;
+  white-space:nowrap;pointer-events:none;
+  left:50%;transform:translateX(-50%) translateY(2px);top:100%;
+  opacity:0;transition:opacity .15s;
+}
+.pin-group:hover .label{opacity:1}
+.top-bar{
+  position:absolute;top:12px;left:12px;right:12px;
+  display:flex;align-items:center;justify-content:space-between;z-index:10;
+  pointer-events:none;
+}
+.top-pill{
+  font-size:12px;color:var(--color-text-secondary);
+  background:var(--color-background-primary);
+  border:0.5px solid var(--color-border-tertiary);
+  padding:5px 12px;border-radius:20px;
+  display:flex;align-items:center;gap:6px;
+}
+.pin-count-dot{
+  width:8px;height:8px;border-radius:50%;
+  background:#E24B4A;display:inline-block;
+}
+.clear-btn{
+  font-size:12px;color:var(--color-text-secondary);
+  background:var(--color-background-primary);
+  border:0.5px solid var(--color-border-tertiary);
+  padding:5px 12px;border-radius:20px;cursor:pointer;
+  pointer-events:all;transition:background .15s;
+}
+.clear-btn:hover{background:var(--color-background-secondary)}
+</style>
+
+<h2 class="sr-only">Interactive map with gravity pin drop — long press to place pins, drag to move, click × to delete</h2>
+
+<div id="map-container">
+  <div class="map-bg" id="map-bg"></div>
+
+  <div class="top-bar">
+    <div class="top-pill">
+      <span class="pin-count-dot"></span>
+      <span id="pin-count">0 pins</span>
+    </div>
+    <button class="clear-btn" id="clear-btn">Clear all</button>
+  </div>
+
+  <div class="hint" id="hint">Long press to drop a pin · Drag to move · × to delete</div>
+</div>
+
+<script>
+const container = document.getElementById('map-container');
+const mapBg = document.getElementById('map-bg');
+const hint = document.getElementById('hint');
+const pinCountEl = document.getElementById('pin-count');
+const clearBtn = document.getElementById('clear-btn');
+
+function buildMap() {
+  const w = container.offsetWidth, h = container.offsetHeight;
+  mapBg.innerHTML = '';
+  const colors = {
+    road: 'var(--color-background-primary)',
+    park: '#EAF3DE',
+    block: 'var(--color-background-secondary)',
+    water: '#E6F1FB',
+  };
+  const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  if (isDark) { colors.park = '#173404'; colors.water = '#042C53'; }
+
+  const parks = [{x:60,y:80,w:140,h:100},{x:w-200,y:h-160,w:150,h:120},{x:w/2-60,y:h/2-30,w:120,h:80}];
+  parks.forEach(p => {
+    const d = document.createElement('div');
+    d.className='park';
+    Object.assign(d.style,{left:p.x+'px',top:p.y+'px',width:p.w+'px',height:p.h+'px',background:colors.park});
+    mapBg.appendChild(d);
+  });
+
+  const waters = [{x:w-160,y:60,w:130,h:80},{x:40,y:h-120,w:100,h:70}];
+  waters.forEach(p => {
+    const d = document.createElement('div');
+    d.className='water';
+    Object.assign(d.style,{left:p.x+'px',top:p.y+'px',width:p.w+'px',height:p.h+'px',background:colors.water});
+    mapBg.appendChild(d);
+  });
+
+  const blocks = [
+    {x:250,y:60,w:90,h:60},{x:360,y:60,w:70,h:60},{x:250,y:200,w:110,h:80},
+    {x:w-240,y:200,w:100,h:70},{x:100,y:220,w:80,h:60},{x:180,y:320,w:90,h:50},
+    {x:350,y:340,w:80,h:60},{x:w-180,y:340,w:100,h:60},{x:w-300,y:h-180,w:90,h:60},
+    {x:120,y:h-150,w:80,h:60},{x:w/2+30,y:200,w:90,h:60},{x:w/2-140,y:320,w:70,h:50},
+  ];
+  blocks.forEach(p => {
+    const d = document.createElement('div');
+    d.className='block';
+    Object.assign(d.style,{left:p.x+'px',top:p.y+'px',width:p.w+'px',height:p.h+'px',background:colors.block,border:'0.5px solid var(--color-border-tertiary)'});
+    mapBg.appendChild(d);
+  });
+
+  const hroads = [0.3,0.5,0.7].map(r => Math.round(h*r));
+  const vroads = [0.25,0.5,0.75].map(r => Math.round(w*r));
+  hroads.forEach(y => {
+    const d = document.createElement('div');
+    Object.assign(d.style,{position:'absolute',left:'0',top:(y-6)+'px',width:'100%',height:'12px',background:colors.road,borderTop:'0.5px solid var(--color-border-tertiary)',borderBottom:'0.5px solid var(--color-border-tertiary)'});
+    mapBg.appendChild(d);
+  });
+  vroads.forEach(x => {
+    const d = document.createElement('div');
+    Object.assign(d.style,{position:'absolute',top:'0',left:(x-6)+'px',height:'100%',width:'12px',background:colors.road,borderLeft:'0.5px solid var(--color-border-tertiary)',borderRight:'0.5px solid var(--color-border-tertiary)'});
+    mapBg.appendChild(d);
+  });
+}
+buildMap();
+
+const COLORS = ['#E24B4A','#378ADD','#1D9E75','#BA7517','#7F77DD','#D4537E'];
+let pins = [], colorIdx = 0, pressTimer = null, pressX = 0, pressY = 0, draggingPin = null, dragOffX = 0, dragOffY = 0;
+
+function makePinSVG(color) {
+  return `<svg viewBox="0 0 32 42" xmlns="http://www.w3.org/2000/svg" style="overflow:visible">
+    <ellipse class="pin-shadow" cx="16" cy="42" rx="9" ry="4" fill="rgba(0,0,0,0.18)"/>
+    <path d="M16 2C9.37 2 4 7.37 4 14c0 8.5 12 26 12 26s12-17.5 12-26C28 7.37 22.63 2 16 2z" fill="${color}" stroke="rgba(0,0,0,0.15)" stroke-width="0.5"/>
+    <circle cx="16" cy="14" r="5" fill="rgba(255,255,255,0.35)"/>
+  </svg>`;
+}
+
+function updateCount() {
+  pinCountEl.textContent = pins.length + (pins.length === 1 ? ' pin' : ' pins');
+}
+
+function dropAnimation(pinEl, onDone) {
+  const rect = container.getBoundingClientRect();
+  pinEl.style.transition = 'none';
+  pinEl.style.transform = 'translateY(-120%) scaleX(1) scaleY(1) rotate(0deg)';
+  pinEl.style.opacity = '0';
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      pinEl.style.opacity = '1';
+      pinEl.style.transition = 'transform 0.45s cubic-bezier(0.2,0.9,0.4,1.1)';
+      pinEl.style.transform = 'translateY(0) scaleX(1) scaleY(1) rotate(0deg)';
+      setTimeout(() => {
+        pinEl.style.transition = 'transform 0.12s ease-out';
+        pinEl.style.transform = 'scaleX(1.25) scaleY(0.75) rotate(0deg)';
+        setTimeout(() => {
+          pinEl.style.transition = 'transform 0.18s cubic-bezier(0.2,1.4,0.4,1)';
+          pinEl.style.transform = 'scaleX(1) scaleY(1) rotate(0deg)';
+          setTimeout(() => {
+            pinEl.style.transition = 'transform 0.09s ease-out';
+            pinEl.style.transform = 'scaleX(1.1) scaleY(0.92) rotate(0deg)';
+            setTimeout(() => {
+              pinEl.style.transition = 'transform 0.14s ease-in-out';
+              pinEl.style.transform = 'scaleX(1) scaleY(1) rotate(0deg)';
+              setTimeout(() => {
+                pinEl.style.transition = 'transform 0.18s ease-in-out';
+                pinEl.style.transform = 'rotate(5deg)';
+                setTimeout(() => {
+                  pinEl.style.transition = 'transform 0.18s ease-in-out';
+                  pinEl.style.transform = 'rotate(-4deg)';
+                  setTimeout(() => {
+                    pinEl.style.transition = 'transform 0.15s ease-in-out';
+                    pinEl.style.transform = 'rotate(2deg)';
+                    setTimeout(() => {
+                      pinEl.style.transition = 'transform 0.15s ease-in-out';
+                      pinEl.style.transform = 'rotate(0deg)';
+                      if (onDone) onDone();
+                    }, 150);
+                  }, 180);
+                }, 180);
+              }, 140);
+            }, 90);
+          }, 180);
+        }, 120);
+      }, 420);
+    });
+  });
+}
+
+function addPin(cx, cy) {
+  const color = COLORS[colorIdx % COLORS.length];
+  colorIdx++;
+
+  const group = document.createElement('div');
+  group.className = 'pin-group';
+  group.style.cssText = `position:absolute;pointer-events:none;z-index:20;`;
+  group.style.left = cx + 'px';
+  group.style.top = cy + 'px';
+
+  const pinEl = document.createElement('div');
+  pinEl.className = 'pin';
+  pinEl.innerHTML = makePinSVG(color);
+  pinEl.style.cssText = `position:absolute;left:-16px;top:-42px;transform-origin:50% 100%;`;
+
+  const delBtn = document.createElement('div');
+  delBtn.className = 'delete-btn';
+  delBtn.innerHTML = '×';
+  delBtn.style.cssText = `position:absolute;left:0px;top:-50px;pointer-events:all;`;
+
+  const lbl = document.createElement('div');
+  lbl.className = 'label';
+  lbl.textContent = 'Pin ' + (pins.length + 1);
+  lbl.style.cssText = `position:absolute;left:-16px;top:0px;transform:translateX(-50%) translateY(2px);`;
+
+  group.appendChild(pinEl);
+  group.appendChild(delBtn);
+  group.appendChild(lbl);
+  container.appendChild(group);
+
+  const pinObj = { group, pinEl, cx, cy, color, label: lbl.textContent };
+  pins.push(pinObj);
+  updateCount();
+
+  pinEl.addEventListener('mousedown', e => startDrag(e, pinObj));
+  pinEl.addEventListener('touchstart', e => startDragTouch(e, pinObj), {passive:false});
+
+  delBtn.addEventListener('click', e => { e.stopPropagation(); deletePin(pinObj); });
+
+  dropAnimation(pinEl);
+  return pinObj;
+}
+
+function deletePin(pinObj) {
+  const idx = pins.indexOf(pinObj);
+  if (idx === -1) return;
+  pins.splice(idx, 1);
+  const el = pinObj.pinEl;
+  el.style.transition = 'transform 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.3s';
+  el.style.transform = 'translateY(-200%) rotate(15deg)';
+  el.style.opacity = '0';
+  setTimeout(() => pinObj.group.remove(), 380);
+  updateCount();
+}
+
+function liftPin(pinObj) {
+  const el = pinObj.pinEl;
+  el.style.transition = 'transform 0.15s ease-out';
+  el.style.transform = 'scaleX(0.9) scaleY(1.1) translateY(-6px)';
+  const shadow = el.querySelector('.pin-shadow');
+  if (shadow) { shadow.style.opacity='1'; shadow.style.transform='scale(2) translateY(8px)'; }
+}
+
+function releasePin(pinObj) {
+  dropAnimation(pinObj.pinEl);
+}
+
+function startDrag(e, pinObj) {
+  if (e.button !== 0) return;
+  e.preventDefault(); e.stopPropagation();
+  draggingPin = pinObj;
+  const rect = container.getBoundingClientRect();
+  dragOffX = pinObj.cx - (e.clientX - rect.left);
+  dragOffY = pinObj.cy - (e.clientY - rect.top);
+  liftPin(pinObj);
+}
+
+function startDragTouch(e, pinObj) {
+  e.preventDefault(); e.stopPropagation();
+  draggingPin = pinObj;
+  const rect = container.getBoundingClientRect();
+  const t = e.touches[0];
+  dragOffX = pinObj.cx - (t.clientX - rect.left);
+  dragOffY = pinObj.cy - (t.clientY - rect.top);
+  liftPin(pinObj);
+}
+
+document.addEventListener('mousemove', e => {
+  if (!draggingPin) return;
+  const rect = container.getBoundingClientRect();
+  const nx = Math.max(10, Math.min(rect.width-10, e.clientX - rect.left + dragOffX));
+  const ny = Math.max(10, Math.min(rect.height-10, e.clientY - rect.top + dragOffY));
+  draggingPin.cx = nx; draggingPin.cy = ny;
+  draggingPin.group.style.left = nx + 'px';
+  draggingPin.group.style.top = ny + 'px';
+});
+
+document.addEventListener('mouseup', e => {
+  if (!draggingPin) return;
+  releasePin(draggingPin);
+  draggingPin = null;
+});
+
+document.addEventListener('touchmove', e => {
+  if (!draggingPin) return;
+  e.preventDefault();
+  const rect = container.getBoundingClientRect();
+  const t = e.touches[0];
+  const nx = Math.max(10, Math.min(rect.width-10, t.clientX - rect.left + dragOffX));
+  const ny = Math.max(10, Math.min(rect.height-10, t.clientY - rect.top + dragOffY));
+  draggingPin.cx = nx; draggingPin.cy = ny;
+  draggingPin.group.style.left = nx + 'px';
+  draggingPin.group.style.top = ny + 'px';
+}, {passive:false});
+
+document.addEventListener('touchend', e => {
+  if (!draggingPin) return;
+  releasePin(draggingPin);
+  draggingPin = null;
+});
+
+container.addEventListener('mousedown', e => {
+  if (e.target.closest('.pin') || e.target.closest('.delete-btn') || e.target.closest('.clear-btn')) return;
+  pressX = e.clientX; pressY = e.clientY;
+  pressTimer = setTimeout(() => {
+    const rect = container.getBoundingClientRect();
+    addPin(pressX - rect.left, pressY - rect.top);
+    hint.style.opacity = '0';
+  }, 400);
+});
+
+container.addEventListener('mouseup', () => { clearTimeout(pressTimer); pressTimer = null; });
+container.addEventListener('mouseleave', () => { clearTimeout(pressTimer); pressTimer = null; });
+
+container.addEventListener('touchstart', e => {
+  if (e.target.closest('.pin') || e.target.closest('.delete-btn')) return;
+  const t = e.touches[0];
+  pressX = t.clientX; pressY = t.clientY;
+  pressTimer = setTimeout(() => {
+    const rect = container.getBoundingClientRect();
+    addPin(pressX - rect.left, pressY - rect.top);
+    hint.style.opacity = '0';
+  }, 400);
+}, {passive:true});
+
+container.addEventListener('touchend', () => { clearTimeout(pressTimer); pressTimer = null; });
+
+clearBtn.addEventListener('click', () => {
+  [...pins].forEach(p => deletePin(p));
+  setTimeout(() => { hint.style.opacity = '1'; }, 400);
+});
+
+window.addEventListener('resize', buildMap);
+</script>

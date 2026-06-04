@@ -1,0 +1,244 @@
+
+<style>
+  #search-root { padding: 2rem 0; font-family: var(--font-sans); }
+  #search-wrap { position: relative; max-width: 520px; margin: 0 auto; }
+  #search-input {
+    width: 100%; box-sizing: border-box;
+    padding: 12px 44px 12px 44px;
+    font-size: 15px; border-radius: var(--border-radius-lg);
+    border: 1.5px solid var(--color-border-secondary);
+    background: var(--color-background-primary);
+    color: var(--color-text-primary);
+    outline: none; transition: border-color 0.15s;
+  }
+  #search-input:focus { border-color: #378ADD; box-shadow: 0 0 0 3px rgba(55,138,221,0.12); }
+  #search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 18px; color: var(--color-text-secondary); pointer-events: none; }
+  #clear-btn { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--color-text-tertiary); font-size: 18px; display: none; padding: 2px; }
+  #dropdown {
+    position: absolute; top: calc(100% + 6px); left: 0; right: 0;
+    background: var(--color-background-primary);
+    border: 0.5px solid var(--color-border-secondary);
+    border-radius: var(--border-radius-lg);
+    overflow: hidden; z-index: 100;
+    transform-origin: top center;
+    transform: scaleY(0); opacity: 0;
+    transition: transform 0.18s cubic-bezier(.4,0,.2,1), opacity 0.15s ease;
+  }
+  #dropdown.open { transform: scaleY(1); opacity: 1; }
+  .suggestion {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 14px; cursor: pointer;
+    border-bottom: 0.5px solid var(--color-border-tertiary);
+    transition: background 0.1s;
+  }
+  .suggestion:last-child { border-bottom: none; }
+  .suggestion:hover, .suggestion.active { background: var(--color-background-secondary); }
+  .sug-icon {
+    width: 32px; height: 32px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; flex-shrink: 0;
+  }
+  .icon-recent { background: #EAF3DE; color: #3B6D11; }
+  .icon-nearby { background: #E6F1FB; color: #185FA5; }
+  .icon-saved  { background: #FAEEDA; color: #854F0B; }
+  .sug-text { flex: 1; min-width: 0; }
+  .sug-main { font-size: 14px; font-weight: 500; color: var(--color-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sug-main mark { background: #FEF08A; color: inherit; border-radius: 2px; padding: 0 1px; }
+  .sug-sub { font-size: 12px; color: var(--color-text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+  .sug-badge { font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 999px; flex-shrink: 0; }
+  .badge-recent { background: #EAF3DE; color: #3B6D11; }
+  .badge-nearby { background: #E6F1FB; color: #185FA5; }
+  .badge-saved  { background: #FAEEDA; color: #854F0B; }
+  #fly-toast {
+    position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--color-background-primary); border: 0.5px solid var(--color-border-secondary);
+    border-radius: var(--border-radius-lg); padding: 10px 18px;
+    font-size: 14px; color: var(--color-text-primary);
+    display: flex; align-items: center; gap: 8px;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.2s, transform 0.2s;
+  }
+  #fly-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .section-label { font-size: 11px; font-weight: 500; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: 0.06em; padding: 8px 14px 4px; }
+  .kbd { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--color-text-tertiary); }
+  .kbd span { background: var(--color-background-secondary); border: 0.5px solid var(--color-border-secondary); border-radius: 4px; padding: 1px 5px; font-family: var(--font-mono); font-size: 11px; }
+  #hint { text-align: center; font-size: 12px; color: var(--color-text-tertiary); margin-top: 10px; display: flex; justify-content: center; gap: 16px; }
+</style>
+
+<h2 class="sr-only">Location autocomplete search with live predictions dropdown</h2>
+
+<div id="search-root">
+  <div id="search-wrap">
+    <i class="ti ti-search" id="search-icon" aria-hidden="true"></i>
+    <input id="search-input" type="text" placeholder="Search for a place or address…" autocomplete="off" aria-label="Search location" aria-autocomplete="list" aria-controls="dropdown" />
+    <button id="clear-btn" aria-label="Clear search"><i class="ti ti-x" aria-hidden="true"></i></button>
+    <div id="dropdown" role="listbox" aria-label="Suggestions"></div>
+  </div>
+  <div id="hint">
+    <span class="kbd"><span>↑↓</span> navigate</span>
+    <span class="kbd"><span>↵</span> select</span>
+    <span class="kbd"><span>Esc</span> close</span>
+  </div>
+</div>
+<div id="fly-toast"><i class="ti ti-map-pin" aria-hidden="true"></i> <span id="fly-label"></span></div>
+
+<script>
+const DATA = [
+  { type: 'recent',  main: 'Tokyo, Japan',             sub: 'Visited 3 days ago',        lat: 35.68, lng: 139.69 },
+  { type: 'recent',  main: 'Eiffel Tower',              sub: 'Paris, Île-de-France, France', lat: 48.86, lng: 2.29 },
+  { type: 'nearby',  main: 'Mumbai, Maharashtra',       sub: '~5 km away · India',        lat: 19.08, lng: 72.88 },
+  { type: 'nearby',  main: 'Bhayandar Station',         sub: 'Mira-Bhayandar, MH',        lat: 19.30, lng: 72.85 },
+  { type: 'saved',   main: 'Home',                      sub: 'Bhayandar, Maharashtra',    lat: 19.30, lng: 72.85 },
+  { type: 'saved',   main: 'Work',                      sub: 'Andheri East, Mumbai',      lat: 19.11, lng: 72.87 },
+  { type: 'nearby',  main: 'Chhatrapati Shivaji Airport', sub: 'Mumbai, India',           lat: 19.09, lng: 72.87 },
+  { type: 'recent',  main: 'New York City, USA',        sub: 'Visited last week',         lat: 40.71, lng: -74.00 },
+  { type: 'nearby',  main: 'Gateway of India',          sub: 'Apollo Bandar, Mumbai',     lat: 18.92, lng: 72.83 },
+  { type: 'saved',   main: 'Gym',                       sub: 'Mira Road, Maharashtra',    lat: 19.28, lng: 72.86 },
+  { type: 'recent',  main: 'London, United Kingdom',   sub: 'Visited 2 weeks ago',       lat: 51.51, lng: -0.13 },
+  { type: 'nearby',  main: 'Juhu Beach',                sub: 'Juhu, Mumbai, India',       lat: 19.10, lng: 72.83 },
+  { type: 'saved',   main: 'Parents\' Home',            sub: 'Borivali West, Mumbai',     lat: 19.23, lng: 72.85 },
+  { type: 'nearby',  main: 'Thane, Maharashtra',        sub: 'Mumbai Metropolitan Region', lat: 19.22, lng: 72.98 },
+  { type: 'recent',  main: 'Dubai, UAE',                sub: 'Visited last month',        lat: 25.20, lng: 55.27 },
+];
+
+const ICONS = { recent: 'ti-history', nearby: 'ti-map-pin', saved: 'ti-star' };
+const ICON_CLS = { recent: 'icon-recent', nearby: 'icon-nearby', saved: 'icon-saved' };
+const BADGE_CLS = { recent: 'badge-recent', nearby: 'badge-nearby', saved: 'badge-saved' };
+const BADGE_LABEL = { recent: 'Recent', nearby: 'Nearby', saved: 'Saved' };
+
+const input = document.getElementById('search-input');
+const dropdown = document.getElementById('dropdown');
+const clearBtn = document.getElementById('clear-btn');
+const flyToast = document.getElementById('fly-toast');
+const flyLabel = document.getElementById('fly-label');
+
+let activeIdx = -1;
+let suggestions = [];
+let debounceTimer;
+
+function highlight(text, query) {
+  if (!query) return text;
+  const idx = text.toLowerCase().indexOf(query.toLowerCase());
+  if (idx < 0) return text;
+  return text.slice(0, idx) + '<mark>' + text.slice(idx, idx + query.length) + '</mark>' + text.slice(idx + query.length);
+}
+
+function getSuggestions(q) {
+  if (!q) {
+    return DATA.filter(d => d.type === 'recent' || d.type === 'saved').slice(0, 5);
+  }
+  return DATA.filter(d =>
+    d.main.toLowerCase().includes(q.toLowerCase()) ||
+    d.sub.toLowerCase().includes(q.toLowerCase())
+  ).slice(0, 7);
+}
+
+function renderDropdown(q) {
+  suggestions = getSuggestions(q);
+  dropdown.innerHTML = '';
+  if (!suggestions.length) {
+    dropdown.classList.remove('open');
+    return;
+  }
+
+  const groups = {};
+  suggestions.forEach(s => { (groups[s.type] = groups[s.type] || []).push(s); });
+
+  const order = ['recent', 'saved', 'nearby'];
+  order.forEach(type => {
+    if (!groups[type] || !groups[type].length) return;
+    const label = document.createElement('div');
+    label.className = 'section-label';
+    label.textContent = BADGE_LABEL[type];
+    dropdown.appendChild(label);
+    groups[type].forEach(s => {
+      const idx = suggestions.indexOf(s);
+      const el = document.createElement('div');
+      el.className = 'suggestion';
+      el.setAttribute('role', 'option');
+      el.setAttribute('data-idx', idx);
+      el.innerHTML = `
+        <div class="sug-icon ${ICON_CLS[s.type]}" aria-hidden="true"><i class="ti ${ICONS[s.type]}"></i></div>
+        <div class="sug-text">
+          <div class="sug-main">${highlight(s.main, q)}</div>
+          <div class="sug-sub">${s.sub}</div>
+        </div>
+        <span class="sug-badge ${BADGE_CLS[s.type]}">${BADGE_LABEL[s.type]}</span>
+      `;
+      el.addEventListener('mouseenter', () => setActive(idx));
+      el.addEventListener('click', () => selectSuggestion(idx));
+      dropdown.appendChild(el);
+    });
+  });
+
+  activeIdx = -1;
+  dropdown.classList.add('open');
+}
+
+function setActive(idx) {
+  activeIdx = idx;
+  document.querySelectorAll('.suggestion').forEach(el => {
+    el.classList.toggle('active', parseInt(el.dataset.idx) === idx);
+  });
+}
+
+function closeDropdown() {
+  dropdown.classList.remove('open');
+  activeIdx = -1;
+}
+
+function selectSuggestion(idx) {
+  const s = suggestions[idx];
+  if (!s) return;
+  input.value = s.main;
+  clearBtn.style.display = 'block';
+  closeDropdown();
+  flyTo(s);
+}
+
+function flyTo(s) {
+  flyLabel.textContent = `Flying to ${s.main}…`;
+  flyToast.classList.add('show');
+  setTimeout(() => flyToast.classList.remove('show'), 2400);
+}
+
+input.addEventListener('input', () => {
+  clearTimeout(debounceTimer);
+  const q = input.value.trim();
+  clearBtn.style.display = q ? 'block' : 'none';
+  debounceTimer = setTimeout(() => renderDropdown(q), 120);
+});
+
+input.addEventListener('focus', () => {
+  renderDropdown(input.value.trim());
+});
+
+input.addEventListener('keydown', (e) => {
+  const items = document.querySelectorAll('.suggestion');
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    setActive(Math.min(activeIdx + 1, suggestions.length - 1));
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    setActive(Math.max(activeIdx - 1, 0));
+  } else if (e.key === 'Enter') {
+    if (activeIdx >= 0) selectSuggestion(activeIdx);
+  } else if (e.key === 'Escape') {
+    closeDropdown();
+    input.blur();
+  }
+});
+
+clearBtn.addEventListener('click', () => {
+  input.value = '';
+  clearBtn.style.display = 'none';
+  closeDropdown();
+  input.focus();
+});
+
+document.addEventListener('click', (e) => {
+  if (!document.getElementById('search-wrap').contains(e.target)) closeDropdown();
+});
+
+renderDropdown('');
+</script>

@@ -1,0 +1,219 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.wrap{padding:1.5rem 0;font-family:var(--font-sans)}
+.toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem}
+.toolbar-title{font-size:13px;color:var(--color-text-secondary)}
+.btn-expand-all{font-size:13px;border:0.5px solid var(--color-border-secondary);background:transparent;color:var(--color-text-primary);padding:6px 14px;border-radius:var(--border-radius-md);cursor:pointer;display:flex;align-items:center;gap:6px;transition:background 0.15s}
+.btn-expand-all:hover{background:var(--color-background-secondary)}
+.section{border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);margin-bottom:10px;overflow:hidden;transition:border-color 0.2s}
+.section:hover{border-color:var(--color-border-secondary)}
+.section-header{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;background:var(--color-background-primary);user-select:none}
+.expand-icon{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--color-border-secondary);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.2s;color:var(--color-text-secondary)}
+.section-header:hover .expand-icon{border-color:#7F77DD;color:#7F77DD;box-shadow:0 0 0 3px rgba(127,119,221,0.15)}
+.section.done .expand-icon{background:#EAF3DE;border-color:#639922;color:#3B6D11}
+.section-title{font-size:15px;font-weight:500;color:var(--color-text-primary);flex:1}
+.section-badge{font-size:11px;padding:3px 9px;border-radius:999px;background:var(--color-background-secondary);color:var(--color-text-tertiary);border:0.5px solid var(--color-border-tertiary)}
+.section.done .section-badge{background:#EAF3DE;color:#3B6D11;border-color:#9FE1CB}
+.section-body{height:0;overflow:hidden;transition:height 0.35s cubic-bezier(0.4,0,0.2,1)}
+.section-body-inner{padding:0 16px 16px;border-top:0.5px solid var(--color-border-tertiary)}
+.skeleton{margin-top:14px}
+.sk-line{height:13px;border-radius:4px;background:linear-gradient(90deg,var(--color-background-secondary) 25%,var(--color-background-tertiary) 50%,var(--color-background-secondary) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.sk-line+.sk-line{margin-top:8px}
+.content-text{font-size:14px;line-height:1.75;color:var(--color-text-secondary);margin-top:14px}
+.cursor{display:inline-block;width:2px;height:13px;background:var(--color-text-secondary);vertical-align:middle;animation:blink 0.7s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.stagger-in{opacity:0;transform:translateY(6px);animation:fadeUp 0.3s forwards}
+@keyframes fadeUp{to{opacity:1;transform:translateY(0)}}
+</style>
+
+<h2 class="sr-only">AI outline generator with collapsible sections that stream content on expand</h2>
+<div class="wrap">
+  <div class="toolbar">
+    <span class="toolbar-title" id="status-label">Click a section to expand</span>
+    <button class="btn-expand-all" id="btn-all"><i class="ti ti-arrows-maximize" aria-hidden="true" style="font-size:14px"></i> Expand all</button>
+  </div>
+  <div id="outline"></div>
+</div>
+
+<script>
+const OUTLINE = [
+  {
+    title: "What is generative AI?",
+    content: "Generative AI refers to machine learning systems trained to produce new content — text, images, code, or audio — by learning statistical patterns from large datasets. Unlike traditional software that follows explicit rules, these models learn to sample from a probability distribution over possible outputs, making each generation novel yet coherent."
+  },
+  {
+    title: "How large language models work",
+    content: "Large language models process text as sequences of tokens and learn to predict each next token given prior context. Trained on billions of documents via self-supervised learning, they develop rich internal representations of syntax, semantics, and world knowledge. Inference is autoregressive — the model appends one token at a time, conditioning on its own outputs."
+  },
+  {
+    title: "Key capabilities and use cases",
+    content: "Modern LLMs excel at reasoning, summarisation, code generation, and multilingual translation. They power chatbots, copilots, document automation, and creative writing tools. Multimodal variants extend these abilities to images and audio, enabling applications like visual question answering, alt-text generation, and voice assistants."
+  },
+  {
+    title: "Limitations and risks",
+    content: "LLMs can hallucinate plausible-sounding but false information, exhibit biases inherited from training data, and fail on complex multi-step reasoning. They have no persistent memory across sessions, struggle with strict factual grounding, and can be prompted to produce harmful content without adequate safeguards."
+  },
+  {
+    title: "What comes next",
+    content: "Research directions include better factual grounding through retrieval-augmented generation, chain-of-thought reasoning to improve accuracy, more efficient architectures to reduce compute costs, and alignment techniques to make model behaviour more predictable and controllable across diverse real-world deployments."
+  }
+];
+
+const states = OUTLINE.map(() => ({ open: false, done: false, streaming: false }));
+let streamTimers = [];
+
+function render() {
+  const container = document.getElementById('outline');
+  if (container.children.length === 0) {
+    OUTLINE.forEach((item, i) => {
+      const sec = document.createElement('div');
+      sec.className = 'section stagger-in';
+      sec.style.animationDelay = (i * 80) + 'ms';
+      sec.dataset.idx = i;
+      sec.innerHTML = `
+        <div class="section-header" role="button" tabindex="0" aria-expanded="false">
+          <div class="expand-icon"><i class="ti ti-plus" style="font-size:13px"></i></div>
+          <span class="section-title">${item.title}</span>
+          <span class="section-badge">pending</span>
+        </div>
+        <div class="section-body"><div class="section-body-inner">
+          <div class="skeleton">
+            <div class="sk-line" style="width:92%"></div>
+            <div class="sk-line" style="width:78%"></div>
+            <div class="sk-line" style="width:85%"></div>
+          </div>
+          <div class="content-text" style="display:none"></div>
+        </div></div>`;
+      sec.querySelector('.section-header').addEventListener('click', () => toggle(i));
+      sec.querySelector('.section-header').addEventListener('keydown', e => { if(e.key==='Enter'||e.key===' ') toggle(i); });
+      container.appendChild(sec);
+    });
+  } else {
+    OUTLINE.forEach((item, i) => updateSection(i));
+  }
+}
+
+function updateSection(i) {
+  const sec = document.querySelectorAll('.section')[i];
+  if (!sec) return;
+  const st = states[i];
+  const header = sec.querySelector('.section-header');
+  const icon = sec.querySelector('.expand-icon i');
+  const badge = sec.querySelector('.section-badge');
+  const body = sec.querySelector('.section-body');
+  const skeleton = sec.querySelector('.skeleton');
+  const contentEl = sec.querySelector('.content-text');
+
+  if (st.done) {
+    sec.classList.add('done');
+    icon.className = 'ti ti-check';
+    badge.textContent = 'done';
+  } else if (st.streaming) {
+    icon.className = 'ti ti-minus';
+    badge.textContent = 'writing...';
+  } else if (st.open) {
+    icon.className = 'ti ti-minus';
+    badge.textContent = 'loading';
+  } else {
+    icon.className = 'ti ti-plus';
+    badge.textContent = 'pending';
+  }
+
+  header.setAttribute('aria-expanded', st.open || st.done ? 'true' : 'false');
+
+  if (st.open || st.streaming || st.done) {
+    if (body.style.height === '0px' || body.style.height === '') {
+      body.style.height = body.scrollHeight + 'px';
+      requestAnimationFrame(() => {
+        body.style.height = body.scrollHeight + 'px';
+      });
+    }
+    if (st.done) {
+      skeleton.style.display = 'none';
+      contentEl.style.display = '';
+    } else if (st.streaming) {
+      skeleton.style.display = 'none';
+      contentEl.style.display = '';
+    } else {
+      skeleton.style.display = '';
+      contentEl.style.display = 'none';
+    }
+  } else {
+    body.style.height = '0px';
+  }
+
+  setTimeout(() => {
+    if (st.open || st.streaming || st.done) {
+      body.style.height = body.scrollHeight + 'px';
+    }
+  }, 50);
+}
+
+function toggle(i) {
+  const st = states[i];
+  if (st.done || st.streaming) return;
+  if (!st.open) {
+    st.open = true;
+    updateSection(i);
+    setTimeout(() => startStream(i), 600);
+  } else {
+    st.open = false;
+    updateSection(i);
+  }
+}
+
+function startStream(i) {
+  const st = states[i];
+  if (!st.open) return;
+  st.streaming = true;
+  updateSection(i);
+  const sec = document.querySelectorAll('.section')[i];
+  const contentEl = sec.querySelector('.content-text');
+  const text = OUTLINE[i].content;
+  let idx = 0;
+  contentEl.innerHTML = '<span class="cursor"></span>';
+
+  function tick() {
+    if (!st.streaming) return;
+    if (idx < text.length) {
+      const cursor = contentEl.querySelector('.cursor');
+      if (cursor) contentEl.insertBefore(document.createTextNode(text[idx]), cursor);
+      idx++;
+      const body = sec.querySelector('.section-body');
+      body.style.height = body.scrollHeight + 'px';
+      streamTimers[i] = setTimeout(tick, 22);
+    } else {
+      const cursor = contentEl.querySelector('.cursor');
+      if (cursor) cursor.remove();
+      st.streaming = false;
+      st.done = true;
+      updateSection(i);
+      checkAllDone();
+    }
+  }
+  streamTimers[i] = setTimeout(tick, 60);
+}
+
+function checkAllDone() {
+  const allDone = states.every(s => s.done);
+  if (allDone) {
+    document.getElementById('status-label').textContent = 'All sections complete ✓';
+  }
+}
+
+document.getElementById('btn-all').addEventListener('click', () => {
+  states.forEach((st, i) => {
+    if (!st.open && !st.done && !st.streaming) {
+      st.open = true;
+      updateSection(i);
+      const delay = i * 180;
+      setTimeout(() => startStream(i), 600 + delay);
+    }
+  });
+  document.getElementById('status-label').textContent = 'Expanding all sections...';
+});
+
+render();
+</script>

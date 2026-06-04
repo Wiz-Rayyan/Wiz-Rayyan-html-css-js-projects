@@ -1,0 +1,224 @@
+
+<style>
+  .bloom-wrap { display: flex; flex-direction: column; align-items: center; padding: 2rem 0 1.5rem; gap: 1.5rem; }
+  .bloom-stage { position: relative; width: 420px; height: 420px; }
+  .petal { position: absolute; width: 120px; height: 120px; border-radius: 50%; cursor: pointer; transform-origin: center center; transform: scale(0) rotate(0deg); transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1), filter 0.2s, box-shadow 0.2s; overflow: hidden; border: 2px solid var(--color-border-tertiary); }
+  .petal img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .petal:hover { filter: brightness(1.08); box-shadow: 0 4px 24px rgba(0,0,0,0.18); }
+  .petal .badge { position: absolute; bottom: 6px; right: 6px; background: rgba(0,0,0,0.55); color: #fff; font-size: 11px; border-radius: 20px; padding: 2px 8px; opacity: 0; transition: opacity 0.2s; pointer-events: none; }
+  .petal:hover .badge { opacity: 1; }
+  .origin { position: absolute; width: 140px; height: 140px; border-radius: 50%; left: 50%; top: 50%; transform: translate(-50%,-50%); overflow: hidden; border: 3px solid var(--color-border-primary); transition: opacity 0.4s, transform 0.4s; z-index: 10; background: var(--color-background-secondary); }
+  .origin img { width: 100%; height: 100%; object-fit: cover; }
+  .origin-label { position: absolute; bottom: -1px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.5); color: #fff; font-size: 10px; padding: 2px 10px; border-radius: 20px 20px 0 0; white-space: nowrap; }
+  .full-view { position: absolute; inset: 0; border-radius: 50%; overflow: hidden; opacity: 0; pointer-events: none; transition: opacity 0.35s, border-radius 0.45s, inset 0.45s; z-index: 20; background: var(--color-background-primary); display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 8px; }
+  .full-view.active { opacity: 1; pointer-events: all; border-radius: var(--border-radius-lg); inset: 0; }
+  .full-view img { width: 100%; height: 80%; object-fit: cover; border-radius: var(--border-radius-md); }
+  .full-view .back-btn { font-size: 13px; color: var(--color-text-secondary); cursor: pointer; padding: 4px 14px; border: 0.5px solid var(--color-border-secondary); border-radius: 20px; background: var(--color-background-secondary); margin-top: 4px; }
+  .full-view .back-btn:hover { background: var(--color-background-tertiary); }
+  .controls { display: flex; gap: 10px; align-items: center; }
+  .ctrl-btn { font-size: 13px; padding: 6px 18px; border-radius: 20px; border: 0.5px solid var(--color-border-secondary); background: var(--color-background-secondary); color: var(--color-text-primary); cursor: pointer; transition: background 0.15s, transform 0.1s; }
+  .ctrl-btn:hover { background: var(--color-background-tertiary); }
+  .ctrl-btn:active { transform: scale(0.97); }
+  .status { font-size: 13px; color: var(--color-text-secondary); min-height: 20px; text-align: center; }
+  .petal.bloomed { transform: scale(1); }
+</style>
+
+<div class="bloom-wrap">
+  <h2 class="sr-only">Flower bloom image variation explorer — click petals to view variations</h2>
+  <div class="bloom-stage" id="stage">
+    <div class="origin" id="origin">
+      <img id="origin-img" src="" alt="Original image" />
+      <span class="origin-label">original</span>
+    </div>
+    <div class="full-view" id="fullView">
+      <img id="fv-img" src="" alt="Variation full view" />
+      <div style="font-size:13px;color:var(--color-text-secondary);padding:0 8px;text-align:center;" id="fv-label"></div>
+      <div class="back-btn" id="backBtn">← back to bloom</div>
+    </div>
+  </div>
+  <p class="status" id="status">Upload or pick an image to start blooming</p>
+  <div class="controls">
+    <button class="ctrl-btn" id="demoBtn">🌸 Demo bloom</button>
+    <button class="ctrl-btn" id="regenBtn" style="display:none;">↻ Regenerate</button>
+  </div>
+</div>
+
+<script>
+const PALETTES = [
+  ['#e8d5f5','#c9a8e8','#a87ad4','#7c4dbd','#5b2fa0'],
+  ['#fde8d0','#f9c48a','#f5a040','#e07820','#b85a10'],
+  ['#d0f5e8','#80ddb8','#30c090','#108860','#065840'],
+  ['#d0e8f5','#80b8e8','#3088d0','#0c5898','#063058'],
+  ['#f5d0e8','#e880b8','#d03088','#980c58','#580630'],
+  ['#f5f5d0','#e0e080','#c0c020','#888010','#505005'],
+];
+
+const SHAPES = ['circle','square','triangle','diamond','star','hexagon'];
+
+function generatePlaceholder(palette, shape, size=200) {
+  const c = document.createElement('canvas');
+  c.width = size; c.height = size;
+  const ctx = c.getContext('2d');
+  const [c0,c1,c2,c3,c4] = palette;
+  const grad = ctx.createRadialGradient(size/2,size/2,10,size/2,size/2,size*0.7);
+  grad.addColorStop(0, c1); grad.addColorStop(1, c3);
+  ctx.fillStyle = grad; ctx.fillRect(0,0,size,size);
+  ctx.save(); ctx.translate(size/2, size/2);
+  ctx.fillStyle = c4; ctx.globalAlpha = 0.18;
+  for(let i=0;i<6;i++){
+    ctx.save(); ctx.rotate(i*Math.PI/3);
+    ctx.beginPath(); ctx.ellipse(size*0.25,0,size*0.12,size*0.06,0,0,Math.PI*2);
+    ctx.fill(); ctx.restore();
+  }
+  ctx.globalAlpha = 1; ctx.restore();
+  ctx.save(); ctx.translate(size/2, size/2);
+  ctx.fillStyle = c2;
+  ctx.strokeStyle = c0; ctx.lineWidth = 3;
+  const r = size*0.28;
+  ctx.beginPath();
+  if(shape==='circle'){ ctx.arc(0,0,r,0,Math.PI*2); }
+  else if(shape==='square'){ ctx.rect(-r,-r,r*2,r*2); }
+  else if(shape==='triangle'){ ctx.moveTo(0,-r); ctx.lineTo(r,r); ctx.lineTo(-r,r); ctx.closePath(); }
+  else if(shape==='diamond'){ ctx.moveTo(0,-r); ctx.lineTo(r*0.7,0); ctx.lineTo(0,r); ctx.lineTo(-r*0.7,0); ctx.closePath(); }
+  else if(shape==='star'){
+    for(let i=0;i<5;i++){
+      const a=i*Math.PI*2/5-Math.PI/2;
+      const b=a+Math.PI/5;
+      if(i===0) ctx.moveTo(Math.cos(a)*r,Math.sin(a)*r);
+      else ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r);
+      ctx.lineTo(Math.cos(b)*r*0.45,Math.sin(b)*r*0.45);
+    }
+    ctx.closePath();
+  }
+  else if(shape==='hexagon'){
+    for(let i=0;i<6;i++){ const a=i*Math.PI/3; const x=Math.cos(a)*r; const y=Math.sin(a)*r; i===0?ctx.moveTo(x,y):ctx.lineTo(x,y); }
+    ctx.closePath();
+  }
+  ctx.fill(); ctx.stroke(); ctx.restore();
+  ctx.fillStyle = c0; ctx.font = `bold ${Math.round(size*0.1)}px sans-serif`;
+  ctx.textAlign='center'; ctx.textBaseline='bottom';
+  ctx.fillText(shape, size/2, size-8);
+  return c.toDataURL();
+}
+
+let petalEls = [];
+let bloomed = false;
+
+const stage = document.getElementById('stage');
+const origin = document.getElementById('origin');
+const originImg = document.getElementById('origin-img');
+const fullView = document.getElementById('fullView');
+const fvImg = document.getElementById('fv-img');
+const fvLabel = document.getElementById('fv-label');
+const backBtn = document.getElementById('backBtn');
+const statusEl = document.getElementById('status');
+const demoBtn = document.getElementById('demoBtn');
+const regenBtn = document.getElementById('regenBtn');
+
+const N = 6;
+const RADIUS = 135;
+const originPalIdx = Math.floor(Math.random()*PALETTES.length);
+const originShapeIdx = Math.floor(Math.random()*SHAPES.length);
+
+function clearPetals() {
+  petalEls.forEach(p => p.remove());
+  petalEls = [];
+}
+
+function bloom(originSrc, variations) {
+  clearPetals();
+  bloomed = false;
+  origin.style.opacity = '1';
+  origin.style.transform = 'translate(-50%,-50%) scale(1)';
+  fullView.classList.remove('active');
+  statusEl.textContent = 'Blooming…';
+
+  variations.forEach((src, i) => {
+    const angle = (i / N) * Math.PI * 2 - Math.PI / 2;
+    const cx = 210 + Math.cos(angle) * RADIUS - 60;
+    const cy = 210 + Math.sin(angle) * RADIUS - 60;
+    const petal = document.createElement('div');
+    petal.className = 'petal';
+    petal.style.left = cx + 'px';
+    petal.style.top = cy + 'px';
+    petal.style.transform = `scale(0) rotate(${angle}rad)`;
+    petal.innerHTML = `<img src="${src}" alt="Variation ${i+1}" /><span class="badge">v${i+1}</span>`;
+    petal.addEventListener('mouseenter', () => { if(!bloomed) return; petal.style.transform = `scale(1.08) rotate(${angle}rad) translateY(-8px)`; });
+    petal.addEventListener('mouseleave', () => { if(!bloomed) return; petal.style.transform = `scale(1) rotate(${angle}rad)`; });
+    petal.addEventListener('click', () => openPetal(src, i+1, angle));
+    stage.appendChild(petal);
+    petalEls.push(petal);
+
+    setTimeout(() => {
+      petal.style.transform = `scale(1) rotate(${angle}rad)`;
+      petal.classList.add('bloomed');
+      if(i === N-1) {
+        bloomed = true;
+        statusEl.textContent = 'Click a petal to explore · hover to preview';
+        regenBtn.style.display = '';
+      }
+    }, 120 + i * 110);
+  });
+}
+
+function openPetal(src, num, angle) {
+  if(!bloomed) return;
+  fvImg.src = src;
+  fvLabel.textContent = `Variation ${num}`;
+  origin.style.opacity = '0';
+  origin.style.transform = 'translate(-50%,-50%) scale(0.6)';
+  petalEls.forEach((p,i) => {
+    const a = (i/N)*Math.PI*2 - Math.PI/2;
+    p.style.transform = `scale(0) rotate(${a}rad)`;
+    p.style.transition = 'transform 0.3s ease-in';
+  });
+  setTimeout(() => {
+    fullView.classList.add('active');
+    statusEl.textContent = `Viewing variation ${num}`;
+  }, 250);
+}
+
+function closePetal() {
+  fullView.classList.remove('active');
+  setTimeout(() => {
+    origin.style.opacity = '1';
+    origin.style.transform = 'translate(-50%,-50%) scale(1)';
+    petalEls.forEach((p,i) => {
+      const a = (i/N)*Math.PI*2 - Math.PI/2;
+      setTimeout(() => {
+        p.style.transition = 'transform 0.35s cubic-bezier(0.34,1.56,0.64,1)';
+        p.style.transform = `scale(1) rotate(${a}rad)`;
+      }, i*60);
+    });
+    statusEl.textContent = 'Click a petal to explore · hover to preview';
+  }, 200);
+}
+
+backBtn.addEventListener('click', closePetal);
+
+function doDemo() {
+  const oPal = PALETTES[originPalIdx];
+  const oShape = SHAPES[originShapeIdx];
+  const src = generatePlaceholder(oPal, oShape, 200);
+  originImg.src = src;
+  const vars = Array.from({length:N}, (_,i) => {
+    const pi = (originPalIdx + i + 1) % PALETTES.length;
+    const si = (originShapeIdx + i + 1) % SHAPES.length;
+    return generatePlaceholder(PALETTES[pi], SHAPES[si], 200);
+  });
+  bloom(src, vars);
+}
+
+demoBtn.addEventListener('click', () => { demoBtn.style.display='none'; doDemo(); });
+regenBtn.addEventListener('click', () => {
+  clearPetals(); bloomed=false;
+  regenBtn.style.display='none';
+  fullView.classList.remove('active');
+  origin.style.opacity='1'; origin.style.transform='translate(-50%,-50%) scale(1)';
+  setTimeout(()=>{ demoBtn.style.display=''; statusEl.textContent='Upload or pick an image to start blooming'; }, 150);
+  setTimeout(doDemo, 200);
+});
+
+originImg.src = generatePlaceholder(PALETTES[originPalIdx], SHAPES[originShapeIdx], 200);
+statusEl.textContent = 'Click "Demo bloom" to see variations bloom outward';
+</script>

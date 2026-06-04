@@ -1,0 +1,462 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-sans); }
+#map-wrap {
+  position: relative;
+  width: 100%;
+  height: 520px;
+  background: #e8f0e4;
+  border-radius: var(--border-radius-lg);
+  overflow: hidden;
+  border: 0.5px solid var(--color-border-tertiary);
+  cursor: grab;
+}
+#map-wrap:active { cursor: grabbing; }
+canvas#bg { position: absolute; inset: 0; pointer-events: none; }
+canvas#fx { position: absolute; inset: 0; pointer-events: none; z-index: 10; }
+.cluster, .pin {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+  transition: transform 0.15s;
+  user-select: none;
+  z-index: 5;
+}
+.cluster:hover { transform: translate(-50%, -50%) scale(1.12); }
+.cluster-circle {
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 500;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+  transition: background 0.2s;
+  position: relative;
+}
+.cluster-ring {
+  position: absolute; inset: -6px;
+  border-radius: 50%;
+  border: 2px solid;
+  opacity: 0.35;
+}
+.pin-dot {
+  width: 28px; height: 28px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.22);
+  transition: box-shadow 0.2s;
+}
+.pin-dot::after {
+  content: '';
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.7);
+}
+.pin:hover .pin-dot { box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+.pin-label {
+  position: absolute;
+  top: 32px; left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  background: var(--color-background-primary);
+  border: 0.5px solid var(--color-border-tertiary);
+  border-radius: 4px;
+  padding: 2px 6px;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.15s;
+  pointer-events: none;
+}
+.pin:hover .pin-label { opacity: 1; }
+.zoom-ctrl {
+  position: absolute; right: 12px; top: 12px;
+  display: flex; flex-direction: column; gap: 2px; z-index: 20;
+}
+.zoom-btn {
+  width: 32px; height: 32px;
+  background: var(--color-background-primary);
+  border: 0.5px solid var(--color-border-secondary);
+  border-radius: var(--border-radius-md);
+  font-size: 18px; font-weight: 400;
+  color: var(--color-text-primary);
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s;
+}
+.zoom-btn:hover { background: var(--color-background-secondary); }
+#zoom-level {
+  position: absolute; left: 12px; bottom: 12px;
+  font-size: 12px; color: var(--color-text-secondary);
+  background: var(--color-background-primary);
+  border: 0.5px solid var(--color-border-tertiary);
+  border-radius: var(--border-radius-md);
+  padding: 4px 10px;
+  z-index: 20;
+}
+.tooltip {
+  position: absolute;
+  background: var(--color-background-primary);
+  border: 0.5px solid var(--color-border-secondary);
+  border-radius: var(--border-radius-md);
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  pointer-events: none;
+  z-index: 30;
+  opacity: 0;
+  transition: opacity 0.15s;
+  max-width: 160px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+</style>
+
+<h2 class="sr-only">Marker cluster explode demo — click clusters to explode individual markers, zoom in/out to merge and split clusters.</h2>
+<div id="map-wrap">
+  <canvas id="bg"></canvas>
+  <canvas id="fx"></canvas>
+  <div class="zoom-ctrl">
+    <button class="zoom-btn" id="z-in" aria-label="Zoom in">+</button>
+    <button class="zoom-btn" id="z-out" aria-label="Zoom out">−</button>
+  </div>
+  <div id="zoom-level">Zoom: 1×</div>
+  <div class="tooltip" id="tip"></div>
+</div>
+
+<script>
+const wrap = document.getElementById('map-wrap');
+const bgCanvas = document.getElementById('bg');
+const fxCanvas = document.getElementById('fx');
+const tip = document.getElementById('tip');
+let W, H;
+
+function resize() {
+  W = wrap.clientWidth; H = wrap.clientHeight;
+  bgCanvas.width = W; bgCanvas.height = H;
+  fxCanvas.width = W; fxCanvas.height = H;
+  drawMap();
+}
+
+function drawMap() {
+  const ctx = bgCanvas.getContext('2d');
+  ctx.clearRect(0, 0, W, H);
+  const isDark = getComputedStyle(document.documentElement).getPropertyValue('--color-background-primary').trim().startsWith('#0') ||
+    window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+  const land = isDark ? '#2a3528' : '#daebd3';
+  const water = isDark ? '#1a2535' : '#c8dcf0';
+  const road = isDark ? '#3a4a36' : '#c8dac0';
+  const park = isDark ? '#243022' : '#cfe8c6';
+
+  ctx.fillStyle = water;
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = land;
+  ctx.beginPath();
+  ctx.moveTo(0, 0); ctx.lineTo(W * 0.55, 0); ctx.lineTo(W * 0.65, H * 0.3);
+  ctx.lineTo(W * 0.8, H * 0.25); ctx.lineTo(W, H * 0.15); ctx.lineTo(W, 0); ctx.closePath();
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(0, 0); ctx.lineTo(0, H); ctx.lineTo(W * 0.85, H);
+  ctx.lineTo(W * 0.9, H * 0.7); ctx.lineTo(W * 0.75, H * 0.55);
+  ctx.lineTo(W * 0.8, H * 0.25); ctx.lineTo(W * 0.65, H * 0.3); ctx.lineTo(W * 0.55, 0); ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = park;
+  ctx.beginPath(); ctx.arc(W*0.25, H*0.35, 50, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(W*0.6, H*0.65, 35, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = road; ctx.lineWidth = 6; ctx.lineCap = 'round';
+  [[0.1, 0.5, 0.9, 0.5],[0.5, 0.1, 0.5, 0.9],[0.2, 0.2, 0.7, 0.8],[0.15, 0.7, 0.7, 0.25]].forEach(([x1,y1,x2,y2]) => {
+    ctx.beginPath(); ctx.moveTo(W*x1, H*y1); ctx.lineTo(W*x2, H*y2); ctx.stroke();
+  });
+}
+
+const COLORS = [
+  { bg: '#378ADD', ring: '#185FA5', text: '#E6F1FB' },
+  { bg: '#1D9E75', ring: '#0F6E56', text: '#E1F5EE' },
+  { bg: '#D85A30', ring: '#993C1D', text: '#FAECE7' },
+  { bg: '#D4537E', ring: '#993556', text: '#FBEAF0' },
+  { bg: '#7F77DD', ring: '#534AB7', text: '#EEEDFE' },
+];
+
+const POINTS = [
+  { id:0, x:0.12, y:0.22, label:'Coffee Shop' },
+  { id:1, x:0.16, y:0.28, label:'Bakery' },
+  { id:2, x:0.14, y:0.35, label:'Pharmacy' },
+  { id:3, x:0.11, y:0.42, label:'Gym' },
+  { id:4, x:0.18, y:0.18, label:'Hotel' },
+  { id:5, x:0.55, y:0.45, label:'Museum' },
+  { id:6, x:0.60, y:0.40, label:'Gallery' },
+  { id:7, x:0.58, y:0.52, label:'Restaurant' },
+  { id:8, x:0.63, y:0.48, label:'Cafe' },
+  { id:9, x:0.52, y:0.38, label:'Park' },
+  { id:10, x:0.35, y:0.62, label:'Library' },
+  { id:11, x:0.40, y:0.68, label:'Cinema' },
+  { id:12, x:0.33, y:0.72, label:'Theater' },
+  { id:13, x:0.78, y:0.30, label:'Airport' },
+  { id:14, x:0.82, y:0.38, label:'Train Stn' },
+  { id:15, x:0.75, y:0.35, label:'Bus Stop' },
+  { id:16, x:0.25, y:0.80, label:'Stadium' },
+  { id:17, x:0.68, y:0.72, label:'Mall' },
+  { id:18, x:0.72, y:0.68, label:'Supermarket' },
+  { id:19, x:0.88, y:0.60, label:'Hospital' },
+];
+
+const PIN_COLORS = [
+  '#378ADD','#1D9E75','#D85A30','#D4537E','#7F77DD',
+  '#E24B4A','#639922','#BA7517','#0F6E56','#534AB7'
+];
+
+let zoom = 1;
+let elements = [];
+let particles = [];
+let animFrame;
+const CLUSTER_RADIUS = 70;
+
+function computeClusters() {
+  const pts = POINTS.map(p => ({...p, px: p.x * W, py: p.y * H}));
+  const used = new Set();
+  const clusters = [];
+  pts.forEach((p, i) => {
+    if (used.has(i)) return;
+    if (zoom >= 2.5) { clusters.push({ type:'pin', pts:[p], cx:p.px, cy:p.py }); used.add(i); return; }
+    const r = CLUSTER_RADIUS / zoom;
+    const nearby = pts.filter((q, j) => !used.has(j) &&
+      Math.hypot(q.px - p.px, q.py - p.py) < r);
+    nearby.forEach(q => used.add(pts.indexOf(q)));
+    if (nearby.length === 1) { clusters.push({ type:'pin', pts:[p], cx:p.px, cy:p.py }); }
+    else {
+      const cx = nearby.reduce((s,q)=>s+q.px,0)/nearby.length;
+      const cy = nearby.reduce((s,q)=>s+q.py,0)/nearby.length;
+      clusters.push({ type:'cluster', pts:nearby, cx, cy });
+    }
+  });
+  return clusters;
+}
+
+function clearElements() {
+  elements.forEach(el => el.remove());
+  elements = [];
+}
+
+function spawnParticles(x, y, count, color) {
+  for (let i = 0; i < count; i++) {
+    const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.5;
+    const speed = 1.5 + Math.random() * 2.5;
+    particles.push({
+      x, y, vx: Math.cos(angle)*speed, vy: Math.sin(angle)*speed,
+      life: 1, color, size: 3 + Math.random()*3
+    });
+  }
+}
+
+function animateParticles() {
+  const ctx = fxCanvas.getContext('2d');
+  ctx.clearRect(0, 0, W, H);
+  particles = particles.filter(p => p.life > 0);
+  particles.forEach(p => {
+    p.x += p.vx; p.y += p.vy;
+    p.vy += 0.05; p.vx *= 0.96; p.vy *= 0.96;
+    p.life -= 0.025;
+    ctx.globalAlpha = Math.max(0, p.life);
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI*2);
+    ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+  if (particles.length > 0) requestAnimationFrame(animateParticles);
+}
+
+function springAnimate(el, fromX, fromY, toX, toY, delay=0) {
+  const start = performance.now() + delay;
+  const dur = 600;
+  function step(now) {
+    const t = Math.max(0, Math.min(1, (now - start) / dur));
+    const s = 1 - Math.pow(1 - t, 3) * Math.cos(t * Math.PI * 4.5);
+    const x = fromX + (toX - fromX) * s;
+    const y = fromY + (toY - fromY) * s;
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+    if (t < 1) requestAnimationFrame(step);
+    else {
+      el.style.transform = 'translate(-50%,-50%) scale(1)';
+      const dot = el.querySelector('.pin-dot');
+      if (dot) {
+        dot.style.transform = 'rotate(-45deg) scale(1.3)';
+        setTimeout(()=>{ dot.style.transition='transform 0.2s'; dot.style.transform='rotate(-45deg) scale(1)'; }, 80);
+      }
+    }
+  }
+  requestAnimationFrame(step);
+}
+
+function explodeCluster(cluster, colorIdx) {
+  const color = COLORS[colorIdx % COLORS.length];
+  spawnParticles(cluster.cx, cluster.cy, 20, color.bg);
+  requestAnimationFrame(animateParticles);
+  cluster.pts.forEach((pt, i) => {
+    const pin = makePin(pt, colorIdx, true);
+    pin.style.left = cluster.cx + 'px';
+    pin.style.top = cluster.cy + 'px';
+    pin.style.transform = 'translate(-50%,-50%) scale(0.2)';
+    wrap.appendChild(pin);
+    elements.push(pin);
+    spawnParticles(cluster.cx, cluster.cy, 6, PIN_COLORS[pt.id % PIN_COLORS.length]);
+    const delay = i * 40;
+    setTimeout(() => {
+      pin.style.transition = 'transform 0.1s';
+      pin.style.transform = 'translate(-50%,-50%) scale(1.1)';
+      springAnimate(pin, cluster.cx, cluster.cy, pt.px, pt.py, delay);
+    }, delay);
+  });
+}
+
+function makePin(pt, colorIdx, noAnim=false) {
+  const el = document.createElement('div');
+  el.className = 'pin';
+  el.style.left = pt.px + 'px';
+  el.style.top = pt.py + 'px';
+  const dot = document.createElement('div');
+  dot.className = 'pin-dot';
+  dot.style.background = PIN_COLORS[pt.id % PIN_COLORS.length];
+  el.appendChild(dot);
+  const lbl = document.createElement('div');
+  lbl.className = 'pin-label';
+  lbl.textContent = pt.label;
+  el.appendChild(lbl);
+  el.addEventListener('click', e => {
+    e.stopPropagation();
+    sendPrompt(`Tell me about "${pt.label}" on the map`);
+  });
+  return el;
+}
+
+function makeCluster(cluster, colorIdx) {
+  const color = COLORS[colorIdx % COLORS.length];
+  const el = document.createElement('div');
+  el.className = 'cluster';
+  el.style.left = cluster.cx + 'px';
+  el.style.top = cluster.cy + 'px';
+  const size = Math.min(60, 40 + cluster.pts.length * 2);
+  const circ = document.createElement('div');
+  circ.className = 'cluster-circle';
+  circ.style.cssText = `width:${size}px;height:${size}px;background:${color.bg};color:${color.text};`;
+  const ring = document.createElement('div');
+  ring.className = 'cluster-ring';
+  ring.style.cssText = `border-color:${color.ring};`;
+  circ.appendChild(ring);
+  circ.textContent = cluster.pts.length;
+  el.appendChild(circ);
+
+  el.addEventListener('mouseenter', () => {
+    const names = cluster.pts.slice(0,4).map(p=>p.label).join(', ');
+    const extra = cluster.pts.length > 4 ? ` +${cluster.pts.length-4} more` : '';
+    showTip(el, names + extra);
+    ring.style.opacity = '0.7';
+    ring.style.inset = '-10px';
+    ring.style.transition = 'all 0.2s';
+  });
+  el.addEventListener('mouseleave', () => {
+    hideTip();
+    ring.style.opacity = '0.35';
+    ring.style.inset = '-6px';
+  });
+
+  let exploded = false;
+  el.addEventListener('click', e => {
+    e.stopPropagation();
+    if (exploded) return;
+    exploded = true;
+    el.style.transition = 'transform 0.15s, opacity 0.2s';
+    el.style.transform = 'translate(-50%,-50%) scale(1.4)';
+    el.style.opacity = '0';
+    setTimeout(() => el.remove(), 200);
+    const idx = elements.indexOf(el);
+    if (idx > -1) elements.splice(idx, 1);
+    explodeCluster(cluster, colorIdx);
+  });
+  return el;
+}
+
+function showTip(el, text) {
+  const r = el.getBoundingClientRect();
+  const wr = wrap.getBoundingClientRect();
+  tip.textContent = text;
+  tip.style.opacity = '1';
+  tip.style.left = (r.left - wr.left + r.width/2 - 80) + 'px';
+  tip.style.top = (r.top - wr.top - 48) + 'px';
+}
+function hideTip() { tip.style.opacity = '0'; }
+
+function render() {
+  clearElements();
+  const clusters = computeClusters();
+  clusters.forEach((cl, i) => {
+    let el;
+    if (cl.type === 'cluster') {
+      el = makeCluster(cl, i);
+    } else {
+      el = makePin(cl.pts[0], i);
+      el.style.transform = 'translate(-50%,-50%) scale(0)';
+      setTimeout(() => {
+        el.style.transition = 'transform 0.3s cubic-bezier(.34,1.56,.64,1)';
+        el.style.transform = 'translate(-50%,-50%) scale(1)';
+      }, 20);
+    }
+    wrap.appendChild(el);
+    elements.push(el);
+  });
+  document.getElementById('zoom-level').textContent = `Zoom: ${zoom.toFixed(1)}×`;
+}
+
+function setZoom(z, anim=true) {
+  const prev = zoom;
+  zoom = Math.max(1, Math.min(4, z));
+  if (zoom === prev) return;
+  POINTS.forEach(p => {
+    const scale = zoom / prev;
+    const cx = W / 2, cy = H / 2;
+    p.x = cx/W + (p.x - cx/W) * scale;
+    p.y = cy/H + (p.y - cy/H) * scale;
+    p.x = Math.max(0.02, Math.min(0.98, p.x));
+    p.y = Math.max(0.02, Math.min(0.98, p.y));
+  });
+  POINTS.forEach(p => { p.px = p.x * W; p.py = p.y * H; });
+  render();
+}
+
+document.getElementById('z-in').addEventListener('click', () => setZoom(zoom + 0.5));
+document.getElementById('z-out').addEventListener('click', () => setZoom(zoom - 0.5));
+
+let drag = {}, isDragging = false;
+wrap.addEventListener('mousedown', e => { drag = {x: e.clientX, y: e.clientY}; isDragging = false; });
+wrap.addEventListener('mousemove', e => {
+  if (!drag.x) return;
+  const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+  if (Math.abs(dx)+Math.abs(dy) > 5) isDragging = true;
+  if (isDragging) {
+    POINTS.forEach(p => {
+      p.x += dx / W; p.y += dy / H;
+      p.x = Math.max(0.02, Math.min(0.98, p.x));
+      p.y = Math.max(0.02, Math.min(0.98, p.y));
+    });
+    drag = {x: e.clientX, y: e.clientY};
+    POINTS.forEach(p => { p.px = p.x * W; p.py = p.y * H; });
+    render();
+  }
+});
+wrap.addEventListener('mouseup', () => { drag = {}; });
+
+wrap.addEventListener('wheel', e => {
+  e.preventDefault();
+  setZoom(zoom + (e.deltaY < 0 ? 0.3 : -0.3));
+}, {passive: false});
+
+POINTS.forEach(p => { p.px = 0; p.py = 0; });
+const ro = new ResizeObserver(() => {
+  resize();
+  POINTS.forEach(p => { p.px = p.x * W; p.py = p.y * H; });
+  render();
+});
+ro.observe(wrap);
+</script>

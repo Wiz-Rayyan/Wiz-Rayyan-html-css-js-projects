@@ -1,0 +1,234 @@
+
+<style>
+  @keyframes glowFade {
+    0%   { text-shadow: 0 0 0px transparent; opacity: 0.4; }
+    30%  { text-shadow: 0 0 10px #00e5ff, 0 0 20px #00e5ff88; opacity: 1; }
+    100% { text-shadow: 0 0 0px transparent; opacity: 1; }
+  }
+  @keyframes cursorBlink {
+    0%, 49% { opacity: 1; }
+    50%, 100% { opacity: 0; }
+  }
+  @keyframes stopGlow {
+    0%, 100% { box-shadow: 0 0 6px #ff4444, 0 0 14px #ff444466; }
+    50%       { box-shadow: 0 0 14px #ff4444, 0 0 28px #ff444499; }
+  }
+  @keyframes fadeOut { to { opacity: 0; transform: scale(0.97); } }
+
+  .word-span {
+    display: inline;
+    cursor: default;
+    border-radius: 3px;
+    padding: 0 1px;
+    position: relative;
+    transition: background 0.15s;
+  }
+  .word-span:hover .tooltip {
+    opacity: 1;
+    transform: translateY(-4px);
+    pointer-events: none;
+  }
+  .word-span:hover {
+    background: rgba(0,229,255,0.08);
+  }
+  .tooltip {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%) translateY(0);
+    background: #0a1628;
+    border: 0.5px solid #00e5ff66;
+    color: #00e5ff;
+    font-size: 11px;
+    font-family: var(--font-mono);
+    padding: 4px 8px;
+    border-radius: 5px;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.18s, transform 0.18s;
+    pointer-events: none;
+    z-index: 10;
+  }
+  .tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%; left: 50%;
+    transform: translateX(-50%);
+    border: 4px solid transparent;
+    border-top-color: #00e5ff66;
+  }
+  .cursor {
+    display: inline-block;
+    width: 10px; height: 1.15em;
+    vertical-align: text-bottom;
+    background: linear-gradient(135deg, #00e5ff, #7c3aed, #f472b6, #facc15, #00e5ff);
+    background-size: 300% 300%;
+    animation: cursorBlink 0.85s step-end infinite, gradShift 2s linear infinite;
+    border-radius: 2px;
+    margin-left: 2px;
+  }
+  @keyframes gradShift {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 100% 50%; }
+  }
+  .stop-btn {
+    background: transparent;
+    border: 0.5px solid #ff4444;
+    color: #ff6666;
+    font-size: 13px;
+    padding: 6px 18px;
+    border-radius: var(--border-radius-md);
+    cursor: pointer;
+    font-family: var(--font-mono);
+    letter-spacing: 0.04em;
+    animation: stopGlow 1.4s ease-in-out infinite;
+    transition: background 0.15s;
+  }
+  .stop-btn:hover { background: rgba(255,68,68,0.12); }
+  .stop-btn:disabled {
+    animation: none;
+    box-shadow: none;
+    opacity: 0.4;
+    cursor: default;
+    border-color: var(--color-border-tertiary);
+    color: var(--color-text-tertiary);
+  }
+  .prompt-chip {
+    display: inline-block;
+    background: rgba(0,229,255,0.07);
+    border: 0.5px solid rgba(0,229,255,0.25);
+    border-radius: 20px;
+    padding: 4px 14px;
+    font-size: 12px;
+    color: #00e5ff;
+    cursor: pointer;
+    transition: background 0.15s;
+    font-family: var(--font-mono);
+  }
+  .prompt-chip:hover { background: rgba(0,229,255,0.14); }
+  .stream-area {
+    font-size: 15px;
+    line-height: 1.8;
+    color: var(--color-text-primary);
+    min-height: 120px;
+    transition: opacity 0.4s;
+  }
+</style>
+
+<h2 class="sr-only">Streaming glow typewriter — AI response streams word by word with cyan glow animation, confidence score tooltips, and a stop button.</h2>
+
+<div style="padding: 1.5rem 0 0;">
+  <div style="background: var(--color-background-secondary); border-radius: var(--border-radius-lg); border: 0.5px solid var(--color-border-tertiary); overflow: hidden;">
+
+    <div style="padding: 14px 18px; border-bottom: 0.5px solid var(--color-border-tertiary); display: flex; align-items: center; gap: 10px;">
+      <span style="width: 10px; height: 10px; border-radius: 50%; background: #00e5ff; display: inline-block; box-shadow: 0 0 6px #00e5ff;"></span>
+      <span style="font-size: 13px; font-family: var(--font-mono); color: var(--color-text-secondary); letter-spacing: 0.05em;">streaming · claude-sonnet-4</span>
+    </div>
+
+    <div style="padding: 14px 18px 10px; border-bottom: 0.5px solid var(--color-border-tertiary);">
+      <div style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 6px;">User</div>
+      <div id="prompt-text" style="font-size: 14px; color: var(--color-text-primary); line-height: 1.6; min-height: 18px;"></div>
+    </div>
+
+    <div style="padding: 16px 18px 18px;">
+      <div style="font-size: 13px; color: #00e5ff; margin-bottom: 8px; font-family: var(--font-mono);">Claude</div>
+      <div class="stream-area" id="stream-out"></div>
+    </div>
+
+    <div style="padding: 12px 18px; border-top: 0.5px solid var(--color-border-tertiary); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;" id="chip-row">
+        <span class="prompt-chip" onclick="startStream(0)">How does light work?</span>
+        <span class="prompt-chip" onclick="startStream(1)">Explain neural nets</span>
+        <span class="prompt-chip" onclick="startStream(2)">What is entropy?</span>
+      </div>
+      <button class="stop-btn" id="stop-btn" onclick="stopStream()" disabled>■ stop</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const prompts = [
+  "How does light work?",
+  "Explain neural networks simply.",
+  "What is entropy?"
+];
+
+const responses = [
+  "Light is electromagnetic radiation — a wave of oscillating electric and magnetic fields that travels through space at 299,792 kilometres per second. Each photon carries a tiny packet of energy, and its colour is determined by its wavelength. Shorter wavelengths feel blue and violet; longer ones drift into warm reds and oranges. When light hits matter, it can be absorbed, reflected, or refracted. That bending of light — refraction — is why a prism splits white light into a full rainbow spectrum.",
+  "Neural networks are loosely inspired by the human brain. You stack layers of simple mathematical units called neurons. Each neuron multiplies its inputs by learned weights, sums them up, and passes the result through an activation function. During training, the network makes predictions, compares them to the correct answers, then nudges the weights slightly to do better next time. Repeat that loop millions of times and patterns emerge — the network starts recognising cats, translating language, or predicting the next word.",
+  "Entropy is a measure of disorder, or more precisely, the number of microscopic arrangements that produce the same observable state. A tidy room has low entropy because there are few ways to arrange it that still look tidy. A messy room has high entropy because countless arrangements all look equally chaotic. The second law of thermodynamics says entropy in an isolated system always increases over time — the universe naturally drifts toward more disorder, not less."
+];
+
+let timer = null;
+let streaming = false;
+
+function wordConf() {
+  return Math.floor(70 + Math.random() * 30);
+}
+
+function makeWord(text, animate) {
+  const conf = wordConf();
+  const span = document.createElement('span');
+  span.className = 'word-span';
+  span.textContent = text;
+  if (animate) span.style.animation = 'glowFade 0.55s ease forwards';
+  const tip = document.createElement('span');
+  tip.className = 'tooltip';
+  tip.textContent = `confidence ${conf}%`;
+  span.appendChild(tip);
+  return span;
+}
+
+function stopStream() {
+  streaming = false;
+  clearTimeout(timer);
+  const cursor = document.getElementById('cursor-el');
+  if (cursor) cursor.remove();
+  const btn = document.getElementById('stop-btn');
+  btn.disabled = true;
+  const out = document.getElementById('stream-out');
+  out.style.animation = 'fadeOut 0.4s ease forwards';
+  setTimeout(() => {
+    out.innerHTML = '<span style="font-size:13px;color:var(--color-text-tertiary);font-family:var(--font-mono)">— generation stopped —</span>';
+    out.style.animation = '';
+    out.style.opacity = '1';
+  }, 420);
+}
+
+function startStream(idx) {
+  if (streaming) { stopStream(); return; }
+  streaming = true;
+  const out = document.getElementById('stream-out');
+  const promptEl = document.getElementById('prompt-text');
+  const btn = document.getElementById('stop-btn');
+  out.innerHTML = '';
+  out.style.opacity = '1';
+  promptEl.textContent = prompts[idx];
+  btn.disabled = false;
+
+  const words = responses[idx].split(' ');
+  let i = 0;
+
+  const cursor = document.createElement('span');
+  cursor.className = 'cursor';
+  cursor.id = 'cursor-el';
+  out.appendChild(cursor);
+
+  function emit() {
+    if (!streaming || i >= words.length) {
+      cursor.remove();
+      streaming = false;
+      btn.disabled = true;
+      return;
+    }
+    const word = words[i];
+    const isFirst = i === 0;
+    const span = makeWord((isFirst ? '' : ' ') + word, true);
+    out.insertBefore(span, cursor);
+    i++;
+    const delay = 55 + Math.random() * 90;
+    timer = setTimeout(emit, delay);
+  }
+  emit();
+}
+</script>

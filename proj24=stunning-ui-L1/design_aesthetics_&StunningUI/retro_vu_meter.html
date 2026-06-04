@@ -1,0 +1,430 @@
+
+<style>
+  .vu-wrap { display:flex; flex-direction:column; align-items:center; padding:2rem 1rem; gap:1.5rem; }
+  .meter-outer { position:relative; cursor:crosshair; user-select:none; }
+  .controls { display:flex; gap:1rem; align-items:center; flex-wrap:wrap; justify-content:center; }
+  .ctrl-group { display:flex; flex-direction:column; align-items:center; gap:6px; }
+  .ctrl-label { font-size:12px; color:var(--color-text-secondary); }
+  .signal-btn { padding:8px 20px; font-size:13px; border-radius:6px; border:0.5px solid var(--color-border-secondary); background:var(--color-background-primary); color:var(--color-text-primary); cursor:pointer; transition:background .15s; }
+  .signal-btn:hover { background:var(--color-background-secondary); }
+  .signal-btn.active { background:#c0392b; color:#fff; border-color:#c0392b; }
+  .db-readout { font-family:var(--font-mono); font-size:22px; font-weight:500; letter-spacing:2px; min-width:80px; text-align:center; }
+  .peak-badge { font-size:11px; padding:3px 10px; border-radius:20px; background:var(--color-background-secondary); color:var(--color-text-secondary); border:0.5px solid var(--color-border-tertiary); transition:all .2s; }
+  .peak-badge.hot { background:#c0392b; color:#fff; border-color:#c0392b; }
+  .info-row { display:flex; gap:2rem; align-items:center; }
+</style>
+
+<div class="vu-wrap">
+  <h2 class="sr-only">Retro VU Meter — visualizes audio volume level with an animated needle, peak hold, and dB readout</h2>
+
+  <div class="info-row">
+    <div style="text-align:center">
+      <div class="db-readout" id="dbReadout">–∞</div>
+      <div style="font-size:11px;color:var(--color-text-secondary);margin-top:2px;">dB</div>
+    </div>
+    <div class="peak-badge" id="peakBadge">PEAK HOLD</div>
+    <div style="text-align:center">
+      <div style="font-size:12px;color:var(--color-text-secondary);">VU</div>
+      <div style="font-size:18px;font-weight:500;" id="vuPercent">0%</div>
+    </div>
+  </div>
+
+  <div class="meter-outer" id="meterOuter" title="Click to reset peak hold">
+    <canvas id="vuCanvas" width="560" height="340"></canvas>
+  </div>
+
+  <div class="controls">
+    <div class="ctrl-group">
+      <span class="ctrl-label">Input Level</span>
+      <input type="range" id="levelSlider" min="0" max="100" value="0" style="width:200px;">
+      <span class="ctrl-label" id="sliderVal">0%</span>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
+      <button class="signal-btn" id="btnSine">▶ Sine Wave</button>
+      <button class="signal-btn" id="btnDrum">🥁 Drum Hit</button>
+      <button class="signal-btn" id="btnRandom">〜 Random</button>
+      <button class="signal-btn" id="btnStop">■ Stop</button>
+    </div>
+  </div>
+  <div style="font-size:11px;color:var(--color-text-secondary);">Click meter to reset peak hold</div>
+</div>
+
+<script>
+(function(){
+const canvas = document.getElementById('vuCanvas');
+const ctx = canvas.getContext('2d');
+const W = 560, H = 340;
+canvas.width = W; canvas.height = H;
+
+const isDark = () => window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+let targetLevel = 0;
+let currentAngle = 0;
+let velocity = 0;
+let peakAngle = 0;
+let peakTimer = 0;
+let peakHeld = false;
+let animMode = null;
+let animFrame = 0;
+let peakFlash = 0;
+let trailAngles = [];
+
+const MIN_ANGLE = -70;
+const MAX_ANGLE = 70;
+const SPRING_K = 0.28;
+const DAMPING = 0.62;
+const PEAK_HOLD_FRAMES = 90;
+
+function levelToAngle(level) {
+  return MIN_ANGLE + (level / 100) * (MAX_ANGLE - MIN_ANGLE);
+}
+
+function levelToDB(level) {
+  if (level <= 0) return -Infinity;
+  return 20 * Math.log10(level / 100);
+}
+
+function formatDB(db) {
+  if (!isFinite(db)) return '–∞';
+  if (db >= 0) return '+' + db.toFixed(1);
+  return db.toFixed(1);
+}
+
+function drawMeter() {
+  ctx.clearRect(0, 0, W, H);
+  const dark = isDark();
+  const cx = W / 2;
+  const cy = H - 40;
+  const R = 250;
+
+  // Backlight glow
+  const glowAlpha = 0.12 + 0.18 * (targetLevel / 100);
+  const glowColor = targetLevel > 85 ? `rgba(200,40,30,${glowAlpha})` : `rgba(80,160,255,${glowAlpha})`;
+  const grd = ctx.createRadialGradient(cx, cy, 20, cx, cy, R + 60);
+  grd.addColorStop(0, glowColor);
+  grd.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = grd;
+  ctx.fillRect(0, 0, W, H);
+
+  // Meter body
+  const bodyGrd = ctx.createLinearGradient(cx-220, cy-200, cx+220, cy+20);
+  if (dark) {
+    bodyGrd.addColorStop(0, '#2a2825');
+    bodyGrd.addColorStop(1, '#1a1816');
+  } else {
+    bodyGrd.addColorStop(0, '#f5f0e8');
+    bodyGrd.addColorStop(1, '#d8cfc0');
+  }
+  ctx.beginPath();
+  ctx.roundRect(cx - 240, cy - 240, 480, 260, 18);
+  ctx.fillStyle = bodyGrd;
+  ctx.fill();
+  ctx.strokeStyle = dark ? '#444' : '#b0a090';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Inner bezel
+  ctx.beginPath();
+  ctx.roundRect(cx - 220, cy - 225, 440, 240, 12);
+  ctx.strokeStyle = dark ? '#555' : '#c8b899';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Scale arc zones
+  const arcAngles = [
+    { start: -70, end: 10, color: dark ? '#2c4a2c' : '#c8e8c0', label: 'safe' },
+    { start: 10, end: 45, color: dark ? '#4a3a10' : '#f5e080', label: 'caution' },
+    { start: 45, end: 70, color: dark ? '#5a1a1a' : '#f0a0a0', label: 'peak' }
+  ];
+  arcAngles.forEach(z => {
+    const sa = (z.start - 90) * Math.PI / 180;
+    const ea = (z.end - 90) * Math.PI / 180;
+    ctx.beginPath();
+    ctx.arc(cx, cy, R - 20, sa, ea);
+    ctx.arc(cx, cy, R - 55, ea, sa, true);
+    ctx.closePath();
+    ctx.fillStyle = z.color;
+    ctx.fill();
+  });
+
+  // Scale marks and labels
+  const marks = [
+    { level: 0, label: '0', major: false },
+    { level: 10, label: '', major: false },
+    { level: 20, label: '20', major: true },
+    { level: 30, label: '', major: false },
+    { level: 40, label: '40', major: true },
+    { level: 50, label: '', major: false },
+    { level: 60, label: '60', major: true },
+    { level: 70, label: '70', major: false },
+    { level: 80, label: '80', major: true },
+    { level: 85, label: '', major: false },
+    { level: 90, label: '90', major: true },
+    { level: 95, label: '', major: false },
+    { level: 100, label: '100', major: true }
+  ];
+
+  marks.forEach(m => {
+    const ang = levelToAngle(m.level) * Math.PI / 180;
+    const sinA = Math.sin(ang), cosA = Math.cos(ang);
+    const r1 = R - 18, r2 = m.major ? R - 45 : R - 38;
+    ctx.beginPath();
+    ctx.moveTo(cx + sinA * r1, cy - cosA * r1);
+    ctx.lineTo(cx + sinA * r2, cy - cosA * r2);
+    ctx.strokeStyle = dark ? '#aaa' : '#555';
+    ctx.lineWidth = m.major ? 1.5 : 0.8;
+    ctx.stroke();
+    if (m.label) {
+      const lr = R - 65;
+      ctx.fillStyle = dark ? '#ccc' : '#444';
+      ctx.font = '10px monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(m.label, cx + sinA * lr, cy - cosA * lr);
+    }
+  });
+
+  // VU label
+  ctx.font = 'bold 13px monospace';
+  ctx.fillStyle = dark ? '#888' : '#666';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('VU', cx, cy - R + 75);
+
+  // dB scale labels on bottom
+  const dbLabels = [
+    { db: -20, level: 10 },
+    { db: -10, level: 31.6 },
+    { db: -7, level: 44.7 },
+    { db: -5, level: 56.2 },
+    { db: -3, level: 70.8 },
+    { db: 0, level: 100 }
+  ];
+  ctx.font = '9px monospace';
+  ctx.fillStyle = dark ? '#888' : '#666';
+  dbLabels.forEach(d => {
+    const ang = levelToAngle(d.level) * Math.PI / 180;
+    const lr = R - 80;
+    ctx.textAlign = 'center';
+    ctx.fillText(d.db === 0 ? '0' : d.db, cx + Math.sin(ang) * lr, cy - Math.cos(ang) * lr + 12);
+  });
+
+  // Trail (peak hold ghost)
+  if (trailAngles.length > 0) {
+    trailAngles.forEach((ta, i) => {
+      const alpha = (i / trailAngles.length) * 0.25;
+      const ang = ta * Math.PI / 180;
+      const nx = cx + Math.sin(ang) * (R - 80);
+      const ny = cy - Math.cos(ang) * (R - 80);
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(nx, ny);
+      ctx.strokeStyle = `rgba(255,180,50,${alpha})`;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    });
+  }
+
+  // Peak hold needle ghost
+  if (peakHeld && peakAngle > MIN_ANGLE) {
+    const pa = peakAngle * Math.PI / 180;
+    const px1 = cx + Math.sin(pa) * 20;
+    const py1 = cy - Math.cos(pa) * 20;
+    const px2 = cx + Math.sin(pa) * (R - 20);
+    const py2 = cy - Math.cos(pa) * (R - 20);
+    ctx.beginPath();
+    ctx.moveTo(px1, py1);
+    ctx.lineTo(px2, py2);
+    ctx.strokeStyle = peakFlash > 0 ? `rgba(220,60,60,0.9)` : `rgba(220,100,60,0.4)`;
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 4]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // Main needle
+  const na = currentAngle * Math.PI / 180;
+  const nx1 = cx + Math.sin(na) * 22;
+  const ny1 = cy - Math.cos(na) * 22;
+  const nx2 = cx + Math.sin(na) * (R - 20);
+  const ny2 = cy - Math.cos(na) * (R - 20);
+
+  // Needle shadow
+  ctx.beginPath();
+  ctx.moveTo(nx1 + 1.5, ny1 + 1.5);
+  ctx.lineTo(nx2 + 1.5, ny2 + 1.5);
+  ctx.strokeStyle = 'rgba(0,0,0,0.18)';
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+
+  // Needle body
+  const needleGrd = ctx.createLinearGradient(nx1, ny1, nx2, ny2);
+  needleGrd.addColorStop(0, dark ? '#aaa' : '#888');
+  needleGrd.addColorStop(0.7, dark ? '#eee' : '#333');
+  needleGrd.addColorStop(1, '#c0392b');
+  ctx.beginPath();
+  ctx.moveTo(nx1, ny1);
+  ctx.lineTo(nx2, ny2);
+  ctx.strokeStyle = needleGrd;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Pivot circle
+  ctx.beginPath();
+  ctx.arc(cx, cy, 10, 0, Math.PI * 2);
+  ctx.fillStyle = dark ? '#888' : '#666';
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(cx, cy, 6, 0, Math.PI * 2);
+  ctx.fillStyle = dark ? '#ccc' : '#bbb';
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(cx, cy, 3, 0, Math.PI * 2);
+  ctx.fillStyle = dark ? '#333' : '#444';
+  ctx.fill();
+
+  // Peak indicator light
+  if (peakFlash > 0 || targetLevel > 90) {
+    ctx.beginPath();
+    ctx.arc(cx + 170, cy - 200, 7, 0, Math.PI * 2);
+    const flashAlpha = peakFlash > 0 ? 0.9 : 0.4 + 0.3 * Math.sin(Date.now() / 100);
+    ctx.fillStyle = `rgba(220,40,40,${flashAlpha})`;
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(cx + 170, cy - 200, 5, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255,120,100,${flashAlpha * 0.7})`;
+    ctx.fill();
+  } else {
+    ctx.beginPath();
+    ctx.arc(cx + 170, cy - 200, 7, 0, Math.PI * 2);
+    ctx.fillStyle = dark ? '#3a1a1a' : '#d0b0b0';
+    ctx.fill();
+  }
+  ctx.font = '8px monospace';
+  ctx.fillStyle = dark ? '#888' : '#888';
+  ctx.textAlign = 'center';
+  ctx.fillText('PEAK', cx + 170, cy - 186);
+
+  // Branding plate
+  ctx.font = 'italic bold 11px serif';
+  ctx.fillStyle = dark ? '#6a5a3a' : '#a09060';
+  ctx.textAlign = 'center';
+  ctx.fillText('RETRO MODEL VU-88', cx, cy - 12);
+}
+
+function updatePhysics() {
+  const targetAng = levelToAngle(targetLevel);
+  const force = SPRING_K * (targetAng - currentAngle);
+  velocity = velocity * DAMPING + force;
+  currentAngle += velocity;
+
+  // Track for trail
+  trailAngles.push(currentAngle);
+  if (trailAngles.length > 40) trailAngles.shift();
+
+  // Peak hold logic
+  if (currentAngle > peakAngle) {
+    peakAngle = currentAngle;
+    peakTimer = PEAK_HOLD_FRAMES;
+    peakHeld = true;
+    if (peakAngle > levelToAngle(90)) {
+      peakFlash = 20;
+      document.getElementById('peakBadge').classList.add('hot');
+    }
+  }
+  if (peakTimer > 0) {
+    peakTimer--;
+  } else if (peakHeld) {
+    peakAngle = Math.max(MIN_ANGLE, peakAngle - 0.3);
+    if (peakAngle <= MIN_ANGLE) { peakHeld = false; }
+  }
+  if (peakFlash > 0) peakFlash--;
+  if (peakFlash === 0 && targetLevel < 90) {
+    document.getElementById('peakBadge').classList.remove('hot');
+  }
+
+  // Update readouts
+  const db = levelToDB(targetLevel);
+  document.getElementById('dbReadout').textContent = formatDB(db);
+  document.getElementById('vuPercent').textContent = Math.round(targetLevel) + '%';
+}
+
+let animModeTimer = 0;
+let sinePhase = 0;
+let drumPhase = 0;
+
+function animateModes() {
+  if (animMode === 'sine') {
+    sinePhase += 0.04;
+    const base = 55 + 30 * Math.sin(sinePhase);
+    const noise = (Math.random() - 0.5) * 8;
+    targetLevel = Math.max(0, Math.min(100, base + noise));
+  } else if (animMode === 'drum') {
+    drumPhase++;
+    if (drumPhase % 45 === 0) {
+      targetLevel = 70 + Math.random() * 30;
+    } else if (drumPhase % 45 < 8) {
+      targetLevel = Math.max(0, targetLevel - 12);
+    } else {
+      targetLevel = Math.max(2, targetLevel - 5 + (Math.random() - 0.5) * 3);
+    }
+  } else if (animMode === 'random') {
+    animModeTimer++;
+    if (animModeTimer % 20 === 0) {
+      targetLevel = Math.random() * 110;
+      if (targetLevel > 100) targetLevel = 100;
+    }
+  }
+  document.getElementById('levelSlider').value = targetLevel;
+  document.getElementById('sliderVal').textContent = Math.round(targetLevel) + '%';
+}
+
+function loop() {
+  animateModes();
+  updatePhysics();
+  drawMeter();
+  requestAnimationFrame(loop);
+}
+
+// Slider
+document.getElementById('levelSlider').addEventListener('input', e => {
+  if (!animMode) {
+    targetLevel = +e.target.value;
+    document.getElementById('sliderVal').textContent = e.target.value + '%';
+  }
+});
+
+// Mode buttons
+function setMode(mode) {
+  animMode = mode;
+  ['btnSine','btnDrum','btnRandom','btnStop'].forEach(id => {
+    document.getElementById(id).classList.remove('active');
+  });
+  if (mode) {
+    const map = { sine:'btnSine', drum:'btnDrum', random:'btnRandom' };
+    if (map[mode]) document.getElementById(map[mode]).classList.add('active');
+  }
+}
+document.getElementById('btnSine').onclick = () => { sinePhase = 0; setMode('sine'); };
+document.getElementById('btnDrum').onclick = () => { drumPhase = 0; setMode('drum'); };
+document.getElementById('btnRandom').onclick = () => setMode('random');
+document.getElementById('btnStop').onclick = () => {
+  setMode(null);
+  targetLevel = 0;
+  document.getElementById('levelSlider').value = 0;
+  document.getElementById('sliderVal').textContent = '0%';
+};
+
+// Reset peak on click
+document.getElementById('meterOuter').onclick = () => {
+  peakAngle = MIN_ANGLE;
+  peakHeld = false;
+  peakTimer = 0;
+  peakFlash = 0;
+  trailAngles = [];
+  document.getElementById('peakBadge').classList.remove('hot');
+};
+
+loop();
+})();
+</script>

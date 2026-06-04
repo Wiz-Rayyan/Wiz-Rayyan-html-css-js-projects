@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<div id="city-root" style="position:relative;width:100%;height:600px;overflow:hidden;border-radius:var(--border-radius-lg);border:0.5px solid var(--color-border-tertiary);background:#0a0e1a">
+  <canvas id="c" style="width:100%;height:100%;display:block"></canvas>
+
+  <!-- Controls -->
+  <div style="position:absolute;top:12px;left:12px;display:flex;gap:8px;z-index:10">
+    <button id="btn-day" onclick="setMode('day')" style="padding:6px 14px;border-radius:20px;border:0.5px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.15);color:#fff;font-size:12px;cursor:pointer;backdrop-filter:blur(6px)">Day</button>
+    <button id="btn-night" onclick="setMode('night')" style="padding:6px 14px;border-radius:20px;border:0.5px solid rgba(255,255,255,0.3);background:rgba(255,165,0,0.25);color:#ffd97a;font-size:12px;cursor:pointer;backdrop-filter:blur(6px)">Night</button>
+  </div>
+  <div style="position:absolute;bottom:12px;left:12px;font-size:11px;color:rgba(255,255,255,0.45);z-index:10">Drag to rotate · Scroll to zoom · Hover to inspect · Click for details</div>
+
+  <!-- Tooltip -->
+  <div id="tooltip" style="position:absolute;display:none;background:rgba(10,14,26,0.9);border:0.5px solid rgba(255,255,255,0.2);border-radius:8px;padding:8px 12px;pointer-events:none;z-index:20;backdrop-filter:blur(8px)">
+    <div id="tt-name" style="font-size:13px;font-weight:500;color:#fff"></div>
+    <div id="tt-addr" style="font-size:11px;color:rgba(255,255,255,0.55);margin-top:2px"></div>
+  </div>
+
+  <!-- Info panel -->
+  <div id="info-panel" style="position:absolute;top:0;right:-300px;width:280px;height:100%;background:rgba(10,14,26,0.95);border-left:0.5px solid rgba(255,255,255,0.15);padding:20px 16px;z-index:30;transition:right .35s cubic-bezier(.4,0,.2,1);overflow-y:auto">
+    <button onclick="closePanel()" style="position:absolute;top:12px;right:12px;background:none;border:none;color:rgba(255,255,255,0.5);font-size:18px;cursor:pointer;line-height:1">×</button>
+    <div id="panel-content"></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const BUILDINGS = [
+  {name:"Empire Tower",addr:"1 Empire Plaza",floors:88,year:1972,type:"Office",color:"#4a7fa5",h:2.2,x:0,z:0,w:.7,d:.7},
+  {name:"Central Bank HQ",addr:"55 Finance St",floors:52,year:1989,type:"Commercial",color:"#5a8a6a",h:1.4,x:1.5,z:0.3,w:.6,d:.55},
+  {name:"Riverside Residences",addr:"200 River Ave",floors:34,year:2005,type:"Residential",color:"#7a5f8a",h:0.9,x:-1.6,z:0.2,w:.55,d:.6},
+  {name:"Metro Grand Hotel",addr:"88 Grand Blvd",floors:42,year:1998,type:"Hospitality",color:"#8a6a45",h:1.1,x:0.2,z:1.8,w:.65,d:.6},
+  {name:"Tech Hub Alpha",addr:"12 Innovation Dr",floors:28,year:2018,type:"Mixed-use",color:"#5a7aaa",h:0.75,x:-1.5,z:1.6,w:.5,d:.5},
+  {name:"City Hall",addr:"1 Civic Center",floors:12,year:1933,type:"Government",color:"#9a8a5a",h:0.45,x:1.6,z:1.9,w:.8,d:.7},
+  {name:"Harborview Tower",addr:"300 Harbor Rd",floors:60,year:2010,type:"Office",color:"#4a8a9a",h:1.6,x:-0.2,z:-1.8,w:.55,d:.55},
+  {name:"Pinnacle Condo",addr:"400 Skyline Way",floors:72,year:2016,type:"Residential",color:"#7a4a7a",h:1.85,x:1.8,z:-1.2,w:.5,d:.5},
+  {name:"Union Station",addr:"1 Union Sq",floors:8,year:1915,type:"Transit",color:"#8a7a5a",h:0.3,x:-0.1,z:3.5,w:1.2,d:.8},
+  {name:"West Tower",addr:"5 West End",floors:48,year:2001,type:"Office",color:"#4a6a8a",h:1.3,x:-2.8,z:-0.3,w:.55,d:.55},
+  {name:"SkyLoft Apts",addr:"22 Cloud Ave",floors:38,year:2012,type:"Residential",color:"#6a5a9a",h:1.0,x:2.9,z:0.5,w:.5,d:.5},
+  {name:"Nexus Plaza",addr:"100 Nexus Blvd",floors:25,year:2020,type:"Mixed-use",color:"#5a9a7a",h:0.68,x:0.8,z:3.2,w:.6,d:.55},
+  {name:"Civic Arts Center",addr:"9 Culture Sq",floors:6,year:1968,type:"Cultural",color:"#aa7a4a",h:0.22,x:-2.5,z:2.5,w:.9,d:.75},
+  {name:"Old Commerce Bldg",addr:"3 Commerce Ln",floors:18,year:1952,type:"Commercial",color:"#7a8a5a",h:0.5,x:2.5,z:-2.8,w:.65,d:.6},
+  {name:"Marina Tower",addr:"1 Marina Cove",floors:55,year:2014,type:"Residential",color:"#5a7aaa",h:1.45,x:-2.0,z:-2.5,w:.5,d:.5},
+];
+
+let mode = 'night';
+let scene, camera, renderer, meshes=[], raycaster, mouse, hoveredIdx=-1, clock;
+let isDragging=false, lastMX=0, lastMY=0, camTheta=0.5, camPhi=1.1, camR=14;
+let streetLights=[], windowLights=[];
+
+function init(){
+  const canvas = document.getElementById('c');
+  const cont = document.getElementById('city-root');
+  renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.shadowMap.enabled=true;
+  renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  resize();
+
+  scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0x0a0e1a,0.04);
+
+  camera = new THREE.PerspectiveCamera(50, canvas.clientWidth/canvas.clientHeight, 0.1, 200);
+  updateCam();
+
+  raycaster = new THREE.Raycaster();
+  mouse = new THREE.Vector2();
+  clock = new THREE.Clock();
+
+  buildCity();
+  setupLights();
+  applyMode();
+  animate();
+
+  canvas.addEventListener('mousedown', e=>{isDragging=true;lastMX=e.clientX;lastMY=e.clientY;});
+  window.addEventListener('mouseup',()=>isDragging=false);
+  window.addEventListener('mousemove',onMove);
+  canvas.addEventListener('wheel',e=>{camR=Math.max(6,Math.min(28,camR+e.deltaY*0.02));updateCam();e.preventDefault();},{passive:false});
+  canvas.addEventListener('click',onClick);
+  window.addEventListener('resize',resize);
+}
+
+function buildCity(){
+  // Ground plane
+  const gGeo = new THREE.PlaneGeometry(30,30);
+  const gMat = new THREE.MeshLambertMaterial({color:0x0d1520});
+  const ground = new THREE.Mesh(gGeo,gMat);
+  ground.rotation.x=-Math.PI/2; ground.receiveShadow=true;
+  scene.add(ground);
+
+  // Grid lines
+  const grid = new THREE.GridHelper(30,30,0x1a2535,0x1a2535);
+  grid.position.y=0.01; scene.add(grid);
+
+  BUILDINGS.forEach((b,i)=>{
+    const hh = b.h*6;
+    const geo = new THREE.BoxGeometry(b.w,hh,b.d);
+    geo.translate(0,hh/2,0);
+    const mat = new THREE.MeshLambertMaterial({color:new THREE.Color(b.color)});
+    const mesh = new THREE.Mesh(geo,mat);
+    mesh.position.set(b.x*2,0,b.z*2);
+    mesh.castShadow=true; mesh.receiveShadow=true;
+    mesh.userData={idx:i,baseColor:b.color};
+    scene.add(mesh);
+    meshes.push(mesh);
+
+    // Edge highlight (outline)
+    const edges = new THREE.EdgesGeometry(geo);
+    const edgeMat = new THREE.LineBasicMaterial({color:0x00e5ff,transparent:true,opacity:0});
+    const edgeMesh = new THREE.LineSegments(edges,edgeMat);
+    edgeMesh.position.copy(mesh.position);
+    edgeMesh.userData.edge=true; edgeMesh.userData.parentIdx=i;
+    scene.add(edgeMesh);
+    mesh.userData.edgeMesh=edgeMesh;
+
+    // Windows (emissive planes scattered on faces)
+    addWindows(b,hh,i);
+  });
+
+  // Street light posts
+  for(let r=-3;r<=3;r++) for(let c=-3;c<=3;c++){
+    if(Math.abs(r)<1&&Math.abs(c)<1) continue;
+    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.03,1.2,6), new THREE.MeshLambertMaterial({color:0x334455}));
+    post.position.set(r*3.8+1.8,0.6,c*3.8+1.8);
+    scene.add(post);
+    const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.08,8,8), new THREE.MeshBasicMaterial({color:0xff9933}));
+    bulb.position.set(r*3.8+1.8,1.25,c*3.8+1.8);
+    scene.add(bulb);
+    streetLights.push({post,bulb,ptLight:null});
+    const pt = new THREE.PointLight(0xff8844,0,3);
+    pt.position.set(r*3.8+1.8,1.25,c*3.8+1.8);
+    scene.add(pt);
+    streetLights[streetLights.length-1].ptLight=pt;
+  }
+}
+
+function addWindows(b,hh,idx){
+  const cols=Math.max(2,Math.floor(b.w*12));
+  const rows=Math.max(3,Math.floor(hh/0.7));
+  const bx=b.x*2, bz=b.z*2;
+  const wins=[];
+  for(let r=0;r<rows;r++){
+    for(let c=0;c<cols;c++){
+      if(Math.random()<0.15) continue; // some dark windows
+      const wx=(c/(cols-1)-0.5)*b.w*0.82+bx;
+      const wy=(r+0.7)*hh/rows;
+      const wz=bz+b.d/2+0.01;
+      const wg=new THREE.PlaneGeometry(0.045,0.06);
+      const wm=new THREE.MeshBasicMaterial({color:0xffee88,transparent:true,opacity:0});
+      const wm2=new THREE.MeshBasicMaterial({color:0xffee88,transparent:true,opacity:0});
+      const ww=new THREE.Mesh(wg,wm); ww.position.set(wx,wy,wz); scene.add(ww);
+      const ww2=new THREE.Mesh(wg.clone(),wm2); ww2.position.set(wx,wy,bz-b.d/2-0.01); ww2.rotation.y=Math.PI; scene.add(ww2);
+      wins.push(ww,ww2);
+    }
+  }
+  windowLights.push({idx,wins});
+}
+
+function setupLights(){
+  const ambient = new THREE.AmbientLight(0xffffff,0.25);
+  scene.add(ambient);
+  const sun = new THREE.DirectionalLight(0xfff4e0,0);
+  sun.position.set(8,12,5); sun.castShadow=true;
+  sun.shadow.mapSize.width=2048; sun.shadow.mapSize.height=2048;
+  sun.shadow.camera.far=60;
+  scene.add(sun);
+  scene.userData.sun=scene.userData.sun||sun;
+  scene.userData.ambient=ambient;
+  scene.userData.sun=sun;
+}
+
+function setMode(m){
+  mode=m;
+  applyMode();
+}
+window.setMode=setMode;
+
+function applyMode(){
+  const isNight = mode==='night';
+  const sun=scene.userData.sun, ambient=scene.userData.ambient;
+
+  if(isNight){
+    scene.background=new THREE.Color(0x050810);
+    scene.fog.color.setHex(0x050810);
+    sun.intensity=0; ambient.intensity=0.12; ambient.color.setHex(0x2244aa);
+    document.getElementById('btn-night').style.background='rgba(255,165,0,0.35)';
+    document.getElementById('btn-day').style.background='rgba(255,255,255,0.1)';
+    streetLights.forEach(sl=>{ sl.ptLight.intensity=0.8; sl.bulb.material.color.setHex(0xff8833); });
+    windowLights.forEach(wl=>wl.wins.forEach(w=>{ w.material.opacity=0.55+Math.random()*0.35; }));
+    meshes.forEach(m=>{ m.material.color.setHex(0x0d1a2a); });
+  } else {
+    scene.background=new THREE.Color(0x87ceeb);
+    scene.fog.color.setHex(0x87ceeb);
+    sun.intensity=1.8; ambient.intensity=0.6; ambient.color.setHex(0xffffff);
+    document.getElementById('btn-day').style.background='rgba(255,255,255,0.35)';
+    document.getElementById('btn-night').style.background='rgba(255,165,0,0.1)';
+    streetLights.forEach(sl=>{ sl.ptLight.intensity=0; sl.bulb.material.color.setHex(0xddddbb); });
+    windowLights.forEach(wl=>wl.wins.forEach(w=>{ w.material.opacity=0; }));
+    meshes.forEach((m,i)=>{ m.material.color.setHex(new THREE.Color(BUILDINGS[i].userData?.baseColor||BUILDINGS[i]?.color||'#4a7fa5').getHex()); m.material.color=new THREE.Color(BUILDINGS[i].color); });
+  }
+}
+
+function updateCam(){
+  camera.position.x=camR*Math.sin(camPhi)*Math.sin(camTheta);
+  camera.position.y=camR*Math.cos(camPhi)+2;
+  camera.position.z=camR*Math.sin(camPhi)*Math.cos(camTheta);
+  camera.lookAt(0,3,0);
+}
+
+function onMove(e){
+  const cont=document.getElementById('city-root');
+  const rect=cont.getBoundingClientRect();
+  if(isDragging){
+    const dx=e.clientX-lastMX, dy=e.clientY-lastMY;
+    camTheta-=dx*0.008; camPhi=Math.max(0.3,Math.min(1.4,camPhi+dy*0.008));
+    lastMX=e.clientX; lastMY=e.clientY; updateCam(); return;
+  }
+  mouse.x=((e.clientX-rect.left)/rect.width)*2-1;
+  mouse.y=-((e.clientY-rect.top)/rect.height)*2+1;
+  raycaster.setFromCamera(mouse,camera);
+  const hits=raycaster.intersectObjects(meshes);
+  const tt=document.getElementById('tooltip');
+  meshes.forEach((m,i)=>{ m.userData.edgeMesh.material.opacity=0; });
+  if(hits.length){
+    const mi=hits[0].object.userData.idx;
+    hoveredIdx=mi;
+    hits[0].object.userData.edgeMesh.material.opacity=0.9;
+    const b=BUILDINGS[mi];
+    document.getElementById('tt-name').textContent=b.name;
+    document.getElementById('tt-addr').textContent=b.addr;
+    tt.style.display='block';
+    tt.style.left=(e.clientX-rect.left+14)+'px';
+    tt.style.top=(e.clientY-rect.top-10)+'px';
+  } else {
+    hoveredIdx=-1;
+    tt.style.display='none';
+  }
+}
+
+function onClick(){
+  if(hoveredIdx<0) return;
+  const b=BUILDINGS[hoveredIdx];
+  const types={'Office':'🏢','Residential':'🏠','Commercial':'🏪','Hospitality':'🏨','Government':'🏛','Transit':'🚉','Mixed-use':'🏗','Cultural':'🎭'};
+  document.getElementById('panel-content').innerHTML=`
+    <div style="margin-top:4px;margin-bottom:16px">
+      <div style="font-size:11px;color:rgba(255,255,255,0.4);letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px">${types[b.type]||'🏢'} ${b.type}</div>
+      <div style="font-size:18px;font-weight:500;color:#fff;line-height:1.3">${b.name}</div>
+      <div style="font-size:12px;color:rgba(255,255,255,0.45);margin-top:4px">${b.addr}</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
+      ${stat('Floors',b.floors)}${stat('Year Built',b.year)}${stat('Height',Math.round(b.h*60)+'m')}${stat('Occupancy',Math.round(70+Math.random()*25)+'%')}
+    </div>
+    <div style="font-size:12px;color:rgba(255,255,255,0.4);line-height:1.6">
+      ${b.name} is a ${b.floors}-story ${b.type.toLowerCase()} building completed in ${b.year}, standing at approximately ${Math.round(b.h*60)} meters. It is one of the defining structures of the skyline.
+    </div>`;
+  document.getElementById('info-panel').style.right='0';
+}
+window.closePanel=function(){ document.getElementById('info-panel').style.right='-300px'; }
+
+function stat(label,val){
+  return `<div style="background:rgba(255,255,255,0.06);border-radius:8px;padding:10px 12px">
+    <div style="font-size:10px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">${label}</div>
+    <div style="font-size:18px;font-weight:500;color:#fff">${val}</div>
+  </div>`;
+}
+
+function animate(){
+  requestAnimationFrame(animate);
+  const t=clock.getElapsedTime();
+  // Subtle window flicker at night
+  if(mode==='night'){
+    windowLights.forEach(wl=>{
+      if(Math.random()<0.002){
+        const w=wl.wins[Math.floor(Math.random()*wl.wins.length)];
+        if(w) w.material.opacity=w.material.opacity>0.1?0.05:0.5+Math.random()*0.4;
+      }
+    });
+  }
+  renderer.render(scene,camera);
+}
+
+function resize(){
+  const cont=document.getElementById('city-root');
+  const w=cont.clientWidth, h=cont.clientHeight;
+  renderer.setSize(w,h,false);
+  if(camera){ camera.aspect=w/h; camera.updateProjectionMatrix(); }
+}
+
+window.addEventListener('load',init);
+</script>

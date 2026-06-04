@@ -1,0 +1,163 @@
+
+<style>
+  .container { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2rem; padding: 3rem 1rem; min-height: 340px; }
+  .dots-wrap { display: flex; align-items: flex-end; gap: 14px; height: 60px; }
+  .dot { width: 14px; height: 14px; border-radius: 50%; background: var(--color-text-primary); opacity: 0.85; transform: translateY(0); }
+  .dot.bouncing { animation: bounce 0.6s ease-in-out infinite alternate; }
+  .dot.settle { animation: settle 0.4s ease-in forwards; }
+  .dot.error { background: #E24B4A; animation: none; }
+  @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-28px); } }
+  @keyframes settle { from { transform: translateY(-14px); } to { transform: translateY(0); } }
+  @keyframes redflash { 0%,100% { opacity: 0.85; } 50% { opacity: 0.3; } }
+  .dot.error.flash { animation: redflash 0.3s ease-in-out 3; }
+  .status-text { font-size: 14px; color: var(--color-text-secondary); letter-spacing: 0.04em; min-height: 20px; transition: opacity 0.4s; opacity: 0; }
+  .status-text.visible { opacity: 1; }
+  .controls { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+  button { padding: 8px 20px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-secondary); background: transparent; color: var(--color-text-primary); font-size: 13px; cursor: pointer; transition: background 0.15s; }
+  button:hover { background: var(--color-background-secondary); }
+  button.active { background: var(--color-background-secondary); border-color: var(--color-border-primary); }
+  .vol-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--color-text-secondary); }
+  .vol-row input { width: 90px; }
+</style>
+
+<h2 class="sr-only">Audio bounce dot loading indicator with three states: loading, complete, and error</h2>
+
+<div class="container">
+  <div class="dots-wrap" id="dotsWrap">
+    <div class="dot" id="d0"></div>
+    <div class="dot" id="d1"></div>
+    <div class="dot" id="d2"></div>
+  </div>
+  <div class="status-text" id="statusText">Loading…</div>
+  <div class="controls">
+    <button id="btnLoad" class="active" onclick="startLoading()">Loading</button>
+    <button id="btnDone" onclick="triggerComplete()">Complete</button>
+    <button id="btnErr" onclick="triggerError()">Error</button>
+  </div>
+  <div class="vol-row">
+    <i class="ti ti-volume" aria-hidden="true"></i>
+    <input type="range" min="0" max="1" step="0.05" value="0.4" id="volSlider">
+    <span id="volOut">40%</span>
+  </div>
+</div>
+
+<script>
+const ctx = new (window.AudioContext || window.webkitAudioContext)();
+let vol = 0.4;
+let state = 'idle';
+let tapTimers = [];
+let bouncePhase = [0, 0, 0];
+let frameId;
+
+document.getElementById('volSlider').oninput = function() {
+  vol = parseFloat(this.value);
+  document.getElementById('volOut').textContent = Math.round(vol * 100) + '%';
+};
+
+function resume() { if (ctx.state === 'suspended') ctx.resume(); }
+
+function playTap(dotIndex) {
+  resume();
+  const g = ctx.createGain();
+  const o = ctx.createOscillator();
+  const freq = [880, 1100, 1320][dotIndex];
+  o.frequency.setValueAtTime(freq, ctx.currentTime);
+  o.frequency.exponentialRampToValueAtTime(freq * 0.6, ctx.currentTime + 0.06);
+  g.gain.setValueAtTime(vol * 0.18, ctx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.08);
+  o.connect(g); g.connect(ctx.destination);
+  o.start(); o.stop(ctx.currentTime + 0.09);
+}
+
+function playChime() {
+  resume();
+  [523, 659, 784].forEach((f, i) => {
+    const g = ctx.createGain(), o = ctx.createOscillator();
+    const t = ctx.currentTime + i * 0.12;
+    o.type = 'sine';
+    o.frequency.value = f;
+    g.gain.setValueAtTime(vol * 0.25, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.5);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(t); o.stop(t + 0.6);
+  });
+}
+
+function playBuzz() {
+  resume();
+  const g = ctx.createGain(), o = ctx.createOscillator();
+  o.type = 'sawtooth';
+  o.frequency.value = 120;
+  g.gain.setValueAtTime(vol * 0.25, ctx.currentTime);
+  g.gain.linearRampToValueAtTime(0.0001, ctx.currentTime + 0.35);
+  o.connect(g); g.connect(ctx.destination);
+  o.start(); o.stop(ctx.currentTime + 0.38);
+}
+
+function clearTapTimers() { tapTimers.forEach(clearTimeout); tapTimers = []; cancelAnimationFrame(frameId); }
+
+function setButtons(active) {
+  ['btnLoad','btnDone','btnErr'].forEach(id => document.getElementById(id).classList.remove('active'));
+  if (active) document.getElementById(active).classList.add('active');
+}
+
+function showStatus(txt, visible=true) {
+  const el = document.getElementById('statusText');
+  el.textContent = txt;
+  el.classList.toggle('visible', visible);
+}
+
+function setDotState(cls, extra='') {
+  [0,1,2].forEach(i => {
+    const d = document.getElementById('d'+i);
+    d.className = 'dot' + (cls ? ' '+cls : '') + (extra ? ' '+extra : '');
+    if (cls === 'bouncing') d.style.animationDelay = (i * 0.13) + 's';
+    else d.style.animationDelay = '0s';
+    d.style.background = '';
+  });
+}
+
+function startLoading() {
+  state = 'loading';
+  clearTapTimers();
+  setButtons('btnLoad');
+  setDotState('bouncing');
+  showStatus('Loading…');
+  scheduleTaps();
+}
+
+function scheduleTaps() {
+  if (state !== 'loading') return;
+  [0, 130, 260].forEach((delay, i) => {
+    const t = setTimeout(() => { if (state === 'loading') playTap(i); }, delay);
+    tapTimers.push(t);
+  });
+  const loop = setTimeout(scheduleTaps, 600);
+  tapTimers.push(loop);
+}
+
+function triggerComplete() {
+  state = 'complete';
+  clearTapTimers();
+  setButtons('btnDone');
+  setDotState('settle');
+  showStatus('Done ✓');
+  playChime();
+  setTimeout(() => { showStatus('', false); }, 2200);
+}
+
+function triggerError() {
+  state = 'error';
+  clearTapTimers();
+  setButtons('btnErr');
+  [0,1,2].forEach(i => {
+    const d = document.getElementById('d'+i);
+    d.className = 'dot error flash';
+    d.style.animationDelay = '0s';
+  });
+  showStatus('Error — try again');
+  playBuzz();
+}
+
+startLoading();
+</script>

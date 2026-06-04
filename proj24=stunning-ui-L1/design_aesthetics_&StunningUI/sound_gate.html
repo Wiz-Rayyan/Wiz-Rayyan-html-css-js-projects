@@ -1,0 +1,278 @@
+
+<style>
+  #sg-root { padding: 1.5rem 0; font-family: var(--font-sans); }
+  #gate-ring {
+    position: relative;
+    width: 180px; height: 180px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 1.5rem;
+    transition: transform 0.12s cubic-bezier(0.34,1.56,0.64,1), background 0.18s, border-color 0.18s;
+    border: 3px solid #dc2626;
+    background: radial-gradient(circle, #3f0808 0%, #1a0505 100%);
+    cursor: pointer;
+    user-select: none;
+  }
+  #gate-ring.open {
+    border-color: #22c55e;
+    background: radial-gradient(circle, #052e16 0%, #0a1a0a 100%);
+  }
+  #gate-ring.bypass {
+    border-color: #f59e0b;
+    background: radial-gradient(circle, #1c1400 0%, #0d0d00 100%);
+  }
+  #gate-inner {
+    width: 90px; height: 90px;
+    border-radius: 50%;
+    background: #991b1b;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.18s, transform 0.12s;
+    font-size: 13px; font-weight: 500; color: #fca5a5;
+  }
+  #gate-ring.open #gate-inner { background: #15803d; color: #86efac; }
+  #gate-ring.bypass #gate-inner { background: #b45309; color: #fde68a; }
+  #gate-label { font-size: 12px; color: var(--color-text-secondary); margin-top: 6px; text-align: center; }
+  #particle-canvas { position: absolute; top: 0; left: 0; pointer-events: none; border-radius: 50%; }
+  .meter-wrap { background: var(--color-background-secondary); border-radius: var(--border-radius-lg); border: 0.5px solid var(--color-border-tertiary); padding: 1rem 1.25rem; margin-bottom: 1rem; }
+  .meter-label { font-size: 13px; color: var(--color-text-secondary); margin-bottom: 8px; display: flex; justify-content: space-between; }
+  .meter-bar-bg { height: 18px; border-radius: 9px; background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); position: relative; overflow: hidden; }
+  #meter-fill { height: 100%; border-radius: 9px; width: 0%; background: #dc2626; transition: width 0.05s, background 0.1s; }
+  #threshold-marker { position: absolute; top: -2px; bottom: -2px; width: 2px; background: #f59e0b; border-radius: 1px; transition: left 0.1s; }
+  .threshold-wrap { margin-top: 0.75rem; }
+  .threshold-label { font-size: 13px; color: var(--color-text-secondary); display: flex; justify-content: space-between; margin-bottom: 4px; }
+  #threshold-val { font-weight: 500; color: var(--color-text-primary); }
+  .controls { display: flex; gap: 10px; margin-top: 0.75rem; }
+  .controls button { flex: 1; font-size: 13px; padding: 8px; }
+  .status-row { display: flex; gap: 8px; margin-bottom: 1rem; justify-content: center; }
+  .badge { font-size: 11px; padding: 3px 10px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-tertiary); color: var(--color-text-secondary); }
+  .badge.active { background: var(--color-background-success); color: var(--color-text-success); border-color: var(--color-border-success); }
+  .badge.bypass-badge { background: var(--color-background-warning); color: var(--color-text-warning); border-color: var(--color-border-warning); }
+  #db-readout { font-size: 28px; font-weight: 500; color: var(--color-text-primary); text-align: center; margin-bottom: 4px; font-variant-numeric: tabular-nums; }
+</style>
+
+<div id="sg-root">
+  <h2 class="sr-only">Sound gate — audio threshold visualizer that opens when microphone input exceeds a threshold level</h2>
+
+  <div id="db-readout">—</div>
+  <div style="text-align:center; font-size:12px; color:var(--color-text-secondary); margin-bottom:1rem;">dB level</div>
+
+  <div style="position:relative; width:180px; margin:0 auto 1.5rem;">
+    <div id="gate-ring" onclick="toggleBypass()" title="Click to toggle bypass">
+      <canvas id="particle-canvas" width="180" height="180"></canvas>
+      <div id="gate-inner" id="gate-inner-label">CLOSED</div>
+    </div>
+  </div>
+  <div id="gate-label">Click gate to bypass</div>
+
+  <div class="status-row">
+    <span class="badge" id="badge-gate">Gate closed</span>
+    <span class="badge" id="badge-mic">Mic inactive</span>
+    <span class="badge" id="badge-bypass">Bypass off</span>
+  </div>
+
+  <div class="meter-wrap">
+    <div class="meter-label">
+      <span>Audio level</span>
+      <span id="level-pct">0%</span>
+    </div>
+    <div class="meter-bar-bg">
+      <div id="meter-fill"></div>
+      <div id="threshold-marker" style="left:50%"></div>
+    </div>
+    <div class="threshold-wrap">
+      <div class="threshold-label">
+        <span>Threshold</span>
+        <span id="threshold-val">50%</span>
+      </div>
+      <input type="range" id="threshold-slider" min="5" max="95" value="50" step="1" style="width:100%">
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="mic-btn" onclick="toggleMic()">Enable mic</button>
+    <button onclick="testBurst()">Test burst</button>
+  </div>
+</div>
+
+<script>
+let audioCtx, analyser, micStream, rafId;
+let isMicActive = false;
+let isOpen = false;
+let isBypass = false;
+let threshold = 50;
+let currentLevel = 0;
+let particles = [];
+
+const ring = document.getElementById('gate-ring');
+const inner = document.getElementById('gate-inner');
+const meterFill = document.getElementById('meter-fill');
+const thresholdMarker = document.getElementById('threshold-marker');
+const levelPct = document.getElementById('level-pct');
+const thresholdVal = document.getElementById('threshold-val');
+const thresholdSlider = document.getElementById('threshold-slider');
+const dbReadout = document.getElementById('db-readout');
+const badgeGate = document.getElementById('badge-gate');
+const badgeMic = document.getElementById('badge-mic');
+const badgeBypass = document.getElementById('badge-bypass');
+const canvas = document.getElementById('particle-canvas');
+const ctx = canvas.getContext('2d');
+
+thresholdSlider.addEventListener('input', () => {
+  threshold = parseInt(thresholdSlider.value);
+  thresholdVal.textContent = threshold + '%';
+  thresholdMarker.style.left = threshold + '%';
+});
+
+function toggleBypass() {
+  isBypass = !isBypass;
+  badgeBypass.textContent = isBypass ? 'Bypass on' : 'Bypass off';
+  badgeBypass.className = 'badge' + (isBypass ? ' bypass-badge' : '');
+  document.getElementById('gate-label').textContent = isBypass ? 'Bypass active — gate forced open' : 'Click gate to bypass';
+  updateGateVisual(isBypass ? true : (currentLevel >= threshold));
+}
+
+function updateGateVisual(open) {
+  if (isBypass) {
+    ring.className = 'bypass';
+    inner.textContent = 'BYPASS';
+    return;
+  }
+  isOpen = open;
+  ring.className = open ? 'open' : '';
+  inner.textContent = open ? 'OPEN' : 'CLOSED';
+  badgeGate.textContent = open ? 'Gate open' : 'Gate closed';
+  badgeGate.className = 'badge' + (open ? ' active' : '');
+}
+
+function spawnParticles(count) {
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 1.5 + Math.random() * 3;
+    particles.push({
+      x: 90, y: 90,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      life: 1,
+      decay: 0.025 + Math.random() * 0.03,
+      r: 2 + Math.random() * 3,
+      hue: 120 + Math.random() * 40
+    });
+  }
+}
+
+function drawParticles() {
+  ctx.clearRect(0, 0, 180, 180);
+  particles = particles.filter(p => p.life > 0);
+  for (const p of particles) {
+    ctx.save();
+    ctx.globalAlpha = p.life * 0.85;
+    ctx.fillStyle = `hsl(${p.hue},90%,55%)`;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r * p.life, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    p.x += p.vx;
+    p.y += p.vy;
+    p.life -= p.decay;
+  }
+}
+
+let prevOpen = false;
+function tick() {
+  drawParticles();
+  if (analyser && isMicActive) {
+    const data = new Uint8Array(analyser.frequencyBinCount);
+    analyser.getByteTimeDomainData(data);
+    let sum = 0;
+    for (let i = 0; i < data.length; i++) {
+      const v = (data[i] - 128) / 128;
+      sum += v * v;
+    }
+    const rms = Math.sqrt(sum / data.length);
+    const pct = Math.min(100, Math.round(rms * 400));
+    currentLevel = pct;
+    const db = rms > 0.0001 ? Math.round(20 * Math.log10(rms)) : -60;
+    dbReadout.textContent = db + ' dB';
+    meterFill.style.width = pct + '%';
+    meterFill.style.background = pct >= threshold ? '#22c55e' : '#dc2626';
+    levelPct.textContent = pct + '%';
+    const shouldOpen = pct >= threshold;
+    if (shouldOpen && !prevOpen && !isBypass) {
+      ring.style.transform = 'scale(1.18)';
+      setTimeout(() => { ring.style.transform = ''; }, 150);
+      spawnParticles(18);
+    }
+    prevOpen = shouldOpen;
+    if (!isBypass) updateGateVisual(shouldOpen);
+  }
+  rafId = requestAnimationFrame(tick);
+}
+
+async function toggleMic() {
+  if (isMicActive) {
+    isMicActive = false;
+    if (micStream) micStream.getTracks().forEach(t => t.stop());
+    if (audioCtx) audioCtx.close();
+    analyser = null;
+    document.getElementById('mic-btn').textContent = 'Enable mic';
+    badgeMic.textContent = 'Mic inactive';
+    badgeMic.className = 'badge';
+    dbReadout.textContent = '—';
+    meterFill.style.width = '0%';
+    currentLevel = 0;
+    updateGateVisual(false);
+    return;
+  }
+  try {
+    micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 512;
+    audioCtx.createMediaStreamSource(micStream).connect(analyser);
+    isMicActive = true;
+    document.getElementById('mic-btn').textContent = 'Disable mic';
+    badgeMic.textContent = 'Mic active';
+    badgeMic.className = 'badge active';
+  } catch(e) {
+    badgeMic.textContent = 'Mic blocked';
+    badgeMic.className = 'badge';
+  }
+}
+
+let testLevel = 0;
+let testFrame = 0;
+function testBurst() {
+  testFrame = 0;
+  const run = () => {
+    testFrame++;
+    testLevel = testFrame < 20 ? Math.min(90, testFrame * 5) : Math.max(0, 90 - (testFrame - 20) * 5);
+    currentLevel = testLevel;
+    const dBval = testLevel > 0 ? Math.round(20 * Math.log10(testLevel / 100)) : -60;
+    dbReadout.textContent = dBval + ' dB';
+    meterFill.style.width = testLevel + '%';
+    meterFill.style.background = testLevel >= threshold ? '#22c55e' : '#dc2626';
+    levelPct.textContent = Math.round(testLevel) + '%';
+    const shouldOpen = testLevel >= threshold;
+    if (shouldOpen && !prevOpen && !isBypass) {
+      ring.style.transform = 'scale(1.18)';
+      setTimeout(() => { ring.style.transform = ''; }, 150);
+      spawnParticles(20);
+    }
+    prevOpen = shouldOpen;
+    if (!isBypass) updateGateVisual(shouldOpen);
+    if (testFrame < 50) requestAnimationFrame(run);
+    else {
+      meterFill.style.width = '0%';
+      dbReadout.textContent = '—';
+      levelPct.textContent = '0%';
+      currentLevel = 0;
+      if (!isBypass) updateGateVisual(false);
+      prevOpen = false;
+    }
+  };
+  requestAnimationFrame(run);
+}
+
+thresholdMarker.style.left = threshold + '%';
+tick();
+</script>

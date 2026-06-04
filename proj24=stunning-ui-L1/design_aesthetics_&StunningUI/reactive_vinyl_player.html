@@ -1,0 +1,325 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: transparent; }
+  #player { display: flex; flex-direction: column; align-items: center; padding: 2rem 1rem 1.5rem; gap: 1.5rem; font-family: var(--font-sans); }
+  #stage { position: relative; width: 300px; height: 300px; cursor: pointer; }
+  #vinyl-wrap { position: absolute; inset: 0; border-radius: 50%; overflow: hidden; }
+  #vinyl { width: 100%; height: 100%; border-radius: 50%; }
+  #label { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 96px; height: 96px; border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+  #label canvas { width: 100%; height: 100%; border-radius: 50%; }
+  #spindle { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 10px; height: 10px; background: #ccc; border-radius: 50%; pointer-events: none; border: 1.5px solid #888; }
+  #reflection { position: absolute; inset: 0; border-radius: 50%; pointer-events: none; transition: opacity 0.4s; }
+  #beat-flash { position: absolute; inset: 0; border-radius: 50%; background: rgba(255,255,255,0); pointer-events: none; }
+  #tonearm { position: absolute; top: 10px; right: -20px; width: 80px; height: 160px; pointer-events: none; transform-origin: 72px 12px; transform: rotate(-12deg); transition: transform 0.5s ease; }
+
+  #info { text-align: center; }
+  #track-title { font-size: 17px; font-weight: 500; color: var(--color-text-primary); letter-spacing: 0.01em; }
+  #track-artist { font-size: 13px; color: var(--color-text-secondary); margin-top: 3px; }
+
+  #controls { display: flex; align-items: center; gap: 20px; }
+  #progress-wrap { display: flex; flex-direction: column; gap: 6px; width: 260px; }
+  #progress-bar-bg { height: 3px; background: var(--color-border-tertiary); border-radius: 2px; position: relative; cursor: pointer; }
+  #progress-bar-fill { height: 100%; background: var(--color-text-primary); border-radius: 2px; width: 0%; transition: width 0.25s linear; }
+  #time-row { display: flex; justify-content: space-between; font-size: 11px; color: var(--color-text-secondary); }
+
+  .ctrl-btn { background: none; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); width: 38px; height: 38px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--color-text-primary); transition: background 0.15s; font-size: 17px; }
+  .ctrl-btn:hover { background: var(--color-background-secondary); }
+
+  #bpm-row { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--color-text-secondary); }
+  #bpm-val { font-weight: 500; color: var(--color-text-primary); min-width: 28px; }
+  input[type=range] { width: 120px; }
+
+  #tracklist { display: flex; flex-direction: column; gap: 2px; width: 300px; }
+  .track-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: var(--border-radius-md); cursor: pointer; transition: background 0.15s; border: 0.5px solid transparent; }
+  .track-item:hover { background: var(--color-background-secondary); }
+  .track-item.active { background: var(--color-background-secondary); border-color: var(--color-border-tertiary); }
+  .track-num { font-size: 12px; color: var(--color-text-secondary); min-width: 16px; }
+  .track-name { font-size: 13px; color: var(--color-text-primary); flex: 1; }
+  .track-dur { font-size: 12px; color: var(--color-text-secondary); }
+  .eq-bars { display: flex; align-items: flex-end; gap: 2px; height: 14px; }
+  .eq-bar { width: 3px; background: var(--color-text-primary); border-radius: 1px; }
+</style>
+
+<div id="player">
+  <h2 class="sr-only">Reactive vinyl music player with spinning record animation</h2>
+
+  <div id="stage" onclick="togglePlay()" title="Click to play/pause">
+    <div id="vinyl-wrap">
+      <canvas id="vinyl" width="300" height="300"></canvas>
+    </div>
+    <div id="label">
+      <canvas id="label-canvas" width="96" height="96"></canvas>
+    </div>
+    <div id="spindle"></div>
+    <div id="reflection"></div>
+    <div id="beat-flash"></div>
+    <svg id="tonearm" viewBox="0 0 80 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="70" cy="12" r="8" fill="#888" stroke="#666" stroke-width="1"/>
+      <line x1="70" y1="20" x2="18" y2="148" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="18" cy="148" r="4" fill="#cc3344"/>
+    </svg>
+  </div>
+
+  <div id="info">
+    <div id="track-title">Midnight Groove</div>
+    <div id="track-artist">The Velvet Sessions</div>
+  </div>
+
+  <div id="controls">
+    <button class="ctrl-btn" onclick="prevTrack()" aria-label="Previous track"><i class="ti ti-player-skip-back" aria-hidden="true"></i></button>
+    <button class="ctrl-btn" id="play-btn" onclick="togglePlay()" aria-label="Play"><i class="ti ti-player-play" aria-hidden="true" id="play-icon"></i></button>
+    <button class="ctrl-btn" onclick="nextTrack()" aria-label="Next track"><i class="ti ti-player-skip-forward" aria-hidden="true"></i></button>
+  </div>
+
+  <div id="progress-wrap">
+    <div id="progress-bar-bg" onclick="seekTo(event)">
+      <div id="progress-bar-fill"></div>
+    </div>
+    <div id="time-row"><span id="time-cur">0:00</span><span id="time-tot">3:24</span></div>
+  </div>
+
+  <div id="bpm-row">
+    <span>BPM</span>
+    <input type="range" min="60" max="180" value="110" id="bpm-slider" oninput="updateBPM(this.value)">
+    <span id="bpm-val">110</span>
+  </div>
+
+  <div id="tracklist"></div>
+</div>
+
+<script>
+const tracks = [
+  { title: "Midnight Groove", artist: "The Velvet Sessions", bpm: 110, dur: 204, color: ["#1a0a2e","#6b21a8","#f59e0b"] },
+  { title: "Solar Drift", artist: "Cosmo Wave", bpm: 95, dur: 187, color: ["#0a1a2e","#1d6b8a","#10b981"] },
+  { title: "Neon Waltz", artist: "Echo District", bpm: 128, dur: 218, color: ["#1a0e0a","#b45309","#ef4444"] },
+  { title: "Deep Current", artist: "Archipelago", bpm: 80, dur: 261, color: ["#071a0a","#166534","#60a5fa"] },
+];
+
+let currentTrack = 0;
+let isPlaying = false;
+let angle = 0;
+let reflectAngle = 0;
+let progress = 0;
+let beatPhase = 0;
+let flashAlpha = 0;
+let spinSpeed = 1;
+let spinSpeedTarget = 1;
+let bpm = 110;
+let lastTime = null;
+let raf;
+let simTime = 0;
+let lastBeatTime = -999;
+
+const vinylCanvas = document.getElementById('vinyl');
+const vc = vinylCanvas.getContext('2d');
+const labelCanvas = document.getElementById('label-canvas');
+const lc = labelCanvas.getContext('2d');
+const reflection = document.getElementById('reflection');
+const beatFlash = document.getElementById('beat-flash');
+const tonearm = document.getElementById('tonearm');
+
+function drawVinyl(track, rotAngle) {
+  const W = 300, cx = 150, cy = 150, R = 148;
+  vc.clearRect(0,0,W,W);
+
+  vc.save();
+  vc.beginPath();
+  vc.arc(cx,cy,R,0,Math.PI*2);
+  vc.clip();
+
+  vc.fillStyle = '#111';
+  vc.fillRect(0,0,W,W);
+
+  vc.save();
+  vc.translate(cx,cy);
+  vc.rotate(rotAngle);
+
+  for (let i=52; i<=145; i+=2.2) {
+    vc.beginPath();
+    vc.arc(0,0,i,0,Math.PI*2);
+    const alpha = 0.08 + 0.04*Math.sin(i*0.4);
+    vc.strokeStyle = `rgba(255,255,255,${alpha})`;
+    vc.lineWidth = 0.5;
+    vc.stroke();
+  }
+
+  vc.restore();
+  vc.restore();
+}
+
+function drawLabel(track) {
+  const W = 96, cx = 48, cy = 48, R = 46;
+  lc.clearRect(0,0,W,W);
+  lc.save();
+  lc.beginPath();
+  lc.arc(cx,cy,R,0,Math.PI*2);
+  lc.clip();
+  const grd = lc.createRadialGradient(cx,cy,0,cx,cy,R);
+  grd.addColorStop(0, track.color[0]);
+  grd.addColorStop(0.6, track.color[1]);
+  grd.addColorStop(1, track.color[2]);
+  lc.fillStyle = grd;
+  lc.fillRect(0,0,W,W);
+
+  lc.fillStyle = 'rgba(255,255,255,0.9)';
+  lc.font = 'bold 9px sans-serif';
+  lc.textAlign = 'center';
+  lc.fillText(track.title.toUpperCase(), cx, cy-2);
+  lc.font = '7px sans-serif';
+  lc.fillStyle = 'rgba(255,255,255,0.65)';
+  lc.fillText(track.artist, cx, cy+10);
+  lc.restore();
+}
+
+function updateReflection(rAngle, alpha) {
+  const a = Math.round(alpha * 100) / 100;
+  reflection.style.background = `conic-gradient(from ${rAngle.toFixed(1)}rad, rgba(255,255,255,${(a*0.18).toFixed(3)}) 0deg, rgba(255,255,255,0) 60deg, rgba(255,255,255,0) 300deg, rgba(255,255,255,${(a*0.12).toFixed(3)}) 360deg)`;
+}
+
+function detectBeat(t, bpmVal) {
+  const beatInterval = 60 / bpmVal;
+  if (t - lastBeatTime >= beatInterval) {
+    lastBeatTime = t - ((t - lastBeatTime) % beatInterval);
+    return true;
+  }
+  return false;
+}
+
+function formatTime(s) {
+  const m = Math.floor(s/60), sec = Math.floor(s%60);
+  return `${m}:${sec.toString().padStart(2,'0')}`;
+}
+
+function animate(ts) {
+  if (!lastTime) lastTime = ts;
+  const dt = Math.min((ts - lastTime)/1000, 0.05);
+  lastTime = ts;
+
+  if (isPlaying) {
+    simTime += dt;
+    const track = tracks[currentTrack];
+    progress = Math.min(simTime / track.dur, 1);
+    document.getElementById('progress-bar-fill').style.width = (progress*100).toFixed(2)+'%';
+    document.getElementById('time-cur').textContent = formatTime(simTime);
+
+    if (progress >= 1) { nextTrack(); }
+
+    spinSpeed += (spinSpeedTarget - spinSpeed) * 0.08;
+    const baseRPM = 33.3 * (bpm/100);
+    angle += (baseRPM / 60) * Math.PI * 2 * dt * spinSpeed;
+    reflectAngle += 0.3 * dt * spinSpeed;
+
+    const beat = detectBeat(simTime, bpm);
+    if (beat) {
+      flashAlpha = 0.3;
+      spinSpeedTarget = 1.5;
+      setTimeout(() => { spinSpeedTarget = 1; }, 300);
+    }
+
+    flashAlpha = Math.max(0, flashAlpha - dt * 2.5);
+    beatFlash.style.background = `rgba(255,255,255,${flashAlpha.toFixed(3)})`;
+
+    drawVinyl(track, angle);
+    updateReflection(reflectAngle, 1);
+  } else {
+    drawVinyl(tracks[currentTrack], angle);
+    updateReflection(reflectAngle, 0.35);
+    beatFlash.style.background = 'rgba(255,255,255,0)';
+  }
+
+  raf = requestAnimationFrame(animate);
+}
+
+function loadTrack(idx) {
+  currentTrack = idx;
+  simTime = 0;
+  lastBeatTime = -999;
+  progress = 0;
+  lastTime = null;
+  const t = tracks[idx];
+  bpm = t.bpm;
+  document.getElementById('bpm-slider').value = bpm;
+  document.getElementById('bpm-val').textContent = bpm;
+  document.getElementById('track-title').textContent = t.title;
+  document.getElementById('track-artist').textContent = t.artist;
+  document.getElementById('time-tot').textContent = formatTime(t.dur);
+  document.getElementById('time-cur').textContent = '0:00';
+  document.getElementById('progress-bar-fill').style.width = '0%';
+  tonearm.style.transform = `rotate(${-12 + idx*3}deg)`;
+  drawLabel(t);
+  drawVinyl(t, angle);
+  renderTracklist();
+}
+
+function togglePlay() {
+  isPlaying = !isPlaying;
+  const icon = document.getElementById('play-icon');
+  icon.className = isPlaying ? 'ti ti-player-pause' : 'ti ti-player-play';
+  vinylCanvas.style.opacity = isPlaying ? '1' : '0.65';
+  tonearm.style.transform = `rotate(${isPlaying ? -8 + currentTrack*3 : -12 + currentTrack*3}deg)`;
+  if (isPlaying) lastTime = null;
+  renderTracklist();
+}
+
+function nextTrack() {
+  const wasPlaying = isPlaying;
+  isPlaying = false;
+  loadTrack((currentTrack+1) % tracks.length);
+  if (wasPlaying) { isPlaying = true; lastTime = null; }
+  const icon = document.getElementById('play-icon');
+  icon.className = isPlaying ? 'ti ti-player-pause' : 'ti ti-player-play';
+  vinylCanvas.style.opacity = isPlaying ? '1' : '0.65';
+}
+
+function prevTrack() {
+  const wasPlaying = isPlaying;
+  isPlaying = false;
+  loadTrack((currentTrack - 1 + tracks.length) % tracks.length);
+  if (wasPlaying) { isPlaying = true; lastTime = null; }
+  const icon = document.getElementById('play-icon');
+  icon.className = isPlaying ? 'ti ti-player-pause' : 'ti ti-player-play';
+  vinylCanvas.style.opacity = isPlaying ? '1' : '0.65';
+}
+
+function seekTo(e) {
+  const rect = e.currentTarget.getBoundingClientRect();
+  const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+  simTime = ratio * tracks[currentTrack].dur;
+  lastBeatTime = -999;
+  progress = ratio;
+}
+
+function updateBPM(v) {
+  bpm = parseInt(v);
+  document.getElementById('bpm-val').textContent = bpm;
+}
+
+function renderTracklist() {
+  const el = document.getElementById('tracklist');
+  el.innerHTML = tracks.map((t,i) => `
+    <div class="track-item ${i===currentTrack?'active':''}" onclick="selectTrack(${i})">
+      <span class="track-num">${i===currentTrack && isPlaying
+        ? `<span class="eq-bars"><span class="eq-bar" style="height:${4+Math.random()*8}px"></span><span class="eq-bar" style="height:${6+Math.random()*8}px"></span><span class="eq-bar" style="height:${3+Math.random()*9}px"></span></span>`
+        : i+1}</span>
+      <span class="track-name">${t.title}</span>
+      <span class="track-dur">${formatTime(t.dur)}</span>
+    </div>`).join('');
+}
+
+function selectTrack(idx) {
+  const wasPlaying = isPlaying;
+  isPlaying = false;
+  loadTrack(idx);
+  if (wasPlaying) { isPlaying = true; lastTime = null; }
+  const icon = document.getElementById('play-icon');
+  icon.className = isPlaying ? 'ti ti-player-pause' : 'ti ti-player-play';
+  vinylCanvas.style.opacity = isPlaying ? '1' : '0.65';
+}
+
+vinylCanvas.style.opacity = '0.65';
+loadTrack(0);
+requestAnimationFrame(animate);
+
+setInterval(() => { if (isPlaying) renderTracklist(); }, 400);
+</script>

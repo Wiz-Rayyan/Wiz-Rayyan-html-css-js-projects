@@ -1,0 +1,241 @@
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.wrap{min-height:520px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem 1rem;gap:2rem;transition:background 0.6s ease}
+.interface-header{text-align:center}
+.iface-label{font-size:12px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--color-text-tertiary);margin-bottom:6px}
+.iface-name{font-size:26px;font-weight:500;transition:color 0.5s ease}
+.iface-desc{font-size:14px;color:var(--color-text-secondary);margin-top:4px;transition:opacity 0.3s}
+
+.switcher-area{display:flex;flex-direction:column;align-items:center;gap:1.5rem}
+.carousel{display:flex;align-items:center;gap:12px}
+.model-btn{
+  position:relative;width:68px;height:68px;border-radius:50%;
+  border:2px solid transparent;
+  background:var(--color-background-secondary);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  flex-direction:column;gap:3px;
+  transition:all 0.35s cubic-bezier(.4,0,.2,1);
+  outline:none;
+}
+.model-btn .m-icon{width:28px;height:28px;transition:transform 0.5s cubic-bezier(.4,0,.2,1)}
+.model-btn .m-label{font-size:9px;font-weight:500;letter-spacing:.04em;color:var(--color-text-secondary);transition:color 0.3s}
+.model-btn:hover{transform:scale(1.08)}
+.model-btn.active{transform:scale(1.14)}
+
+.divider{width:1px;height:32px;background:var(--color-border-tertiary)}
+
+.active-display{
+  display:flex;flex-direction:column;align-items:center;gap:10px;
+  background:var(--color-background-primary);
+  border:0.5px solid var(--color-border-tertiary);
+  border-radius:var(--border-radius-lg);
+  padding:1.25rem 2rem;min-width:280px;max-width:340px;
+  transition:border-color 0.4s ease;
+}
+.active-badge{font-size:11px;font-weight:500;padding:3px 10px;border-radius:20px;letter-spacing:.04em;transition:all 0.4s}
+.active-model-name{font-size:20px;font-weight:500;transition:color 0.4s}
+.active-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%;margin-top:6px}
+.stat-cell{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:8px 6px;text-align:center}
+.stat-val{font-size:13px;font-weight:500;transition:color 0.4s}
+.stat-key{font-size:10px;color:var(--color-text-tertiary);margin-top:2px}
+
+.spin{animation:spin360 0.55s cubic-bezier(.4,0,.2,1) both}
+@keyframes spin360{from{transform:scale(1.14) rotate(0deg)}to{transform:scale(1.14) rotate(360deg)}}
+.morph{animation:morphIcon 0.55s ease both}
+@keyframes morphIcon{0%{transform:scale(0.5) rotate(-45deg);opacity:0}60%{transform:scale(1.2) rotate(8deg)}100%{transform:scale(1) rotate(0deg);opacity:1}}
+.pulse-ring{
+  position:absolute;inset:-6px;border-radius:50%;
+  border:2px solid transparent;
+  animation:pulse 2.2s ease-in-out infinite;
+  pointer-events:none;
+}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:.7}50%{transform:scale(1.18);opacity:0}}
+</style>
+
+<div class="wrap" id="wrap">
+  <h2 class="sr-only">AI model switcher — click a model to switch the active AI</h2>
+
+  <div class="interface-header">
+    <div class="iface-label">Active model</div>
+    <div class="iface-name" id="ifaceName">Claude</div>
+    <div class="iface-desc" id="ifaceDesc">Anthropic · Safety-first · 200K context</div>
+  </div>
+
+  <div class="switcher-area">
+    <div class="carousel" id="carousel" role="radiogroup" aria-label="Select AI model"></div>
+
+    <div class="active-display" id="activeDisplay">
+      <span class="active-badge" id="activeBadge">claude</span>
+      <span class="active-model-name" id="activeModelName">Claude 3.5</span>
+      <div class="active-stats">
+        <div class="stat-cell"><div class="stat-val" id="sSpeed">Fast</div><div class="stat-key">Speed</div></div>
+        <div class="stat-cell"><div class="stat-val" id="sCost">$$</div><div class="stat-key">Cost</div></div>
+        <div class="stat-cell"><div class="stat-val" id="sCtx">200K</div><div class="stat-key">Context</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const models=[
+  {
+    id:"claude",name:"Claude",full:"Claude 3.5",
+    company:"Anthropic",
+    desc:"Anthropic · Safety-first · 200K context",
+    color:"#7F77DD",colorLight:"#EEEDFE",colorDark:"#3C3489",
+    speed:"Fast",cost:"$$",ctx:"200K",
+    strength:"Long-form reasoning & nuanced writing",
+    svg:`<svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="14" cy="14" r="12" fill="#7F77DD" opacity=".15"/>
+      <path d="M9 19L13.5 8l1.5 4L19 8l-2 11" stroke="#534AB7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="14" cy="20" r="1.5" fill="#534AB7"/>
+    </svg>`
+  },
+  {
+    id:"gpt4",name:"GPT-4",full:"GPT-4o",
+    company:"OpenAI",
+    desc:"OpenAI · Versatile · Multimodal",
+    color:"#10a37f",colorLight:"#EAF3DE",colorDark:"#27500A",
+    speed:"Moderate",cost:"$$$",ctx:"128K",
+    strength:"Broad general knowledge & coding",
+    svg:`<svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="14" cy="14" r="12" fill="#10a37f" opacity=".15"/>
+      <path d="M14 7a7 7 0 0 1 7 7 7 7 0 0 1-7 7 7 7 0 0 1-7-7 7 7 0 0 1 7-7z" stroke="#0d8f6e" stroke-width="1.5"/>
+      <path d="M14 7v14M7 14h14M9.5 9.5l9 9M18.5 9.5l-9 9" stroke="#0d8f6e" stroke-width="1.4" stroke-linecap="round"/>
+    </svg>`
+  },
+  {
+    id:"gemini",name:"Gemini",full:"Gemini 1.5",
+    company:"Google",
+    desc:"Google · Multimodal · 1M context",
+    color:"#4285F4",colorLight:"#E6F1FB",colorDark:"#0C447C",
+    speed:"Fast",cost:"$",ctx:"1M",
+    strength:"Massive context & Google integration",
+    svg:`<svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="14" cy="14" r="12" fill="#4285F4" opacity=".13"/>
+      <path d="M14 6C14 6 10 11 10 14C10 17 14 22 14 22C14 22 18 17 18 14C18 11 14 6 14 6Z" fill="#4285F4" opacity=".5"/>
+      <path d="M6 14C6 14 11 10 14 10C17 10 22 14 22 14C22 14 17 18 14 18C11 18 6 14 6 14Z" fill="#34A853" opacity=".5"/>
+      <circle cx="14" cy="14" r="2.5" fill="#4285F4"/>
+    </svg>`
+  },
+  {
+    id:"llama",name:"Llama",full:"Llama 3",
+    company:"Meta",
+    desc:"Meta · Open-source · Self-hostable",
+    color:"#0866FF",colorLight:"#E6F1FB",colorDark:"#042C53",
+    speed:"Varies",cost:"Free",ctx:"128K",
+    strength:"Open weights, self-hostable, private",
+    svg:`<svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="14" cy="14" r="12" fill="#0866FF" opacity=".12"/>
+      <path d="M10 20V13c0-2.2 1.8-4 4-4s4 1.8 4 4v1" stroke="#0866FF" stroke-width="1.8" stroke-linecap="round"/>
+      <ellipse cx="10" cy="20" rx="2" ry="2.5" fill="#0866FF" opacity=".6"/>
+      <circle cx="12.5" cy="10" r="1.2" fill="#0866FF" opacity=".7"/>
+      <path d="M18 14c1.5 0 2.5 1 2.5 2.5S19.5 20 18 20" stroke="#0866FF" stroke-width="1.6" stroke-linecap="round"/>
+    </svg>`
+  }
+];
+
+let active=1;
+
+function applyModel(m,animate){
+  document.getElementById("ifaceName").textContent=m.name;
+  document.getElementById("ifaceDesc").textContent=m.desc;
+  document.getElementById("activeBadge").textContent=m.id;
+  document.getElementById("activeBadge").style.background=m.colorLight;
+  document.getElementById("activeBadge").style.color=m.colorDark;
+  document.getElementById("activeModelName").textContent=m.full;
+  document.getElementById("activeModelName").style.color=m.color;
+  document.getElementById("sSpeed").textContent=m.speed;
+  document.getElementById("sSpeed").style.color=m.color;
+  document.getElementById("sCost").textContent=m.cost;
+  document.getElementById("sCost").style.color=m.color;
+  document.getElementById("sCtx").textContent=m.ctx;
+  document.getElementById("sCtx").style.color=m.color;
+  document.getElementById("activeDisplay").style.borderColor=m.color+"55";
+  document.getElementById("ifaceName").style.color=m.color;
+}
+
+function buildCarousel(){
+  const c=document.getElementById("carousel");
+  c.innerHTML="";
+  models.forEach((m,i)=>{
+    if(i>0){
+      const d=document.createElement("div");
+      d.className="divider";
+      c.appendChild(d);
+    }
+    const btn=document.createElement("button");
+    btn.className="model-btn"+(i===active?" active":"");
+    btn.setAttribute("role","radio");
+    btn.setAttribute("aria-checked",i===active?"true":"false");
+    btn.setAttribute("aria-label",m.name);
+    btn.dataset.idx=i;
+    btn.style.borderColor=i===active?m.color:"transparent";
+    btn.style.background=i===active?m.colorLight:"var(--color-background-secondary)";
+
+    const iconDiv=document.createElement("div");
+    iconDiv.className="m-icon";
+    iconDiv.innerHTML=m.svg;
+    iconDiv.id="icon-"+i;
+
+    const lbl=document.createElement("div");
+    lbl.className="m-label";
+    lbl.textContent=m.name;
+    lbl.style.color=i===active?m.colorDark:"var(--color-text-secondary)";
+
+    if(i===active){
+      const ring=document.createElement("div");
+      ring.className="pulse-ring";
+      ring.style.borderColor=m.color;
+      btn.appendChild(ring);
+    }
+
+    btn.appendChild(iconDiv);
+    btn.appendChild(lbl);
+    c.appendChild(btn);
+
+    btn.addEventListener("click",()=>{
+      if(Number(btn.dataset.idx)===active)return;
+      const prev=active;
+      active=Number(btn.dataset.idx);
+
+      document.querySelectorAll(".model-btn").forEach((b,j)=>{
+        const mm=models[j];
+        b.className="model-btn"+(j===active?" active":"");
+        b.setAttribute("aria-checked",j===active?"true":"false");
+        b.style.borderColor=j===active?mm.color:"transparent";
+        b.style.background=j===active?mm.colorLight:"var(--color-background-secondary)";
+        b.querySelector(".m-label").style.color=j===active?mm.colorDark:"var(--color-text-secondary)";
+        const existRing=b.querySelector(".pulse-ring");
+        if(existRing)existRing.remove();
+        if(j===active){
+          b.classList.add("spin");
+          setTimeout(()=>b.classList.remove("spin"),600);
+          const ring=document.createElement("div");
+          ring.className="pulse-ring";
+          ring.style.borderColor=mm.color;
+          b.prepend(ring);
+          const ic=b.querySelector(".m-icon");
+          ic.classList.add("morph");
+          setTimeout(()=>ic.classList.remove("morph"),600);
+        }
+      });
+      applyModel(models[active],true);
+    });
+
+    btn.addEventListener("mouseenter",()=>{
+      if(Number(btn.dataset.idx)!==active){
+        btn.style.borderColor=m.color+"88";
+      }
+    });
+    btn.addEventListener("mouseleave",()=>{
+      if(Number(btn.dataset.idx)!==active){
+        btn.style.borderColor="transparent";
+      }
+    });
+  });
+}
+
+buildCarousel();
+applyModel(models[active],false);
+</script>

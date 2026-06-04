@@ -1,0 +1,398 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.wrap{display:flex;flex-direction:column;align-items:center;padding:1.5rem 1rem 2rem;gap:1rem}
+.machine{background:#c8c4bc;border:0.5px solid #a8a49c;border-radius:14px;padding:0;width:560px;position:relative;overflow:hidden}
+.machine-top{background:#b8b4ac;padding:14px 20px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #a0a098}
+.brand{font-size:11px;font-weight:500;letter-spacing:0.22em;color:#3a3830;text-transform:uppercase}
+.model{font-size:10px;color:#6a6860;letter-spacing:0.1em}
+.screw{width:8px;height:8px;border-radius:50%;background:#908e88;border:0.5px solid #706e68;display:flex;align-items:center;justify-content:center}
+.screw::after{content:'';display:block;width:4px;height:0.5px;background:#605e58}
+.screws-corner{display:flex;justify-content:space-between;width:100%;position:absolute;top:6px;left:0;padding:0 10px;pointer-events:none}
+.deck-area{padding:14px 18px 12px;display:flex;flex-direction:column;gap:10px}
+.reels-section{display:flex;justify-content:center}
+.info-bar{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.counter-wrap{display:flex;align-items:center;gap:6px;background:#1a1814;border-radius:6px;padding:6px 10px;border:0.5px solid #0a0a08}
+.digit-wheel{width:22px;height:32px;overflow:hidden;border-radius:2px;background:#111}
+.digit-track{display:flex;flex-direction:column;transition:transform 0.07s ease}
+.digit-cell{width:22px;height:32px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:500;color:#f0e060;font-family:monospace;line-height:1;flex-shrink:0}
+.sep{color:#f0e060;font-size:16px;font-family:monospace;opacity:0.6}
+.track-label{background:#1a1814;border-radius:6px;padding:4px 8px;border:0.5px solid #0a0a08}
+.track-label input{background:transparent;border:none;outline:none;color:#7ab8f5;font-size:11px;font-family:monospace;width:90px;caret-color:#7ab8f5}
+.meters-row{display:flex;gap:6px;align-items:flex-end;padding:8px 18px 6px;background:#b0ada6;border-top:0.5px solid #a0a098}
+.meter-group{display:flex;flex-direction:column;gap:3px;flex:1}
+.meter-label{font-size:9px;letter-spacing:0.1em;color:#5a5850;text-align:center}
+.meter-bar-wrap{background:#1a1814;border-radius:3px;padding:3px 4px;display:flex;gap:2px}
+.meter-seg{height:10px;flex:1;border-radius:1px;background:#2a2822;transition:background 0.04s}
+.controls-row{display:flex;align-items:center;justify-content:center;gap:8px;padding:8px 18px 14px}
+.ctrl-btn{width:44px;height:44px;border-radius:50%;border:1.5px solid #888480;background:#d0ccc4;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.12s,transform 0.1s;color:#3a3830}
+.ctrl-btn:hover{background:#e0dcd4}
+.ctrl-btn:active{transform:scale(0.93)}
+.ctrl-btn.rec-armed{background:#e03030;border-color:#cc2020;color:white}
+.ctrl-btn i{font-size:18px}
+.speed-row{display:flex;align-items:center;gap:8px;padding:0 18px 10px}
+.speed-label{font-size:10px;color:#5a5850;letter-spacing:0.06em;min-width:52px}
+.speed-val{font-size:10px;color:#3a3830;font-weight:500;min-width:36px;text-align:right}
+.wave-row{padding:4px 18px 0}
+.wave-canvas{display:block;border-radius:4px;background:#111;width:100%;height:48px}
+.status-pill{display:flex;align-items:center;gap:5px;background:#1a1814;border-radius:20px;padding:4px 10px}
+.status-dot{width:8px;height:8px;border-radius:50%;background:#333;transition:background 0.3s}
+.status-dot.rec{background:#e03030;animation:blink 1s ease-in-out infinite}
+.status-dot.pause{background:#d97b1a}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.35}}
+.status-txt{font-size:10px;color:#8a8880;letter-spacing:0.06em;min-width:52px}
+.modal-overlay{position:absolute;inset:0;background:rgba(0,0,0,0.5);display:none;align-items:center;justify-content:center;z-index:20;border-radius:14px}
+.modal-overlay.open{display:flex}
+.modal{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1.25rem 1.5rem;width:230px;position:relative}
+.modal h3{font-size:13px;font-weight:500;color:var(--color-text-primary);margin-bottom:12px}
+.opt-label{font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--color-text-tertiary);margin-bottom:5px}
+.opt-pills{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px}
+.pill{font-size:11px;padding:3px 9px;border-radius:20px;border:0.5px solid var(--color-border-secondary);cursor:pointer;color:var(--color-text-secondary);background:transparent;transition:background 0.12s,color 0.12s}
+.pill.sel{background:var(--color-background-info);color:var(--color-text-info);border-color:transparent}
+.close-btn{position:absolute;top:8px;right:8px;background:none;border:none;cursor:pointer;color:var(--color-text-tertiary);font-size:18px;line-height:1;padding:4px}
+</style>
+
+<h2 class="sr-only">Tape reel recorder v2 — spinning reels, waveform display, VU meters, speed control and track labeling</h2>
+<div class="wrap">
+<div class="machine" id="machine">
+  <div style="position:absolute;top:6px;left:0;width:100%;display:flex;justify-content:space-between;padding:0 10px;pointer-events:none;z-index:5">
+    <div class="screw"></div><div class="screw"></div><div class="screw"></div><div class="screw"></div>
+  </div>
+
+  <div class="machine-top">
+    <div><div class="brand">Sonocraft</div><div class="model">RT-880 • Stereo</div></div>
+    <div style="display:flex;align-items:center;gap:6px">
+      <div class="status-pill"><div class="status-dot" id="sdot"></div><span class="status-txt" id="stxt">Stopped</span></div>
+    </div>
+  </div>
+
+  <div class="deck-area">
+    <div class="wave-row"><canvas class="wave-canvas" id="waveCanvas" width="524" height="48"></canvas></div>
+
+    <div class="reels-section"><canvas id="rc" width="524" height="210"></canvas></div>
+
+    <div class="info-bar">
+      <div class="counter-wrap" id="cbox"></div>
+      <div class="track-label"><input id="trackName" value="Track 1 — Vocals" maxlength="22" /></div>
+      <div style="display:flex;gap:4px;align-items:center">
+        <div class="screw"></div><div class="screw"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="meters-row">
+    <div class="meter-group"><div class="meter-label">L</div><div class="meter-bar-wrap" id="mL"></div></div>
+    <div class="meter-group"><div class="meter-label">R</div><div class="meter-bar-wrap" id="mR"></div></div>
+    <div style="display:flex;flex-direction:column;gap:2px;align-items:flex-end;padding-bottom:2px">
+      <div style="font-size:8px;color:#4a4840;letter-spacing:0.08em">PEAK</div>
+      <div style="font-size:11px;font-weight:500;color:#e03030;font-family:monospace" id="peakVal">–∞</div>
+    </div>
+  </div>
+
+  <div class="speed-row">
+    <span class="speed-label">Tape speed</span>
+    <input type="range" min="1" max="3" step="1" value="2" id="speedSel" style="flex:1" />
+    <span class="speed-val" id="speedLbl">7½ ips</span>
+  </div>
+
+  <div class="controls-row">
+    <button class="ctrl-btn" id="btnRew" title="Rewind" aria-label="Rewind"><i class="ti ti-player-skip-back" aria-hidden="true"></i></button>
+    <button class="ctrl-btn" id="btnStop" title="Stop" aria-label="Stop"><i class="ti ti-player-stop" aria-hidden="true"></i></button>
+    <button class="ctrl-btn" id="btnRec" title="Record" aria-label="Record"><i class="ti ti-circle" aria-hidden="true"></i></button>
+    <button class="ctrl-btn" id="btnPause" title="Pause" aria-label="Pause/Resume"><i class="ti ti-player-pause" aria-hidden="true"></i></button>
+    <button class="ctrl-btn" id="btnFF" title="Fast forward" aria-label="Fast forward"><i class="ti ti-player-skip-forward" aria-hidden="true"></i></button>
+  </div>
+
+  <div class="modal-overlay" id="modal">
+    <div class="modal">
+      <button class="close-btn" id="mClose" aria-label="Close">×</button>
+      <h3>Recording settings</h3>
+      <div class="opt-label">Format</div>
+      <div class="opt-pills" id="fmtP">
+        <span class="pill sel" data-g="fmt">WAV</span>
+        <span class="pill" data-g="fmt">MP3</span>
+        <span class="pill" data-g="fmt">FLAC</span>
+        <span class="pill" data-g="fmt">AAC</span>
+      </div>
+      <div class="opt-label">Sample rate</div>
+      <div class="opt-pills" id="srP">
+        <span class="pill" data-g="sr">44.1k</span>
+        <span class="pill sel" data-g="sr">48k</span>
+        <span class="pill" data-g="sr">96k</span>
+      </div>
+      <div class="opt-label">Bit depth</div>
+      <div class="opt-pills" id="bdP">
+        <span class="pill" data-g="bd">16-bit</span>
+        <span class="pill sel" data-g="bd">24-bit</span>
+        <span class="pill" data-g="bd">32-bit</span>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+(function(){
+const rc = document.getElementById('rc');
+const ctx = rc.getContext('2d');
+const wc = document.getElementById('waveCanvas');
+const wctx = wc.getContext('2d');
+const W=524, H=210, WW=524, WH=48;
+
+let state='stopped', speed=0, tgtSpd=0;
+let lA=0, rA=0, tapePos=0, counterVal=0;
+let revTimer=0, ffTimer=0;
+let lastFrame=0, rafId;
+const wavePoints=[];
+
+function buildMeter(id, n){
+  const el=document.getElementById(id);
+  for(let i=0;i<n;i++){const d=document.createElement('div');d.className='meter-seg';el.appendChild(d);}
+}
+buildMeter('mL',14); buildMeter('mR',14);
+
+function updateMeter(id, level){
+  const segs=document.getElementById(id).children;
+  const n=segs.length;
+  for(let i=0;i<n;i++){
+    const frac=(i+1)/n;
+    if(frac<=level){
+      segs[i].style.background=frac<0.6?'#3a9a3a':frac<0.85?'#d4a020':'#e03030';
+    } else {
+      segs[i].style.background='#2a2822';
+    }
+  }
+}
+
+const digitIds=['dg0','dg1','dg2','dg3','dg4','dg5'];
+let prevD=[0,0,0,0,0,0];
+function buildCounter(){
+  const box=document.getElementById('cbox');
+  box.innerHTML='';
+  ['dg0','dg1',null,'dg2','dg3',null,'dg4','dg5'].forEach((id,i)=>{
+    if(!id){const s=document.createElement('span');s.className='sep';s.textContent=i===2?':':'.';box.appendChild(s);return;}
+    const w=document.createElement('div');w.className='digit-wheel';w.id=id;
+    const t=document.createElement('div');t.className='digit-track';
+    for(let d=0;d<11;d++){const c=document.createElement('div');c.className='digit-cell';c.textContent=d%10;t.appendChild(c);}
+    w.appendChild(t);box.appendChild(w);
+  });
+}
+buildCounter();
+
+function updateCounter(cs){
+  const total=Math.floor(cs);
+  const m=Math.floor(total/6000), s=Math.floor((total%6000)/100), c=total%100;
+  const digits=[Math.floor(m/10)%10,m%10,Math.floor(s/10)%10,s%10,Math.floor(c/10)%10,c%10];
+  digits.forEach((d,i)=>{
+    if(d!==prevD[i]){
+      const w=document.getElementById(digitIds[i]);
+      if(w)w.querySelector('.digit-track').style.transform=`translateY(-${d*32}px)`;
+      prevD[i]=d;
+    }
+  });
+}
+
+const speedLabels=['3¾ ips','7½ ips','15 ips'];
+document.getElementById('speedSel').addEventListener('input',function(){
+  document.getElementById('speedLbl').textContent=speedLabels[this.value-1];
+});
+
+function drawReel(cx,cy,outerR,tapeR,angle,isLeft,isRec){
+  ctx.save(); ctx.translate(cx,cy);
+  if(tapeR>12){
+    ctx.beginPath();ctx.arc(0,0,tapeR,0,Math.PI*2);
+    ctx.fillStyle='#3a3028';ctx.fill();
+    ctx.beginPath();ctx.arc(0,0,tapeR-2,-0.5,0.5);
+    ctx.strokeStyle='#5a5040';ctx.lineWidth=2;ctx.stroke();
+  }
+  ctx.beginPath();ctx.arc(0,0,outerR,0,Math.PI*2);
+  ctx.fillStyle='#c0bdb5';ctx.fill();
+  ctx.strokeStyle='#909088';ctx.lineWidth=0.5;ctx.stroke();
+  if(isRec && state==='recording'){
+    ctx.beginPath();ctx.arc(0,0,outerR,0,Math.PI*2);
+    ctx.strokeStyle='#e03030';ctx.lineWidth=1.5;ctx.stroke();
+  }
+  ctx.rotate(angle);
+  for(let i=0;i<3;i++){
+    ctx.rotate(Math.PI*2/3);
+    ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(0,-outerR+8);
+    ctx.strokeStyle='#b0ada6';ctx.lineWidth=6;ctx.lineCap='round';ctx.stroke();
+    ctx.strokeStyle='#d0cdc6';ctx.lineWidth=2;ctx.stroke();
+  }
+  ctx.beginPath();ctx.arc(0,0,16,0,Math.PI*2);
+  ctx.fillStyle='#888480';ctx.fill();
+  ctx.strokeStyle='#707068';ctx.lineWidth=0.5;ctx.stroke();
+  ctx.beginPath();ctx.arc(0,0,6,0,Math.PI*2);
+  ctx.fillStyle='#505048';ctx.fill();
+  ctx.restore();
+}
+
+function drawDeck(){
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#b8b4ac';
+  ctx.beginPath();ctx.roundRect(0,0,W,H,4);ctx.fill();
+
+  ctx.strokeStyle='#a0a098';ctx.lineWidth=0.5;
+  ctx.setLineDash([2,3]);
+  ctx.beginPath();ctx.moveTo(W/2,20);ctx.lineTo(W/2,H-20);ctx.stroke();
+  ctx.setLineDash([]);
+
+  const lx=142,ly=112,rx=382,ry=112,OR=72;
+  const lTR=30+(1-tapePos)*28, rTR=10+tapePos*32;
+
+  const lTop={x:lx+3,y:ly-lTR+6}, rTop={x:rx-3,y:ry-rTR+6};
+  const midY=Math.min(lTop.y,rTop.y)-8;
+  ctx.beginPath();ctx.moveTo(lTop.x,lTop.y);
+  ctx.bezierCurveTo(lTop.x+28,midY,rTop.x-28,midY,rTop.x,rTop.y);
+  ctx.strokeStyle='#3a3028';ctx.lineWidth=6;ctx.lineCap='round';ctx.stroke();
+  ctx.strokeStyle='#5a5040';ctx.lineWidth=1.5;ctx.stroke();
+
+  const midX=(lx+rx)/2;
+  ctx.fillStyle='#808078';
+  ctx.beginPath();ctx.roundRect(midX-12,ly,20,28,3);ctx.fill();
+  ctx.strokeStyle='#606058';ctx.lineWidth=0.5;ctx.stroke();
+
+  ctx.beginPath();ctx.arc(midX+14,ly+14,7,0,Math.PI*2);
+  ctx.fillStyle='#686860';ctx.fill();
+  ctx.strokeStyle='#505048';ctx.lineWidth=0.5;ctx.stroke();
+
+  drawReel(lx,ly,OR,lTR,lA,true,true);
+  drawReel(rx,ry,OR,rTR,rA,false,false);
+
+  ctx.fillStyle='#505048';ctx.font='9px monospace';
+  ctx.fillText('SUPPLY',lx-18,H-14);
+  ctx.fillText('TAKE-UP',rx-22,H-14);
+}
+
+function drawWaveform(dt){
+  const active=state==='recording';
+  if(active){
+    const v=(Math.random()-0.5)*0.8+Math.sin(Date.now()/120)*0.15;
+    wavePoints.push(v);
+    if(wavePoints.length>WW)wavePoints.shift();
+  }
+  wctx.clearRect(0,0,WW,WH);
+  wctx.fillStyle='#111';
+  wctx.beginPath();wctx.roundRect(0,0,WW,WH,4);wctx.fill();
+
+  if(wavePoints.length<2){
+    wctx.strokeStyle='#2a2820';wctx.lineWidth=0.5;
+    wctx.beginPath();wctx.moveTo(0,WH/2);wctx.lineTo(WW,WH/2);wctx.stroke();
+    return;
+  }
+  const step=WW/Math.max(wavePoints.length-1,1);
+  wctx.beginPath();
+  wctx.strokeStyle=active?'#4a9a5a':'#3a5840';
+  wctx.lineWidth=1;
+  wavePoints.forEach((v,i)=>{
+    const x=i*step, y=WH/2+v*(WH/2-4);
+    i===0?wctx.moveTo(x,y):wctx.lineTo(x,y);
+  });
+  wctx.stroke();
+  if(active){
+    const lx=wavePoints.length-1;
+    wctx.fillStyle='#6ad08a';
+    wctx.beginPath();wctx.arc(lx*step,WH/2+wavePoints[lx]*(WH/2-4),2,0,Math.PI*2);wctx.fill();
+  }
+  if(active){
+    const noise=()=>Math.random()*0.04-0.02;
+    wctx.strokeStyle='rgba(100,180,100,0.12)';wctx.lineWidth=0.5;
+    for(let i=0;i<3;i++){
+      wctx.beginPath();
+      wavePoints.forEach((v,j)=>{
+        const x=j*step,y=WH/2+(v+noise())*(WH/2-4);
+        j===0?wctx.moveTo(x,y):wctx.lineTo(x,y);
+      });
+      wctx.stroke();
+    }
+  }
+}
+
+function updateStatus(){
+  const dot=document.getElementById('sdot'),txt=document.getElementById('stxt');
+  dot.className='status-dot';
+  if(state==='recording'){dot.classList.add('rec');txt.textContent='Recording';}
+  else if(state==='paused'){dot.classList.add('pause');txt.textContent='Paused';}
+  else if(state==='reversing'||state==='ffwd'){txt.textContent=state==='reversing'?'Rewinding':'Fast fwd';}
+  else txt.textContent='Stopped';
+  document.getElementById('btnRec').classList.toggle('rec-armed',state==='recording');
+}
+
+let peakHold=0, peakTimer=0;
+function updateMeters(dt){
+  const active=state==='recording';
+  const t=Date.now()/1000;
+  const lv=active?Math.abs(Math.sin(t*2.3+0.4))*0.7+Math.random()*0.15:0;
+  const rv=active?Math.abs(Math.sin(t*1.9+1.1))*0.65+Math.random()*0.15:0;
+  updateMeter('mL',lv); updateMeter('mR',rv);
+  if(active){
+    const p=Math.max(lv,rv);
+    if(p>peakHold){peakHold=p;peakTimer=2;}
+    peakTimer-=dt; if(peakTimer<0)peakHold=0;
+    const db=peakHold>0?Math.round(20*Math.log10(peakHold)*10)/10:-Infinity;
+    document.getElementById('peakVal').textContent=isFinite(db)?db.toFixed(1)+' dB':'–∞';
+  } else {
+    document.getElementById('peakVal').textContent='–∞';
+  }
+}
+
+function loop(ts){
+  const dt=Math.min((ts-lastFrame)/1000,0.1); lastFrame=ts;
+  const spd=state==='ffwd'?3:1;
+  const acc=state==='recording'?4:state==='ffwd'||state==='reversing'?10:8;
+  speed+=(tgtSpd*spd-speed)*Math.min(acc*dt,1);
+  lA+=speed*dt*2.1; rA+=speed*dt*1.8;
+  if(state==='recording'){ counterVal+=dt*100; tapePos=Math.min(1,tapePos+dt*0.003);}
+  if(state==='reversing'){ revTimer-=dt; tapePos=Math.max(0,tapePos-dt*0.02);
+    counterVal=Math.max(0,counterVal-dt*200);
+    if(revTimer<=0){state='stopped';tgtSpd=0;updateStatus();}
+  }
+  if(state==='ffwd'){ ffTimer-=dt; tapePos=Math.min(1,tapePos+dt*0.02);
+    counterVal+=dt*300;
+    if(ffTimer<=0){state='stopped';tgtSpd=0;updateStatus();}
+  }
+  updateCounter(counterVal);
+  drawDeck(); drawWaveform(dt); updateMeters(dt);
+  rafId=requestAnimationFrame(loop);
+}
+
+document.getElementById('btnRec').addEventListener('click',()=>{
+  if(state==='recording')return;
+  state='recording';tgtSpd=1;updateStatus();
+});
+document.getElementById('btnPause').addEventListener('click',()=>{
+  if(state==='recording'){state='paused';tgtSpd=0;}
+  else if(state==='paused'){state='recording';tgtSpd=1;}
+  updateStatus();
+});
+document.getElementById('btnStop').addEventListener('click',()=>{
+  if(state==='stopped')return;
+  state='reversing';tgtSpd=-0.5;revTimer=0.6;updateStatus();
+});
+document.getElementById('btnRew').addEventListener('click',()=>{
+  state='reversing';tgtSpd=-1;revTimer=Math.max(1,tapePos*4+0.5);updateStatus();
+});
+document.getElementById('btnFF').addEventListener('click',()=>{
+  state='ffwd';tgtSpd=1;ffTimer=1;updateStatus();
+});
+
+rc.style.cursor='pointer';
+rc.addEventListener('click',(e)=>{
+  const r=rc.getBoundingClientRect();
+  const mx=(e.clientX-r.left)*(W/r.width), my=(e.clientY-r.top)*(H/r.height);
+  const d=(cx,cy)=>Math.hypot(mx-cx,my-cy);
+  if(d(142,112)<80||d(382,112)<80) document.getElementById('modal').classList.add('open');
+});
+document.getElementById('mClose').addEventListener('click',()=>document.getElementById('modal').classList.remove('open'));
+document.querySelectorAll('.pill').forEach(p=>{
+  p.addEventListener('click',()=>{
+    const g=p.dataset.g;
+    document.querySelectorAll(`.pill[data-g="${g}"]`).forEach(x=>x.classList.remove('sel'));
+    p.classList.add('sel');
+  });
+});
+
+lastFrame=performance.now();
+rafId=requestAnimationFrame(loop);
+})();
+</script>
