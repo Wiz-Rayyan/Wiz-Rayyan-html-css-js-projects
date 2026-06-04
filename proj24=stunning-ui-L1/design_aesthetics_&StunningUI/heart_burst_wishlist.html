@@ -1,0 +1,153 @@
+
+<style>
+  .scene { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 3rem 1rem; gap: 2rem; }
+  .card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1.5rem 2rem; display: flex; align-items: center; gap: 1.5rem; width: 320px; position: relative; }
+  .product-img { width: 64px; height: 64px; border-radius: var(--border-radius-md); background: var(--color-background-secondary); display: flex; align-items: center; justify-content: center; font-size: 28px; flex-shrink: 0; }
+  .product-info { flex: 1; }
+  .product-name { font-size: 14px; font-weight: 500; color: var(--color-text-primary); margin: 0 0 4px; }
+  .product-price { font-size: 14px; color: var(--color-text-secondary); margin: 0; }
+  .heart-btn { width: 44px; height: 44px; border-radius: 50%; border: 0.5px solid var(--color-border-secondary); background: var(--color-background-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; position: relative; flex-shrink: 0; transition: border-color 0.2s; outline: none; }
+  .heart-btn:hover { border-color: var(--color-border-primary); }
+  .heart-btn:focus-visible { box-shadow: 0 0 0 2px var(--color-border-info); }
+  .heart-svg { transition: transform 0.1s; display: block; }
+  .count-badge { font-size: 12px; color: var(--color-text-secondary); font-weight: 500; transition: transform 0.2s, color 0.3s; display: inline-block; }
+  .count-badge.pop { animation: popBadge 0.35s ease; }
+  @keyframes popBadge { 0%{transform:scale(1)} 40%{transform:scale(1.5)} 100%{transform:scale(1)} }
+  .wishlist-bar { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--color-text-secondary); }
+  .wishlist-icon { color: #e94560; font-size: 16px; }
+  .particle { position: absolute; pointer-events: none; width: 12px; height: 12px; top: 50%; left: 50%; transform: translate(-50%, -50%); opacity: 0; }
+  .hint { font-size: 12px; color: var(--color-text-tertiary); }
+</style>
+
+<h2 class="sr-only">Heart burst wishlist button — click the heart on a product card to add or remove it from your wishlist.</h2>
+
+<div class="scene">
+  <div class="wishlist-bar">
+    <span class="wishlist-icon">♥</span>
+    <span>Wishlist</span>
+    <span class="count-badge" id="wishlistCount">0 items</span>
+  </div>
+
+  <div id="card1" class="card">
+    <div class="product-img">🧣</div>
+    <div class="product-info">
+      <p class="product-name">Wool blend scarf</p>
+      <p class="product-price">₹1,499</p>
+    </div>
+    <button class="heart-btn" id="heartBtn1" aria-label="Add to wishlist" onclick="toggleHeart(1)">
+      <svg class="heart-svg" id="heartSvg1" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: var(--color-text-secondary);">
+        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+      </svg>
+    </button>
+  </div>
+
+  <div id="card2" class="card">
+    <div class="product-img">🕯️</div>
+    <div class="product-info">
+      <p class="product-name">Jasmine soy candle</p>
+      <p class="product-price">₹849</p>
+    </div>
+    <button class="heart-btn" id="heartBtn2" aria-label="Add to wishlist" onclick="toggleHeart(2)">
+      <svg class="heart-svg" id="heartSvg2" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: var(--color-text-secondary);">
+        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+      </svg>
+    </button>
+  </div>
+
+  <div id="card3" class="card">
+    <div class="product-img">📚</div>
+    <div class="product-info">
+      <p class="product-name">Linen notebook set</p>
+      <p class="product-price">₹649</p>
+    </div>
+    <button class="heart-btn" id="heartBtn3" aria-label="Add to wishlist" onclick="toggleHeart(3)">
+      <svg class="heart-svg" id="heartSvg3" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: var(--color-text-secondary);">
+        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+      </svg>
+    </button>
+  </div>
+
+  <p class="hint">Click any heart to add to wishlist</p>
+</div>
+
+<script>
+const state = { 1: false, 2: false, 3: false };
+let total = 0;
+
+function heartPath(filled) {
+  return filled
+    ? `<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" fill="#e94560" stroke="#e94560"/>`
+    : `<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>`;
+}
+
+function spawnParticles(btn, adding) {
+  for (let i = 0; i < 12; i++) {
+    const angle = (i / 12) * 360 + Math.random() * 15;
+    const dist = 60 + Math.random() * 40;
+    const delay = Math.random() * 60;
+    const size = 6 + Math.random() * 6;
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const rad = angle * Math.PI / 180;
+    const tx = Math.cos(rad) * dist;
+    const ty = Math.sin(rad) * dist;
+    const heartSvg = `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="#e94560" stroke="none"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`;
+    p.innerHTML = heartSvg;
+    p.style.cssText = `position:absolute;pointer-events:none;width:${size}px;height:${size}px;top:50%;left:50%;transform:translate(-50%,-50%);opacity:0;`;
+    btn.appendChild(p);
+
+    if (adding) {
+      const kf = [
+        { transform: 'translate(-50%,-50%) scale(0.3)', opacity: 0 },
+        { transform: `translate(calc(-50% + ${tx*0.3}px), calc(-50% + ${ty*0.3}px)) scale(1.1)`, opacity: 1, offset: 0.3 },
+        { transform: `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px)) scale(0.6)`, opacity: 0 }
+      ];
+      const anim = p.animate(kf, { duration: 600, delay, easing: 'cubic-bezier(0.25,0.46,0.45,0.94)', fill: 'forwards' });
+      anim.onfinish = () => p.remove();
+    } else {
+      const kf = [
+        { transform: `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px)) scale(0.6)`, opacity: 0.8 },
+        { transform: 'translate(-50%,-50%) scale(0)', opacity: 0 }
+      ];
+      const anim = p.animate(kf, { duration: 450, delay, easing: 'cubic-bezier(0.55,0,1,0.45)', fill: 'forwards' });
+      anim.onfinish = () => p.remove();
+    }
+  }
+}
+
+function bounceHeart(svg) {
+  svg.animate([
+    { transform: 'scale(1)' },
+    { transform: 'scale(1.5)' },
+    { transform: 'scale(0.9)' },
+    { transform: 'scale(1.1)' },
+    { transform: 'scale(1)' }
+  ], { duration: 380, easing: 'ease-out' });
+}
+
+function updateCount() {
+  const badge = document.getElementById('wishlistCount');
+  badge.classList.remove('pop');
+  void badge.offsetWidth;
+  badge.classList.add('pop');
+  badge.textContent = total === 1 ? '1 item' : `${total} items`;
+  badge.style.color = total > 0 ? '#e94560' : 'var(--color-text-secondary)';
+}
+
+function toggleHeart(id) {
+  const btn = document.getElementById(`heartBtn${id}`);
+  const svg = document.getElementById(`heartSvg${id}`);
+  const adding = !state[id];
+  state[id] = adding;
+  total += adding ? 1 : -1;
+
+  svg.innerHTML = heartPath(adding);
+  svg.style.color = adding ? '#e94560' : 'var(--color-text-secondary)';
+
+  bounceHeart(svg);
+  spawnParticles(btn, adding);
+  updateCount();
+
+  if (navigator && navigator.vibrate) navigator.vibrate(adding ? [10, 5, 20] : [15]);
+}
+</script>

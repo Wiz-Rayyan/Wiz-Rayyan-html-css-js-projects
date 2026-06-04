@@ -1,0 +1,238 @@
+
+<style>
+* { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
+#arena { position: relative; width: 100%; height: 420px; background: var(--color-background-secondary); border-radius: var(--border-radius-lg); overflow: hidden; }
+#hint { position: absolute; bottom: 14px; left: 0; right: 0; text-align: center; font-size: 13px; color: var(--color-text-tertiary); pointer-events: none; transition: opacity 0.4s; }
+.drop-zone { position: absolute; width: 90px; height: 90px; border-radius: 18px; border: 1.5px dashed var(--color-border-secondary); display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 4px; transition: border-color 0.2s; }
+.drop-zone i { font-size: 22px; color: var(--color-text-secondary); transition: color 0.2s; }
+.drop-zone span { font-size: 11px; color: var(--color-text-tertiary); }
+.drop-zone.near { border-color: #1D9E75; border-style: solid; animation: pulse-glow 1s ease-in-out infinite; }
+.drop-zone.near i { color: #1D9E75; }
+.drop-zone.snapped { border-color: #1D9E75; border-style: solid; background: rgba(29,158,117,0.08); }
+@keyframes pulse-glow { 0%,100%{ box-shadow: 0 0 0 0 rgba(29,158,117,0.25); } 50%{ box-shadow: 0 0 0 10px rgba(29,158,117,0); } }
+.draggable { position: absolute; width: 62px; height: 62px; border-radius: 16px; display: flex; align-items: center; justify-content: center; cursor: grab; touch-action: none; transition: box-shadow 0.15s; border: 1px solid rgba(255,255,255,0.15); }
+.draggable:active { cursor: grabbing; }
+.draggable i { font-size: 26px; color: #fff; pointer-events: none; }
+.draggable.dragging { box-shadow: 0 8px 24px rgba(0,0,0,0.18); z-index: 10; }
+.label { position: absolute; bottom: -22px; left: 50%; transform: translateX(-50%); font-size: 11px; color: var(--color-text-secondary); white-space: nowrap; }
+#status { position: absolute; top: 14px; left: 0; right: 0; text-align: center; font-size: 13px; font-weight: 500; color: var(--color-text-secondary); pointer-events: none; min-height: 20px; transition: opacity 0.3s; }
+</style>
+
+<div id="arena" aria-label="Magnetic snap demo — drag the colored tiles toward the dashed zones to feel the magnetic pull">
+  <h2 class="sr-only">Magnetic snap attraction demo. Drag colored tiles near the drop zones to experience magnetic pull and spring snap.</h2>
+  <div id="status"></div>
+
+  <div class="drop-zone" id="dz0" style="left:68px; top:155px;">
+    <i class="ti ti-brand-safari" aria-hidden="true"></i>
+    <span>Browser</span>
+  </div>
+  <div class="drop-zone" id="dz1" style="left:298px; top:155px;">
+    <i class="ti ti-mail" aria-hidden="true"></i>
+    <span>Mail</span>
+  </div>
+  <div class="drop-zone" id="dz2" style="left:518px; top:155px;">
+    <i class="ti ti-music" aria-hidden="true"></i>
+    <span>Music</span>
+  </div>
+
+  <div class="draggable" id="tile0" style="background:#5347B7; left:89px; top:290px;">
+    <i class="ti ti-brand-safari" aria-hidden="true"></i>
+    <div class="label">Drag me</div>
+  </div>
+  <div class="draggable" id="tile1" style="background:#D4537E; left:319px; top:290px;">
+    <i class="ti ti-mail" aria-hidden="true"></i>
+    <div class="label">Drag me</div>
+  </div>
+  <div class="draggable" id="tile2" style="background:#1D9E75; left:539px; top:290px;">
+    <i class="ti ti-music" aria-hidden="true"></i>
+    <div class="label">Drag me</div>
+  </div>
+
+  <div id="hint">Drag an icon toward its matching drop zone</div>
+</div>
+
+<script>
+const arena = document.getElementById('arena');
+const status = document.getElementById('status');
+const hint = document.getElementById('hint');
+const MAGNETIC_RADIUS = 80;
+const SNAP_RADIUS = 45;
+const TILE_SIZE = 62;
+const DZ_SIZE = 90;
+
+const tiles = [
+  { el: document.getElementById('tile0'), dz: document.getElementById('dz0') },
+  { el: document.getElementById('tile1'), dz: document.getElementById('dz1') },
+  { el: document.getElementById('tile2'), dz: document.getElementById('dz2') },
+];
+
+tiles.forEach(t => {
+  const rect = t.el.getBoundingClientRect();
+  const arenaRect = arena.getBoundingClientRect();
+  t.originX = parseFloat(t.el.style.left);
+  t.originY = parseFloat(t.el.style.top);
+  t.snapped = false;
+});
+
+function dzCenter(dz) {
+  return {
+    x: parseFloat(dz.style.left) + DZ_SIZE / 2,
+    y: parseFloat(dz.style.top) + DZ_SIZE / 2,
+  };
+}
+
+function tileCenterFromPos(x, y) {
+  return { x: x + TILE_SIZE / 2, y: y + TILE_SIZE / 2 };
+}
+
+function dist(ax, ay, bx, by) {
+  return Math.sqrt((ax - bx) ** 2 + (ay - by) ** 2);
+}
+
+function setPos(el, x, y) {
+  el.style.left = x + 'px';
+  el.style.top = y + 'px';
+}
+
+function springTo(el, tx, ty, onDone) {
+  const start = { x: parseFloat(el.style.left), y: parseFloat(el.style.top) };
+  const duration = 400;
+  const startTime = performance.now();
+  function frame(now) {
+    let t = Math.min((now - startTime) / duration, 1);
+    let ease = t < 1 ? 1 - Math.pow(1 - t, 3) : 1;
+    let overshoot = t < 0.7 ? 1 + 0.05 * Math.sin(t / 0.7 * Math.PI) : 1;
+    let x = start.x + (tx - start.x) * ease;
+    let y = start.y + (ty - start.y) * ease;
+    x = tx + (x - tx) * overshoot;
+    y = ty + (y - ty) * overshoot;
+    setPos(el, x, y);
+    if (t < 1) requestAnimationFrame(frame);
+    else { setPos(el, tx, ty); if (onDone) onDone(); }
+  }
+  requestAnimationFrame(frame);
+}
+
+function elasticReturn(el, tx, ty) {
+  const start = { x: parseFloat(el.style.left), y: parseFloat(el.style.top) };
+  const duration = 520;
+  const startTime = performance.now();
+  function frame(now) {
+    let t = Math.min((now - startTime) / duration, 1);
+    let ease = t === 1 ? 1 : 1 - Math.pow(2, -8 * t) * Math.cos((t * duration - 10) * (2 * Math.PI) / 60);
+    let x = start.x + (tx - start.x) * ease;
+    let y = start.y + (ty - start.y) * ease;
+    setPos(el, x, y);
+    if (t < 1) requestAnimationFrame(frame);
+    else setPos(el, tx, ty);
+  }
+  requestAnimationFrame(frame);
+}
+
+function setStatus(msg, color) {
+  status.textContent = msg;
+  status.style.color = color || 'var(--color-text-secondary)';
+  if (msg) { status.style.opacity = 1; setTimeout(() => { status.style.opacity = 0; }, 1600); }
+}
+
+tiles.forEach(({ el, dz }, idx) => {
+  let dragging = false;
+  let offsetX = 0, offsetY = 0;
+  let curX = 0, curY = 0;
+
+  function onStart(clientX, clientY) {
+    if (tiles[idx].snapped) return;
+    hint.style.opacity = '0';
+    dragging = true;
+    el.classList.add('dragging');
+    const arenaRect = arena.getBoundingClientRect();
+    curX = parseFloat(el.style.left);
+    curY = parseFloat(el.style.top);
+    offsetX = clientX - arenaRect.left - curX;
+    offsetY = clientY - arenaRect.top - curY;
+    el.style.transition = 'none';
+  }
+
+  function onMove(clientX, clientY) {
+    if (!dragging) return;
+    const arenaRect = arena.getBoundingClientRect();
+    let rawX = clientX - arenaRect.left - offsetX;
+    let rawY = clientY - arenaRect.top - offsetY;
+    rawX = Math.max(0, Math.min(arenaRect.width - TILE_SIZE, rawX));
+    rawY = Math.max(0, Math.min(arenaRect.height - TILE_SIZE, rawY));
+
+    const tileC = tileCenterFromPos(rawX, rawY);
+    const dzC = dzCenter(dz);
+    const d = dist(tileC.x, tileC.y, dzC.x, dzC.y);
+
+    tiles.forEach((t, i) => {
+      const dd = dist(tileC.x, tileC.y, dzCenter(t.dz).x, dzCenter(t.dz).y);
+      if (i === idx) {
+        if (dd < MAGNETIC_RADIUS) { t.dz.classList.add('near'); }
+        else { t.dz.classList.remove('near'); }
+      }
+    });
+
+    let finalX = rawX, finalY = rawY;
+
+    if (d < MAGNETIC_RADIUS) {
+      const strength = 1 - (d / MAGNETIC_RADIUS);
+      const pull = Math.pow(strength, 1.2) * 0.45;
+      finalX = rawX + (dzC.x - TILE_SIZE / 2 - rawX) * pull;
+      finalY = rawY + (dzC.y - TILE_SIZE / 2 - rawY) * pull;
+      if (d < SNAP_RADIUS) setStatus('Release to snap!', '#1D9E75');
+      else setStatus('Magnetic pull active…', '#5347B7');
+    } else {
+      status.style.opacity = 0;
+    }
+
+    setPos(el, finalX, finalY);
+    curX = finalX; curY = finalY;
+  }
+
+  function onEnd() {
+    if (!dragging) return;
+    dragging = false;
+    el.classList.remove('dragging');
+    dz.classList.remove('near');
+
+    const tileC = tileCenterFromPos(curX, curY);
+    const dzC = dzCenter(dz);
+    const d = dist(tileC.x, tileC.y, dzC.x, dzC.y);
+
+    if (d < SNAP_RADIUS) {
+      const snapX = dzC.x - TILE_SIZE / 2;
+      const snapY = dzC.y - TILE_SIZE / 2;
+      springTo(el, snapX, snapY, () => {
+        tiles[idx].snapped = true;
+        dz.classList.add('snapped');
+        el.style.cursor = 'default';
+        const label = el.querySelector('.label');
+        if (label) label.textContent = '✓ Placed';
+        setStatus('Snapped! ✦', '#1D9E75');
+        if (navigator.vibrate) navigator.vibrate([8, 40, 12]);
+        checkAllSnapped();
+      });
+    } else {
+      elasticReturn(el, tiles[idx].originX, tiles[idx].originY);
+      setStatus('Too far — returned', 'var(--color-text-secondary)');
+    }
+  }
+
+  el.addEventListener('mousedown', e => { e.preventDefault(); onStart(e.clientX, e.clientY); });
+  window.addEventListener('mousemove', e => onMove(e.clientX, e.clientY));
+  window.addEventListener('mouseup', () => onEnd());
+
+  el.addEventListener('touchstart', e => { e.preventDefault(); const t = e.touches[0]; onStart(t.clientX, t.clientY); }, { passive: false });
+  window.addEventListener('touchmove', e => { if (dragging) { e.preventDefault(); const t = e.touches[0]; onMove(t.clientX, t.clientY); } }, { passive: false });
+  window.addEventListener('touchend', () => onEnd());
+});
+
+function checkAllSnapped() {
+  if (tiles.every(t => t.snapped)) {
+    setTimeout(() => setStatus('All icons placed! 🎉', '#1D9E75'), 200);
+    hint.textContent = 'All snapped into place';
+    hint.style.opacity = '1';
+  }
+}
+</script>

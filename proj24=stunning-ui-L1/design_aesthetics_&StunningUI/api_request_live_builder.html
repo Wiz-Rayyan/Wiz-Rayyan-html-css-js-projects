@@ -1,0 +1,478 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font-mono); }
+  .builder { padding: 1rem 0; }
+  .method-row { display: flex; gap: 8px; margin-bottom: 12px; }
+  .method-btn {
+    padding: 7px 14px; border-radius: var(--border-radius-md); border: 1.5px solid transparent;
+    font-family: var(--font-mono); font-size: 12px; font-weight: 500; cursor: pointer;
+    transition: transform 0.12s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.12s;
+    letter-spacing: 0.05em;
+  }
+  .method-btn.get { background: #eaf3de; color: #3b6d11; border-color: #639922; }
+  .method-btn.post { background: #e6f1fb; color: #185fa5; border-color: #378add; }
+  .method-btn.put { background: #faeeda; color: #854f0b; border-color: #ef9f27; }
+  .method-btn.delete { background: #fcebeb; color: #a32d2d; border-color: #e24b4a; }
+  .method-btn.active { transform: scale(1.08); }
+  .method-btn.active.get { box-shadow: 0 0 0 3px rgba(99,153,34,0.25); }
+  .method-btn.active.post { box-shadow: 0 0 0 3px rgba(55,138,221,0.25); }
+  .method-btn.active.put { box-shadow: 0 0 0 3px rgba(239,159,39,0.25); }
+  .method-btn.active.delete { box-shadow: 0 0 0 3px rgba(226,75,74,0.25); }
+  .method-btn:hover { transform: scale(1.04); }
+  .method-btn.active:hover { transform: scale(1.08); }
+  @media (prefers-color-scheme: dark) {
+    .method-btn.get { background: #173404; color: #c0dd97; border-color: #639922; }
+    .method-btn.post { background: #042c53; color: #b5d4f4; border-color: #378add; }
+    .method-btn.put { background: #412402; color: #fac775; border-color: #ef9f27; }
+    .method-btn.delete { background: #501313; color: #f7c1c1; border-color: #e24b4a; }
+  }
+  .url-row { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; }
+  .url-wrap { flex: 1; position: relative; }
+  .url-input {
+    width: 100%; padding: 9px 12px; font-family: var(--font-mono); font-size: 13px;
+    border: 1.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md);
+    background: var(--color-background-primary); color: var(--color-text-primary);
+    transition: border-color 0.2s; outline: none;
+  }
+  .url-input:focus { border-color: var(--url-accent, #378add); }
+  .url-input.get-border { --url-accent: #639922; }
+  .url-input.post-border { --url-accent: #378add; }
+  .url-input.put-border { --url-accent: #ef9f27; }
+  .url-input.delete-border { --url-accent: #e24b4a; }
+  .autocomplete {
+    position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 10;
+    background: var(--color-background-primary); border: 0.5px solid var(--color-border-secondary);
+    border-radius: var(--border-radius-md); overflow: hidden; display: none;
+  }
+  .autocomplete.show { display: block; }
+  .ac-item {
+    padding: 7px 12px; font-size: 12px; font-family: var(--font-mono); cursor: pointer;
+    color: var(--color-text-secondary); border-bottom: 0.5px solid var(--color-border-tertiary);
+    transition: background 0.1s;
+  }
+  .ac-item:last-child { border-bottom: none; }
+  .ac-item:hover { background: var(--color-background-secondary); color: var(--color-text-primary); }
+  .send-btn {
+    padding: 9px 20px; border-radius: var(--border-radius-md); border: none; cursor: pointer;
+    font-family: var(--font-mono); font-size: 13px; font-weight: 500; color: #fff;
+    background: #378add; transition: all 0.15s; white-space: nowrap;
+  }
+  .send-btn.get-bg { background: #639922; }
+  .send-btn.post-bg { background: #378add; }
+  .send-btn.put-bg { background: #ef9f27; }
+  .send-btn.delete-bg { background: #e24b4a; }
+  .send-btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+  .send-btn:active { transform: scale(0.97); }
+  .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--color-border-tertiary); margin-bottom: 12px; }
+  .tab {
+    padding: 7px 14px; font-size: 12px; cursor: pointer; border-bottom: 2px solid transparent;
+    color: var(--color-text-secondary); font-family: var(--font-mono); transition: all 0.15s;
+    margin-bottom: -1px;
+  }
+  .tab.active { color: var(--color-text-primary); border-bottom-color: #378add; }
+  .params-section { margin-bottom: 12px; }
+  .params-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .section-label { font-size: 11px; font-weight: 500; color: var(--color-text-secondary); letter-spacing: 0.08em; text-transform: uppercase; }
+  .add-btn {
+    display: flex; align-items: center; gap: 4px; padding: 4px 10px;
+    font-size: 11px; color: var(--color-text-secondary); border: 0.5px solid var(--color-border-secondary);
+    border-radius: var(--border-radius-md); background: transparent; cursor: pointer;
+    font-family: var(--font-mono); transition: all 0.15s;
+  }
+  .add-btn:hover { color: var(--color-text-primary); background: var(--color-background-secondary); }
+  .param-row {
+    display: flex; gap: 6px; align-items: center; margin-bottom: 6px;
+    animation: slideIn 0.22s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(-16px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  .param-input {
+    flex: 1; padding: 6px 9px; font-family: var(--font-mono); font-size: 12px;
+    border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md);
+    background: var(--color-background-secondary); color: var(--color-text-primary); outline: none;
+  }
+  .param-input:focus { border-color: var(--color-border-secondary); background: var(--color-background-primary); }
+  .del-btn {
+    padding: 4px 8px; background: transparent; border: none; cursor: pointer;
+    color: var(--color-text-tertiary); font-size: 16px; line-height: 1; border-radius: 4px;
+    transition: color 0.15s;
+  }
+  .del-btn:hover { color: #e24b4a; }
+  .body-editor {
+    min-height: 110px; padding: 10px 12px; font-family: var(--font-mono); font-size: 12.5px;
+    border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md);
+    background: var(--color-background-secondary); color: var(--color-text-primary);
+    resize: vertical; outline: none; line-height: 1.6; width: 100%;
+  }
+  .body-editor:focus { border-color: var(--color-border-secondary); }
+  .timeline { margin: 14px 0; }
+  .tl-label { font-size: 11px; color: var(--color-text-secondary); font-family: var(--font-mono); margin-bottom: 8px; letter-spacing: 0.06em; }
+  .tl-bar-wrap { display: flex; height: 6px; border-radius: 3px; overflow: hidden; background: var(--color-background-secondary); margin-bottom: 6px; }
+  .tl-seg { height: 100%; transition: width 0.5s ease; }
+  .tl-dns { background: #b5d4f4; }
+  .tl-connect { background: #85b7eb; }
+  .tl-ttfb { background: #378add; }
+  .tl-dl { background: #185fa5; }
+  .tl-legend { display: flex; gap: 12px; flex-wrap: wrap; }
+  .tl-item { display: flex; align-items: center; gap: 5px; font-size: 11px; font-family: var(--font-mono); color: var(--color-text-secondary); }
+  .tl-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .response-panel {
+    border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md);
+    background: var(--color-background-secondary); overflow: hidden;
+    animation: slideUp 0.3s cubic-bezier(0.22,1,0.36,1);
+  }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .resp-header { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 0.5px solid var(--color-border-tertiary); background: var(--color-background-primary); }
+  .status-badge {
+    padding: 3px 9px; border-radius: 100px; font-size: 11px; font-weight: 500;
+    font-family: var(--font-mono); letter-spacing: 0.04em;
+  }
+  .s200 { background: #eaf3de; color: #3b6d11; }
+  .s400 { background: #faeeda; color: #854f0b; }
+  .s500 { background: #fcebeb; color: #a32d2d; }
+  @media (prefers-color-scheme: dark) {
+    .s200 { background: #173404; color: #c0dd97; }
+    .s400 { background: #412402; color: #fac775; }
+    .s500 { background: #501313; color: #f7c1c1; }
+  }
+  .resp-time { font-size: 11px; color: var(--color-text-secondary); font-family: var(--font-mono); margin-left: auto; }
+  .resp-size { font-size: 11px; color: var(--color-text-tertiary); font-family: var(--font-mono); }
+  .resp-body { padding: 12px; font-family: var(--font-mono); font-size: 12.5px; line-height: 1.7; max-height: 260px; overflow-y: auto; }
+  .json-key { color: #185fa5; }
+  .json-str { color: #3b6d11; }
+  .json-num { color: #854f0b; }
+  .json-bool { color: #993556; }
+  .json-null { color: var(--color-text-tertiary); }
+  @media (prefers-color-scheme: dark) {
+    .json-key { color: #85b7eb; }
+    .json-str { color: #97c459; }
+    .json-num { color: #fac775; }
+    .json-bool { color: #ed93b1; }
+  }
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--color-border-secondary); border-top-color: #378add; border-radius: 50%; animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .hidden { display: none; }
+</style>
+
+<div class="builder">
+  <h2 class="sr-only">API Request Builder — compose and send HTTP requests with live response preview</h2>
+
+  <div class="method-row" id="methodRow">
+    <button class="method-btn get active" data-method="GET" onclick="selectMethod(this)">GET</button>
+    <button class="method-btn post" data-method="POST" onclick="selectMethod(this)">POST</button>
+    <button class="method-btn put" data-method="PUT" onclick="selectMethod(this)">PUT</button>
+    <button class="method-btn delete" data-method="DELETE" onclick="selectMethod(this)">DELETE</button>
+  </div>
+
+  <div class="url-row">
+    <div class="url-wrap">
+      <input class="url-input get-border" id="urlInput" type="text"
+        placeholder="https://api.example.com/users"
+        value="https://jsonplaceholder.typicode.com/posts/1"
+        oninput="handleUrlInput(this)" onfocus="showAC()" onblur="setTimeout(hideAC,150)" />
+      <div class="autocomplete" id="acDropdown">
+        <div class="ac-item" onclick="pickUrl('https://jsonplaceholder.typicode.com/posts/1')">https://jsonplaceholder.typicode.com/posts/1</div>
+        <div class="ac-item" onclick="pickUrl('https://jsonplaceholder.typicode.com/users')">https://jsonplaceholder.typicode.com/users</div>
+        <div class="ac-item" onclick="pickUrl('https://jsonplaceholder.typicode.com/todos/1')">https://jsonplaceholder.typicode.com/todos/1</div>
+        <div class="ac-item" onclick="pickUrl('https://httpbin.org/get')">https://httpbin.org/get</div>
+        <div class="ac-item" onclick="pickUrl('https://api.github.com/users/octocat')">https://api.github.com/users/octocat</div>
+      </div>
+    </div>
+    <button class="send-btn post-bg" id="sendBtn" onclick="sendRequest()">
+      <span id="sendLabel">Send</span>
+      <span id="sendSpinner" class="spinner hidden"></span>
+    </button>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('params',this)">Params</div>
+    <div class="tab" onclick="switchTab('headers',this)">Headers</div>
+    <div class="tab" onclick="switchTab('body',this)" id="bodyTab">Body</div>
+  </div>
+
+  <div id="tabParams">
+    <div class="params-section">
+      <div class="params-header">
+        <span class="section-label">Query Params</span>
+        <button class="add-btn" onclick="addParam('paramList')"><i class="ti ti-plus" aria-hidden="true" style="font-size:12px"></i> Add</button>
+      </div>
+      <div id="paramList">
+        <div class="param-row">
+          <input class="param-input" placeholder="key" value="_limit" />
+          <input class="param-input" placeholder="value" value="5" />
+          <button class="del-btn" onclick="removeRow(this)" aria-label="Remove"><i class="ti ti-x" aria-hidden="true" style="font-size:13px"></i></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tabHeaders" class="hidden">
+    <div class="params-section">
+      <div class="params-header">
+        <span class="section-label">Headers</span>
+        <button class="add-btn" onclick="addParam('headerList')"><i class="ti ti-plus" aria-hidden="true" style="font-size:12px"></i> Add</button>
+      </div>
+      <div id="headerList">
+        <div class="param-row">
+          <input class="param-input" placeholder="key" value="Accept" />
+          <input class="param-input" placeholder="value" value="application/json" />
+          <button class="del-btn" onclick="removeRow(this)" aria-label="Remove"><i class="ti ti-x" aria-hidden="true" style="font-size:13px"></i></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tabBody" class="hidden">
+    <div class="params-section">
+      <div class="params-header">
+        <span class="section-label">Body — JSON</span>
+      </div>
+      <textarea class="body-editor" id="bodyEditor" spellcheck="false" placeholder='{ "title": "foo", "body": "bar", "userId": 1 }'>{ "title": "foo", "body": "bar", "userId": 1 }</textarea>
+    </div>
+  </div>
+
+  <div id="timelineWrap" class="hidden timeline">
+    <div class="tl-label">Request Timeline</div>
+    <div class="tl-bar-wrap">
+      <div class="tl-seg tl-dns" id="tlDns" style="width:0%"></div>
+      <div class="tl-seg tl-connect" id="tlConnect" style="width:0%"></div>
+      <div class="tl-seg tl-ttfb" id="tlTtfb" style="width:0%"></div>
+      <div class="tl-seg tl-dl" id="tlDl" style="width:0%"></div>
+    </div>
+    <div class="tl-legend">
+      <span class="tl-item"><span class="tl-dot" style="background:#b5d4f4"></span><span id="legDns">DNS 0ms</span></span>
+      <span class="tl-item"><span class="tl-dot" style="background:#85b7eb"></span><span id="legConnect">Connect 0ms</span></span>
+      <span class="tl-item"><span class="tl-dot" style="background:#378add"></span><span id="legTtfb">TTFB 0ms</span></span>
+      <span class="tl-item"><span class="tl-dot" style="background:#185fa5"></span><span id="legDl">Download 0ms</span></span>
+    </div>
+  </div>
+
+  <div id="responsePanel" class="hidden"></div>
+</div>
+
+<script>
+  let currentMethod = 'GET';
+  let activeTab = 'params';
+
+  const methodColors = {
+    GET: { border: 'get-border', bg: 'get-bg' },
+    POST: { border: 'post-border', bg: 'post-bg' },
+    PUT: { border: 'put-border', bg: 'put-bg' },
+    DELETE: { border: 'delete-border', bg: 'delete-bg' }
+  };
+
+  function selectMethod(btn) {
+    document.querySelectorAll('.method-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentMethod = btn.dataset.method;
+    const url = document.getElementById('urlInput');
+    url.className = 'url-input ' + methodColors[currentMethod].border;
+    const send = document.getElementById('sendBtn');
+    send.className = 'send-btn ' + methodColors[currentMethod].bg;
+    if (currentMethod === 'GET' || currentMethod === 'DELETE') {
+      document.getElementById('bodyTab').style.opacity = '0.45';
+    } else {
+      document.getElementById('bodyTab').style.opacity = '1';
+    }
+    setTimeout(() => btn.style.transform = '', 200);
+  }
+
+  function switchTab(name, el) {
+    ['params','headers','body'].forEach(t => {
+      document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1)).classList.add('hidden');
+    });
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('tab' + name.charAt(0).toUpperCase() + name.slice(1)).classList.remove('hidden');
+    el.classList.add('active');
+    activeTab = name;
+  }
+
+  function addParam(listId) {
+    const list = document.getElementById(listId);
+    const row = document.createElement('div');
+    row.className = 'param-row';
+    row.innerHTML = `<input class="param-input" placeholder="key" /><input class="param-input" placeholder="value" /><button class="del-btn" onclick="removeRow(this)" aria-label="Remove"><i class="ti ti-x" aria-hidden="true" style="font-size:13px"></i></button>`;
+    list.appendChild(row);
+    row.querySelector('input').focus();
+  }
+
+  function removeRow(btn) {
+    btn.closest('.param-row').remove();
+  }
+
+  function handleUrlInput(el) {
+    showAC();
+  }
+
+  function showAC() {
+    document.getElementById('acDropdown').classList.add('show');
+  }
+  function hideAC() {
+    document.getElementById('acDropdown').classList.remove('show');
+  }
+  function pickUrl(url) {
+    document.getElementById('urlInput').value = url;
+    hideAC();
+  }
+
+  function prettyJson(obj, indent) {
+    indent = indent || 0;
+    const pad = '  '.repeat(indent);
+    const padInner = '  '.repeat(indent + 1);
+    if (Array.isArray(obj)) {
+      if (obj.length === 0) return '[]';
+      return '[\n' + obj.map(v => padInner + prettyJson(v, indent + 1)).join(',\n') + '\n' + pad + ']';
+    } else if (obj === null) {
+      return '<span class="json-null">null</span>';
+    } else if (typeof obj === 'object') {
+      const keys = Object.keys(obj);
+      if (keys.length === 0) return '{}';
+      return '{\n' + keys.map(k => {
+        return padInner + '<span class="json-key">"' + escHtml(k) + '"</span>: ' + prettyJson(obj[k], indent + 1);
+      }).join(',\n') + '\n' + pad + '}';
+    } else if (typeof obj === 'string') {
+      return '<span class="json-str">"' + escHtml(obj) + '"</span>';
+    } else if (typeof obj === 'number') {
+      return '<span class="json-num">' + obj + '</span>';
+    } else if (typeof obj === 'boolean') {
+      return '<span class="json-bool">' + obj + '</span>';
+    }
+    return escHtml(String(obj));
+  }
+
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function statusClass(code) {
+    if (code >= 200 && code < 300) return 's200';
+    if (code >= 400 && code < 500) return 's400';
+    return 's500';
+  }
+
+  async function sendRequest() {
+    const url = document.getElementById('urlInput').value.trim();
+    if (!url) return;
+    const label = document.getElementById('sendLabel');
+    const spinner = document.getElementById('sendSpinner');
+    label.textContent = 'Sending';
+    spinner.classList.remove('hidden');
+    document.getElementById('sendBtn').disabled = true;
+
+    const tl = document.getElementById('timelineWrap');
+    tl.classList.remove('hidden');
+    document.getElementById('tlDns').style.width = '0%';
+    document.getElementById('tlConnect').style.width = '0%';
+    document.getElementById('tlTtfb').style.width = '0%';
+    document.getElementById('tlDl').style.width = '0%';
+
+    document.getElementById('responsePanel').classList.add('hidden');
+
+    const t0 = performance.now();
+
+    // animate timeline segments progressively
+    setTimeout(() => { document.getElementById('tlDns').style.width = '12%'; }, 80);
+    setTimeout(() => { document.getElementById('tlConnect').style.width = '18%'; }, 200);
+    setTimeout(() => { document.getElementById('tlTtfb').style.width = '50%'; }, 400);
+
+    let options = { method: currentMethod, headers: {} };
+
+    // collect headers
+    document.querySelectorAll('#headerList .param-row').forEach(row => {
+      const [k, v] = row.querySelectorAll('input');
+      if (k.value.trim()) options.headers[k.value.trim()] = v.value.trim();
+    });
+
+    // body for POST/PUT
+    if (currentMethod === 'POST' || currentMethod === 'PUT') {
+      const body = document.getElementById('bodyEditor').value.trim();
+      if (body) {
+        options.body = body;
+        options.headers['Content-Type'] = 'application/json';
+      }
+    }
+
+    // append query params to URL
+    let finalUrl = url;
+    const params = [];
+    document.querySelectorAll('#paramList .param-row').forEach(row => {
+      const [k, v] = row.querySelectorAll('input');
+      if (k.value.trim()) params.push(encodeURIComponent(k.value.trim()) + '=' + encodeURIComponent(v.value.trim()));
+    });
+    if (params.length) {
+      finalUrl += (finalUrl.includes('?') ? '&' : '?') + params.join('&');
+    }
+
+    try {
+      const resp = await fetch(finalUrl, options);
+      const t1 = performance.now();
+      const elapsed = Math.round(t1 - t0);
+      const text = await resp.text();
+      const t2 = performance.now();
+      const dlTime = Math.round(t2 - t1);
+      const totalTime = Math.round(t2 - t0);
+
+      // finish timeline
+      const dns = Math.round(elapsed * 0.1);
+      const connect = Math.round(elapsed * 0.15);
+      const ttfb = Math.round(elapsed * 0.6);
+      const dl = dlTime;
+      const total = dns + connect + ttfb + dl || 1;
+      setTimeout(() => {
+        document.getElementById('tlDns').style.width = Math.round(dns/total*100) + '%';
+        document.getElementById('tlConnect').style.width = Math.round(connect/total*100) + '%';
+        document.getElementById('tlTtfb').style.width = Math.round(ttfb/total*100) + '%';
+        document.getElementById('tlDl').style.width = Math.round(dl/total*100) + '%';
+        document.getElementById('legDns').textContent = 'DNS ' + dns + 'ms';
+        document.getElementById('legConnect').textContent = 'Connect ' + connect + 'ms';
+        document.getElementById('legTtfb').textContent = 'TTFB ' + ttfb + 'ms';
+        document.getElementById('legDl').textContent = 'Download ' + dl + 'ms';
+      }, 100);
+
+      let rendered = '';
+      try {
+        const json = JSON.parse(text);
+        rendered = '<pre style="margin:0; white-space:pre-wrap; word-break:break-all;">' + prettyJson(json) + '</pre>';
+      } catch(e) {
+        rendered = '<pre style="margin:0; white-space:pre-wrap; word-break:break-all;">' + escHtml(text.slice(0, 2000)) + '</pre>';
+      }
+
+      const size = new Blob([text]).size;
+      const sizeStr = size > 1024 ? (size / 1024).toFixed(1) + ' KB' : size + ' B';
+
+      const panel = document.getElementById('responsePanel');
+      panel.innerHTML = `
+        <div class="resp-header">
+          <i class="ti ti-circle-check" aria-hidden="true" style="font-size:16px; color:#639922;"></i>
+          <span class="status-badge ${statusClass(resp.status)}">${resp.status} ${resp.statusText}</span>
+          <span class="resp-size">${sizeStr}</span>
+          <span class="resp-time"><i class="ti ti-clock" aria-hidden="true" style="font-size:13px; vertical-align:-1px;"></i> ${totalTime}ms</span>
+        </div>
+        <div class="resp-body">${rendered}</div>
+      `;
+      panel.classList.remove('hidden');
+
+    } catch(err) {
+      document.getElementById('tlDl').style.width = '20%';
+      const panel = document.getElementById('responsePanel');
+      panel.innerHTML = `
+        <div class="resp-header">
+          <i class="ti ti-alert-circle" aria-hidden="true" style="font-size:16px; color:#e24b4a;"></i>
+          <span class="status-badge s500">Network Error</span>
+        </div>
+        <div class="resp-body"><pre style="margin:0; color: var(--color-text-secondary);">${escHtml(err.message)}\n\nThis may be due to CORS restrictions on the target server.</pre></div>
+      `;
+      panel.classList.remove('hidden');
+    }
+
+    label.textContent = 'Send';
+    spinner.classList.add('hidden');
+    document.getElementById('sendBtn').disabled = false;
+  }
+</script>

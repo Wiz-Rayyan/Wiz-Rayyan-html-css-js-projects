@@ -1,0 +1,468 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.wrap{display:flex;gap:0;height:580px;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);overflow:hidden;background:var(--color-background-primary)}
+.editor-pane{flex:1;display:flex;flex-direction:column;min-width:0}
+.editor-header{padding:8px 14px;border-bottom:0.5px solid var(--color-border-tertiary);display:flex;align-items:center;gap:10px;font-size:12px;color:var(--color-text-secondary)}
+.file-dot{width:8px;height:8px;border-radius:50%;background:#FF0055;display:inline-block}
+.editor-scroll{flex:1;overflow-y:auto;padding:0;position:relative}
+.editor-scroll::-webkit-scrollbar{width:4px}
+.editor-scroll::-webkit-scrollbar-thumb{background:var(--color-border-secondary);border-radius:2px}
+pre{font-family:var(--font-mono);font-size:12px;line-height:18px;padding:12px 16px;color:var(--color-text-primary);white-space:pre;counter-reset:line}
+.line{display:flex;gap:0}
+.ln{color:var(--color-text-tertiary);min-width:36px;user-select:none;text-align:right;padding-right:16px;font-size:11px;line-height:18px}
+.code-text{color:var(--color-text-primary)}
+.hl-line{background:rgba(255,204,0,0.08)}
+.kw{color:#FF0055}.cn{color:#FFCC00}.imp{color:#00FFCC}.cm{color:#888}.str{color:#00FFCC}.num{color:#b5890d}
+.minimap-pane{width:90px;border-left:0.5px solid var(--color-border-tertiary);position:relative;overflow:hidden;cursor:pointer;flex-shrink:0}
+.minimap-pane canvas{display:block}
+.mm-viewport{position:absolute;left:0;right:0;background:rgba(150,150,200,0.15);border:1px solid rgba(150,150,200,0.4);pointer-events:none;border-radius:2px}
+.legend{padding:10px 12px;border-top:0.5px solid var(--color-border-tertiary);display:flex;flex-wrap:wrap;gap:6px}
+.leg-item{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--color-text-secondary)}
+.leg-dot{width:8px;height:8px;border-radius:1px;flex-shrink:0}
+.tooltip{position:fixed;background:var(--color-background-primary);border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:8px 10px;font-size:11px;font-family:var(--font-mono);pointer-events:none;z-index:999;max-width:220px;box-shadow:0 2px 8px rgba(0,0,0,0.12);display:none}
+.tt-line{color:var(--color-text-tertiary);font-size:10px;margin-bottom:3px}
+.tt-code{color:var(--color-text-primary);white-space:pre;overflow:hidden;text-overflow:ellipsis}
+</style>
+<h2 class="sr-only">Code Mountain minimap — interactive code structure visualizer with draggable viewport overlay</h2>
+<div class="wrap" id="wrap">
+  <div class="editor-pane">
+    <div class="editor-header"><span class="file-dot"></span>parser.py <span style="margin-left:auto;font-size:11px">Lines: <span id="linecount">—</span></span></div>
+    <div class="editor-scroll" id="edScroll">
+      <pre id="codeBlock"></pre>
+    </div>
+    <div class="legend">
+      <div class="leg-item"><div class="leg-dot" style="background:#FF0055"></div>functions</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#FFCC00"></div>classes</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#00FFCC"></div>imports</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#555"></div>comments</div>
+    </div>
+  </div>
+  <div class="minimap-pane" id="mmPane">
+    <canvas id="mmCanvas"></canvas>
+    <div class="mm-viewport" id="mmVp" style="top:0;height:40px"></div>
+  </div>
+</div>
+<div class="tooltip" id="tooltip"><div class="tt-line" id="ttLine"></div><div class="tt-code" id="ttCode"></div></div>
+
+<script>
+const RAW_CODE = `import os
+import sys
+import json
+import re
+from typing import List, Dict, Optional
+from pathlib import Path
+
+# Configuration constants
+MAX_DEPTH = 10
+DEFAULT_ENCODING = 'utf-8'
+SUPPORTED_EXTENSIONS = ['.py', '.js', '.ts']
+
+class TokenType:
+    """Enum-like class for token classification."""
+    KEYWORD = 'keyword'
+    IDENTIFIER = 'identifier'
+    LITERAL = 'literal'
+    OPERATOR = 'operator'
+    COMMENT = 'comment'
+    WHITESPACE = 'whitespace'
+
+class Token:
+    """Represents a single lexical token."""
+    def __init__(self, type: str, value: str, line: int):
+        self.type = type
+        self.value = value
+        self.line = line
+        self.col = 0
+
+    def __repr__(self):
+        return f'Token({self.type}, {self.value!r}, L{self.line})'
+
+    def is_keyword(self) -> bool:
+        return self.type == TokenType.KEYWORD
+
+    def is_identifier(self) -> bool:
+        return self.type == TokenType.IDENTIFIER
+
+# Keyword definitions
+PYTHON_KEYWORDS = [
+    'and', 'as', 'assert', 'async', 'await',
+    'break', 'class', 'continue', 'def', 'del',
+    'elif', 'else', 'except', 'finally', 'for',
+    'from', 'global', 'if', 'import', 'in',
+    'is', 'lambda', 'not', 'or', 'pass',
+    'raise', 'return', 'try', 'while', 'with', 'yield'
+]
+
+def tokenize(source: str) -> List[Token]:
+    """Tokenize a source string into a list of tokens."""
+    tokens = []
+    lines = source.splitlines()
+    for i, line in enumerate(lines):
+        stripped = line.strip()
+        if stripped.startswith('#'):
+            tokens.append(Token(TokenType.COMMENT, stripped, i+1))
+            continue
+        words = stripped.split()
+        for word in words:
+            if word in PYTHON_KEYWORDS:
+                tokens.append(Token(TokenType.KEYWORD, word, i+1))
+            else:
+                tokens.append(Token(TokenType.IDENTIFIER, word, i+1))
+    return tokens
+
+def normalize_whitespace(source: str) -> str:
+    """Remove redundant whitespace from source."""
+    lines = source.splitlines()
+    result = []
+    prev_blank = False
+    for line in lines:
+        is_blank = not line.strip()
+        if is_blank and prev_blank:
+            continue
+        result.append(line)
+        prev_blank = is_blank
+    return '\\n'.join(result)
+
+def extract_comments(source: str) -> List[str]:
+    """Extract all comment lines from source code."""
+    comments = []
+    for line in source.splitlines():
+        stripped = line.strip()
+        if stripped.startswith('#'):
+            comments.append(stripped[1:].strip())
+    return comments
+
+def count_lines(source: str) -> Dict[str, int]:
+    """Count lines by category: code, comment, blank."""
+    code = comment = blank = 0
+    for line in source.splitlines():
+        s = line.strip()
+        if not s:
+            blank += 1
+        elif s.startswith('#'):
+            comment += 1
+        else:
+            code += 1
+    return {'code': code, 'comment': comment, 'blank': blank}
+
+class Lexer:
+    """Full lexer with state machine for complex tokenization."""
+    def __init__(self, source: str):
+        self.source = source
+        self.pos = 0
+        self.line = 1
+        self.tokens = []
+        self._state = 'normal'
+
+    def advance(self) -> str:
+        ch = self.source[self.pos]
+        if ch == '\\n':
+            self.line += 1
+        self.pos += 1
+        return ch
+
+    def peek(self) -> Optional[str]:
+        if self.pos < len(self.source):
+            return self.source[self.pos]
+        return None
+
+    def read_string(self, quote: str) -> str:
+        result = quote
+        while self.pos < len(self.source):
+            ch = self.advance()
+            result += ch
+            if ch == quote:
+                break
+            if ch == '\\\\':
+                result += self.advance()
+        return result
+
+    def read_comment(self) -> str:
+        result = ''
+        while self.pos < len(self.source) and self.source[self.pos] != '\\n':
+            result += self.advance()
+        return result
+
+    def read_identifier(self) -> str:
+        result = ''
+        while self.pos < len(self.source) and (self.source[self.pos].isalnum() or self.source[self.pos] == '_'):
+            result += self.advance()
+        return result
+
+    def tokenize(self) -> List[Token]:
+        while self.pos < len(self.source):
+            ch = self.source[self.pos]
+            if ch in (' ', '\\t'):
+                self.advance()
+            elif ch == '\\n':
+                self.advance()
+            elif ch == '#':
+                self.advance()
+                val = self.read_comment()
+                self.tokens.append(Token(TokenType.COMMENT, val, self.line))
+            elif ch in ('"', "'"):
+                self.advance()
+                val = self.read_string(ch)
+                self.tokens.append(Token(TokenType.LITERAL, val, self.line))
+            elif ch.isalpha() or ch == '_':
+                val = self.read_identifier()
+                t = TokenType.KEYWORD if val in PYTHON_KEYWORDS else TokenType.IDENTIFIER
+                self.tokens.append(Token(t, val, self.line))
+            else:
+                self.tokens.append(Token(TokenType.OPERATOR, ch, self.line))
+                self.advance()
+        return self.tokens
+
+class Parser:
+    """Recursive descent parser for Python-like grammar."""
+    def __init__(self, tokens: List[Token]):
+        self.tokens = tokens
+        self.pos = 0
+        self.ast = []
+        self.errors = []
+
+    def current(self) -> Optional[Token]:
+        if self.pos < len(self.tokens):
+            return self.tokens[self.pos]
+        return None
+
+    def consume(self, expected_type: str = None) -> Optional[Token]:
+        tok = self.current()
+        if tok is None:
+            return None
+        if expected_type and tok.type != expected_type:
+            self.errors.append(f'Expected {expected_type}, got {tok.type} at L{tok.line}')
+            return None
+        self.pos += 1
+        return tok
+
+    def parse_import(self) -> Dict:
+        self.consume()
+        name_tok = self.consume(TokenType.IDENTIFIER)
+        return {'node': 'import', 'name': name_tok.value if name_tok else '?'}
+
+    def parse_class(self) -> Dict:
+        self.consume()
+        name_tok = self.consume(TokenType.IDENTIFIER)
+        body = self.parse_block()
+        return {'node': 'class', 'name': name_tok.value if name_tok else '?', 'body': body}
+
+    def parse_function(self) -> Dict:
+        self.consume()
+        name_tok = self.consume(TokenType.IDENTIFIER)
+        body = self.parse_block()
+        return {'node': 'function', 'name': name_tok.value if name_tok else '?', 'body': body}
+
+    def parse_block(self) -> List:
+        nodes = []
+        depth = 0
+        while self.current():
+            tok = self.current()
+            if tok.value in ('class', 'def'):
+                break
+            self.pos += 1
+        return nodes
+
+    def parse(self) -> List[Dict]:
+        while self.current():
+            tok = self.current()
+            if not tok:
+                break
+            if tok.type == TokenType.KEYWORD and tok.value == 'import':
+                self.ast.append(self.parse_import())
+            elif tok.type == TokenType.KEYWORD and tok.value == 'class':
+                self.ast.append(self.parse_class())
+            elif tok.type == TokenType.KEYWORD and tok.value == 'def':
+                self.ast.append(self.parse_function())
+            else:
+                self.pos += 1
+        return self.ast
+
+def build_ast(source: str) -> Dict:
+    """Convenience: lex then parse, return full AST dict."""
+    lexer = Lexer(source)
+    tokens = lexer.tokenize()
+    parser = Parser(tokens)
+    nodes = parser.parse()
+    return {
+        'nodes': nodes,
+        'errors': parser.errors,
+        'token_count': len(tokens),
+        'line_count': source.count('\\n') + 1
+    }
+
+def format_ast(ast: Dict, indent: int = 0) -> str:
+    """Pretty-print AST nodes for debugging."""
+    lines = []
+    prefix = '  ' * indent
+    for node in ast.get('nodes', []):
+        kind = node.get('node', '?')
+        name = node.get('name', '')
+        lines.append(f'{prefix}{kind}: {name}')
+        if 'body' in node and node['body']:
+            lines.append(format_ast({'nodes': node['body']}, indent+1))
+    return '\\n'.join(lines)
+
+# --- Symbol classification helpers ---
+
+def classify_line(line: str) -> str:
+    """Return symbol type for a line of source."""
+    s = line.strip()
+    if not s:
+        return 'blank'
+    if s.startswith('#'):
+        return 'comment'
+    if s.startswith('import ') or s.startswith('from '):
+        return 'import'
+    if s.startswith('class '):
+        return 'class'
+    if s.startswith('def '):
+        return 'function'
+    return 'code'
+
+def symbol_map(source: str) -> List[str]:
+    """Return a list of symbol types, one per line."""
+    return [classify_line(l) for l in source.splitlines()]
+`;
+
+const COLORS = {import:'#00FFCC',class:'#FFCC00',function:'#FF0055',comment:'#555555',code:'#333',blank:'transparent'};
+const COLORS_DARK = {import:'#00FFCC',class:'#FFCC00',function:'#FF0055',comment:'#888888',code:'#555',blank:'transparent'};
+
+const codeLines = RAW_CODE.split('\n');
+
+function classifyLine(line){
+  const s=line.trim();
+  if(!s)return'blank';
+  if(s.startsWith('#'))return'comment';
+  if(s.startsWith('import ')||s.startsWith('from '))return'import';
+  if(s.startsWith('class '))return'class';
+  if(s.startsWith('def '))return'function';
+  return'code';
+}
+
+function syntaxHL(line){
+  let s=line;
+  s=s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  s=s.replace(/(#.*)$/,'<span class="cm">$1</span>');
+  if(s.includes('cm'))return s;
+  s=s.replace(/\b(import|from|def|class|return|if|else|elif|for|while|in|not|and|or|is|None|True|False|try|except|finally|with|as|pass|raise|yield|lambda|global|del|assert|break|continue|async|await)\b/g,'<span class="kw">$1</span>');
+  s=s.replace(/\b(str|int|float|bool|list|dict|List|Dict|Optional|Any)\b/g,'<span class="imp">$1</span>');
+  s=s.replace(/\b(\d+)\b/g,'<span class="num">$1</span>');
+  return s;
+}
+
+const codeBlock=document.getElementById('codeBlock');
+const lineTypes=[];
+let html='';
+codeLines.forEach((line,i)=>{
+  const t=classifyLine(line);
+  lineTypes.push(t);
+  const cls=(t==='class'||t==='function')?' hl-line':'';
+  html+=`<div class="line${cls}"><span class="ln">${i+1}</span><span class="code-text">${syntaxHL(line)||' '}</span></div>`;
+});
+codeBlock.innerHTML=html;
+document.getElementById('linecount').textContent=codeLines.length;
+
+const mmPane=document.getElementById('mmPane');
+const canvas=document.getElementById('mmCanvas');
+const mmVp=document.getElementById('mmVp');
+const edScroll=document.getElementById('edScroll');
+const tooltip=document.getElementById('tooltip');
+const ttLine=document.getElementById('ttLine');
+const ttCode=document.getElementById('ttCode');
+
+const MM_W=90;
+const LINE_H=3;
+const totalH=codeLines.length*LINE_H;
+
+canvas.width=MM_W;
+canvas.height=totalH;
+mmPane.style.height='580px';
+
+function isDark(){return document.documentElement.classList.contains('dark')||window.matchMedia('(prefers-color-scheme:dark)').matches}
+
+function drawMinimap(){
+  const ctx=canvas.getContext('2d');
+  const cols=isDark()?COLORS_DARK:COLORS;
+  ctx.clearRect(0,0,MM_W,totalH);
+  codeLines.forEach((line,i)=>{
+    const t=lineTypes[i];
+    if(t==='blank')return;
+    ctx.fillStyle=cols[t];
+    const indent=Math.max(0,(line.match(/^\s*/)||[''])[0].length);
+    const w=Math.max(8,MM_W-indent*0.7);
+    ctx.globalAlpha=t==='code'?0.3:0.85;
+    ctx.fillRect(indent*0.7,i*LINE_H,w,LINE_H-0.5);
+  });
+  ctx.globalAlpha=1;
+}
+drawMinimap();
+
+function updateViewport(){
+  const scrollTop=edScroll.scrollTop;
+  const scrollH=edScroll.scrollHeight;
+  const clientH=edScroll.clientHeight;
+  const ratio=totalH/scrollH;
+  const vpH=Math.max(20,clientH*ratio);
+  const vpTop=scrollTop*ratio;
+  mmVp.style.top=vpTop+'px';
+  mmVp.style.height=vpH+'px';
+}
+updateViewport();
+
+edScroll.addEventListener('scroll',updateViewport);
+
+let dragging=false,dragStartY=0,dragScrollStart=0;
+mmVp.style.pointerEvents='auto';
+mmVp.style.cursor='grab';
+
+mmPane.addEventListener('mousedown',e=>{
+  const rect=mmPane.getBoundingClientRect();
+  const y=e.clientY-rect.top;
+  const vpTop=parseFloat(mmVp.style.top)||0;
+  const vpH=parseFloat(mmVp.style.height)||40;
+  if(y>=vpTop&&y<=vpTop+vpH){
+    dragging=true;dragStartY=e.clientY;
+    dragScrollStart=edScroll.scrollTop;
+    mmVp.style.cursor='grabbing';
+    e.preventDefault();
+  }else{
+    const ratio=edScroll.scrollHeight/totalH;
+    edScroll.scrollTop=(y-vpH/2)*ratio;
+    updateViewport();
+  }
+});
+
+document.addEventListener('mousemove',e=>{
+  if(!dragging)return;
+  const dy=e.clientY-dragStartY;
+  const ratio=edScroll.scrollHeight/totalH;
+  edScroll.scrollTop=dragScrollStart+dy*ratio;
+  updateViewport();
+  e.preventDefault();
+});
+
+document.addEventListener('mouseup',()=>{
+  if(dragging){dragging=false;mmVp.style.cursor='grab';}
+});
+
+mmPane.addEventListener('mousemove',e=>{
+  if(dragging)return;
+  const rect=mmPane.getBoundingClientRect();
+  const y=e.clientY-rect.top;
+  const lineIdx=Math.min(codeLines.length-1,Math.max(0,Math.floor(y/LINE_H)));
+  const snippet=codeLines.slice(Math.max(0,lineIdx-1),lineIdx+3).map(l=>l||' ').join('\n');
+  ttLine.textContent='Line '+(lineIdx+1)+' · '+lineTypes[lineIdx];
+  ttCode.textContent=snippet;
+  tooltip.style.display='block';
+  const tx=rect.left-230;
+  const ty=Math.min(e.clientY-20,window.innerHeight-100);
+  tooltip.style.left=Math.max(4,tx)+'px';
+  tooltip.style.top=ty+'px';
+});
+
+mmPane.addEventListener('mouseleave',()=>{tooltip.style.display='none'});
+
+window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change',drawMinimap);
+</script>

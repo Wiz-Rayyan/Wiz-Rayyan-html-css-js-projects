@@ -1,0 +1,233 @@
+
+<style>
+  .demo-wrap { display: flex; flex-direction: column; align-items: center; gap: 2rem; padding: 2rem 0; }
+  .stage { position: relative; width: 340px; height: 340px; display: flex; align-items: center; justify-content: center; border-radius: var(--border-radius-lg); background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); user-select: none; touch-action: none; overflow: visible; }
+  .obj { position: relative; width: 160px; height: 160px; cursor: grab; transition: none; }
+  .obj.snapping { transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1); }
+  .obj-inner { width: 100%; height: 100%; border-radius: var(--border-radius-lg); background: #EEEDFE; border: 1.5px solid #AFA9EC; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 6px; }
+  .obj-inner i { font-size: 36px; color: #534AB7; }
+  .obj-inner span { font-size: 12px; font-weight: 500; color: #534AB7; letter-spacing: 0.04em; }
+  .shadow { position: absolute; width: 160px; height: 160px; border-radius: var(--border-radius-lg); background: rgba(83,74,183,0.12); z-index: -1; filter: blur(6px); pointer-events: none; transition: none; }
+  .shadow.snapping { transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1), translate 0.25s; }
+  .arc-indicator { position: absolute; top: 12px; right: 12px; width: 52px; height: 52px; pointer-events: none; }
+  .finger-dots { position: absolute; pointer-events: none; }
+  .fdot { position: absolute; width: 28px; height: 28px; border-radius: 50%; background: rgba(83,74,183,0.22); border: 2px solid #534AB7; transform: translate(-50%,-50%); transition: opacity 0.2s; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 500; color: #534AB7; }
+  .line-between { position: absolute; pointer-events: none; top: 0; left: 0; width: 100%; height: 100%; }
+  .controls { display: flex; flex-direction: column; gap: 12px; width: 340px; }
+  .ctrl-row { display: flex; align-items: center; gap: 12px; }
+  .ctrl-row label { font-size: 13px; color: var(--color-text-secondary); width: 110px; flex-shrink: 0; }
+  .ctrl-row input[type=range] { flex: 1; }
+  .ctrl-row span { font-size: 13px; font-weight: 500; min-width: 36px; text-align: right; color: var(--color-text-primary); }
+  .ctrl-row input[type=checkbox] { width: 16px; height: 16px; accent-color: #534AB7; }
+  .angle-badge { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--color-text-secondary); }
+  .angle-val { font-size: 20px; font-weight: 500; color: var(--color-text-primary); min-width: 52px; }
+  .snap-hint { font-size: 11px; color: #534AB7; opacity: 0; transition: opacity 0.3s; height: 16px; }
+  .snap-hint.visible { opacity: 1; }
+  .info-row { display: flex; justify-content: space-between; align-items: center; }
+  .sim-btn { font-size: 12px; padding: 6px 14px; border-radius: var(--border-radius-md); background: transparent; border: 0.5px solid var(--color-border-secondary); color: var(--color-text-primary); cursor: pointer; }
+  .sim-btn:hover { background: var(--color-background-secondary); }
+</style>
+<h2 class="sr-only">Two-finger rotate gesture demo: drag on the object to rotate it, or simulate with the button.</h2>
+
+<div class="demo-wrap">
+  <div class="stage" id="stage">
+    <svg class="line-between" id="lineSvg" style="opacity:0"><line id="lineEl" stroke="#534AB7" stroke-width="1.5" stroke-dasharray="4 3" opacity="0.4"/></svg>
+    <div class="finger-dots" id="fingerDots">
+      <div class="fdot" id="dot0" style="opacity:0">1</div>
+      <div class="fdot" id="dot1" style="opacity:0">2</div>
+    </div>
+    <div class="shadow" id="shadow"></div>
+    <div class="obj" id="obj">
+      <div class="obj-inner">
+        <i class="ti ti-photo" aria-hidden="true"></i>
+        <span>rotate me</span>
+      </div>
+    </div>
+    <svg class="arc-indicator" id="arcSvg" viewBox="0 0 52 52">
+      <circle cx="26" cy="26" r="20" fill="none" stroke="var(--color-border-tertiary)" stroke-width="2.5"/>
+      <path id="arcPath" fill="none" stroke="#534AB7" stroke-width="2.5" stroke-linecap="round"/>
+      <line id="arcNeedle" x1="26" y1="26" x2="46" y2="26" stroke="#534AB7" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+  </div>
+
+  <div class="controls">
+    <div class="info-row">
+      <div class="angle-badge">
+        <i class="ti ti-rotate-clockwise" aria-hidden="true" style="font-size:18px; color:var(--color-text-secondary)"></i>
+        <span class="angle-val" id="angleDisplay">0°</span>
+      </div>
+      <span class="snap-hint" id="snapHint">snapped ✦</span>
+      <button class="sim-btn" id="simBtn">simulate rotation ↗</button>
+    </div>
+    <div class="ctrl-row">
+      <label>snap to 45°</label>
+      <input type="checkbox" id="snapToggle" checked>
+    </div>
+    <div class="ctrl-row">
+      <label>snap strength</label>
+      <input type="range" id="snapStrength" min="5" max="25" value="12" step="1" style="flex:1">
+      <span id="snapStrengthVal">12°</span>
+    </div>
+  </div>
+</div>
+
+<script>
+const obj = document.getElementById('obj');
+const shadow = document.getElementById('shadow');
+const stage = document.getElementById('stage');
+const dot0 = document.getElementById('dot0');
+const dot1 = document.getElementById('dot1');
+const lineSvg = document.getElementById('lineSvg');
+const lineEl = document.getElementById('lineEl');
+const arcPath = document.getElementById('arcPath');
+const arcNeedle = document.getElementById('arcNeedle');
+const angleDisplay = document.getElementById('angleDisplay');
+const snapHint = document.getElementById('snapHint');
+const snapToggle = document.getElementById('snapToggle');
+const snapStrengthInput = document.getElementById('snapStrength');
+const snapStrengthVal = document.getElementById('snapStrengthVal');
+const simBtn = document.getElementById('simBtn');
+
+let currentAngle = 0;
+let startAngle = 0;
+let baseAngle = 0;
+let active = false;
+let simRaf = null;
+
+snapStrengthInput.addEventListener('input', () => {
+  snapStrengthVal.textContent = snapStrengthInput.value + '°';
+});
+
+function getAngle(x1, y1, x2, y2) {
+  return Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
+}
+
+function applyAngle(angle, snap) {
+  let display = ((angle % 360) + 360) % 360;
+  currentAngle = angle;
+  const shadowOff = Math.sin(angle * Math.PI / 180) * 8;
+  obj.style.transform = `rotate(${angle}deg)`;
+  shadow.style.transform = `rotate(${angle}deg) translate(${shadowOff}px, ${Math.abs(shadowOff) * 0.5 + 8}px)`;
+  updateArc(display);
+  angleDisplay.textContent = Math.round(display) + '°';
+  if (snap) {
+    snapHint.classList.add('visible');
+    setTimeout(() => snapHint.classList.remove('visible'), 900);
+  }
+}
+
+function updateArc(deg) {
+  const r = 20, cx = 26, cy = 26;
+  const rad = (deg - 90) * Math.PI / 180;
+  const nx = cx + r * Math.cos(rad);
+  const ny = cy + r * Math.sin(rad);
+  arcNeedle.setAttribute('x2', nx.toFixed(2));
+  arcNeedle.setAttribute('y2', ny.toFixed(2));
+  if (deg < 1) { arcPath.setAttribute('d', ''); return; }
+  const large = deg > 180 ? 1 : 0;
+  const startRad = -Math.PI / 2;
+  const sx = cx + r * Math.cos(startRad);
+  const sy = cy + r * Math.sin(startRad);
+  arcPath.setAttribute('d', `M ${sx.toFixed(2)} ${sy.toFixed(2)} A ${r} ${r} 0 ${large} 1 ${nx.toFixed(2)} ${ny.toFixed(2)}`);
+}
+
+function snapAngle(a) {
+  const threshold = parseInt(snapStrengthInput.value);
+  const nearest = Math.round(a / 45) * 45;
+  return Math.abs(a - nearest) < threshold ? nearest : null;
+}
+
+function stagePos(touch) {
+  const rect = stage.getBoundingClientRect();
+  return { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
+}
+
+stage.addEventListener('touchstart', e => {
+  if (e.touches.length === 2) {
+    e.preventDefault();
+    active = true;
+    const p0 = stagePos(e.touches[0]);
+    const p1 = stagePos(e.touches[1]);
+    startAngle = getAngle(p0.x, p0.y, p1.x, p1.y);
+    baseAngle = currentAngle;
+    obj.classList.remove('snapping');
+    shadow.classList.remove('snapping');
+    updateDots(p0, p1);
+    lineSvg.style.opacity = '1';
+  }
+}, { passive: false });
+
+stage.addEventListener('touchmove', e => {
+  if (!active || e.touches.length < 2) return;
+  e.preventDefault();
+  const p0 = stagePos(e.touches[0]);
+  const p1 = stagePos(e.touches[1]);
+  const angle = getAngle(p0.x, p0.y, p1.x, p1.y);
+  const delta = angle - startAngle;
+  applyAngle(baseAngle + delta, false);
+  updateDots(p0, p1);
+  lineEl.setAttribute('x1', p0.x); lineEl.setAttribute('y1', p0.y);
+  lineEl.setAttribute('x2', p1.x); lineEl.setAttribute('y2', p1.y);
+}, { passive: false });
+
+stage.addEventListener('touchend', e => {
+  if (!active) return;
+  active = false;
+  dot0.style.opacity = '0'; dot1.style.opacity = '0';
+  lineSvg.style.opacity = '0';
+  if (snapToggle.checked) {
+    const snapped = snapAngle(currentAngle);
+    if (snapped !== null) {
+      obj.classList.add('snapping');
+      shadow.classList.add('snapping');
+      applyAngle(snapped, true);
+    }
+  }
+});
+
+function updateDots(p0, p1) {
+  dot0.style.left = p0.x + 'px'; dot0.style.top = p0.y + 'px'; dot0.style.opacity = '1';
+  dot1.style.left = p1.x + 'px'; dot1.style.top = p1.y + 'px'; dot1.style.opacity = '1';
+}
+
+let simDir = 1;
+let simPhase = 0;
+simBtn.addEventListener('click', () => {
+  if (simRaf) { cancelAnimationFrame(simRaf); simRaf = null; }
+  obj.classList.remove('snapping'); shadow.classList.remove('snapping');
+  dot0.style.opacity = '1'; dot1.style.opacity = '1'; lineSvg.style.opacity = '1';
+  const target = currentAngle + 135 * simDir;
+  simDir *= -1;
+  const start = currentAngle;
+  const startTime = performance.now();
+  const dur = 1200;
+  function tick(now) {
+    const t = Math.min((now - startTime) / dur, 1);
+    const ease = t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
+    const angle = start + (target - start) * ease;
+    applyAngle(angle, false);
+    const stageRect = stage.getBoundingClientRect();
+    const cx = stageRect.width / 2, cy = stageRect.height / 2;
+    const r = 65 + Math.sin(t * Math.PI) * 15;
+    const a = angle * Math.PI / 180;
+    const p0 = { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
+    const p1 = { x: cx - r * Math.cos(a), y: cy - r * Math.sin(a) };
+    updateDots(p0, p1);
+    lineEl.setAttribute('x1', p0.x); lineEl.setAttribute('y1', p0.y);
+    lineEl.setAttribute('x2', p1.x); lineEl.setAttribute('y2', p1.y);
+    if (t < 1) { simRaf = requestAnimationFrame(tick); }
+    else {
+      dot0.style.opacity = '0'; dot1.style.opacity = '0'; lineSvg.style.opacity = '0';
+      if (snapToggle.checked) {
+        const snapped = snapAngle(currentAngle);
+        if (snapped !== null) {
+          obj.classList.add('snapping'); shadow.classList.add('snapping');
+          applyAngle(snapped, true);
+        }
+      }
+      simRaf = null;
+    }
+  }
+  simRaf = requestAnimationFrame(tick);
+});
+</script>

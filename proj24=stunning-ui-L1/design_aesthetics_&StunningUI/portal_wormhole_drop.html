@@ -1,0 +1,582 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: transparent; }
+
+  .scene {
+    display: flex;
+    gap: 40px;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 2rem 1rem 1rem;
+    flex-wrap: wrap;
+  }
+
+  .panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .panel-label {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-family: var(--font-sans);
+  }
+
+  .item-shelf {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .draggable-item {
+    width: 72px;
+    height: 72px;
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: grab;
+    font-size: 11px;
+    font-family: var(--font-sans);
+    font-weight: 500;
+    user-select: none;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    position: relative;
+    border: 1.5px solid transparent;
+  }
+
+  .draggable-item:hover {
+    transform: translateY(-3px) scale(1.05);
+  }
+
+  .draggable-item:active { cursor: grabbing; }
+
+  .draggable-item .item-icon {
+    font-size: 24px;
+    line-height: 1;
+  }
+
+  .item-a { background: #e8e3ff; color: #4a3bb5; border-color: #c5baf5; }
+  .item-b { background: #d6f5ee; color: #0e6e55; border-color: #8ddcc5; }
+  .item-c { background: #fde8d8; color: #a03a1a; border-color: #f5b495; }
+  .item-d { background: #dff0fd; color: #1455a0; border-color: #90c8f0; }
+
+  .drop-zone-wrap {
+    position: relative;
+    width: 160px;
+    height: 160px;
+  }
+
+  .drop-zone {
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    border: 2px dashed var(--color-border-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s;
+    background: transparent;
+  }
+
+  .drop-zone.hover-active {
+    border-color: #7c6af0;
+    border-style: solid;
+  }
+
+  .portal-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    pointer-events: none;
+    opacity: 0;
+  }
+
+  .portal-hint {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    font-family: var(--font-sans);
+    text-align: center;
+    line-height: 1.5;
+    pointer-events: none;
+  }
+
+  .dest-zone-wrap {
+    position: relative;
+    width: 160px;
+    height: 160px;
+  }
+
+  .dest-zone {
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    border: 2px solid var(--color-border-tertiary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: visible;
+    background: transparent;
+  }
+
+  .dest-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-family: var(--font-sans);
+    font-weight: 500;
+    opacity: 0.3;
+    color: var(--color-text-secondary);
+    pointer-events: none;
+  }
+
+  .dest-content .item-icon { font-size: 28px; }
+
+  .particle-canvas {
+    position: absolute;
+    inset: -40px;
+    pointer-events: none;
+    width: calc(100% + 80px);
+    height: calc(100% + 80px);
+    border-radius: 0;
+  }
+
+  .ghost {
+    position: fixed;
+    width: 72px;
+    height: 72px;
+    border-radius: 16px;
+    pointer-events: none;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 500;
+    font-family: var(--font-sans);
+    transform: translate(-50%, -50%);
+    opacity: 0;
+  }
+
+  .status-bar {
+    text-align: center;
+    font-size: 13px;
+    font-family: var(--font-sans);
+    color: var(--color-text-secondary);
+    min-height: 22px;
+    padding: 0 1rem 1rem;
+  }
+
+  @keyframes vortexSpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  @keyframes portalPulse {
+    0%,100% { transform: scale(1); opacity: 0.7; }
+    50% { transform: scale(1.08); opacity: 1; }
+  }
+
+  @keyframes emergeGlow {
+    0% { box-shadow: 0 0 0 0 rgba(124,106,240,0.8); }
+    60% { box-shadow: 0 0 0 22px rgba(124,106,240,0); }
+    100% { box-shadow: 0 0 0 0 rgba(124,106,240,0); }
+  }
+</style>
+
+<h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">Portal wormhole drag-and-drop demo. Drag any item from the shelf into the entry portal to trigger a wormhole animation. The item appears at the destination portal with a sparkle burst.</h2>
+
+<div class="scene">
+
+  <div class="panel">
+    <span class="panel-label">Items</span>
+    <div class="item-shelf" id="shelf">
+      <div class="draggable-item item-a" draggable="true" data-id="a" data-label="Rune">
+        <span class="item-icon">🔮</span><span>Rune</span>
+      </div>
+      <div class="draggable-item item-b" draggable="true" data-id="b" data-label="Potion">
+        <span class="item-icon">🧪</span><span>Potion</span>
+      </div>
+      <div class="draggable-item item-c" draggable="true" data-id="c" data-label="Scroll">
+        <span class="item-icon">📜</span><span>Scroll</span>
+      </div>
+      <div class="draggable-item item-d" draggable="true" data-id="d" data-label="Gem">
+        <span class="item-icon">💎</span><span>Gem</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <span class="panel-label">Entry Portal</span>
+    <div class="drop-zone-wrap" id="dropWrap">
+      <canvas class="particle-canvas" id="entryCanvas"></canvas>
+      <div class="drop-zone" id="dropZone">
+        <svg class="portal-ring" id="portalRingSvg" viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="portalGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#7c6af0"/>
+              <stop offset="50%" stop-color="#c084fc"/>
+              <stop offset="100%" stop-color="#38bdf8"/>
+            </linearGradient>
+          </defs>
+          <circle cx="80" cy="80" r="72" fill="none" stroke="url(#portalGrad)" stroke-width="3" stroke-dasharray="12 6" id="outerRing"/>
+          <circle cx="80" cy="80" r="56" fill="none" stroke="url(#portalGrad)" stroke-width="2" stroke-dasharray="8 8" opacity="0.6" id="innerRing"/>
+          <circle cx="80" cy="80" r="38" fill="none" stroke="#c084fc" stroke-width="1.5" stroke-dasharray="4 10" opacity="0.4" id="innerRing2"/>
+        </svg>
+        <div class="portal-hint" id="portalHint">Drop<br>here</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <span class="panel-label">Destination</span>
+    <div class="dest-zone-wrap" id="destWrap">
+      <canvas class="particle-canvas" id="destCanvas"></canvas>
+      <div class="dest-zone" id="destZone">
+        <div class="dest-content" id="destContent">
+          <span class="item-icon">✦</span>
+          <span>Awaiting</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="status-bar" id="statusBar">Drag an item into the entry portal →</div>
+
+<div class="ghost" id="ghost"></div>
+
+<script>
+(function() {
+  const dropZone = document.getElementById('dropZone');
+  const portalHint = document.getElementById('portalHint');
+  const portalRingSvg = document.getElementById('portalRingSvg');
+  const outerRing = document.getElementById('outerRing');
+  const innerRing = document.getElementById('innerRing');
+  const ghost = document.getElementById('ghost');
+  const destContent = document.getElementById('destContent');
+  const destZone = document.getElementById('destZone');
+  const statusBar = document.getElementById('statusBar');
+  const entryCanvas = document.getElementById('entryCanvas');
+  const destCanvas = document.getElementById('destCanvas');
+
+  let draggedItem = null;
+  let rafId = null;
+  let portalActive = false;
+  let spinAngle = 0;
+  let spinSpeed = 0;
+  let portalOpacity = 0;
+  let portalTargetOpacity = 0;
+  let animLoop = null;
+
+  const items = {
+    a: { icon: '🔮', label: 'Rune', cls: 'item-a' },
+    b: { icon: '🧪', label: 'Potion', cls: 'item-b' },
+    c: { icon: '📜', label: 'Scroll', cls: 'item-c' },
+    d: { icon: '💎', label: 'Gem', cls: 'item-d' }
+  };
+
+  document.querySelectorAll('.draggable-item').forEach(el => {
+    el.addEventListener('dragstart', e => {
+      draggedItem = el;
+      const id = el.dataset.id;
+      const item = items[id];
+
+      ghost.className = 'ghost draggable-item ' + item.cls;
+      ghost.innerHTML = `<span class="item-icon">${item.icon}</span><span>${item.label}</span>`;
+      ghost.style.opacity = '1';
+
+      setTimeout(() => { el.style.opacity = '0.3'; }, 0);
+      statusBar.textContent = `Carrying ${item.label} — drop it into the portal!`;
+    });
+
+    el.addEventListener('dragend', () => {
+      el.style.opacity = '1';
+      ghost.style.opacity = '0';
+      draggedItem = null;
+      deactivatePortal();
+    });
+  });
+
+  document.addEventListener('dragover', e => {
+    e.preventDefault();
+    if (ghost.style.opacity === '1') {
+      ghost.style.left = e.clientX + 'px';
+      ghost.style.top = e.clientY + 'px';
+    }
+  });
+
+  dropZone.addEventListener('dragover', e => {
+    e.preventDefault();
+    activatePortal();
+  });
+
+  dropZone.addEventListener('dragleave', () => {
+    deactivatePortal();
+  });
+
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    if (!draggedItem) return;
+    const id = draggedItem.dataset.id;
+    triggerWormhole(id);
+  });
+
+  function activatePortal() {
+    if (portalActive) return;
+    portalActive = true;
+    dropZone.classList.add('hover-active');
+    portalHint.style.opacity = '0';
+    portalTargetOpacity = 1;
+    startPortalLoop();
+  }
+
+  function deactivatePortal() {
+    portalActive = false;
+    dropZone.classList.remove('hover-active');
+    portalHint.style.opacity = '1';
+    portalTargetOpacity = 0;
+  }
+
+  function startPortalLoop() {
+    if (animLoop) return;
+    animLoop = requestAnimationFrame(portalFrame);
+  }
+
+  function portalFrame() {
+    spinAngle += portalActive ? 2.5 : 0.8;
+    spinSpeed = portalActive ? 2.5 : 0.8;
+    portalOpacity += (portalTargetOpacity - portalOpacity) * 0.08;
+    if (portalOpacity < 0.01 && !portalActive) {
+      portalOpacity = 0;
+      portalRingSvg.style.opacity = 0;
+      animLoop = null;
+      return;
+    }
+    portalRingSvg.style.opacity = portalOpacity;
+    outerRing.setAttribute('transform', `rotate(${spinAngle}, 80, 80)`);
+    innerRing.setAttribute('transform', `rotate(${-spinAngle * 1.4}, 80, 80)`);
+    document.getElementById('innerRing2').setAttribute('transform', `rotate(${spinAngle * 0.7}, 80, 80)`);
+    animLoop = requestAnimationFrame(portalFrame);
+  }
+
+  function triggerWormhole(id) {
+    const item = items[id];
+    deactivatePortal();
+    ghost.style.opacity = '0';
+    if (draggedItem) draggedItem.style.opacity = '0.3';
+
+    portalHint.style.opacity = '0';
+    statusBar.textContent = '⟳ Transmitting through wormhole…';
+
+    burstParticles(entryCanvas, 'in');
+
+    portalRingSvg.style.opacity = 1;
+    portalTargetOpacity = 1;
+    portalActive = true;
+    startPortalLoop();
+
+    let shrinkEl = document.createElement('div');
+    shrinkEl.className = 'draggable-item ' + item.cls;
+    shrinkEl.innerHTML = `<span class="item-icon">${item.icon}</span><span>${item.label}</span>`;
+    Object.assign(shrinkEl.style, {
+      position: 'absolute',
+      left: '50%', top: '50%',
+      transform: 'translate(-50%, -50%) scale(1)',
+      transition: 'none',
+      pointerEvents: 'none',
+      filter: 'blur(0px)',
+      opacity: '1',
+      zIndex: '10'
+    });
+    dropZone.appendChild(shrinkEl);
+
+    setTimeout(() => {
+      shrinkEl.style.transition = 'transform 0.55s cubic-bezier(0.5,0,1,0.8), filter 0.55s ease, opacity 0.55s ease';
+      shrinkEl.style.transform = 'translate(-50%, -50%) scale(0)';
+      shrinkEl.style.filter = 'blur(12px)';
+      shrinkEl.style.opacity = '0';
+    }, 30);
+
+    setTimeout(() => {
+      shrinkEl.remove();
+      portalActive = false;
+      deactivatePortal();
+      portalHint.style.opacity = '1';
+      showDestination(id, item);
+    }, 620);
+  }
+
+  function showDestination(id, item) {
+    statusBar.textContent = '✦ Emerging from destination portal…';
+
+    destZone.style.borderColor = '#7c6af0';
+    destZone.style.borderWidth = '2.5px';
+    destZone.style.boxShadow = '0 0 0 0 rgba(124,106,240,0.7)';
+    destZone.style.animation = 'none';
+
+    destContent.innerHTML = `<span class="item-icon">${item.icon}</span><span>${item.label}</span>`;
+    destContent.style.opacity = '0';
+
+    const emergeEl = document.createElement('div');
+    emergeEl.className = 'draggable-item ' + item.cls;
+    emergeEl.innerHTML = `<span class="item-icon">${item.icon}</span><span>${item.label}</span>`;
+    Object.assign(emergeEl.style, {
+      position: 'absolute',
+      left: '50%', top: '50%',
+      transform: 'translate(-50%, -50%) scale(0)',
+      pointerEvents: 'none',
+      filter: 'blur(14px)',
+      opacity: '0',
+      zIndex: '10',
+      transition: 'none'
+    });
+    destZone.appendChild(emergeEl);
+
+    setTimeout(() => {
+      emergeEl.style.transition = 'transform 0.6s cubic-bezier(0,0.8,0.5,1), filter 0.6s ease, opacity 0.5s ease';
+      emergeEl.style.transform = 'translate(-50%, -50%) scale(1.15)';
+      emergeEl.style.filter = 'blur(0px)';
+      emergeEl.style.opacity = '1';
+    }, 30);
+
+    setTimeout(() => {
+      emergeEl.style.transition = 'transform 0.18s ease';
+      emergeEl.style.transform = 'translate(-50%, -50%) scale(1)';
+    }, 640);
+
+    setTimeout(() => {
+      burstParticles(destCanvas, 'out');
+    }, 200);
+
+    destZone.style.animation = 'emergeGlow 0.9s ease-out forwards';
+    setTimeout(() => { destZone.style.animation = ''; }, 920);
+
+    if (navigator.vibrate) navigator.vibrate([30, 20, 60]);
+
+    setTimeout(() => {
+      emergeEl.remove();
+      destContent.style.opacity = '1';
+      destContent.style.transition = 'opacity 0.2s';
+      destZone.style.borderColor = '';
+      destZone.style.borderWidth = '';
+      destZone.style.boxShadow = '';
+
+      if (draggedItem) {
+        draggedItem.style.opacity = '1';
+        draggedItem.style.transition = 'opacity 0.3s';
+      }
+      draggedItem = null;
+      statusBar.textContent = `✓ ${item.label} arrived! Drag another item.`;
+    }, 820);
+  }
+
+  function burstParticles(canvas, dir) {
+    const W = canvas.width = canvas.offsetWidth;
+    const H = canvas.height = canvas.offsetHeight;
+    const cx = W / 2, cy = H / 2;
+    const ctx = canvas.getContext('2d');
+
+    const colors = ['#7c6af0','#c084fc','#38bdf8','#f0abfc','#818cf8','#fbbf24','#34d399'];
+    const particles = [];
+    const count = 38;
+
+    for (let i = 0; i < count; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = dir === 'out' ? (2.5 + Math.random() * 4) : (1.5 + Math.random() * 2.5);
+      const size = 2.5 + Math.random() * 4;
+      particles.push({
+        x: cx, y: cy,
+        vx: Math.cos(angle) * speed * (dir === 'in' ? -1 : 1),
+        vy: Math.sin(angle) * speed * (dir === 'in' ? -1 : 1),
+        r: size,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        life: 1,
+        decay: 0.018 + Math.random() * 0.018,
+        gravity: dir === 'out' ? 0.06 : 0
+      });
+    }
+
+    let stars = [];
+    if (dir === 'out') {
+      for (let i = 0; i < 12; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const r = 20 + Math.random() * 55;
+        stars.push({
+          x: cx + Math.cos(angle) * r,
+          y: cy + Math.sin(angle) * r,
+          size: 3 + Math.random() * 5,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          life: 1,
+          decay: 0.025 + Math.random() * 0.02
+        });
+      }
+    }
+
+    function drawStar(ctx, x, y, r, color, alpha) {
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      for (let p = 0; p < 5; p++) {
+        const a = (p * 4 * Math.PI / 5) - Math.PI / 2;
+        const ia = a + Math.PI / 5;
+        if (p === 0) ctx.moveTo(x + Math.cos(a) * r, y + Math.sin(a) * r);
+        else ctx.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r);
+        ctx.lineTo(x + Math.cos(ia) * (r * 0.4), y + Math.sin(ia) * (r * 0.4));
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function tick() {
+      ctx.clearRect(0, 0, W, H);
+      let alive = false;
+
+      for (const p of particles) {
+        if (p.life <= 0) continue;
+        alive = true;
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += p.gravity;
+        p.life -= p.decay;
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, p.life);
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      for (const s of stars) {
+        if (s.life <= 0) continue;
+        alive = true;
+        s.life -= s.decay;
+        drawStar(ctx, s.x, s.y, s.size, s.color, Math.max(0, s.life));
+      }
+
+      if (alive) requestAnimationFrame(tick);
+      else ctx.clearRect(0, 0, W, H);
+    }
+    tick();
+  }
+})();
+</script>

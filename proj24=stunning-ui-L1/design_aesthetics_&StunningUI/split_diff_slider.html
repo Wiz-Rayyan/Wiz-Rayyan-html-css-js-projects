@@ -1,0 +1,229 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-mono); }
+#app { display: flex; flex-direction: column; height: 560px; background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); overflow: hidden; }
+.toolbar { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border-bottom: 0.5px solid var(--color-border-tertiary); background: var(--color-background-secondary); flex-shrink: 0; }
+.toolbar-title { font-size: 13px; font-weight: 500; color: var(--color-text-primary); font-family: var(--font-sans); }
+.stats { display: flex; gap: 12px; font-size: 12px; font-family: var(--font-sans); }
+.stat-add { color: #16a34a; }
+.stat-del { color: #dc2626; }
+.diff-container { display: flex; position: relative; flex: 1; overflow: hidden; }
+.panel { position: absolute; top: 0; bottom: 0; overflow: hidden; }
+.panel-left { left: 0; right: 0; }
+.panel-right { left: 0; right: 0; }
+.panel-inner { overflow-y: auto; height: 100%; display: flex; }
+.panel-label { position: absolute; top: 8px; left: 12px; font-size: 11px; font-family: var(--font-sans); font-weight: 500; padding: 2px 8px; border-radius: 4px; z-index: 2; pointer-events: none; }
+.label-old { background: rgba(239,68,68,0.15); color: #b91c1c; }
+.label-new { background: rgba(34,197,94,0.15); color: #15803d; }
+.line-nums { min-width: 40px; padding: 0 8px; text-align: right; font-size: 12px; line-height: 1.7; color: var(--color-text-tertiary); border-right: 0.5px solid var(--color-border-tertiary); user-select: none; padding-top: 32px; }
+.code-lines { flex: 1; padding: 0 12px; padding-top: 32px; }
+.line { font-size: 12px; line-height: 1.7; white-space: pre; display: flex; align-items: center; gap: 8px; position: relative; cursor: default; border-radius: 2px; padding: 0 4px; min-height: 22px; }
+.line.changed { cursor: pointer; }
+.line.del { background: rgba(239,68,68,0.18); }
+.line.add { background: rgba(34,197,94,0.18); }
+.line:hover.changed { filter: brightness(0.92); }
+.line-actions { display: none; position: absolute; right: 6px; top: 50%; transform: translateY(-50%); gap: 4px; z-index: 3; }
+.line.changed:hover .line-actions { display: flex; }
+.act-btn { font-size: 11px; border: 0.5px solid var(--color-border-secondary); background: var(--color-background-primary); border-radius: 4px; padding: 1px 6px; cursor: pointer; font-family: var(--font-sans); }
+.act-btn.accept { color: #16a34a; border-color: rgba(22,163,74,0.4); }
+.act-btn.accept:hover { background: rgba(34,197,94,0.12); }
+.act-btn.reject { color: #dc2626; border-color: rgba(220,38,38,0.4); }
+.act-btn.reject:hover { background: rgba(239,68,68,0.12); }
+.divider { position: absolute; top: 0; bottom: 0; width: 4px; background: var(--color-border-secondary); cursor: col-resize; z-index: 10; transform: translateX(-2px); transition: background 0.15s; }
+.divider:hover, .divider.dragging { background: #6366f1; }
+.divider-handle { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 20px; height: 36px; background: var(--color-background-primary); border: 0.5px solid var(--color-border-secondary); border-radius: 6px; display: flex; align-items: center; justify-content: center; gap: 2px; pointer-events: none; }
+.divider-handle span { width: 1px; height: 14px; background: var(--color-text-tertiary); border-radius: 1px; }
+.tooltip { position: fixed; z-index: 100; background: var(--color-background-primary); border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); padding: 8px 12px; font-size: 12px; font-family: var(--font-sans); pointer-events: none; max-width: 260px; box-shadow: none; display: none; }
+.tooltip .tip-label { font-size: 11px; color: var(--color-text-secondary); margin-bottom: 2px; }
+.tooltip .tip-old { color: #b91c1c; font-family: var(--font-mono); font-size: 11px; }
+.tooltip .tip-new { color: #15803d; font-family: var(--font-mono); font-size: 11px; margin-top: 4px; }
+.accepted { opacity: 0.45; text-decoration: line-through; pointer-events: none; }
+.rejected { opacity: 0.3; pointer-events: none; }
+</style>
+
+<h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">Interactive split diff viewer. Drag the center slider to compare old and new code. Click changed lines to accept or reject edits.</h2>
+
+<div id="app">
+  <div class="toolbar">
+    <span class="toolbar-title"><i class="ti ti-git-compare" aria-hidden="true" style="margin-right:6px;font-size:14px;vertical-align:-1px"></i>auth.js — split diff</span>
+    <span class="stats"><span class="stat-add">+5 additions</span><span class="stat-del">−4 deletions</span></span>
+  </div>
+  <div class="diff-container" id="diffContainer">
+    <div class="panel panel-left" id="panelLeft" style="right:50%">
+      <span class="panel-label label-old">before</span>
+      <div class="panel-inner">
+        <div class="line-nums" id="numsLeft"></div>
+        <div class="code-lines" id="codeLeft"></div>
+      </div>
+    </div>
+    <div class="panel panel-right" id="panelRight" style="left:50%">
+      <span class="panel-label label-new">after</span>
+      <div class="panel-inner">
+        <div class="line-nums" id="numsRight"></div>
+        <div class="code-lines" id="codeRight"></div>
+      </div>
+    </div>
+    <div class="divider" id="divider" style="left:50%">
+      <div class="divider-handle"><span></span><span></span></div>
+    </div>
+  </div>
+</div>
+
+<div class="tooltip" id="tooltip">
+  <div class="tip-label">before</div>
+  <div class="tip-old" id="tipOld"></div>
+  <div class="tip-label" style="margin-top:6px">after</div>
+  <div class="tip-new" id="tipNew"></div>
+</div>
+
+<script>
+const oldLines = [
+  { text: "import jwt from 'jsonwebtoken';", type: 'ctx' },
+  { text: "import bcrypt from 'bcrypt';", type: 'ctx' },
+  { text: "", type: 'ctx' },
+  { text: "const SECRET = 'hardcoded-secret-123';", type: 'del', id: 0 },
+  { text: "const SALT_ROUNDS = 8;", type: 'del', id: 1 },
+  { text: "", type: 'ctx' },
+  { text: "async function login(user, pass) {", type: 'ctx' },
+  { text: "  const hash = await bcrypt.hash(pass, SALT_ROUNDS);", type: 'del', id: 2 },
+  { text: "  const token = jwt.sign({ user }, SECRET);", type: 'del', id: 3 },
+  { text: "  return { hash, token };", type: 'ctx' },
+  { text: "}", type: 'ctx' },
+  { text: "", type: 'ctx' },
+  { text: "module.exports = { login };", type: 'ctx' },
+];
+
+const newLines = [
+  { text: "import jwt from 'jsonwebtoken';", type: 'ctx' },
+  { text: "import bcrypt from 'bcrypt';", type: 'ctx' },
+  { text: "", type: 'ctx' },
+  { text: "const SECRET = process.env.JWT_SECRET;", type: 'add', id: 0 },
+  { text: "const SALT_ROUNDS = parseInt(process.env.SALT_ROUNDS) || 12;", type: 'add', id: 1 },
+  { text: "", type: 'ctx' },
+  { text: "async function login(user, pass) {", type: 'ctx' },
+  { text: "  if (!SECRET) throw new Error('JWT_SECRET not set');", type: 'add', id: 4 },
+  { text: "  const hash = await bcrypt.hash(pass, SALT_ROUNDS);", type: 'add', id: 2 },
+  { text: "  const token = jwt.sign({ user }, SECRET, { expiresIn: '1h' });", type: 'add', id: 3 },
+  { text: "  return { hash, token };", type: 'ctx' },
+  { text: "}", type: 'ctx' },
+  { text: "", type: 'ctx' },
+  { text: "module.exports = { login };", type: 'ctx' },
+];
+
+const pairMap = {
+  0: { old: "const SECRET = 'hardcoded-secret-123';", new: "const SECRET = process.env.JWT_SECRET;" },
+  1: { old: "const SALT_ROUNDS = 8;", new: "const SALT_ROUNDS = parseInt(process.env.SALT_ROUNDS) || 12;" },
+  2: { old: "  const hash = await bcrypt.hash(pass, SALT_ROUNDS);", new: "  const hash = await bcrypt.hash(pass, SALT_ROUNDS);" },
+  3: { old: "  const token = jwt.sign({ user }, SECRET);", new: "  const token = jwt.sign({ user }, SECRET, { expiresIn: '1h' });" },
+  4: { old: "(line not present)", new: "  if (!SECRET) throw new Error('JWT_SECRET not set');" },
+};
+
+const accepted = new Set();
+const rejected = new Set();
+const tooltip = document.getElementById('tooltip');
+
+function renderPanel(lines, container, numsContainer, side) {
+  numsContainer.innerHTML = '';
+  container.innerHTML = '';
+  lines.forEach((l, i) => {
+    const num = document.createElement('div');
+    num.textContent = i + 1;
+    num.style.cssText = 'font-size:12px;line-height:1.7;min-height:22px;';
+    numsContainer.appendChild(num);
+
+    const div = document.createElement('div');
+    div.className = 'line' + (l.type !== 'ctx' ? ' changed ' + l.type : '');
+    div.dataset.id = l.id ?? '';
+    div.dataset.side = side;
+
+    const code = document.createElement('span');
+    code.textContent = l.text || ' ';
+    div.appendChild(code);
+
+    if (l.type !== 'ctx' && l.id !== undefined) {
+      const acts = document.createElement('div');
+      acts.className = 'line-actions';
+      acts.innerHTML = `<button class="act-btn accept" data-id="${l.id}">✓</button><button class="act-btn reject" data-id="${l.id}">✗</button>`;
+      div.appendChild(acts);
+
+      if (accepted.has(l.id)) div.classList.add('accepted');
+      if (rejected.has(l.id)) div.classList.add('rejected');
+
+      div.addEventListener('mousemove', (e) => {
+        if (l.id === undefined || !pairMap[l.id]) return;
+        tooltip.style.display = 'block';
+        tooltip.style.left = (e.clientX + 14) + 'px';
+        tooltip.style.top = (e.clientY - 10) + 'px';
+        document.getElementById('tipOld').textContent = pairMap[l.id].old;
+        document.getElementById('tipNew').textContent = pairMap[l.id].new;
+      });
+      div.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
+
+      div.addEventListener('click', (e) => {
+        if (e.target.classList.contains('act-btn')) return;
+        const all = document.querySelectorAll('[data-id="' + l.id + '"]');
+        all.forEach(el => el.scrollIntoView({ behavior: 'smooth', block: 'center' }));
+      });
+
+      acts.addEventListener('click', (e) => {
+        const btn = e.target.closest('.act-btn');
+        if (!btn) return;
+        const id = parseInt(btn.dataset.id);
+        if (btn.classList.contains('accept')) { accepted.add(id); rejected.delete(id); }
+        else { rejected.add(id); accepted.delete(id); }
+        renderBoth();
+      });
+    }
+    container.appendChild(div);
+  });
+}
+
+function renderBoth() {
+  renderPanel(oldLines, document.getElementById('codeLeft'), document.getElementById('numsLeft'), 'left');
+  renderPanel(newLines, document.getElementById('codeRight'), document.getElementById('numsRight'), 'right');
+}
+
+renderBoth();
+
+const divider = document.getElementById('divider');
+const container = document.getElementById('diffContainer');
+const panelLeft = document.getElementById('panelLeft');
+const panelRight = document.getElementById('panelRight');
+let dragging = false;
+
+divider.addEventListener('mousedown', (e) => {
+  dragging = true;
+  divider.classList.add('dragging');
+  e.preventDefault();
+});
+
+document.addEventListener('mousemove', (e) => {
+  if (!dragging) return;
+  const rect = container.getBoundingClientRect();
+  let pct = ((e.clientX - rect.left) / rect.width) * 100;
+  pct = Math.max(15, Math.min(85, pct));
+  panelLeft.style.right = (100 - pct) + '%';
+  panelRight.style.left = pct + '%';
+  divider.style.left = pct + '%';
+});
+
+document.addEventListener('mouseup', () => {
+  dragging = false;
+  divider.classList.remove('dragging');
+});
+
+const lefInner = panelLeft.querySelector('.panel-inner');
+const rightInner = panelRight.querySelector('.panel-inner');
+let syncing = false;
+lefInner.addEventListener('scroll', () => {
+  if (syncing) return; syncing = true;
+  rightInner.scrollTop = lefInner.scrollTop;
+  syncing = false;
+});
+rightInner.addEventListener('scroll', () => {
+  if (syncing) return; syncing = true;
+  lefInner.scrollTop = rightInner.scrollTop;
+  syncing = false;
+});
+</script>

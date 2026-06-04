@@ -1,0 +1,256 @@
+
+<style>
+  .demo-wrap { padding: 1.5rem 0; font-family: var(--font-sans); }
+  .section-label { font-size: 12px; color: var(--color-text-tertiary); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 1rem; }
+  .card-list { display: flex; flex-direction: column; gap: 10px; }
+  .card-row { position: relative; overflow: visible; height: 64px; }
+  .delete-bg { position: absolute; inset: 0; border-radius: var(--border-radius-lg); background: #F09595; display: flex; align-items: center; justify-content: right; padding-right: 20px; opacity: 0; transition: opacity 0.15s; }
+  .delete-bg i { font-size: 20px; color: #791F1F; }
+  .card {
+    position: absolute; inset: 0;
+    background: var(--color-background-primary);
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--border-radius-lg);
+    display: flex; align-items: center; gap: 14px;
+    padding: 0 16px;
+    cursor: grab; user-select: none;
+    touch-action: pan-y;
+    will-change: transform;
+    transition: border-color 0.15s;
+  }
+  .card.dragging { cursor: grabbing; transition: none; }
+  .card.snap-back { transition: transform 0.55s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s, border-color 0.15s, background 0.15s; }
+  .card.fly-away { transition: transform 0.35s cubic-bezier(0.4, 0, 1, 1), opacity 0.35s; pointer-events: none; }
+  .card.threshold { border-color: #F09595; background: #FCEBEB; }
+  .card-avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; flex-shrink: 0; }
+  .card-info { flex: 1; min-width: 0; }
+  .card-name { font-size: 14px; font-weight: 500; color: var(--color-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card-sub { font-size: 12px; color: var(--color-text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card-time { font-size: 11px; color: var(--color-text-tertiary); flex-shrink: 0; }
+  .canvas-layer { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 9999; }
+  .hint { font-size: 12px; color: var(--color-text-tertiary); margin-top: 1rem; display: flex; align-items: center; gap: 6px; }
+  .restore-btn { margin-top: 1rem; font-size: 13px; color: var(--color-text-info); cursor: pointer; background: none; border: none; padding: 0; display: none; }
+  .restore-btn:hover { text-decoration: underline; }
+  .threshold-bar { height: 3px; border-radius: 2px; background: var(--color-border-tertiary); margin-bottom: 1rem; position: relative; overflow: hidden; }
+  .threshold-fill { height: 100%; width: 0%; background: #E24B4A; border-radius: 2px; transition: width 0.05s, background 0.15s; }
+  .physics-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 1rem; }
+  .pill { font-size: 11px; padding: 3px 10px; border-radius: 20px; border: 0.5px solid var(--color-border-tertiary); color: var(--color-text-secondary); }
+  .pill.active { background: #FCEBEB; border-color: #F09595; color: #A32D2D; }
+</style>
+
+<div class="demo-wrap">
+  <h2 class="sr-only">Elastic swipe cards demo — swipe left to delete with rubber band physics</h2>
+
+  <div class="section-label">Elastic swipe — inbox</div>
+
+  <div class="physics-row" id="physicsRow">
+    <span class="pill" id="pill-drag">drag: 0px</span>
+    <span class="pill" id="pill-stretch">stretch: 0px</span>
+    <span class="pill" id="pill-state">state: idle</span>
+  </div>
+
+  <div class="threshold-bar"><div class="threshold-fill" id="thresholdFill"></div></div>
+
+  <div class="card-list" id="cardList"></div>
+
+  <p class="hint"><i class="ti ti-arrow-left" aria-hidden="true"></i> swipe cards left — release past 80px to delete</p>
+  <button class="restore-btn" id="restoreBtn" onclick="restoreAll()"><i class="ti ti-refresh"></i> restore deleted cards</button>
+</div>
+
+<canvas class="canvas-layer" id="particleCanvas"></canvas>
+
+<script>
+const ITEMS = [
+  { id: 1, name: 'Zara Ahmed', sub: 'Re: Design review tomorrow', time: '9:41 AM', color: '#B5D4F4', text: '#0C447C' },
+  { id: 2, name: 'Notion', sub: 'Your weekly digest is ready', time: '8:22 AM', color: '#C0DD97', text: '#3B6D11' },
+  { id: 3, name: 'Marcus Chen', sub: 'Pushed a fix to the staging branch', time: 'Yesterday', color: '#F4C0D1', text: '#723545' },
+  { id: 4, name: 'Priya Nair', sub: 'Can we reschedule to 3pm?', time: 'Yesterday', color: '#FAC775', text: '#854F0B' },
+  { id: 5, name: 'GitHub', sub: 'Pull request #341 approved', time: 'Mon', color: '#CECBF6', text: '#3C3489' },
+];
+
+const THRESHOLD = 80;
+let deletedIds = new Set();
+let particles = [];
+
+function initials(name) { return name.split(' ').map(w => w[0]).join('').slice(0,2); }
+
+function buildCards() {
+  const list = document.getElementById('cardList');
+  list.innerHTML = '';
+  ITEMS.filter(it => !deletedIds.has(it.id)).forEach(item => {
+    const row = document.createElement('div');
+    row.className = 'card-row';
+    row.id = 'row-' + item.id;
+
+    const bg = document.createElement('div');
+    bg.className = 'delete-bg';
+    bg.id = 'bg-' + item.id;
+    bg.innerHTML = '<i class="ti ti-trash" aria-hidden="true"></i>';
+
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.id = 'card-' + item.id;
+    card.innerHTML = `
+      <div class="card-avatar" style="background:${item.color};color:${item.text}">${initials(item.name)}</div>
+      <div class="card-info">
+        <div class="card-name">${item.name}</div>
+        <div class="card-sub">${item.sub}</div>
+      </div>
+      <div class="card-time">${item.time}</div>
+    `;
+
+    row.appendChild(bg);
+    row.appendChild(card);
+    list.appendChild(row);
+    attachDrag(card, item.id);
+  });
+}
+
+function attachDrag(card, id) {
+  let startX = 0, startY = 0, curX = 0, dragging = false, locked = false;
+
+  function onStart(e) {
+    if (locked) return;
+    startX = e.touches ? e.touches[0].clientX : e.clientX;
+    startY = e.touches ? e.touches[0].clientY : e.clientY;
+    curX = 0;
+    dragging = true;
+    card.classList.add('dragging');
+    card.classList.remove('snap-back', 'fly-away', 'threshold');
+  }
+
+  function onMove(e) {
+    if (!dragging || locked) return;
+    const x = e.touches ? e.touches[0].clientX : e.clientX;
+    const y = e.touches ? e.touches[0].clientY : e.clientY;
+    const dx = x - startX;
+    const dy = y - startY;
+    if (Math.abs(dy) > Math.abs(dx) * 1.5) { dragging = false; return; }
+    if (e.cancelable) e.preventDefault();
+    curX = Math.min(0, dx);
+    const stretch = curX * 0.3;
+    const absCur = Math.abs(curX);
+    const pct = Math.min(absCur / THRESHOLD, 1);
+    card.style.transform = `translateX(${stretch}px)`;
+    const bg = document.getElementById('bg-' + id);
+    bg.style.opacity = pct;
+    if (absCur >= THRESHOLD) {
+      card.classList.add('threshold');
+    } else {
+      card.classList.remove('threshold');
+    }
+    document.getElementById('thresholdFill').style.width = (pct * 100) + '%';
+    document.getElementById('pill-drag').textContent = `drag: ${Math.round(absCur)}px`;
+    document.getElementById('pill-stretch').textContent = `stretch: ${Math.round(Math.abs(stretch))}px`;
+    document.getElementById('pill-state').textContent = absCur >= THRESHOLD ? 'threshold!' : 'dragging';
+    document.getElementById('pill-state').className = 'pill' + (absCur >= THRESHOLD ? ' active' : '');
+  }
+
+  function onEnd() {
+    if (!dragging || locked) return;
+    dragging = false;
+    card.classList.remove('dragging');
+    const absCur = Math.abs(curX);
+    if (absCur >= THRESHOLD) {
+      locked = true;
+      document.getElementById('pill-state').textContent = 'deleted!';
+      document.getElementById('pill-state').className = 'pill active';
+      flyAway(card, id);
+    } else {
+      card.classList.add('snap-back');
+      card.classList.remove('threshold');
+      card.style.transform = 'translateX(0)';
+      document.getElementById('bg-' + id).style.opacity = 0;
+      document.getElementById('thresholdFill').style.width = '0%';
+      document.getElementById('pill-drag').textContent = 'drag: 0px';
+      document.getElementById('pill-stretch').textContent = 'stretch: 0px';
+      document.getElementById('pill-state').textContent = 'snapped back';
+      document.getElementById('pill-state').className = 'pill';
+      setTimeout(() => { document.getElementById('pill-state').textContent = 'idle'; }, 800);
+    }
+  }
+
+  card.addEventListener('mousedown', onStart);
+  card.addEventListener('touchstart', onStart, { passive: true });
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('touchmove', onMove, { passive: false });
+  document.addEventListener('mouseup', onEnd);
+  document.addEventListener('touchend', onEnd);
+}
+
+function flyAway(card, id) {
+  const rect = card.getBoundingClientRect();
+  spawnParticles(rect.right, rect.top + rect.height / 2);
+  card.classList.add('fly-away');
+  card.style.transform = 'translateX(-120vw)';
+  card.style.opacity = '0';
+  deletedIds.add(id);
+  setTimeout(() => {
+    const row = document.getElementById('row-' + id);
+    if (row) {
+      row.style.transition = 'height 0.3s, margin 0.3s, opacity 0.3s';
+      row.style.height = '0';
+      row.style.opacity = '0';
+      row.style.marginBottom = '0';
+    }
+    document.getElementById('thresholdFill').style.width = '0%';
+    document.getElementById('pill-drag').textContent = 'drag: 0px';
+    document.getElementById('pill-stretch').textContent = 'stretch: 0px';
+    document.getElementById('restoreBtn').style.display = 'inline';
+    setTimeout(() => { if (row) row.remove(); }, 320);
+  }, 340);
+}
+
+const canvas = document.getElementById('particleCanvas');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; });
+
+function spawnParticles(x, y) {
+  for (let i = 0; i < 22; i++) {
+    const angle = Math.PI + (Math.random() - 0.5) * 1.4;
+    const speed = 3 + Math.random() * 5;
+    const hue = Math.random() > 0.5 ? '#E24B4A' : '#F09595';
+    particles.push({
+      x, y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed - Math.random() * 2,
+      life: 1, decay: 0.04 + Math.random() * 0.03,
+      r: 2 + Math.random() * 3,
+      color: hue,
+    });
+  }
+  if (!animating) animate();
+}
+
+let animating = false;
+function animate() {
+  animating = true;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  particles = particles.filter(p => p.life > 0);
+  particles.forEach(p => {
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.18;
+    p.vx *= 0.96;
+    p.life -= p.decay;
+    ctx.globalAlpha = Math.max(0, p.life);
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+  if (particles.length > 0) requestAnimationFrame(animate);
+  else animating = false;
+}
+
+function restoreAll() {
+  deletedIds.clear();
+  document.getElementById('restoreBtn').style.display = 'none';
+  buildCards();
+}
+
+buildCards();
+</script>

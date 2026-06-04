@@ -1,0 +1,177 @@
+<h2 class="sr-only">Fly-to-cart interaction demo with animated product images flying to a shopping cart on add to cart click</h2>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.shop{padding:1.5rem;font-family:var(--font-sans)}
+.top-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem}
+.logo{font-size:15px;font-weight:500;color:var(--color-text-primary)}
+.cart-wrap{position:relative;cursor:pointer}
+.cart-btn{background:var(--color-background-primary);border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:8px 14px;display:flex;align-items:center;gap:8px;font-size:14px;color:var(--color-text-primary);cursor:pointer;transition:background 0.15s}
+.cart-btn:hover{background:var(--color-background-secondary)}
+.cart-btn i{font-size:20px}
+.cart-count{background:#E24B4A;color:#fff;border-radius:50%;width:20px;height:20px;font-size:11px;font-weight:500;display:flex;align-items:center;justify-content:center;transition:transform 0.3s cubic-bezier(0.34,1.6,0.64,1)}
+.cart-count.pop{transform:scale(1.5)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);overflow:hidden;transition:border-color 0.15s}
+.card:hover{border-color:var(--color-border-secondary)}
+.card-img{width:100%;aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:52px;position:relative}
+.card-body{padding:12px}
+.card-name{font-size:13px;font-weight:500;color:var(--color-text-primary);margin-bottom:2px}
+.card-price{font-size:12px;color:var(--color-text-secondary);margin-bottom:10px}
+.add-btn{width:100%;padding:7px;font-size:13px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-primary);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:background 0.15s,transform 0.1s}
+.add-btn:hover{background:var(--color-background-secondary)}
+.add-btn:active{transform:scale(0.96)}
+.flying-clone{position:fixed;pointer-events:none;z-index:9999;font-size:40px;transform-origin:center;will-change:transform,opacity}
+.confetti-wrap{position:fixed;pointer-events:none;z-index:9998}
+.confetti-dot{position:absolute;width:6px;height:6px;border-radius:50%;pointer-events:none}
+.cart-btn.bounce{animation:cartBounce 0.4s cubic-bezier(0.34,1.4,0.64,1)}
+@keyframes cartBounce{0%{transform:scale(1)}40%{transform:scale(1.25)}100%{transform:scale(1)}}
+</style>
+
+<div class="shop">
+  <div class="top-bar">
+    <span class="logo">ministore</span>
+    <div class="cart-wrap">
+      <button class="cart-btn" id="cart-btn" aria-label="Shopping cart">
+        <i class="ti ti-shopping-cart" aria-hidden="true"></i>
+        <span class="cart-count" id="cart-count">0</span>
+      </button>
+    </div>
+  </div>
+  <div class="grid" id="product-grid"></div>
+</div>
+
+<script>
+const products=[
+  {name:"Headphones",price:"$79",emoji:"🎧",bg:"#E6F1FB"},
+  {name:"Sneakers",price:"$129",emoji:"👟",bg:"#E1F5EE"},
+  {name:"Watch",price:"$249",emoji:"⌚",bg:"#FAEEDA"},
+  {name:"Camera",price:"$399",emoji:"📷",bg:"#FBEAF0"},
+  {name:"Sunglasses",price:"$59",emoji:"🕶️",bg:"#EEEDFE"},
+  {name:"Backpack",price:"$89",emoji:"🎒",bg:"#FAECE7"},
+];
+
+const grid=document.getElementById('product-grid');
+const cartBtn=document.getElementById('cart-btn');
+const cartCount=document.getElementById('cart-count');
+let count=0;
+
+products.forEach(p=>{
+  const card=document.createElement('div');
+  card.className='card';
+  card.innerHTML=`
+    <div class="card-img" style="background:${p.bg}" data-emoji="${p.emoji}">${p.emoji}</div>
+    <div class="card-body">
+      <div class="card-name">${p.name}</div>
+      <div class="card-price">${p.price}</div>
+      <button class="add-btn" data-product="${p.name}" data-emoji="${p.emoji}" data-bg="${p.bg}">
+        <i class="ti ti-plus" aria-hidden="true"></i> Add to cart
+      </button>
+    </div>`;
+  grid.appendChild(card);
+});
+
+function flyToCart(btn){
+  const emoji=btn.dataset.emoji;
+  const bg=btn.dataset.bg;
+  const startRect=btn.closest('.card').querySelector('.card-img').getBoundingClientRect();
+  const endRect=cartBtn.getBoundingClientRect();
+
+  const startX=startRect.left+startRect.width/2;
+  const startY=startRect.top+startRect.height/2;
+  const endX=endRect.left+endRect.width/2;
+  const endY=endRect.top+endRect.height/2;
+
+  const clone=document.createElement('div');
+  clone.className='flying-clone';
+  clone.textContent=emoji;
+  clone.style.cssText=`left:${startX-24}px;top:${startY-24}px;width:48px;height:48px;line-height:48px;text-align:center;border-radius:12px;background:${bg}`;
+  document.body.appendChild(clone);
+
+  const duration=620;
+  const start=performance.now();
+  const cp1x=startX+(endX-startX)*0.2;
+  const cp1y=startY-120;
+  const cp2x=startX+(endX-startX)*0.8;
+  const cp2y=startY-60;
+
+  function ease(t){return t<0.5?4*t*t*t:(t-1)*(2*t-2)*(2*t-2)+1}
+
+  function bezier(t,p0,p1,p2,p3){
+    const mt=1-t;
+    return mt*mt*mt*p0+3*mt*mt*t*p1+3*mt*t*t*p2+t*t*t*p3;
+  }
+
+  function frame(now){
+    const raw=Math.min((now-start)/duration,1);
+    const t=ease(raw);
+    const x=bezier(t,startX,cp1x,cp2x,endX);
+    const y=bezier(t,startY,cp1y,cp2y,endY);
+    const scale=1-0.8*t;
+    const rotate=180*t;
+    const opacity=t>0.8?1-((t-0.8)/0.2)*1:1;
+    clone.style.transform=`translate(${x-startX}px,${y-startY}px) scale(${scale}) rotate(${rotate}deg)`;
+    clone.style.opacity=opacity;
+    if(raw<1){requestAnimationFrame(frame);}
+    else{
+      clone.remove();
+      onArrival(endX,endY);
+    }
+  }
+  requestAnimationFrame(frame);
+}
+
+function onArrival(cx,cy){
+  count++;
+  cartCount.textContent=count;
+  cartCount.classList.remove('pop');
+  void cartCount.offsetWidth;
+  cartCount.classList.add('pop');
+  setTimeout(()=>cartCount.classList.remove('pop'),300);
+
+  cartBtn.classList.remove('bounce');
+  void cartBtn.offsetWidth;
+  cartBtn.classList.add('bounce');
+  setTimeout(()=>cartBtn.classList.remove('bounce'),400);
+
+  launchConfetti(cx,cy);
+}
+
+const confettiColors=['#E24B4A','#378ADD','#1D9E75','#EF9F27','#7F77DD','#D85A30'];
+
+function launchConfetti(cx,cy){
+  const wrap=document.createElement('div');
+  wrap.className='confetti-wrap';
+  wrap.style.cssText=`left:${cx}px;top:${cy}px;width:0;height:0`;
+  document.body.appendChild(wrap);
+  for(let i=0;i<16;i++){
+    const dot=document.createElement('div');
+    dot.className='confetti-dot';
+    const angle=(i/16)*Math.PI*2;
+    const dist=30+Math.random()*40;
+    const tx=Math.cos(angle)*dist;
+    const ty=Math.sin(angle)*dist;
+    const color=confettiColors[i%confettiColors.length];
+    dot.style.cssText=`background:${color};left:-3px;top:-3px`;
+    wrap.appendChild(dot);
+    const dur=400+Math.random()*200;
+    const startT=performance.now();
+    (function animate(dot,tx,ty,dur,startT){
+      function f(now){
+        const p=Math.min((now-startT)/dur,1);
+        const e=1-Math.pow(1-p,3);
+        dot.style.transform=`translate(${tx*e}px,${ty*e}px) scale(${1-p})`;
+        dot.style.opacity=1-p;
+        if(p<1)requestAnimationFrame(f);
+        else dot.remove();
+      }
+      requestAnimationFrame(f);
+    })(dot,tx,ty,dur,startT);
+  }
+  setTimeout(()=>wrap.remove(),700);
+}
+
+grid.addEventListener('click',e=>{
+  const btn=e.target.closest('.add-btn');
+  if(btn)flyToCart(btn);
+});
+</script>

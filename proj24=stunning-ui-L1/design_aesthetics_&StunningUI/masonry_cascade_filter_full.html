@@ -1,0 +1,256 @@
+
+<h2 class="sr-only">Fully functional masonry product filter with search, sort, wishlist, cart, and animated FLIP transitions</h2>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.wrap{padding:1.5rem 0;font-family:var(--font-sans)}
+.toolbar{display:flex;align-items:center;gap:10px;margin-bottom:1.25rem;flex-wrap:wrap}
+.search-wrap{position:relative;flex:1;min-width:160px}
+.search-wrap i{position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:16px;color:var(--color-text-tertiary);pointer-events:none}
+#search{padding-left:32px;width:100%;font-size:13px}
+.sort-select{font-size:13px;padding:0 10px;height:36px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-primary);cursor:pointer}
+.pills{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1.25rem}
+.pill{padding:6px 15px;border-radius:999px;border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);font-size:13px;font-weight:500;cursor:pointer;color:var(--color-text-secondary);transition:transform .25s cubic-bezier(.34,1.56,.64,1),background .2s,color .2s,border-color .2s;transform-origin:center;user-select:none}
+.pill.active{background:var(--color-text-primary);color:var(--color-background-primary);border-color:var(--color-text-primary);transform:scale(1.1)}
+.pill:not(.active):hover{transform:scale(.97);background:var(--color-background-secondary)}
+.meta{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+.count-wrap{font-size:13px;color:var(--color-text-secondary)}
+.count-num{font-size:20px;font-weight:500;color:var(--color-text-primary);display:inline-block;min-width:28px}
+.cart-btn{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500;padding:6px 14px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-primary);cursor:pointer;transition:background .15s}
+.cart-btn:hover{background:var(--color-background-secondary)}
+.cart-badge{background:var(--color-text-primary);color:var(--color-background-primary);border-radius:999px;font-size:11px;padding:1px 6px;min-width:18px;text-align:center}
+.grid{columns:3;gap:14px}
+.card{break-inside:avoid;margin-bottom:14px;border-radius:var(--border-radius-lg);border:0.5px solid var(--color-border-tertiary);background:var(--color-background-primary);overflow:hidden;cursor:pointer;transition:border-color .2s,opacity .3s ease,transform .35s cubic-bezier(.34,1.4,.64,1)}
+.card:hover{border-color:var(--color-border-secondary)}
+.card-img{width:100%;display:flex;align-items:center;justify-content:center;font-size:32px;position:relative}
+.card-actions{position:absolute;top:8px;right:8px;display:flex;gap:6px}
+.action-btn{width:28px;height:28px;border-radius:50%;border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;color:var(--color-text-secondary);transition:background .15s,color .15s,transform .2s}
+.action-btn:hover{background:var(--color-background-secondary);transform:scale(1.1)}
+.action-btn.wishlisted{color:#D4537E;border-color:#F4C0D1}
+.action-btn.in-cart{color:#185FA5;border-color:#B5D4F4}
+.card-body{padding:10px 12px 12px}
+.card-name{font-size:13px;font-weight:500;color:var(--color-text-primary);margin-bottom:2px}
+.card-cat{font-size:11px;color:var(--color-text-tertiary);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em}
+.card-bottom{display:flex;align-items:center;justify-content:space-between}
+.card-price{font-size:14px;font-weight:500;color:var(--color-text-primary)}
+.card-orig{font-size:12px;color:var(--color-text-tertiary);text-decoration:line-through;margin-left:5px}
+.badge{font-size:11px;padding:2px 7px;border-radius:999px;display:inline-block}
+.badge-sale{background:#FCEBEB;color:#A32D2D}
+.badge-new{background:#E6F1FB;color:#185FA5}
+.badge-hot{background:#FAEEDA;color:#854F0B}
+.stars{font-size:11px;color:#BA7517;letter-spacing:-1px}
+.empty{text-align:center;padding:3rem 1rem;color:var(--color-text-secondary);font-size:14px}
+.toast{position:absolute;bottom:16px;right:16px;background:var(--color-text-primary);color:var(--color-background-primary);font-size:12px;padding:8px 14px;border-radius:var(--border-radius-md);opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s;pointer-events:none;z-index:10}
+.toast.show{opacity:1;transform:translateY(0)}
+.outer{position:relative}
+</style>
+
+<div class="wrap">
+<div class="toolbar">
+  <div class="search-wrap"><i class="ti ti-search" aria-hidden="true"></i><input type="text" id="search" placeholder="Search products…"></div>
+  <select class="sort-select" id="sort">
+    <option value="default">Sort: Featured</option>
+    <option value="price-asc">Price: Low to High</option>
+    <option value="price-desc">Price: High to Low</option>
+    <option value="rating">Top Rated</option>
+    <option value="name">Name A–Z</option>
+  </select>
+</div>
+<div class="pills" id="pills"></div>
+<div class="meta">
+  <div class="count-wrap"><span class="count-num" id="cnt">0</span> items</div>
+  <button class="cart-btn" id="cart-btn" onclick="toggleCart()">
+    <i class="ti ti-shopping-bag" aria-hidden="true" style="font-size:16px"></i>
+    Cart <span class="cart-badge" id="cart-count">0</span>
+  </button>
+</div>
+<div class="outer">
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="empty" style="display:none"><i class="ti ti-mood-empty" style="font-size:32px;display:block;margin-bottom:8px" aria-hidden="true"></i>No products match your filters</div>
+  <div class="toast" id="toast"></div>
+</div>
+</div>
+
+<script>
+const products = [
+  {id:1, name:"Cloud Runner",       cat:"Footwear",    price:4299, orig:5499, color:"#B5D4F4", icon:"ti-shoe",     badge:"new",  rating:4.8, h:130},
+  {id:2, name:"Linen Tote",         cat:"Bags",        price:2199, orig:0,    color:"#C0DD97", icon:"ti-briefcase",badge:"",     rating:4.2, h:110},
+  {id:3, name:"Merino Crewneck",    cat:"Tops",        price:3599, orig:4999, color:"#F4C0D1", icon:"ti-shirt",    badge:"sale", rating:4.6, h:125},
+  {id:4, name:"Cargo Shorts",       cat:"Bottoms",     price:1899, orig:0,    color:"#FAC775", icon:"ti-scissors", badge:"",     rating:3.9, h:100},
+  {id:5, name:"Slide Sandal",       cat:"Footwear",    price:1499, orig:1999, color:"#CFC4F6", icon:"ti-flip-flops",badge:"hot", rating:4.5, h:105},
+  {id:6, name:"Canvas Backpack",    cat:"Bags",        price:3999, orig:0,    color:"#9FE1CB", icon:"ti-backpack", badge:"new",  rating:4.7, h:120},
+  {id:7, name:"Printed Tee",        cat:"Tops",        price:999,  orig:1499, color:"#FAC775", icon:"ti-shirt",    badge:"sale", rating:4.1, h:95},
+  {id:8, name:"Wide Leg Pants",     cat:"Bottoms",     price:2799, orig:0,    color:"#F5C4B3", icon:"ti-ruler",    badge:"",     rating:4.4, h:140},
+  {id:9, name:"Ribbed Knit Sock",   cat:"Footwear",    price:399,  orig:0,    color:"#B5D4F4", icon:"ti-sock",     badge:"",     rating:3.7, h:88},
+  {id:10,name:"Bucket Hat",         cat:"Accessories", price:1299, orig:1799, color:"#F4C0D1", icon:"ti-hat",      badge:"hot",  rating:4.3, h:115},
+  {id:11,name:"Polo Collar",        cat:"Tops",        price:1799, orig:0,    color:"#C0DD97", icon:"ti-shirt",    badge:"new",  rating:4.0, h:118},
+  {id:12,name:"Mini Shoulder Bag",  cat:"Bags",        price:2599, orig:3299, color:"#CFC4F6", icon:"ti-handbag",  badge:"sale", rating:4.5, h:110},
+  {id:13,name:"Chunky Sneaker",     cat:"Footwear",    price:5499, orig:6999, color:"#9FE1CB", icon:"ti-shoe",     badge:"hot",  rating:4.9, h:128},
+  {id:14,name:"Linen Trousers",     cat:"Bottoms",     price:2299, orig:0,    color:"#D3D1C7", icon:"ti-ruler",    badge:"",     rating:4.2, h:105},
+  {id:15,name:"Chain Bracelet",     cat:"Accessories", price:899,  orig:1199, color:"#FAC775", icon:"ti-diamond",  badge:"sale", rating:4.6, h:90},
+  {id:16,name:"Denim Jacket",       cat:"Tops",        price:4999, orig:0,    color:"#B5D4F4", icon:"ti-shirt",    badge:"new",  rating:4.7, h:135},
+];
+
+const cats = ["All", ...new Set(products.map(p => p.cat))];
+let active = "All", query = "", sortBy = "default";
+const wishlist = new Set(), cart = new Set();
+
+const pillsEl = document.getElementById("pills");
+const gridEl  = document.getElementById("grid");
+const cntEl   = document.getElementById("cnt");
+const emptyEl = document.getElementById("empty");
+const cartCount = document.getElementById("cart-count");
+
+function stars(r) {
+  const full = Math.floor(r), half = r % 1 >= 0.5 ? 1 : 0, empty = 5 - full - half;
+  return "★".repeat(full) + (half?"½":"") + "☆".repeat(empty);
+}
+
+function fmt(n){ return "₹" + n.toLocaleString("en-IN"); }
+
+function filtered() {
+  let list = products.filter(p => {
+    const catOk = active === "All" || p.cat === active;
+    const qOk = !query || p.name.toLowerCase().includes(query) || p.cat.toLowerCase().includes(query);
+    return catOk && qOk;
+  });
+  if (sortBy === "price-asc")  list = [...list].sort((a,b) => a.price - b.price);
+  if (sortBy === "price-desc") list = [...list].sort((a,b) => b.price - a.price);
+  if (sortBy === "rating")     list = [...list].sort((a,b) => b.rating - a.rating);
+  if (sortBy === "name")       list = [...list].sort((a,b) => a.name.localeCompare(b.name));
+  return list;
+}
+
+function animateCount(to) {
+  const from = parseInt(cntEl.textContent) || 0;
+  if (from === to) return;
+  const dur = 350, start = performance.now();
+  requestAnimationFrame(function step(t) {
+    const p = Math.min((t - start) / dur, 1);
+    const e = 1 - Math.pow(1 - p, 3);
+    cntEl.textContent = Math.round(from + (to - from) * e);
+    if (p < 1) requestAnimationFrame(step);
+  });
+}
+
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.classList.add("show");
+  clearTimeout(t._tid);
+  t._tid = setTimeout(() => t.classList.remove("show"), 1800);
+}
+
+function toggleWish(id, e) {
+  e.stopPropagation();
+  if (wishlist.has(id)) { wishlist.delete(id); showToast("Removed from wishlist"); }
+  else { wishlist.add(id); showToast("Added to wishlist"); }
+  const btn = document.querySelector(`.wish-btn[data-id="${id}"]`);
+  if (btn) btn.classList.toggle("wishlisted", wishlist.has(id));
+}
+
+function toggleCartItem(id, e) {
+  e.stopPropagation();
+  if (cart.has(id)) { cart.delete(id); showToast("Removed from cart"); }
+  else { cart.add(id); showToast("Added to cart"); }
+  cartCount.textContent = cart.size;
+  const btn = document.querySelector(`.cart-item-btn[data-id="${id}"]`);
+  if (btn) btn.classList.toggle("in-cart", cart.has(id));
+}
+
+function toggleCart() {
+  if (cart.size === 0) { showToast("Your cart is empty"); return; }
+  const ids = [...cart];
+  const items = products.filter(p => ids.includes(p.id));
+  const total = items.reduce((s,p) => s+p.price, 0);
+  showToast(`${cart.size} item${cart.size>1?'s':''} · ${fmt(total)}`);
+}
+
+function renderPills() {
+  pillsEl.innerHTML = "";
+  cats.forEach(c => {
+    const b = document.createElement("button");
+    b.className = "pill" + (c === active ? " active" : "");
+    b.textContent = c;
+    b.addEventListener("click", () => { active = c; render(); });
+    pillsEl.appendChild(b);
+  });
+}
+
+function render() {
+  renderPills();
+  const list = filtered();
+  animateCount(list.size !== undefined ? list.size : list.length);
+
+  const existing = {};
+  gridEl.querySelectorAll(".card[data-id]").forEach(el => existing[el.dataset.id] = el);
+
+  if (list.length === 0) {
+    gridEl.style.display = "none";
+    emptyEl.style.display = "block";
+    Object.values(existing).forEach(el => el.remove());
+    return;
+  }
+  gridEl.style.display = "";
+  emptyEl.style.display = "none";
+
+  const idsToShow = new Set(list.map(p => String(p.id)));
+
+  Object.entries(existing).forEach(([id, el]) => {
+    if (!idsToShow.has(id)) {
+      el.style.transition = "opacity .2s ease, transform .2s ease";
+      el.style.opacity = "0";
+      el.style.transform = "scale(0.88)";
+      setTimeout(() => el.remove(), 220);
+    }
+  });
+
+  list.forEach((p, i) => {
+    const sid = String(p.id);
+    if (existing[sid]) return;
+    const card = document.createElement("div");
+    card.className = "card";
+    card.dataset.id = sid;
+    card.dataset.cat = p.cat;
+    card.style.opacity = "0";
+    card.style.transform = "scale(0.9) translateY(10px)";
+    card.innerHTML = `
+      <div class="card-img" style="height:${p.h}px;background:${p.color}22;">
+        <i class="ti ${p.icon}" style="font-size:36px;color:${p.color.replace('22','')}99" aria-hidden="true"></i>
+        <div class="card-actions">
+          <button class="action-btn wish-btn" data-id="${p.id}" onclick="toggleWish(${p.id},event)" aria-label="Wishlist ${p.name}">
+            <i class="ti ti-heart ${wishlist.has(p.id)?'':''}"></i>
+          </button>
+          <button class="action-btn cart-item-btn" data-id="${p.id}" onclick="toggleCartItem(${p.id},event)" aria-label="Add ${p.name} to cart">
+            <i class="ti ti-shopping-cart"></i>
+          </button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="card-name">${p.name}</div>
+        <div class="card-cat">${p.cat}</div>
+        <div class="stars">${stars(p.rating)} <span style="font-family:var(--font-sans);font-size:11px;color:var(--color-text-tertiary)">${p.rating}</span></div>
+        <div class="card-bottom" style="margin-top:6px">
+          <div>
+            <span class="card-price">${fmt(p.price)}</span>
+            ${p.orig ? `<span class="card-orig">${fmt(p.orig)}</span>` : ""}
+          </div>
+          ${p.badge ? `<span class="badge badge-${p.badge}">${p.badge==='sale'?'Sale':p.badge==='new'?'New':'Hot'}</span>` : ""}
+        </div>
+      </div>`;
+    if (wishlist.has(p.id)) card.querySelector(".wish-btn").classList.add("wishlisted");
+    if (cart.has(p.id)) card.querySelector(".cart-item-btn").classList.add("in-cart");
+    gridEl.appendChild(card);
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      card.style.transition = `opacity .35s ease ${i*35}ms, transform .4s cubic-bezier(.34,1.4,.64,1) ${i*35}ms`;
+      card.style.opacity = "1";
+      card.style.transform = "scale(1) translateY(0)";
+    }));
+  });
+
+  animateCount(list.length);
+}
+
+document.getElementById("search").addEventListener("input", e => { query = e.target.value.trim().toLowerCase(); render(); });
+document.getElementById("sort").addEventListener("change", e => { sortBy = e.target.value; render(); });
+
+render();
+</script>

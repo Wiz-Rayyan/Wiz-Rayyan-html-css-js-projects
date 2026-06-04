@@ -1,0 +1,368 @@
+
+<style>
+  * { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
+  #demo-area {
+    position: relative;
+    height: 340px;
+    background: var(--color-background-secondary);
+    border-radius: var(--border-radius-lg);
+    border: 0.5px solid var(--color-border-tertiary);
+    overflow: hidden;
+    cursor: crosshair;
+    touch-action: none;
+  }
+  .hint {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+  .hint-icon { font-size: 32px; color: var(--color-text-tertiary); }
+  .hint-text { font-size: 14px; color: var(--color-text-secondary); }
+  .dot {
+    position: absolute;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: #7F77DD;
+    border: 2px solid #EEEDFE;
+    transform: translate(-50%, -50%) scale(0);
+    transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s, border-radius 0.2s, width 0.2s, height 0.2s;
+    pointer-events: none;
+  }
+  .dot.visible { transform: translate(-50%, -50%) scale(1); }
+  .dot.arrow {
+    width: 32px; height: 16px;
+    border-radius: 3px;
+    background: #534AB7;
+  }
+  .dot.fired {
+    transition: transform 0.3s ease-in, opacity 0.3s;
+    opacity: 0;
+  }
+  .dot.cancel { transform: translate(-50%, -50%) scale(0); }
+  #action-label {
+    position: absolute;
+    top: 18px; left: 50%;
+    transform: translateX(-50%);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    background: var(--color-background-primary);
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--border-radius-md);
+    padding: 5px 14px;
+    opacity: 0;
+    transition: opacity 0.25s;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  #action-label.visible { opacity: 1; }
+  #progress-bar {
+    position: absolute;
+    bottom: 0; left: 0;
+    height: 3px;
+    background: #7F77DD;
+    width: 0%;
+    transition: width 0.05s linear, background 0.15s;
+    border-radius: 0 2px 0 0;
+  }
+  .phase-dots {
+    position: absolute;
+    bottom: 16px; left: 50%;
+    transform: translateX(-50%);
+    display: flex; gap: 6px;
+    pointer-events: none;
+  }
+  .phase-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--color-border-secondary);
+    transition: background 0.2s;
+  }
+  .phase-dot.active { background: #7F77DD; }
+  .controls {
+    display: flex; gap: 10px; margin-top: 12px; align-items: center;
+  }
+  .btn-group { display: flex; gap: 8px; }
+  .sim-btn {
+    font-size: 13px; padding: 6px 14px;
+    border: 0.5px solid var(--color-border-secondary);
+    border-radius: var(--border-radius-md);
+    background: var(--color-background-primary);
+    color: var(--color-text-primary);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .sim-btn:hover { background: var(--color-background-secondary); }
+  .sim-btn:active { transform: scale(0.97); }
+  .label-sm { font-size: 13px; color: var(--color-text-secondary); margin-left: auto; }
+  #action-history {
+    margin-top: 12px;
+    min-height: 32px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .action-chip {
+    font-size: 12px;
+    padding: 3px 10px;
+    border-radius: 99px;
+    border: 0.5px solid var(--color-border-tertiary);
+    color: var(--color-text-secondary);
+    background: var(--color-background-secondary);
+    animation: chipIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes chipIn { from { transform: scale(0.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .action-chip.left { border-color: #AFA9EC; color: #534AB7; background: #EEEDFE; }
+  .action-chip.right { border-color: #5DCAA5; color: #0F6E56; background: #E1F5EE; }
+  .history-label { font-size: 12px; color: var(--color-text-tertiary); }
+</style>
+
+<h2 class="sr-only">Three-finger gesture interactive demo — swipe with three fingers or use the simulate buttons</h2>
+
+<div id="demo-area">
+  <div class="hint" id="hint">
+    <i class="ti ti-hand-three-fingers hint-icon" aria-hidden="true"></i>
+    <span class="hint-text">Place three fingers or use simulate buttons below</span>
+  </div>
+  <div class="dot" id="d0"></div>
+  <div class="dot" id="d1"></div>
+  <div class="dot" id="d2"></div>
+  <div id="action-label"></div>
+  <div id="progress-bar"></div>
+  <div class="phase-dots">
+    <div class="phase-dot" id="pd0"></div>
+    <div class="phase-dot" id="pd1"></div>
+    <div class="phase-dot" id="pd2"></div>
+  </div>
+</div>
+
+<div class="controls">
+  <div class="btn-group">
+    <button class="sim-btn" id="btn-left">← Simulate left</button>
+    <button class="sim-btn" id="btn-right">Simulate right →</button>
+  </div>
+  <span class="label-sm" id="phase-label">Waiting…</span>
+</div>
+
+<div id="action-history">
+  <span class="history-label">Actions:</span>
+</div>
+
+<script>
+const area = document.getElementById('demo-area');
+const dots = [0,1,2].map(i => document.getElementById('d'+i));
+const hint = document.getElementById('hint');
+const actionLabel = document.getElementById('action-label');
+const progressBar = document.getElementById('progress-bar');
+const phaseLabel = document.getElementById('phase-label');
+const phaseDots = [0,1,2].map(i => document.getElementById('pd'+i));
+const history = document.getElementById('action-history');
+const THRESHOLD = 50;
+
+let state = 'idle';
+let startX = 0, startCenters = [];
+let animFrame = null;
+
+function setPhase(n) {
+  phaseDots.forEach((d,i) => d.classList.toggle('active', i < n));
+}
+
+function showDots(positions, cls='') {
+  dots.forEach((d, i) => {
+    if (positions[i]) {
+      d.style.left = positions[i].x + 'px';
+      d.style.top = positions[i].y + 'px';
+    }
+    d.className = 'dot' + (positions[i] ? ' visible' : '') + (cls ? ' '+cls : '');
+  });
+}
+
+function hideDots(cls='') {
+  dots.forEach(d => {
+    d.className = 'dot' + (cls ? ' '+cls : '');
+  });
+}
+
+function setArrows(dir) {
+  dots.forEach(d => d.classList.add('arrow'));
+}
+
+function fireOff(dir) {
+  const rect = area.getBoundingClientRect();
+  const offX = dir === 'left' ? -120 : rect.width + 60;
+  dots.forEach((d, i) => {
+    d.style.left = offX + 'px';
+    d.classList.add('fired');
+  });
+  setTimeout(() => hideDots(), 350);
+}
+
+function triggerAction(dir) {
+  const actions = {
+    left: ['← Undo', '← Prev tab', '← Go back'],
+    right: ['Redo →', 'Next tab →', 'Go forward →']
+  };
+  const list = actions[dir];
+  const label = list[Math.floor(Math.random() * list.length)];
+  actionLabel.textContent = label;
+  actionLabel.className = 'visible';
+  setTimeout(() => actionLabel.className = '', 1600);
+  progressBar.style.background = dir === 'left' ? '#7F77DD' : '#1D9E75';
+  progressBar.style.width = '0%';
+
+  const chip = document.createElement('span');
+  chip.className = 'action-chip ' + dir;
+  chip.textContent = label;
+  history.appendChild(chip);
+  if (history.children.length > 6) history.removeChild(history.children[1]);
+}
+
+function setProgress(ratio) {
+  const pct = Math.min(100, Math.abs(ratio) * 100);
+  progressBar.style.width = pct + '%';
+}
+
+function getSpread(cx) {
+  return [
+    { x: cx - 30, y: 200 },
+    { x: cx,      y: 190 },
+    { x: cx + 30, y: 200 }
+  ];
+}
+
+function simulate(dir) {
+  if (state !== 'idle') return;
+  state = 'touch';
+  hint.style.opacity = '0';
+  const cx = area.getBoundingClientRect().width / 2;
+  const positions = getSpread(cx);
+  showDots(positions);
+  setPhase(1);
+  phaseLabel.textContent = 'Three fingers detected';
+  startX = cx;
+  startCenters = positions;
+  progressBar.style.background = '#7F77DD';
+  progressBar.style.width = '0%';
+
+  let progress = 0;
+  const speed = 4;
+  const totalDist = 90;
+
+  setTimeout(() => {
+    state = 'swiping';
+    setPhase(2);
+    phaseLabel.textContent = 'Swiping…';
+
+    function step() {
+      progress += speed;
+      const delta = dir === 'left' ? -progress : progress;
+      const ratio = delta / THRESHOLD;
+      setProgress(ratio);
+
+      const moved = positions.map(p => ({ x: p.x + delta, y: p.y }));
+      if (Math.abs(delta) > 20) {
+        showDots(moved, 'arrow');
+        dots.forEach(d => {
+          d.style.transform = `translate(-50%, -50%) scale(1) ${dir === 'left' ? 'scaleX(-1)' : ''}`;
+        });
+      } else {
+        showDots(moved);
+      }
+
+      if (progress < totalDist) {
+        animFrame = requestAnimationFrame(step);
+      } else {
+        setPhase(3);
+        phaseLabel.textContent = 'Action triggered!';
+        triggerAction(dir);
+        fireOff(dir);
+        progressBar.style.width = '0%';
+        setTimeout(() => {
+          state = 'idle';
+          setPhase(0);
+          phaseLabel.textContent = 'Waiting…';
+          hint.style.opacity = '1';
+        }, 700);
+      }
+    }
+    animFrame = requestAnimationFrame(step);
+  }, 300);
+}
+
+document.getElementById('btn-left').addEventListener('click', () => simulate('left'));
+document.getElementById('btn-right').addEventListener('click', () => simulate('right'));
+
+area.addEventListener('touchstart', e => {
+  if (e.touches.length !== 3) return;
+  e.preventDefault();
+  if (state !== 'idle') return;
+  state = 'touch';
+  hint.style.opacity = '0';
+  const rect = area.getBoundingClientRect();
+  const positions = Array.from(e.touches).map(t => ({
+    x: t.clientX - rect.left, y: t.clientY - rect.top
+  }));
+  startX = (positions[0].x + positions[1].x + positions[2].x) / 3;
+  startCenters = positions;
+  showDots(positions);
+  setPhase(1);
+  phaseLabel.textContent = 'Three fingers detected';
+}, { passive: false });
+
+area.addEventListener('touchmove', e => {
+  if (state !== 'touch' && state !== 'swiping') return;
+  e.preventDefault();
+  if (e.touches.length < 3) return;
+  const rect = area.getBoundingClientRect();
+  const positions = Array.from(e.touches).slice(0,3).map((t,i) => ({
+    x: t.clientX - rect.left, y: t.clientY - rect.top
+  }));
+  const cx = (positions[0].x + positions[1].x + positions[2].x) / 3;
+  const delta = cx - startX;
+
+  setProgress(delta / THRESHOLD);
+
+  if (Math.abs(delta) > 15) {
+    state = 'swiping';
+    showDots(positions, 'arrow');
+    setPhase(2);
+    phaseLabel.textContent = 'Swiping…';
+  } else {
+    showDots(positions);
+  }
+
+  if (Math.abs(delta) >= THRESHOLD) {
+    const dir = delta < 0 ? 'left' : 'right';
+    triggerAction(dir);
+    fireOff(dir);
+    progressBar.style.width = '0%';
+    setPhase(3);
+    phaseLabel.textContent = 'Action triggered!';
+    state = 'fired';
+    setTimeout(() => {
+      state = 'idle';
+      setPhase(0);
+      phaseLabel.textContent = 'Waiting…';
+      hint.style.opacity = '1';
+    }, 700);
+  }
+}, { passive: false });
+
+area.addEventListener('touchend', e => {
+  if (state === 'touch' || state === 'swiping') {
+    hideDots('cancel');
+    progressBar.style.width = '0%';
+    state = 'idle';
+    setPhase(0);
+    phaseLabel.textContent = 'Cancelled — dots shrink';
+    hint.style.opacity = '1';
+    setTimeout(() => phaseLabel.textContent = 'Waiting…', 1000);
+  }
+});
+</script>

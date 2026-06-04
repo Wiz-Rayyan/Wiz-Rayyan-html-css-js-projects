@@ -1,0 +1,177 @@
+
+<style>
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border-width:0}
+*{box-sizing:border-box}
+.wrap{padding:1.5rem 1.25rem 2rem;max-width:680px}
+.filter-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1.5rem}
+.filter-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem}
+.filter-title{font-size:15px;font-weight:500;color:var(--color-text-primary);display:flex;align-items:center;gap:8px}
+.count-badge{display:inline-flex;align-items:center;justify-content:center;background:#E1F5EE;color:#0F6E56;font-size:12px;font-weight:500;padding:3px 10px;border-radius:999px;transition:transform 0.15s ease}
+.count-badge.bounce{animation:badgeBounce 0.35s ease}
+@keyframes badgeBounce{0%{transform:scale(1)}40%{transform:scale(1.28)}70%{transform:scale(0.9)}100%{transform:scale(1)}}
+.reset-btn{font-size:12px;color:var(--color-text-secondary);background:none;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:4px 10px;cursor:pointer;display:flex;align-items:center;gap:5px;transition:background 0.15s}
+.reset-btn:hover{background:var(--color-background-secondary)}
+.price-display{display:flex;justify-content:space-between;margin-bottom:1rem}
+.price-pill{font-size:14px;font-weight:500;color:var(--color-text-primary);background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:5px 12px}
+.slider-container{position:relative;height:36px;margin-bottom:1.5rem}
+.slider-track{position:absolute;top:50%;left:0;right:0;height:4px;transform:translateY(-50%);background:var(--color-border-tertiary);border-radius:2px}
+.slider-fill{position:absolute;top:50%;height:4px;transform:translateY(-50%);background:#1D9E75;border-radius:2px;transition:left 0.05s,width 0.05s}
+.range-input{position:absolute;width:100%;height:100%;top:0;left:0;appearance:none;-webkit-appearance:none;background:transparent;pointer-events:none;margin:0}
+.range-input::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--color-background-primary);border:2px solid #1D9E75;pointer-events:all;cursor:grab;transition:box-shadow 0.15s,border-color 0.15s}
+.range-input::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:var(--color-background-primary);border:2px solid #1D9E75;pointer-events:all;cursor:grab;transition:box-shadow 0.15s,border-color 0.15s;box-sizing:border-box}
+.range-input.dragging::-webkit-slider-thumb{box-shadow:0 0 0 6px rgba(29,158,117,0.18);border-color:#0F6E56}
+.range-input.dragging::-moz-range-thumb{box-shadow:0 0 0 6px rgba(29,158,117,0.18);border-color:#0F6E56}
+.range-input:focus{outline:none}
+.products-section-header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:1rem}
+.section-label{font-size:13px;color:var(--color-text-secondary)}
+.sort-select{font-size:12px;color:var(--color-text-secondary);background:none;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:3px 8px;cursor:pointer}
+.products-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.product-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:10px;transition:opacity 0.25s ease,transform 0.25s ease;opacity:1}
+.product-card.hidden{display:none}
+.product-card.fading-in{opacity:0;transform:translateY(6px)}
+.product-img{width:100%;aspect-ratio:1;border-radius:calc(var(--border-radius-md) - 2px);margin-bottom:8px;display:flex;align-items:center;justify-content:center;font-size:26px}
+.product-name{font-size:12px;color:var(--color-text-secondary);margin-bottom:3px}
+.product-price{font-size:14px;font-weight:500;color:var(--color-text-primary)}
+.product-badge{display:inline-block;font-size:10px;padding:2px 6px;border-radius:4px;margin-top:4px;background:#E6F1FB;color:#185FA5}
+.empty-state{text-align:center;padding:2rem;color:var(--color-text-secondary);font-size:14px;grid-column:1/-1}
+</style>
+
+<h2 class="sr-only">Dual-thumb price range filter with live product grid updating as you drag the min and max price sliders.</h2>
+
+<div class="wrap">
+  <div class="filter-card">
+    <div class="filter-header">
+      <div class="filter-title">
+        <i class="ti ti-currency-dollar" aria-hidden="true" style="font-size:18px;color:#1D9E75"></i>
+        Price range
+        <span class="count-badge" id="countBadge">12 items</span>
+      </div>
+      <button class="reset-btn" id="resetBtn" aria-label="Reset price range">
+        <i class="ti ti-refresh" aria-hidden="true" style="font-size:13px"></i> Reset
+      </button>
+    </div>
+
+    <div class="price-display">
+      <span class="price-pill" id="minDisplay">₹0</span>
+      <span class="price-pill" id="maxDisplay">₹5,000</span>
+    </div>
+
+    <div class="slider-container" role="group" aria-label="Price range slider">
+      <div class="slider-track"></div>
+      <div class="slider-fill" id="sliderFill"></div>
+      <input type="range" class="range-input" id="minSlider" min="0" max="5000" value="0" step="50" aria-label="Minimum price">
+      <input type="range" class="range-input" id="maxSlider" min="0" max="5000" value="5000" step="50" aria-label="Maximum price">
+    </div>
+  </div>
+
+  <div style="margin-top:1.25rem">
+    <div class="products-section-header">
+      <span class="section-label" id="resultLabel">Showing all products</span>
+      <select class="sort-select" aria-label="Sort products">
+        <option>Price: low to high</option>
+        <option>Price: high to low</option>
+        <option>Newest</option>
+      </select>
+    </div>
+    <div class="products-grid" id="productsGrid" aria-live="polite" aria-atomic="true"></div>
+  </div>
+</div>
+
+<script>
+const PRODUCTS = [
+  {id:1,name:"Canvas tote",price:350,emoji:"👜",badge:"New"},
+  {id:2,name:"Wool scarf",price:799,emoji:"🧣",badge:""},
+  {id:3,name:"Leather belt",price:1199,emoji:"👝",badge:"Sale"},
+  {id:4,name:"Sunglasses",price:1499,emoji:"🕶️",badge:""},
+  {id:5,name:"Sneakers",price:2199,emoji:"👟",badge:"Hot"},
+  {id:6,name:"Denim jacket",price:2799,emoji:"🧥",badge:""},
+  {id:7,name:"Watch",price:3499,emoji:"⌚",badge:""},
+  {id:8,name:"Backpack",price:3999,emoji:"🎒",badge:"New"},
+  {id:9,name:"Cap",price:599,emoji:"🧢",badge:""},
+  {id:10,name:"Boots",price:4499,emoji:"👢",badge:"Sale"},
+  {id:11,name:"Hoodie",price:1899,emoji:"🧶",badge:""},
+  {id:12,name:"Phone case",price:299,emoji:"📱",badge:""},
+];
+
+const MIN=0,MAX=5000;
+let minVal=0,maxVal=5000;
+const minSlider=document.getElementById('minSlider');
+const maxSlider=document.getElementById('maxSlider');
+const sliderFill=document.getElementById('sliderFill');
+const minDisplay=document.getElementById('minDisplay');
+const maxDisplay=document.getElementById('maxDisplay');
+const countBadge=document.getElementById('countBadge');
+const grid=document.getElementById('productsGrid');
+const resultLabel=document.getElementById('resultLabel');
+const resetBtn=document.getElementById('resetBtn');
+
+function fmt(v){return '₹'+v.toLocaleString('en-IN')}
+
+function updateFill(){
+  const lo=((minVal-MIN)/(MAX-MIN))*100;
+  const hi=((maxVal-MIN)/(MAX-MIN))*100;
+  sliderFill.style.left=lo+'%';
+  sliderFill.style.width=(hi-lo)+'%';
+}
+
+function buildGrid(animate){
+  const visible=PRODUCTS.filter(p=>p.price>=minVal&&p.price<=maxVal);
+  grid.innerHTML='';
+  if(visible.length===0){
+    grid.innerHTML='<div class="empty-state"><i class="ti ti-mood-empty" style="font-size:32px;display:block;margin-bottom:8px"></i>No products in this range</div>';
+  } else {
+    visible.forEach((p,i)=>{
+      const card=document.createElement('div');
+      card.className='product-card'+(animate?' fading-in':'');
+      card.innerHTML=`<div class="product-img" style="background:var(--color-background-secondary)">${p.emoji}</div><div class="product-name">${p.name}</div><div class="product-price">${fmt(p.price)}</div>${p.badge?`<div class="product-badge">${p.badge}</div>`:''}`;
+      grid.appendChild(card);
+      if(animate){
+        const delay=i*35;
+        setTimeout(()=>{card.style.transition=`opacity 0.28s ease ${delay}ms,transform 0.28s ease ${delay}ms`;card.classList.remove('fading-in')},30);
+      }
+    });
+  }
+  const cnt=visible.length;
+  countBadge.textContent=cnt+' item'+(cnt!==1?'s':'');
+  countBadge.classList.remove('bounce');
+  void countBadge.offsetWidth;
+  countBadge.classList.add('bounce');
+  resultLabel.textContent=cnt===PRODUCTS.length?'Showing all products':`Showing ${cnt} of ${PRODUCTS.length} products`;
+}
+
+function update(animate){
+  minDisplay.textContent=fmt(minVal);
+  maxDisplay.textContent=fmt(maxVal);
+  updateFill();
+  buildGrid(animate);
+}
+
+minSlider.addEventListener('input',()=>{
+  minVal=Math.min(parseInt(minSlider.value),maxVal-50);
+  minSlider.value=minVal;
+  update(false);
+});
+maxSlider.addEventListener('input',()=>{
+  maxVal=Math.max(parseInt(maxSlider.value),minVal+50);
+  maxSlider.value=maxVal;
+  update(false);
+});
+
+[minSlider,maxSlider].forEach(s=>{
+  s.addEventListener('mousedown',()=>s.classList.add('dragging'));
+  s.addEventListener('touchstart',()=>s.classList.add('dragging'),{passive:true});
+  s.addEventListener('mouseup',()=>{s.classList.remove('dragging');update(true)});
+  s.addEventListener('touchend',()=>{s.classList.remove('dragging');update(true)});
+  s.addEventListener('blur',()=>s.classList.remove('dragging'));
+});
+
+resetBtn.addEventListener('click',()=>{
+  minVal=MIN; maxVal=MAX;
+  minSlider.value=MIN; maxSlider.value=MAX;
+  minSlider.classList.remove('dragging');
+  maxSlider.classList.remove('dragging');
+  update(true);
+});
+
+update(false);
+</script>

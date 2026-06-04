@@ -1,0 +1,362 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
+  body { background: transparent; }
+  #stage {
+    width: 100%;
+    min-height: 520px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    gap: 0;
+    padding: 2rem 0 1.5rem;
+    touch-action: none;
+  }
+  #phone-frame {
+    width: 320px;
+    height: 420px;
+    background: var(--color-background-primary);
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: 32px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+  }
+  #bg-content {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 20px 16px;
+    gap: 10px;
+  }
+  .list-item {
+    height: 52px;
+    border-radius: 10px;
+    background: var(--color-background-secondary);
+    border: 0.5px solid var(--color-border-tertiary);
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    gap: 12px;
+  }
+  .li-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--color-background-info); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; color: var(--color-text-info); flex-shrink: 0; }
+  .li-text { flex: 1; }
+  .li-title { font-size: 13px; font-weight: 500; color: var(--color-text-primary); }
+  .li-sub { font-size: 11px; color: var(--color-text-secondary); }
+  #radial-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #hold-hint {
+    position: absolute;
+    bottom: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  #action-log {
+    margin-top: 14px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #action-badge {
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    padding: 4px 14px;
+    border-radius: 20px;
+    border: 0.5px solid var(--color-border-tertiary);
+    background: var(--color-background-secondary);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  #action-badge.show { opacity: 1; }
+</style>
+
+<div id="stage">
+  <h2 class="sr-only">Radial swipe menu — interactive demo. Touch and hold a list item to reveal a circular menu, then swipe to select an action.</h2>
+
+  <div id="phone-frame">
+    <div id="bg-content">
+      <div class="list-item" data-idx="0"><div class="li-avatar">AB</div><div class="li-text"><div class="li-title">Alice Baker</div><div class="li-sub">Hold & swipe to act</div></div></div>
+      <div class="list-item" data-idx="1"><div class="li-avatar" style="background:var(--color-background-success);color:var(--color-text-success)">CJ</div><div class="li-text"><div class="li-title">Carlos Jung</div><div class="li-sub">Hold & swipe to act</div></div></div>
+      <div class="list-item" data-idx="2"><div class="li-avatar" style="background:var(--color-background-warning);color:var(--color-text-warning)">DM</div><div class="li-text"><div class="li-title">Diana Moon</div><div class="li-sub">Hold & swipe to act</div></div></div>
+      <div class="list-item" data-idx="3"><div class="li-avatar" style="background:var(--color-background-danger);color:var(--color-text-danger)">ER</div><div class="li-text"><div class="li-title">Ethan Ross</div><div class="li-sub">Hold & swipe to act</div></div></div>
+      <div class="list-item" data-idx="4"><div class="li-avatar" style="background:#E1F5EE;color:#0F6E56">FS</div><div class="li-text"><div class="li-title">Fiona Shaw</div><div class="li-sub">Hold & swipe to act</div></div></div>
+    </div>
+    <div id="radial-overlay">
+      <canvas id="rc" width="320" height="420" style="position:absolute;inset:0;touch-action:none;"></canvas>
+    </div>
+    <div id="hold-hint"><i class="ti ti-hand-finger" aria-hidden="true"></i> hold any item</div>
+  </div>
+  <div id="action-log"><div id="action-badge">—</div></div>
+</div>
+
+<script>
+const canvas = document.getElementById('rc');
+const ctx = canvas.getContext('2d');
+const frame = document.getElementById('phone-frame');
+const badge = document.getElementById('action-badge');
+const hint = document.getElementById('hold-hint');
+
+const ITEMS = [
+  { icon: '★', label: 'Favourite', color: '#BA7517', bg: '#FAEEDA' },
+  { icon: '↑', label: 'Share',     color: '#185FA5', bg: '#E6F1FB' },
+  { icon: '✎', label: 'Edit',      color: '#533AB7', bg: '#EEEDFE' },
+  { icon: '📋', label: 'Copy',     color: '#0F6E56', bg: '#E1F5EE' },
+  { icon: '🗑', label: 'Delete',   color: '#A32D2D', bg: '#FCEBEB' },
+  { icon: '↩', label: 'Snooze',   color: '#854F0B', bg: '#FAEEDA' },
+  { icon: '📁', label: 'Archive',  color: '#3B6D11', bg: '#EAF3DE' },
+  { icon: '🚩', label: 'Flag',     color: '#993556', bg: '#FBEAF0' },
+];
+
+const R = 88, ITEM_R = 22;
+let state = 'idle';
+let originX = 0, originY = 0;
+let activeIdx = -1;
+let holdTimer = null;
+let particles = [];
+let animFrame = null;
+let burstActive = false;
+let burstCx = 0, burstCy = 0, burstColor = '#fff';
+
+function angleOfItem(i) {
+  return (i / ITEMS.length) * Math.PI * 2 - Math.PI / 2;
+}
+
+function itemPos(i) {
+  const a = angleOfItem(i);
+  return { x: originX + Math.cos(a) * R, y: originY + Math.sin(a) * R };
+}
+
+function angleDiff(a, b) {
+  let d = ((b - a + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
+  return d;
+}
+
+function nearestItem(px, py) {
+  const dx = px - originX, dy = py - originY;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  if (dist < 28) return -1;
+  const angle = Math.atan2(dy, dx);
+  let best = 0, bestDiff = Infinity;
+  for (let i = 0; i < ITEMS.length; i++) {
+    const d = Math.abs(angleDiff(angleOfItem(i), angle));
+    if (d < bestDiff) { bestDiff = d; best = i; }
+  }
+  return best;
+}
+
+function spawnBurst(cx, cy, color) {
+  burstActive = true; burstCx = cx; burstCy = cy; burstColor = color;
+  for (let i = 0; i < 18; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const spd = 1.5 + Math.random() * 3;
+    particles.push({ x: cx, y: cy, vx: Math.cos(a) * spd, vy: Math.sin(a) * spd, life: 1, r: 3 + Math.random() * 3 });
+  }
+}
+
+function draw() {
+  ctx.clearRect(0, 0, 320, 420);
+  if (state === 'idle' && !particles.length) return;
+
+  const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const ringBg = isDark ? 'rgba(30,30,30,0.82)' : 'rgba(255,255,255,0.88)';
+  const ringStroke = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
+  const textPri = isDark ? '#f0f0f0' : '#111';
+  const textSec = isDark ? '#aaa' : '#555';
+
+  if (state !== 'idle') {
+    ctx.save();
+    ctx.globalAlpha = 0.38;
+    ctx.fillStyle = isDark ? '#000' : '#222';
+    ctx.fillRect(0, 0, 320, 420);
+    ctx.restore();
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(originX, originY, R, 0, Math.PI * 2);
+    ctx.strokeStyle = ringStroke;
+    ctx.lineWidth = 40;
+    ctx.globalAlpha = 0.18;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.restore();
+
+    for (let i = 0; i < ITEMS.length; i++) {
+      const { x, y } = itemPos(i);
+      const item = ITEMS[i];
+      const isActive = (i === activeIdx);
+      const scale = isActive ? 1.18 : 1;
+
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(scale, scale);
+
+      const circR = isActive ? ITEM_R + 3 : ITEM_R;
+      ctx.beginPath();
+      ctx.arc(0, 0, circR, 0, Math.PI * 2);
+      ctx.fillStyle = isActive ? item.color : (isDark ? '#2a2a2a' : item.bg);
+      ctx.shadowColor = isActive ? item.color : 'transparent';
+      ctx.shadowBlur = isActive ? 12 : 0;
+      ctx.fill();
+      ctx.strokeStyle = isActive ? item.color : ringStroke;
+      ctx.lineWidth = isActive ? 2 : 0.5;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      ctx.font = `${isActive ? 15 : 13}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = isActive ? '#fff' : (isDark ? '#ddd' : item.color);
+      ctx.fillText(item.icon, 0, 0);
+      ctx.restore();
+
+      ctx.save();
+      const labelDist = R + ITEM_R + 14;
+      const a = angleOfItem(i);
+      const lx = originX + Math.cos(a) * labelDist;
+      const ly = originY + Math.sin(a) * labelDist;
+      ctx.font = `${isActive ? '500 12px' : '11px'} sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = isActive ? textPri : textSec;
+      ctx.globalAlpha = isActive ? 1 : 0.7;
+      ctx.fillText(item.label, lx, ly);
+      ctx.restore();
+    }
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(originX, originY, 14, 0, Math.PI * 2);
+    ctx.fillStyle = isDark ? '#333' : '#fff';
+    ctx.strokeStyle = ringStroke;
+    ctx.lineWidth = 0.5;
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx; p.y += p.vy; p.vy += 0.12;
+    p.life -= 0.04;
+    if (p.life <= 0) { particles.splice(i, 1); continue; }
+    ctx.save();
+    ctx.globalAlpha = p.life;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r * p.life, 0, Math.PI * 2);
+    ctx.fillStyle = burstColor;
+    ctx.fill();
+    ctx.restore();
+  }
+
+  if (state !== 'idle' || particles.length) {
+    animFrame = requestAnimationFrame(draw);
+  } else {
+    ctx.clearRect(0, 0, 320, 420);
+  }
+}
+
+function getLocalXY(e) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = 320 / rect.width;
+  const scaleY = 420 / rect.height;
+  let cx, cy;
+  if (e.touches && e.touches.length) {
+    cx = e.touches[0].clientX;
+    cy = e.touches[0].clientY;
+  } else {
+    cx = e.clientX; cy = e.clientY;
+  }
+  return { x: (cx - rect.left) * scaleX, y: (cy - rect.top) * scaleY };
+}
+
+function showBadge(text, color) {
+  badge.textContent = text;
+  badge.style.color = color || 'var(--color-text-secondary)';
+  badge.style.borderColor = 'var(--color-border-tertiary)';
+  badge.classList.add('show');
+  clearTimeout(badge._t);
+  badge._t = setTimeout(() => badge.classList.remove('show'), 2400);
+}
+
+function openMenu(x, y) {
+  originX = Math.max(90, Math.min(230, x));
+  originY = Math.max(90, Math.min(330, y));
+  state = 'open';
+  activeIdx = -1;
+  hint.style.display = 'none';
+  if (animFrame) cancelAnimationFrame(animFrame);
+  animFrame = requestAnimationFrame(draw);
+  if (navigator.vibrate) navigator.vibrate(30);
+}
+
+function closeMenu(trigger) {
+  if (state === 'idle') return;
+  if (trigger && activeIdx >= 0) {
+    const item = ITEMS[activeIdx];
+    spawnBurst(itemPos(activeIdx).x, itemPos(activeIdx).y, item.color);
+    showBadge(item.label + ' triggered', item.color);
+    if (navigator.vibrate) navigator.vibrate([20, 30, 40]);
+  }
+  state = 'idle';
+  activeIdx = -1;
+  if (!particles.length) { ctx.clearRect(0, 0, 320, 420); }
+  else { animFrame = requestAnimationFrame(draw); }
+}
+
+canvas.addEventListener('mousedown', e => {
+  const { x, y } = getLocalXY(e);
+  holdTimer = setTimeout(() => openMenu(x, y), 350);
+});
+canvas.addEventListener('mousemove', e => {
+  if (state !== 'open') return;
+  const { x, y } = getLocalXY(e);
+  const prev = activeIdx;
+  activeIdx = nearestItem(x, y);
+  if (activeIdx !== prev && activeIdx >= 0 && navigator.vibrate) navigator.vibrate(8);
+});
+canvas.addEventListener('mouseup', e => {
+  clearTimeout(holdTimer);
+  closeMenu(true);
+});
+canvas.addEventListener('mouseleave', () => {
+  clearTimeout(holdTimer);
+  closeMenu(false);
+});
+canvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  const { x, y } = getLocalXY(e);
+  holdTimer = setTimeout(() => openMenu(x, y), 350);
+}, { passive: false });
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  if (state !== 'open') return;
+  const { x, y } = getLocalXY(e);
+  const prev = activeIdx;
+  activeIdx = nearestItem(x, y);
+  if (activeIdx !== prev && activeIdx >= 0 && navigator.vibrate) navigator.vibrate(8);
+}, { passive: false });
+canvas.addEventListener('touchend', e => {
+  e.preventDefault();
+  clearTimeout(holdTimer);
+  closeMenu(true);
+}, { passive: false });
+</script>

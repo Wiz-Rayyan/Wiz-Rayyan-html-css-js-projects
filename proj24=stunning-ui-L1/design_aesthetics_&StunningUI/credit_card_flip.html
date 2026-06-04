@@ -1,0 +1,212 @@
+
+<style>
+  .scene{width:340px;height:200px;perspective:1000px;margin:0 auto 2rem}
+  .card{width:100%;height:100%;position:relative;transform-style:preserve-3d;transition:transform 0.6s cubic-bezier(.4,0,.2,1)}
+  .card.flipped{transform:rotateY(180deg)}
+  .face{position:absolute;width:100%;height:100%;backface-visibility:hidden;border-radius:16px;overflow:hidden}
+  .front{background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%)}
+  .back{transform:rotateY(180deg);background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%)}
+  .brand-bar{position:absolute;top:0;left:0;right:0;height:100%;border-radius:16px;opacity:0;transition:opacity 0.4s}
+  .chip{position:absolute;top:60px;left:24px;width:44px;height:34px;background:linear-gradient(135deg,#d4af37,#f5e99b,#c5963a);border-radius:6px;display:flex;align-items:center;justify-content:center}
+  .chip::after{content:'';width:28px;height:20px;border:1.5px solid rgba(0,0,0,0.2);border-radius:3px;background:repeating-linear-gradient(0deg,transparent,transparent 4px,rgba(0,0,0,0.07) 4px,rgba(0,0,0,0.07) 5px)}
+  .contactless{position:absolute;top:64px;left:78px;font-size:22px;color:rgba(255,255,255,0.5)}
+  .card-number{position:absolute;bottom:60px;left:24px;right:24px;font-family:monospace;font-size:20px;letter-spacing:3px;color:#fff;display:flex;gap:16px}
+  .card-number span{flex:1}
+  .card-holder{position:absolute;bottom:24px;left:24px;font-size:11px;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:1px}
+  .card-holder-name{position:absolute;bottom:8px;left:24px;font-size:13px;color:#fff;letter-spacing:1px}
+  .card-expiry-label{position:absolute;bottom:24px;right:70px;font-size:10px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.5px}
+  .card-expiry{position:absolute;bottom:8px;right:70px;font-size:13px;color:#fff;font-family:monospace}
+  .brand-logo{position:absolute;top:20px;right:20px;font-size:13px;font-weight:700;letter-spacing:0.5px;color:#fff;display:flex;align-items:center;gap:6px}
+  .visa-logo{font-size:22px;font-style:italic;font-weight:900;letter-spacing:-1px}
+  .mc-circles{display:flex}
+  .mc-c{width:26px;height:26px;border-radius:50%}
+  .amex-logo{font-size:11px;font-weight:700;letter-spacing:2px;padding:4px 8px;border:1.5px solid rgba(255,255,255,0.6);border-radius:4px}
+  .stripe-back{position:absolute;top:40px;left:0;right:0;height:44px;background:rgba(0,0,0,0.6)}
+  .sig-panel{position:absolute;top:112px;left:24px;right:24px;height:36px;background:repeating-linear-gradient(90deg,#fff 0,#fff 4px,#f0eded 4px,#f0eded 8px);border-radius:4px;display:flex;align-items:center;justify-content:flex-end;padding-right:12px}
+  .cvv-display{font-family:monospace;font-size:16px;color:#222;letter-spacing:4px;font-style:italic}
+  .cvv-label{position:absolute;top:96px;right:24px;font-size:10px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:1px}
+  .back-brand{position:absolute;bottom:20px;right:20px;font-size:11px;color:rgba(255,255,255,0.4);font-weight:600}
+  .shine{position:absolute;inset:0;border-radius:16px;background:linear-gradient(120deg,transparent 30%,rgba(255,255,255,0.18) 50%,transparent 70%);background-size:200% 100%;opacity:0;pointer-events:none;transition:none}
+  .shine.active{animation:shine-sweep 0.7s ease forwards}
+  @keyframes shine-sweep{0%{opacity:1;background-position:200% 0}100%{opacity:0;background-position:-100% 0}}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:340px;margin:0 auto}
+  .form-full{grid-column:1/-1}
+  .field-label{font-size:11px;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px}
+  input.card-input{width:100%;box-sizing:border-box;font-family:monospace;font-size:15px}
+  button.pay-btn{width:100%;padding:10px;background:#1a1a2e;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:500;cursor:pointer;transition:transform 0.1s,background 0.2s;margin-top:4px}
+  button.pay-btn:hover{background:#2a2a4e}
+  button.pay-btn:active{transform:scale(0.98)}
+  button.pay-btn.success{background:#1a6e3d}
+</style>
+
+<h2 class="sr-only">Interactive credit card payment form with 3D card flip animation</h2>
+
+<div style="padding:1.5rem 0">
+  <div class="scene">
+    <div class="card" id="card">
+      <div class="face front" id="front-face">
+        <div class="brand-bar" id="brand-bar"></div>
+        <div class="chip"></div>
+        <span class="contactless" aria-hidden="true">&#x1F6DC;</span>
+        <div class="card-number" id="card-number-display">
+          <span id="g1">••••</span><span id="g2">••••</span><span id="g3">••••</span><span id="g4">••••</span>
+        </div>
+        <div class="card-holder" aria-hidden="true">Card Holder</div>
+        <div class="card-holder-name" id="holder-display">FULL NAME</div>
+        <div class="card-expiry-label" aria-hidden="true">Expires</div>
+        <div class="card-expiry" id="expiry-display">MM/YY</div>
+        <div class="brand-logo" id="brand-logo-el"></div>
+        <div class="shine" id="shine-el"></div>
+      </div>
+      <div class="face back" id="back-face">
+        <div class="stripe-back"></div>
+        <div class="sig-panel"><span class="cvv-display" id="cvv-display">•••</span></div>
+        <div class="cvv-label">CVV</div>
+        <div class="back-brand" id="back-brand"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-grid">
+    <div class="form-full">
+      <div class="field-label">Card Number</div>
+      <input class="card-input" id="inp-number" type="tel" inputmode="numeric" maxlength="19" placeholder="1234 5678 9012 3456" autocomplete="cc-number" aria-label="Card number">
+    </div>
+    <div class="form-full">
+      <div class="field-label">Cardholder Name</div>
+      <input class="card-input" id="inp-name" type="text" maxlength="26" placeholder="Full name" autocomplete="cc-name" aria-label="Cardholder name" style="font-family:inherit">
+    </div>
+    <div>
+      <div class="field-label">Expiry</div>
+      <input class="card-input" id="inp-expiry" type="tel" inputmode="numeric" maxlength="5" placeholder="MM/YY" autocomplete="cc-exp" aria-label="Expiry date">
+    </div>
+    <div>
+      <div class="field-label">CVV</div>
+      <input class="card-input" id="inp-cvv" type="tel" inputmode="numeric" maxlength="4" placeholder="•••" autocomplete="cc-csc" aria-label="CVV">
+    </div>
+    <div class="form-full">
+      <button class="pay-btn" id="pay-btn" onclick="handlePay()">Pay now</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const brands={
+  visa:{pattern:/^4/,name:'VISA',color:'#1a1f71',logo:'<span class="visa-logo" style="color:#fff;text-shadow:0 1px 2px rgba(0,0,0,0.3)">VISA</span>',len:16},
+  mastercard:{pattern:/^5[1-5]|^2[2-7]/,name:'Mastercard',color:'#eb001b',logo:'<div class="mc-circles"><div class="mc-c" style="background:#eb001b;opacity:0.9"></div><div class="mc-c" style="background:#f79e1b;opacity:0.9;margin-left:-10px"></div></div>',len:16},
+  amex:{pattern:/^3[47]/,name:'AMEX',color:'#007bc1',logo:'<span class="amex-logo">AMEX</span>',len:15},
+  discover:{pattern:/^6(?:011|5)/,name:'DISCOVER',color:'#e65c00',logo:'<span style="font-size:13px;font-weight:700;letter-spacing:1px">DISCOVER</span>',len:16},
+};
+
+let currentBrand=null;
+
+function detectBrand(num){
+  const raw=num.replace(/\s/g,'');
+  for(const[k,v] of Object.entries(brands)){
+    if(v.pattern.test(raw))return{key:k,...v};
+  }
+  return null;
+}
+
+function formatNumber(val,brand){
+  const raw=val.replace(/\D/g,'');
+  if(brand&&brand.key==='amex'){
+    const p=raw.slice(0,4),q=raw.slice(4,10),r=raw.slice(10,15);
+    return [p,q,r].filter(Boolean).join(' ');
+  }
+  return raw.match(/.{1,4}/g)?.join(' ')||raw;
+}
+
+function updateCard(){
+  const raw=document.getElementById('inp-number').value.replace(/\D/g,'');
+  const brand=detectBrand(raw);
+  currentBrand=brand;
+
+  const groups=brand?.key==='amex'?[raw.slice(0,4),raw.slice(4,10),raw.slice(10,15)]:[raw.slice(0,4),raw.slice(4,8),raw.slice(8,12),raw.slice(12,16)];
+  const masks=brand?.key==='amex'?['••••','••••••','•••••']:['••••','••••','••••','••••'];
+  
+  if(brand?.key==='amex'){
+    document.getElementById('g1').textContent=groups[0].padEnd(4,'•').slice(0,4)||masks[0];
+    document.getElementById('g2').textContent=groups[1].padEnd(6,'•').slice(0,6)||masks[1];
+    document.getElementById('g3').textContent=groups[2].padEnd(5,'•').slice(0,5)||masks[2];
+    document.getElementById('g4').textContent='';
+    document.getElementById('g4').style.display='none';
+  } else {
+    document.getElementById('g4').style.display='';
+    ['g1','g2','g3','g4'].forEach((id,i)=>{
+      document.getElementById(id).textContent=groups[i]?groups[i].padEnd(4,'•').slice(0,4):masks[i];
+    });
+  }
+
+  const bar=document.getElementById('brand-bar');
+  const logo=document.getElementById('brand-logo-el');
+  const backBrand=document.getElementById('back-brand');
+  
+  if(brand){
+    bar.style.opacity='1';
+    bar.style.background=`linear-gradient(135deg, ${brand.color}cc 0%, ${brand.color}44 100%)`;
+    logo.innerHTML=brand.logo;
+    backBrand.textContent=brand.name;
+    document.getElementById('pay-btn').style.background=brand.color;
+  } else {
+    bar.style.opacity='0';
+    logo.innerHTML='';
+    backBrand.textContent='';
+    document.getElementById('pay-btn').style.background='#1a1a2e';
+  }
+}
+
+document.getElementById('inp-number').addEventListener('input',function(){
+  const brand=detectBrand(this.value);
+  const formatted=formatNumber(this.value,brand);
+  this.value=formatted;
+  updateCard();
+});
+
+document.getElementById('inp-name').addEventListener('input',function(){
+  const v=this.value.toUpperCase()||'FULL NAME';
+  document.getElementById('holder-display').textContent=v.slice(0,22);
+});
+
+document.getElementById('inp-expiry').addEventListener('input',function(){
+  let v=this.value.replace(/\D/g,'');
+  if(v.length>=2)v=v.slice(0,2)+'/'+v.slice(2,4);
+  this.value=v;
+  document.getElementById('expiry-display').textContent=v||'MM/YY';
+});
+
+document.getElementById('inp-cvv').addEventListener('input',function(){
+  const v=this.value.replace(/\D/g,'');
+  this.value=v;
+  const disp=v.replace(/./g,'•')||'•••';
+  document.getElementById('cvv-display').textContent=disp;
+});
+
+document.getElementById('inp-cvv').addEventListener('focus',()=>{
+  document.getElementById('card').classList.add('flipped');
+});
+
+document.getElementById('inp-cvv').addEventListener('blur',()=>{
+  document.getElementById('card').classList.remove('flipped');
+});
+
+function handlePay(){
+  const btn=document.getElementById('pay-btn');
+  const shine=document.getElementById('shine-el');
+  btn.textContent='Processing...';
+  btn.disabled=true;
+  shine.classList.remove('active');
+  void shine.offsetWidth;
+  shine.classList.add('active');
+  setTimeout(()=>{
+    btn.textContent='Payment successful';
+    btn.classList.add('success');
+    setTimeout(()=>{
+      btn.textContent='Pay now';
+      btn.disabled=false;
+      btn.classList.remove('success');
+      btn.style.background=currentBrand?.color||'#1a1a2e';
+    },2500);
+  },800);
+}
+</script>

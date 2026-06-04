@@ -1,0 +1,287 @@
+<style>
+*{box-sizing:border-box;margin:0;padding:0;user-select:none;}
+body{background:transparent;}
+#deck-root{display:flex;flex-direction:column;align-items:center;padding:2rem 1rem 1.5rem;min-height:560px;font-family:var(--font-sans);}
+#card-stack{position:relative;width:300px;height:400px;margin-bottom:1.5rem;}
+.card{position:absolute;inset:0;border-radius:20px;overflow:hidden;cursor:grab;touch-action:none;will-change:transform;transition:box-shadow 0.15s;}
+.card:active{cursor:grabbing;}
+.card-img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;}
+.card-gradient{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.72) 0%,rgba(0,0,0,0) 55%);pointer-events:none;}
+.card-info{position:absolute;bottom:0;left:0;right:0;padding:1.25rem;color:#fff;}
+.card-name{font-size:22px;font-weight:500;line-height:1.2;}
+.card-sub{font-size:14px;opacity:0.85;margin-top:3px;}
+.stamp{position:absolute;top:28px;padding:6px 16px;border-radius:8px;font-size:22px;font-weight:500;letter-spacing:2px;border:3px solid;opacity:0;transition:opacity 0.1s;pointer-events:none;}
+.stamp-like{left:20px;color:#22c55e;border-color:#22c55e;}
+.stamp-nope{right:20px;color:#ef4444;border-color:#ef4444;}
+.card-behind-2{transform:scale(0.85) translateY(28px);z-index:1;}
+.card-behind-1{transform:scale(0.93) translateY(14px);z-index:2;}
+.card-top{z-index:3;}
+canvas#particles{position:absolute;inset:0;pointer-events:none;z-index:10;border-radius:20px;}
+#actions{display:flex;gap:28px;align-items:center;}
+.action-btn{width:58px;height:58px;border-radius:50%;border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);display:flex;align-items:center;justify-content:center;font-size:24px;cursor:pointer;transition:transform 0.15s,background 0.15s;color:var(--color-text-primary);}
+.action-btn:hover{transform:scale(1.1);}
+.action-btn.nope{border-color:#ef4444;color:#ef4444;}
+.action-btn.like{border-color:#22c55e;color:#22c55e;}
+.action-btn.super{border-color:#3b82f6;color:#3b82f6;width:48px;height:48px;font-size:20px;}
+#status-msg{margin-top:1rem;font-size:14px;color:var(--color-text-secondary);height:20px;transition:opacity 0.3s;}
+#progress-dots{display:flex;gap:6px;margin-bottom:1rem;}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--color-border-secondary);transition:background 0.3s;}
+.dot.active{background:var(--color-text-primary);}
+.done-state{text-align:center;padding:3rem 1rem;color:var(--color-text-secondary);}
+.done-state .big{font-size:48px;margin-bottom:12px;}
+.done-state p{font-size:15px;}
+.done-state button{margin-top:1.5rem;padding:10px 28px;border-radius:var(--border-radius-lg);border:0.5px solid var(--color-border-secondary);background:transparent;color:var(--color-text-primary);font-size:14px;cursor:pointer;}
+</style>
+
+<h2 class="sr-only">Tinder-style swipeable card deck. Drag cards left to reject or right to like.</h2>
+
+<div id="deck-root">
+  <div id="progress-dots"></div>
+  <div id="card-stack">
+    <canvas id="particles" width="300" height="400"></canvas>
+  </div>
+  <div id="actions">
+    <button class="action-btn nope" id="btn-nope" aria-label="Nope"><i class="ti ti-x" aria-hidden="true"></i></button>
+    <button class="action-btn super" id="btn-super" aria-label="Super like"><i class="ti ti-star" aria-hidden="true"></i></button>
+    <button class="action-btn like" id="btn-like" aria-label="Like"><i class="ti ti-heart" aria-hidden="true"></i></button>
+  </div>
+  <div id="status-msg"></div>
+</div>
+
+<script>
+const CARDS = [
+  {name:"Alex, 27",sub:"Photographer · NYC",bg:"#f472b6",emoji:"📸",detail:"Loves rooftop sunsets"},
+  {name:"Jordan, 24",sub:"Designer · Brooklyn",bg:"#818cf8",emoji:"🎨",detail:"Swipes right on pizza"},
+  {name:"Casey, 29",sub:"Chef · Manhattan",bg:"#34d399",emoji:"🍳",detail:"Will cook for you"},
+  {name:"Morgan, 26",sub:"Musician · Williamsburg",bg:"#fb923c",emoji:"🎸",detail:"Plays 4 instruments"},
+  {name:"Riley, 28",sub:"Architect · SoHo",bg:"#38bdf8",emoji:"🏛️",detail:"Designs dreams"},
+  {name:"Avery, 25",sub:"Writer · Astoria",bg:"#a78bfa",emoji:"✍️",detail:"Plots best-sellers"},
+];
+
+let currentIdx = 0;
+let isDragging = false;
+let startX = 0, startY = 0, curX = 0, curY = 0;
+let topCard = null;
+let animating = false;
+const stack = document.getElementById('card-stack');
+const canvas = document.getElementById('particles');
+const ctx = canvas.getContext('2d');
+const statusMsg = document.getElementById('status-msg');
+const dots = document.getElementById('progress-dots');
+
+let particles = [];
+
+function buildDots() {
+  dots.innerHTML = '';
+  CARDS.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === currentIdx ? ' active' : '');
+    dots.appendChild(d);
+  });
+}
+
+function updateDots() {
+  [...dots.children].forEach((d,i) => d.className = 'dot' + (i < currentIdx ? ' active' : ''));
+}
+
+function makeCardEl(card, layerClass) {
+  const el = document.createElement('div');
+  el.className = 'card ' + layerClass;
+  el.style.background = card.bg;
+  el.innerHTML = `
+    <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:80px;">${card.emoji}</div>
+    <div class="card-gradient"></div>
+    <div class="card-info">
+      <div class="card-name">${card.name}</div>
+      <div class="card-sub">${card.sub}</div>
+      <div class="card-sub" style="margin-top:6px;font-size:13px;opacity:0.75;">${card.detail}</div>
+    </div>
+    <div class="stamp stamp-like">LIKE</div>
+    <div class="stamp stamp-nope">NOPE</div>
+  `;
+  return el;
+}
+
+function renderStack() {
+  [...stack.querySelectorAll('.card')].forEach(c => c.remove());
+  if (currentIdx >= CARDS.length) { showDone(); return; }
+  for (let i = Math.min(currentIdx + 2, CARDS.length - 1); i >= currentIdx; i--) {
+    const layer = i === currentIdx ? 'card-top' : i === currentIdx + 1 ? 'card-behind-1' : 'card-behind-2';
+    const el = makeCardEl(CARDS[i], layer);
+    stack.insertBefore(el, canvas);
+  }
+  topCard = stack.querySelector('.card-top');
+  attachDrag(topCard);
+  updateDots();
+}
+
+function showDone() {
+  stack.innerHTML = `<div class="done-state"><div class="big">🎉</div><p>You've seen everyone!<br>Check back later for new people.</p><button id="restart-btn">Start over</button></div>`;
+  document.getElementById('restart-btn').onclick = () => { currentIdx = 0; buildDots(); renderStack(); };
+}
+
+function setStatus(msg, color) {
+  statusMsg.style.color = color || 'var(--color-text-secondary)';
+  statusMsg.textContent = msg;
+  clearTimeout(statusMsg._t);
+  statusMsg._t = setTimeout(() => statusMsg.textContent = '', 1800);
+}
+
+function attachDrag(card) {
+  if (!card) return;
+  card.addEventListener('mousedown', onStart);
+  card.addEventListener('touchstart', onStart, {passive:true});
+}
+
+function onStart(e) {
+  if (animating) return;
+  isDragging = true;
+  const p = e.touches ? e.touches[0] : e;
+  startX = p.clientX; startY = p.clientY;
+  curX = 0; curY = 0;
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('touchmove', onMove, {passive:false});
+  window.addEventListener('mouseup', onEnd);
+  window.addEventListener('touchend', onEnd);
+}
+
+function onMove(e) {
+  if (!isDragging) return;
+  if (e.cancelable) e.preventDefault();
+  const p = e.touches ? e.touches[0] : e;
+  curX = p.clientX - startX;
+  curY = p.clientY - startY;
+  applyDrag(curX, curY);
+}
+
+function applyDrag(x, y) {
+  if (!topCard) return;
+  const rot = (x / 320) * 18;
+  topCard.style.transform = `translateX(${x}px) translateY(${y*0.4}px) rotate(${rot}deg)`;
+  const progress = Math.min(Math.abs(x) / 100, 1);
+  const likeStamp = topCard.querySelector('.stamp-like');
+  const nopeStamp = topCard.querySelector('.stamp-nope');
+  if (x > 20) { likeStamp.style.opacity = progress; nopeStamp.style.opacity = 0; }
+  else if (x < -20) { nopeStamp.style.opacity = progress; likeStamp.style.opacity = 0; }
+  else { likeStamp.style.opacity = 0; nopeStamp.style.opacity = 0; }
+  const behind1 = stack.querySelector('.card-behind-1');
+  if (behind1) {
+    const s = 0.93 + progress * 0.07;
+    const ty = 14 - progress * 14;
+    behind1.style.transform = `scale(${s}) translateY(${ty}px)`;
+  }
+}
+
+function onEnd() {
+  isDragging = false;
+  window.removeEventListener('mousemove', onMove);
+  window.removeEventListener('touchmove', onMove);
+  window.removeEventListener('mouseup', onEnd);
+  window.removeEventListener('touchend', onEnd);
+  if (Math.abs(curX) > 100) { flyOff(curX > 0 ? 'right' : 'left'); }
+  else { snapBack(); }
+}
+
+function snapBack() {
+  if (!topCard) return;
+  topCard.style.transition = 'transform 0.4s cubic-bezier(0.34,1.56,0.64,1)';
+  topCard.style.transform = 'translateX(0) translateY(0) rotate(0deg)';
+  topCard.querySelector('.stamp-like').style.opacity = 0;
+  topCard.querySelector('.stamp-nope').style.opacity = 0;
+  const behind1 = stack.querySelector('.card-behind-1');
+  if (behind1) { behind1.style.transition = 'transform 0.4s'; behind1.style.transform = 'scale(0.93) translateY(14px)'; }
+  setTimeout(() => { if (topCard) topCard.style.transition = ''; }, 420);
+}
+
+function flyOff(dir) {
+  if (!topCard || animating) return;
+  animating = true;
+  const sign = dir === 'right' ? 1 : -1;
+  const vx = sign * 600, vy = -120, rot = sign * 45;
+  const rect = stack.getBoundingClientRect();
+  spawnParticles(dir, rect);
+  topCard.style.transition = 'transform 0.45s cubic-bezier(0.25,0.46,0.45,0.94), opacity 0.45s';
+  topCard.style.transform = `translateX(${vx}px) translateY(${vy}px) rotate(${rot}deg)`;
+  topCard.style.opacity = '0';
+  if (dir === 'right') setStatus('❤️ Liked!', '#22c55e');
+  else setStatus('👋 Nope!', '#ef4444');
+  const behind1 = stack.querySelector('.card-behind-1');
+  if (behind1) {
+    behind1.style.transition = 'transform 0.45s cubic-bezier(0.34,1.56,0.64,1)';
+    behind1.style.transform = 'scale(1) translateY(0)';
+  }
+  setTimeout(() => {
+    currentIdx++;
+    animating = false;
+    renderStack();
+  }, 460);
+}
+
+function spawnParticles(dir, rect) {
+  const cx = dir === 'right' ? 280 : 20;
+  const colors = dir === 'right' ? ['#22c55e','#86efac','#dcfce7'] : ['#ef4444','#fca5a5','#fee2e2'];
+  for (let i = 0; i < 22; i++) {
+    const angle = (Math.random() * Math.PI) - (dir === 'right' ? Math.PI/2 : Math.PI/2) + (Math.random() - 0.5) * 2.5;
+    particles.push({
+      x: cx, y: 200 + (Math.random() - 0.5) * 80,
+      vx: Math.cos(angle) * (3 + Math.random() * 5),
+      vy: Math.sin(angle) * (3 + Math.random() * 5) - 2,
+      r: 3 + Math.random() * 5,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      life: 1, decay: 0.03 + Math.random() * 0.03
+    });
+  }
+}
+
+let lastTime = 0;
+function animParticles(ts) {
+  if (ts - lastTime > 16) {
+    lastTime = ts;
+    ctx.clearRect(0, 0, 300, 400);
+    particles = particles.filter(p => p.life > 0);
+    for (const p of particles) {
+      ctx.globalAlpha = p.life;
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r * p.life, 0, Math.PI * 2);
+      ctx.fill();
+      p.x += p.vx; p.y += p.vy; p.vy += 0.18;
+      p.vx *= 0.96; p.life -= p.decay;
+    }
+    ctx.globalAlpha = 1;
+  }
+  requestAnimationFrame(animParticles);
+}
+requestAnimationFrame(animParticles);
+
+document.getElementById('btn-nope').onclick = () => { if (!animating) { curX = -140; flyOff('left'); } };
+document.getElementById('btn-like').onclick = () => { if (!animating) { curX = 140; flyOff('right'); } };
+document.getElementById('btn-super').onclick = () => {
+  if (!topCard || animating) return;
+  animating = true;
+  spawnSuperParticles();
+  topCard.style.transition = 'transform 0.45s ease-in, opacity 0.45s';
+  topCard.style.transform = 'translateY(-700px) rotate(0deg)';
+  topCard.style.opacity = '0';
+  setStatus('⭐ Super Like!', '#3b82f6');
+  setTimeout(() => { currentIdx++; animating = false; renderStack(); }, 460);
+};
+
+function spawnSuperParticles() {
+  const colors = ['#3b82f6','#93c5fd','#dbeafe','#fbbf24'];
+  for (let i = 0; i < 30; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    particles.push({
+      x: 150, y: 80,
+      vx: Math.cos(angle) * (2 + Math.random() * 6),
+      vy: Math.sin(angle) * (2 + Math.random() * 6) - 3,
+      r: 2 + Math.random() * 6,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      life: 1, decay: 0.02 + Math.random() * 0.03
+    });
+  }
+}
+
+buildDots();
+renderStack();
+</script>

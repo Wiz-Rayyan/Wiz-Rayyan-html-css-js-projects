@@ -1,0 +1,475 @@
+
+<style>
+  :root {
+    --bp-red: #e24b4a;
+    --bp-glow: rgba(226,75,74,0.5);
+    --bp-pink: rgba(240,149,149,0.4);
+    --line-h: 32px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font-mono, monospace); }
+  .debugger { display: flex; gap: 0; border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); overflow: hidden; background: var(--color-background-primary); }
+  .sidebar { width: 200px; min-width: 200px; border-right: 0.5px solid var(--color-border-tertiary); display: flex; flex-direction: column; }
+  .sidebar-title { font-size: 11px; font-weight: 500; color: var(--color-text-secondary); padding: 10px 12px 6px; text-transform: uppercase; letter-spacing: 0.08em; font-family: var(--font-sans); border-bottom: 0.5px solid var(--color-border-tertiary); }
+  .stack-list { flex: 1; overflow-y: auto; }
+  .stack-frame { padding: 8px 12px; font-size: 12px; cursor: pointer; border-bottom: 0.5px solid var(--color-border-tertiary); transition: background 0.15s; }
+  .stack-frame:hover { background: var(--color-background-secondary); }
+  .stack-frame.active { background: rgba(226,75,74,0.08); border-left: 2px solid var(--bp-red); }
+  .frame-name { font-weight: 500; color: var(--color-text-primary); font-family: var(--font-mono); font-size: 12px; }
+  .frame-loc { color: var(--color-text-secondary); font-size: 11px; margin-top: 2px; }
+  .step-bar { padding: 8px 10px; border-top: 0.5px solid var(--color-border-tertiary); display: flex; gap: 6px; flex-wrap: wrap; }
+  .step-btn { flex: 1; min-width: 72px; padding: 5px 4px; font-size: 11px; font-family: var(--font-sans); font-weight: 500; color: var(--color-text-primary); background: var(--color-background-secondary); border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px; transition: transform 0.1s, background 0.1s; }
+  .step-btn:hover { background: var(--color-background-tertiary); }
+  .step-btn:active, .step-btn.pressed { transform: scale(0.93); background: rgba(226,75,74,0.1); border-color: var(--bp-red); }
+  .step-btn i { font-size: 14px; }
+  .editor-area { flex: 1; display: flex; flex-direction: column; position: relative; overflow: hidden; }
+  .tab-bar { display: flex; align-items: center; padding: 0 12px; border-bottom: 0.5px solid var(--color-border-tertiary); height: 34px; gap: 4px; background: var(--color-background-secondary); }
+  .tab { font-size: 12px; padding: 4px 10px; border-radius: 4px; color: var(--color-text-secondary); cursor: pointer; font-family: var(--font-sans); }
+  .tab.active { background: var(--color-background-primary); color: var(--color-text-primary); border: 0.5px solid var(--color-border-tertiary); font-weight: 500; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--bp-red); display: inline-block; margin-right: 5px; }
+  .code-scroll { overflow-y: auto; flex: 1; position: relative; }
+  .code-view { position: relative; }
+  .code-line { display: flex; align-items: center; height: var(--line-h); position: relative; transition: background 0.2s; }
+  .code-line.hit { background: rgba(226,75,74,0.07); }
+  .code-line.hit .line-code { color: var(--color-text-primary); }
+  .gutter { width: 36px; min-width: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative; }
+  .line-num { width: 28px; min-width: 28px; text-align: right; font-size: 11px; color: var(--color-text-tertiary); padding-right: 8px; user-select: none; }
+  .line-code { font-size: 12.5px; color: var(--color-text-secondary); white-space: pre; padding-right: 16px; font-family: var(--font-mono); }
+  .line-code .kw { color: #7f77dd; }
+  .line-code .fn { color: #1d9e75; }
+  .line-code .str { color: #ba7517; }
+  .line-code .num { color: #185fa5; }
+  .line-code .cmt { color: var(--color-text-tertiary); font-style: italic; }
+  .line-code .var { color: var(--color-text-primary); font-weight: 500; }
+  .bp-circle {
+    width: 16px; height: 16px; border-radius: 50%;
+    background: var(--bp-red);
+    box-shadow: 0 0 6px var(--bp-glow), 0 0 14px var(--bp-pink);
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    display: none;
+    flex-shrink: 0;
+  }
+  .bp-circle.visible { display: block; }
+  .bp-circle.pop { animation: popIn 0.25s ease-out forwards; }
+  .bp-circle.pulse { animation: crystalPulse 0.5s ease-out forwards; }
+  .gutter:hover .bp-ghost { opacity: 1; }
+  .bp-ghost {
+    width: 16px; height: 16px; border-radius: 50%;
+    background: rgba(226,75,74,0.3);
+    border: 1.5px solid rgba(226,75,74,0.5);
+    opacity: 0;
+    transition: opacity 0.15s;
+    display: block;
+    flex-shrink: 0;
+  }
+  .bp-ghost.hidden { display: none; }
+  @keyframes popIn {
+    0% { transform: scale(0); opacity: 0; }
+    60% { transform: scale(1.35); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  @keyframes crystalPulse {
+    0% { transform: scale(1); box-shadow: 0 0 6px var(--bp-glow), 0 0 14px var(--bp-pink); }
+    40% { transform: scale(1.5); box-shadow: 0 0 16px rgba(226,75,74,0.8), 0 0 32px rgba(240,149,149,0.6); }
+    100% { transform: scale(1); box-shadow: 0 0 6px var(--bp-glow), 0 0 14px var(--bp-pink); }
+  }
+  .arrow-indicator { position: absolute; left: 36px; color: var(--bp-red); font-size: 13px; font-weight: 700; opacity: 0; transition: opacity 0.2s; pointer-events: none; }
+  .arrow-indicator.visible { opacity: 1; }
+  .orb-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+  .var-orb {
+    position: absolute;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-family: var(--font-sans); font-weight: 500;
+    cursor: pointer; pointer-events: all;
+    transition: transform 0.2s, box-shadow 0.2s;
+    animation: floatOrb 3s ease-in-out infinite;
+    z-index: 10;
+  }
+  .var-orb:nth-child(odd) { animation-delay: -1.2s; }
+  .var-orb.orb-purple { background: #EEEDFE; color: #3C3489; box-shadow: 0 0 8px rgba(127,119,221,0.4), 0 0 16px rgba(127,119,221,0.2); border: 1px solid #AFA9EC; }
+  .var-orb.orb-teal { background: #E1F5EE; color: #085041; box-shadow: 0 0 8px rgba(29,158,117,0.4), 0 0 16px rgba(29,158,117,0.2); border: 1px solid #5DCAA5; }
+  .var-orb.orb-blue { background: #E6F1FB; color: #0C447C; box-shadow: 0 0 8px rgba(55,138,221,0.4), 0 0 16px rgba(55,138,221,0.2); border: 1px solid #85B7EB; }
+  .var-orb.orb-amber { background: #FAEEDA; color: #633806; box-shadow: 0 0 8px rgba(186,117,23,0.4), 0 0 16px rgba(186,117,23,0.2); border: 1px solid #EF9F27; }
+  .var-orb:hover { transform: scale(1.15); }
+  @keyframes floatOrb { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+  .var-orb:hover { animation: none; transform: scale(1.15); }
+  .orb-label { text-align: center; line-height: 1.2; padding: 2px; }
+  .orb-name { font-size: 10px; opacity: 0.7; display: block; }
+  .orb-val { font-size: 12px; font-weight: 500; display: block; }
+  .orb-tooltip {
+    position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+    background: var(--color-background-primary); border: 0.5px solid var(--color-border-secondary);
+    border-radius: var(--border-radius-md); padding: 6px 10px; font-size: 12px; font-family: var(--font-mono);
+    white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity 0.15s;
+    color: var(--color-text-primary); z-index: 20; min-width: 130px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  .var-orb:hover .orb-tooltip { opacity: 1; }
+  .tooltip-type { font-size: 10px; color: var(--color-text-secondary); display: block; margin-top: 2px; }
+  svg.connector-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5; }
+  .var-panel { width: 0; overflow: hidden; border-left: 0.5px solid var(--color-border-tertiary); transition: width 0.3s ease; background: var(--color-background-secondary); }
+  .var-panel.open { width: 170px; min-width: 170px; }
+  .var-panel-inner { width: 170px; padding: 10px 0; }
+  .var-panel-title { font-size: 11px; font-weight: 500; color: var(--color-text-secondary); padding: 0 12px 8px; text-transform: uppercase; letter-spacing: 0.07em; font-family: var(--font-sans); border-bottom: 0.5px solid var(--color-border-tertiary); margin-bottom: 6px; }
+  .var-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 12px; font-size: 12px; border-bottom: 0.5px solid var(--color-border-tertiary); }
+  .var-name-text { color: var(--color-text-secondary); font-family: var(--font-mono); }
+  .var-val-text { font-family: var(--font-mono); font-weight: 500; color: var(--color-text-primary); }
+  .var-val-text.type-num { color: #185fa5; }
+  .var-val-text.type-str { color: #ba7517; }
+  .var-val-text.type-bool { color: #7f77dd; }
+  .status-bar { height: 22px; background: var(--bp-red); display: flex; align-items: center; padding: 0 12px; gap: 8px; border-top: 0.5px solid var(--color-border-tertiary); }
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; background: white; opacity: 0.9; animation: blink 1.2s ease-in-out infinite; }
+  @keyframes blink { 0%,100% { opacity: 0.9; } 50% { opacity: 0.3; } }
+  .status-text { font-size: 11px; color: white; font-family: var(--font-sans); font-weight: 500; }
+  .status-bar.idle { background: var(--color-background-secondary); }
+  .status-bar.idle .status-dot { background: var(--color-text-tertiary); animation: none; }
+  .status-bar.idle .status-text { color: var(--color-text-secondary); }
+  .hint { font-size: 11px; color: var(--color-text-tertiary); font-family: var(--font-sans); padding: 4px 12px 0; text-align: center; }
+</style>
+
+<h2 class="sr-only">Crystal Ball Debugger — interactive code debugger with glowing breakpoint orbs and floating variable inspection</h2>
+
+<div class="debugger" id="debugger" style="height: 440px;">
+
+  <div class="sidebar">
+    <div class="sidebar-title">Call stack</div>
+    <div class="stack-list" id="stackList">
+      <div class="stack-frame active">
+        <div class="frame-name">processOrder()</div>
+        <div class="frame-loc">shop.js:14</div>
+      </div>
+      <div class="stack-frame">
+        <div class="frame-name">checkout()</div>
+        <div class="frame-loc">shop.js:38</div>
+      </div>
+      <div class="stack-frame">
+        <div class="frame-name">handleSubmit()</div>
+        <div class="frame-loc">cart.js:72</div>
+      </div>
+    </div>
+    <div class="step-bar">
+      <button class="step-btn" id="btnContinue" title="Continue F5"><i class="ti ti-player-play" aria-hidden="true"></i> F5</button>
+      <button class="step-btn" id="btnOver" title="Step Over F10"><i class="ti ti-arrow-bar-right" aria-hidden="true"></i> F10</button>
+      <button class="step-btn" id="btnInto" title="Step Into F11"><i class="ti ti-arrow-bar-down" aria-hidden="true"></i> F11</button>
+    </div>
+  </div>
+
+  <div class="editor-area">
+    <div class="tab-bar">
+      <div class="tab active"><span class="dot"></span>shop.js</div>
+      <div class="tab">cart.js</div>
+      <div class="tab">utils.js</div>
+    </div>
+    <div class="code-scroll" id="codeScroll">
+      <div class="code-view" id="codeView">
+        <div id="orbLayer" class="orb-layer">
+          <svg class="connector-svg" id="connectorSvg"></svg>
+        </div>
+      </div>
+    </div>
+    <div class="hint" id="hintText">Click the gutter (left of line numbers) to set breakpoints · Run to hit a breakpoint</div>
+    <div class="status-bar idle" id="statusBar">
+      <div class="status-dot"></div>
+      <div class="status-text" id="statusText">Idle — no active breakpoint</div>
+    </div>
+  </div>
+
+  <div class="var-panel" id="varPanel">
+    <div class="var-panel-inner">
+      <div class="var-panel-title">Variables</div>
+      <div id="varRows"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const CODE_LINES = [
+  { n:1,  tokens: [['kw','function '],['fn','processOrder'],['','('],['var','order'],['',') {']] },
+  { n:2,  tokens: [['kw','  const '],['var','total'],['', ' = '],['fn','calcTotal'],['','('],['var','order'],['','.items);']], vars: [{name:'total',val:'249.99',type:'num'},{name:'order',val:'{id:42}',type:'obj'}] },
+  { n:3,  tokens: [['kw','  const '],['var','tax'],['', ' = '],['var','total'],['', ' * '],['num','0.08'],['',';']], vars: [{name:'tax',val:'20.00',type:'num'},{name:'total',val:'249.99',type:'num'}] },
+  { n:4,  tokens: [['kw','  const '],['var','discount'],['', ' = '],['fn','getDiscount'],['','('],['var','order'],['','.userId);']], vars: [{name:'discount',val:'25.00',type:'num'},{name:'order',val:'{id:42}',type:'obj'}] },
+  { n:5,  tokens: [['kw','  let '],['var','final'],['', ' = '],['var','total'],['', ' + '],['var','tax'],['', ' - '],['var','discount'],['',';']], vars: [{name:'final',val:'244.99',type:'num'},{name:'tax',val:'20.00',type:'num'},{name:'discount',val:'25.00',type:'num'}] },
+  { n:6,  tokens: [['','']] },
+  { n:7,  tokens: [['kw','  if '],['','('],['var','final'],['', ' < '],['num','0'],['',') {']] },
+  { n:8,  tokens: [['kw','    throw '],['kw','new '],['fn','Error'],['','('],['str','"Negative total"'],['',');']] },
+  { n:9,  tokens: [['','  }']] },
+  { n:10, tokens: [['','']] },
+  { n:11, tokens: [['kw','  const '],['var','status'],['', ' = '],['fn','submitPayment'],['','('],['var','final'],['',');']], vars: [{name:'status',val:'"pending"',type:'str'},{name:'final',val:'244.99',type:'num'}] },
+  { n:12, tokens: [['kw','  const '],['var','confirmed'],['', ' = '],['var','status'],['', ' === '],['str','"ok"'],['',';']], vars: [{name:'confirmed',val:'false',type:'bool'},{name:'status',val:'"pending"',type:'str'}] },
+  { n:13, tokens: [['','']] },
+  { n:14, tokens: [['kw','  return '],['','{ '],['var','final'],['', ', '],['var','status'],['', ', '],['var','confirmed'],['', ' };']], vars: [{name:'final',val:'244.99',type:'num'},{name:'status',val:'"pending"',type:'str'},{name:'confirmed',val:'false',type:'bool'}] },
+  { n:15, tokens: [['','}']] },
+];
+
+const ORB_COLORS = ['orb-purple','orb-teal','orb-blue','orb-amber'];
+
+let breakpoints = new Set();
+let hitLine = null;
+let currentStep = 0;
+
+const codeView = document.getElementById('codeView');
+const orbLayer = document.getElementById('orbLayer');
+const connectorSvg = document.getElementById('connectorSvg');
+const varPanel = document.getElementById('varPanel');
+const varRows = document.getElementById('varRows');
+const statusBar = document.getElementById('statusBar');
+const statusText = document.getElementById('statusText');
+const hintText = document.getElementById('hintText');
+
+function buildCode() {
+  CODE_LINES.forEach((line, idx) => {
+    const row = document.createElement('div');
+    row.className = 'code-line';
+    row.dataset.idx = idx;
+    row.id = 'line-' + idx;
+
+    const gutter = document.createElement('div');
+    gutter.className = 'gutter';
+
+    const ghost = document.createElement('div');
+    ghost.className = 'bp-ghost';
+    const circle = document.createElement('div');
+    circle.className = 'bp-circle';
+    circle.id = 'bp-' + idx;
+    gutter.appendChild(ghost);
+    gutter.appendChild(circle);
+    gutter.addEventListener('click', () => toggleBreakpoint(idx));
+
+    const lineNum = document.createElement('div');
+    lineNum.className = 'line-num';
+    lineNum.textContent = line.n;
+
+    const arrow = document.createElement('div');
+    arrow.className = 'arrow-indicator';
+    arrow.textContent = '▶';
+    arrow.id = 'arrow-' + idx;
+
+    const code = document.createElement('div');
+    code.className = 'line-code';
+    code.id = 'code-' + idx;
+    line.tokens.forEach(([cls, txt]) => {
+      if (!txt) { code.appendChild(document.createTextNode(txt)); return; }
+      if (cls) { const s = document.createElement('span'); s.className = cls; s.textContent = txt; code.appendChild(s); }
+      else { code.appendChild(document.createTextNode(txt)); }
+    });
+
+    row.appendChild(gutter);
+    row.appendChild(lineNum);
+    row.appendChild(arrow);
+    row.appendChild(code);
+    codeView.insertBefore(row, orbLayer);
+  });
+}
+
+function toggleBreakpoint(idx) {
+  const circle = document.getElementById('bp-' + idx);
+  const ghost = circle.previousSibling;
+  if (breakpoints.has(idx)) {
+    breakpoints.delete(idx);
+    circle.classList.remove('visible');
+    ghost.classList.remove('hidden');
+  } else {
+    breakpoints.add(idx);
+    circle.classList.add('visible');
+    ghost.classList.add('hidden');
+    circle.classList.remove('pop');
+    void circle.offsetWidth;
+    circle.classList.add('pop');
+    hintText.textContent = 'Breakpoint set! Click "F5 Continue" to run to it.';
+  }
+  updateStatus();
+}
+
+function updateStatus() {
+  if (hitLine !== null) return;
+  if (breakpoints.size === 0) {
+    statusBar.className = 'status-bar idle';
+    statusText.textContent = 'Idle — no active breakpoint';
+  } else {
+    statusBar.className = 'status-bar idle';
+    statusText.textContent = breakpoints.size + ' breakpoint' + (breakpoints.size>1?'s':'') + ' set · ready to run';
+  }
+}
+
+function hitBreakpoint(idx) {
+  clearHit();
+  hitLine = idx;
+  const row = document.getElementById('line-' + idx);
+  row.classList.add('hit');
+  const arrow = document.getElementById('arrow-' + idx);
+  arrow.classList.add('visible');
+
+  const circle = document.getElementById('bp-' + idx);
+  circle.classList.remove('pulse');
+  void circle.offsetWidth;
+  circle.classList.add('pulse');
+
+  statusBar.className = 'status-bar';
+  statusText.textContent = 'Paused at line ' + CODE_LINES[idx].n + ' in processOrder()';
+  hintText.textContent = 'Hover variable orbs to inspect · Use F10/F11 to step through code';
+
+  const vars = CODE_LINES[idx].vars;
+  if (vars && vars.length) {
+    spawnOrbs(idx, vars);
+    openVarPanel(vars);
+  }
+}
+
+function clearHit() {
+  if (hitLine !== null) {
+    const row = document.getElementById('line-' + hitLine);
+    if (row) row.classList.remove('hit');
+    const arrow = document.getElementById('arrow-' + hitLine);
+    if (arrow) arrow.classList.remove('visible');
+    hitLine = null;
+  }
+  clearOrbs();
+  closeVarPanel();
+}
+
+function spawnOrbs(lineIdx, vars) {
+  clearOrbs();
+  const lineEl = document.getElementById('line-' + lineIdx);
+  const viewRect = codeView.getBoundingClientRect();
+  const lineRect = lineEl.getBoundingClientRect();
+  const lineTop = lineRect.top - viewRect.top + codeView.parentElement.scrollTop;
+  const lineCenterY = lineTop + 16;
+
+  const codeEl = document.getElementById('code-' + lineIdx);
+  const codeRect = codeEl.getBoundingClientRect();
+  const codeLeft = codeRect.left - viewRect.left;
+
+  const orbSize = 52;
+  const totalW = codeView.offsetWidth;
+
+  vars.forEach((v, i) => {
+    const orb = document.createElement('div');
+    orb.className = 'var-orb ' + ORB_COLORS[i % ORB_COLORS.length];
+    orb.style.width = orbSize + 'px';
+    orb.style.height = orbSize + 'px';
+    orb.style.animationDelay = (i * -0.7) + 's';
+
+    const spreadX = totalW * 0.38 + i * (orbSize + 18);
+    const orbY = Math.max(10, lineCenterY - orbSize / 2 - (vars.length > 1 ? (vars.length-1)*8 - i*16 : 0));
+
+    orb.style.left = Math.min(spreadX, totalW - orbSize - 10) + 'px';
+    orb.style.top = orbY + 'px';
+    orb.dataset.anchorX = spreadX + orbSize/2;
+    orb.dataset.anchorY = orbY + orbSize/2;
+    orb.dataset.lineY = lineCenterY;
+    orb.dataset.lineX = codeLeft + 20 + i * 36;
+
+    const label = document.createElement('div');
+    label.className = 'orb-label';
+    label.innerHTML = '<span class="orb-name">' + v.name + '</span><span class="orb-val">' + v.val + '</span>';
+    orb.appendChild(label);
+
+    const tip = document.createElement('div');
+    tip.className = 'orb-tooltip';
+    tip.innerHTML = v.name + ': <strong>' + v.val + '</strong><span class="tooltip-type">(' + v.type + ')</span>';
+    orb.appendChild(tip);
+
+    orbLayer.appendChild(orb);
+  });
+
+  requestAnimationFrame(() => drawConnectors(vars));
+  
+  const panel = document.getElementById('varPanel');
+  panel.addEventListener('mouseenter', () => {}, { once: false });
+}
+
+function drawConnectors(vars) {
+  connectorSvg.innerHTML = '';
+  const orbs = orbLayer.querySelectorAll('.var-orb');
+  const orbSize = 52;
+  orbs.forEach((orb) => {
+    const ax = parseFloat(orb.dataset.anchorX);
+    const ay = parseFloat(orb.dataset.anchorY);
+    const lx = parseFloat(orb.dataset.lineX);
+    const ly = parseFloat(orb.dataset.lineY);
+
+    const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1', ax); line.setAttribute('y1', ay);
+    line.setAttribute('x2', lx); line.setAttribute('y2', ly);
+    line.setAttribute('stroke', 'rgba(226,75,74,0.35)');
+    line.setAttribute('stroke-width', '1');
+    line.setAttribute('stroke-dasharray', '4 3');
+    connectorSvg.appendChild(line);
+
+    const dot = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    dot.setAttribute('cx', lx); dot.setAttribute('cy', ly);
+    dot.setAttribute('r', '3');
+    dot.setAttribute('fill', 'rgba(226,75,74,0.5)');
+    connectorSvg.appendChild(dot);
+  });
+}
+
+function clearOrbs() {
+  const orbs = orbLayer.querySelectorAll('.var-orb');
+  orbs.forEach(o => o.remove());
+  connectorSvg.innerHTML = '';
+}
+
+function openVarPanel(vars) {
+  varPanel.classList.add('open');
+  varRows.innerHTML = '';
+  vars.forEach(v => {
+    const row = document.createElement('div');
+    row.className = 'var-row';
+    row.innerHTML = '<span class="var-name-text">' + v.name + '</span>' +
+      '<span class="var-val-text type-' + v.type + '">' + v.val + '</span>';
+    varRows.appendChild(row);
+  });
+}
+
+function closeVarPanel() {
+  varPanel.classList.remove('open');
+  varRows.innerHTML = '';
+}
+
+function runToBreakpoint() {
+  const sorted = [...breakpoints].sort((a,b) => a-b);
+  if (sorted.length === 0) {
+    hintText.textContent = 'No breakpoints set — click the gutter to add one first!';
+    return;
+  }
+  const next = sorted.find(i => i > (hitLine !== null ? hitLine : -1)) ?? sorted[0];
+  hitBreakpoint(next);
+}
+
+function stepLine(delta) {
+  if (hitLine === null) { runToBreakpoint(); return; }
+  let next = hitLine + delta;
+  while (next < CODE_LINES.length && CODE_LINES[next].tokens[0][1] === '') next += delta;
+  if (next < 0) next = 0;
+  if (next >= CODE_LINES.length) next = CODE_LINES.length - 1;
+  hitBreakpoint(next);
+}
+
+document.getElementById('btnContinue').addEventListener('click', function() {
+  animBtn(this); runToBreakpoint();
+});
+document.getElementById('btnOver').addEventListener('click', function() {
+  animBtn(this); stepLine(1);
+});
+document.getElementById('btnInto').addEventListener('click', function() {
+  animBtn(this); stepLine(1);
+});
+
+function animBtn(btn) {
+  btn.classList.add('pressed');
+  setTimeout(() => btn.classList.remove('pressed'), 200);
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'F5') { e.preventDefault(); runToBreakpoint(); }
+  if (e.key === 'F10') { e.preventDefault(); stepLine(1); }
+  if (e.key === 'F11') { e.preventDefault(); stepLine(1); }
+});
+
+buildCode();
+updateStatus();
+</script>

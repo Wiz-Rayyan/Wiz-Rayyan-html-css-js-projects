@@ -1,0 +1,468 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+  .holo-root {
+    background: #000d1a;
+    border: 1px solid rgba(0,255,255,0.2);
+    border-radius: 4px;
+    padding: 0;
+    font-family: 'Share Tech Mono', monospace;
+    position: relative;
+    overflow: hidden;
+    min-height: 480px;
+    display: flex;
+    flex-direction: column;
+    perspective: 800px;
+    box-shadow: 0 0 40px rgba(0,200,255,0.08), inset 0 0 60px rgba(0,50,80,0.4);
+  }
+
+  .holo-scanline {
+    position: absolute;
+    left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(to bottom, transparent, rgba(0,255,255,0.35), rgba(0,150,255,0.15), transparent);
+    z-index: 10;
+    pointer-events: none;
+    animation: scan 3.2s linear infinite;
+    box-shadow: 0 0 8px rgba(0,255,255,0.5), 0 0 16px rgba(0,150,255,0.3);
+  }
+
+  @keyframes scan {
+    0% { top: -4px; opacity: 0; }
+    3% { opacity: 1; }
+    97% { opacity: 1; }
+    100% { top: 100%; opacity: 0; }
+  }
+
+  .holo-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,255,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,255,255,0.03) 1px, transparent 1px);
+    background-size: 32px 32px;
+    pointer-events: none;
+  }
+
+  .holo-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    border-bottom: 1px solid rgba(0,255,255,0.15);
+    background: rgba(0,20,35,0.8);
+  }
+
+  .holo-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .holo-dot.r { background: rgba(255,80,80,0.7); box-shadow: 0 0 6px rgba(255,60,60,0.5); }
+  .holo-dot.y { background: rgba(255,200,0,0.7); box-shadow: 0 0 6px rgba(255,180,0,0.5); }
+  .holo-dot.g { background: rgba(0,255,100,0.7); box-shadow: 0 0 6px rgba(0,220,80,0.5); }
+
+  .holo-title {
+    color: rgba(0,220,255,0.6);
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    margin-left: auto;
+    text-transform: uppercase;
+  }
+
+  .holo-output {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    scroll-behavior: smooth;
+  }
+
+  .holo-output::-webkit-scrollbar { width: 4px; }
+  .holo-output::-webkit-scrollbar-track { background: transparent; }
+  .holo-output::-webkit-scrollbar-thumb { background: rgba(0,200,255,0.25); border-radius: 2px; }
+
+  .holo-line {
+    display: block;
+    padding: 3px 6px;
+    margin: 2px 0;
+    border-radius: 2px;
+    font-size: 13px;
+    line-height: 1.55;
+    cursor: default;
+    transform-style: preserve-3d;
+    transform: translateZ(0px);
+    transition: transform 0.15s ease, text-shadow 0.15s ease, background 0.15s ease;
+    animation: lineIn 0.35s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+    position: relative;
+  }
+
+  @keyframes lineIn {
+    from { opacity: 0; transform: translateZ(-20px) scaleY(0.88); }
+    to   { opacity: 1; transform: translateZ(0px) scaleY(1); }
+  }
+
+  .holo-line:hover {
+    transform: translateZ(12px) scaleX(1.008);
+    background: rgba(0,255,255,0.05);
+  }
+
+  .holo-line.t-cyan {
+    color: rgba(0,230,255,0.92);
+    text-shadow: 0 0 5px rgba(0,220,255,0.7), 0 0 12px rgba(0,180,255,0.35);
+  }
+  .holo-line.t-cyan:hover {
+    text-shadow: 0 0 7px rgba(0,240,255,0.95), 0 0 18px rgba(0,200,255,0.6), 0 0 32px rgba(0,150,255,0.25);
+  }
+
+  .holo-line.t-white {
+    color: rgba(180,240,255,0.80);
+    text-shadow: 0 0 4px rgba(0,200,255,0.4), 0 0 8px rgba(0,150,255,0.2);
+  }
+  .holo-line.t-white:hover {
+    text-shadow: 0 0 6px rgba(0,220,255,0.7), 0 0 14px rgba(0,180,255,0.45);
+  }
+
+  .holo-line.t-green {
+    color: rgba(0,255,140,0.85);
+    text-shadow: 0 0 5px rgba(0,255,120,0.6), 0 0 10px rgba(0,200,100,0.3);
+  }
+  .holo-line.t-green:hover {
+    text-shadow: 0 0 8px rgba(0,255,150,0.9), 0 0 20px rgba(0,220,120,0.5);
+  }
+
+  .holo-line.t-warn {
+    color: rgba(255,200,50,0.85);
+    text-shadow: 0 0 5px rgba(255,180,30,0.6), 0 0 10px rgba(200,140,0,0.3);
+  }
+
+  .holo-line.t-err {
+    color: rgba(255,80,80,0.9);
+    text-shadow: 0 0 5px rgba(255,60,60,0.7), 0 0 12px rgba(200,30,30,0.3);
+  }
+
+  .holo-line.t-dim {
+    color: rgba(0,180,220,0.45);
+    font-size: 11px;
+    text-shadow: none;
+  }
+
+  .holo-input-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px 12px;
+    border-top: 1px solid rgba(0,255,255,0.12);
+    background: rgba(0,15,28,0.7);
+  }
+
+  .holo-prompt-sym {
+    color: rgba(0,220,255,0.7);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    text-shadow: 0 0 6px rgba(0,200,255,0.5);
+    flex-shrink: 0;
+  }
+
+  #holo-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: rgba(0,230,255,0.9);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    caret-color: rgba(0,255,255,0.9);
+    text-shadow: 0 0 5px rgba(0,200,255,0.5);
+  }
+
+  #holo-input::placeholder { color: rgba(0,180,220,0.3); }
+
+  .holo-btn {
+    background: rgba(0,200,255,0.08);
+    border: 1px solid rgba(0,200,255,0.3);
+    color: rgba(0,220,255,0.8);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    padding: 4px 12px;
+    border-radius: 2px;
+    cursor: pointer;
+    letter-spacing: 0.1em;
+    text-shadow: 0 0 4px rgba(0,200,255,0.4);
+    transition: background 0.15s, box-shadow 0.15s;
+    flex-shrink: 0;
+  }
+  .holo-btn:hover {
+    background: rgba(0,200,255,0.18);
+    box-shadow: 0 0 10px rgba(0,200,255,0.25);
+  }
+
+  .particle-canvas {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 20;
+    display: none;
+  }
+
+  .flicker { animation: flicker 0.08s steps(1) 3; }
+  @keyframes flicker { 0%,100%{opacity:1} 50%{opacity:0.4} }
+</style>
+
+<h2 class="sr-only">Holographic terminal — enter commands to interact with the sci-fi projection interface</h2>
+
+<div class="holo-root" id="holoRoot">
+  <div class="holo-grid"></div>
+  <canvas class="particle-canvas" id="particleCanvas"></canvas>
+  <div class="holo-scanline"></div>
+
+  <div class="holo-header">
+    <div class="holo-dot r"></div>
+    <div class="holo-dot y"></div>
+    <div class="holo-dot g"></div>
+    <span class="holo-title">HOLOMATRIX v4.1 // SECURE CHANNEL</span>
+  </div>
+
+  <div class="holo-output" id="holoOut"></div>
+
+  <div class="holo-input-row">
+    <span class="holo-prompt-sym">▶</span>
+    <input id="holo-input" type="text" placeholder="enter command..." autocomplete="off" spellcheck="false" />
+    <button class="holo-btn" id="runBtn">EXEC</button>
+    <button class="holo-btn" id="clearBtn">CLR</button>
+  </div>
+</div>
+
+<script>
+const out = document.getElementById('holoOut');
+const inp = document.getElementById('holo-input');
+const canvas = document.getElementById('particleCanvas');
+const ctx = canvas.getContext('2d');
+let lineCount = 0;
+
+const bootLines = [
+  ['t-dim', '// HOLOMATRIX PROJECTION SYSTEM v4.1'],
+  ['t-dim', '// STARDATE 2026.152 · NODE: ALPHA-7'],
+  ['t-cyan', 'INITIALIZING holographic emitters...'],
+  ['t-green', '[ OK ] Emitter array: 512 nodes online'],
+  ['t-green', '[ OK ] Depth projection: Z-axis ±40cm'],
+  ['t-green', '[ OK ] Cyan matrix: 99.7% coherence'],
+  ['t-cyan', 'LOADING subsystems...'],
+  ['t-green', '[ OK ] Neural interface bridge'],
+  ['t-green', '[ OK ] Encryption layer: QUBIT-256'],
+  ['t-green', '[ OK ] Sensor grid: nominal'],
+  ['t-white', 'SYSTEM READY · Type HELP for commands'],
+];
+
+const commands = {
+  help: [
+    ['t-cyan', '╔══════════════════════════════════╗'],
+    ['t-cyan', '║       AVAILABLE COMMANDS         ║'],
+    ['t-cyan', '╚══════════════════════════════════╝'],
+    ['t-white', '  STATUS   — system diagnostics'],
+    ['t-white', '  SCAN     — environment sweep'],
+    ['t-white', '  DECRYPT  — run cipher protocol'],
+    ['t-white', '  LOCATE   — triangulate signal'],
+    ['t-white', '  ANALYZE  — parse data stream'],
+    ['t-white', '  CLEAR    — dissolve projection'],
+    ['t-white', '  ENGAGE   — activate subsystems'],
+    ['t-dim', '  // hover any line to lift it forward'],
+  ],
+  status: [
+    ['t-cyan', 'RUNNING DIAGNOSTICS...'],
+    ['t-green', '  CORE TEMP    : 37.2°C  ● nominal'],
+    ['t-green', '  POWER CELL   : 91.4%   ● optimal'],
+    ['t-green', '  SHIELD GRID  : ACTIVE  ● 8 layers'],
+    ['t-warn', '  SECTOR 7G    : ▲ anomaly detected'],
+    ['t-green', '  COMM ARRAY   : ONLINE  ● 14 uplinks'],
+    ['t-white', 'DIAGNOSTICS COMPLETE'],
+  ],
+  scan: () => {
+    const entities = [' HUMAN × 1',' DRONE × 3',' TERMINAL × 4',' ENERGY FIELD × 2'];
+    const res = [['t-cyan','INITIATING 360° ENVIRONMENT SCAN...']];
+    entities.forEach(e => res.push(['t-white', `  DETECTED:${e}`]));
+    res.push(['t-green','SCAN COMPLETE · SECTOR CLEAR']);
+    return res;
+  },
+  decrypt: [
+    ['t-cyan', 'CIPHER PROTOCOL INITIATED'],
+    ['t-dim',  '  KEY EXCHANGE   [████████████] DONE'],
+    ['t-dim',  '  LAYER 1 BREAK  [████████████] DONE'],
+    ['t-dim',  '  LAYER 2 BREAK  [█████████░░░] 84%...'],
+    ['t-warn', '  ANOMALOUS ENTROPY DETECTED IN BLOCK 7'],
+    ['t-dim',  '  LAYER 2 BREAK  [████████████] DONE'],
+    ['t-green', 'DECRYPT SUCCESS · PAYLOAD SECURED'],
+  ],
+  locate: () => {
+    const lat = (Math.random()*180-90).toFixed(4);
+    const lon = (Math.random()*360-180).toFixed(4);
+    const alt = (Math.random()*1000+100).toFixed(0);
+    return [
+      ['t-cyan', 'TRIANGULATING SIGNAL SOURCE...'],
+      ['t-white', `  LAT: ${lat}°  LON: ${lon}°`],
+      ['t-white', `  ALTITUDE: ${alt}m · ACCURACY: ±2m`],
+      ['t-green', 'SIGNAL LOCKED'],
+    ];
+  },
+  analyze: [
+    ['t-cyan', 'PARSING DATA STREAM...'],
+    ['t-white', '  PACKETS    : 18,492 captured'],
+    ['t-white', '  ANOMALIES  : 3 flagged'],
+    ['t-warn',  '  PACKET 441 : unexpected origin'],
+    ['t-warn',  '  PACKET 889 : encrypted payload'],
+    ['t-err',   '  PACKET 2041: INTEGRITY FAIL'],
+    ['t-green', 'ANALYSIS COMPLETE · REPORT QUEUED'],
+  ],
+  engage: [
+    ['t-cyan', 'ENGAGING ALL SUBSYSTEMS...'],
+    ['t-green', '  [1/5] Weapons array    ● ARMED'],
+    ['t-green', '  [2/5] Warp core        ● PRIMED'],
+    ['t-green', '  [3/5] Deflector dish   ● CALIBRATED'],
+    ['t-green', '  [4/5] Holodeck matrix  ● ONLINE'],
+    ['t-green', '  [5/5] Captain systems  ● READY'],
+    ['t-cyan',  'ALL SYSTEMS ENGAGED · STANDING BY'],
+  ],
+};
+
+function addLine(cls, text, delay = 0) {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      const el = document.createElement('span');
+      el.className = `holo-line ${cls}`;
+      el.textContent = text;
+      out.appendChild(el);
+      out.scrollTop = out.scrollHeight;
+      playWhoosh();
+      resolve();
+    }, delay);
+  });
+}
+
+async function printLines(lines) {
+  for (let i = 0; i < lines.length; i++) {
+    await addLine(lines[i][0], lines[i][1], i * 60);
+  }
+}
+
+async function boot() {
+  for (let i = 0; i < bootLines.length; i++) {
+    await addLine(bootLines[i][0], bootLines[i][1], i * 90);
+  }
+}
+
+function playWhoosh() {
+  try {
+    const ac = new (window.AudioContext || window.webkitAudioContext)();
+    const buf = ac.createBuffer(1, ac.sampleRate * 0.12, ac.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) {
+      d[i] = (Math.random()*2-1) * Math.exp(-i/(ac.sampleRate*0.04)) * 0.18;
+    }
+    const src = ac.createBufferSource();
+    src.buffer = buf;
+    const filt = ac.createBiquadFilter();
+    filt.type = 'bandpass';
+    filt.frequency.value = 1800;
+    filt.Q.value = 0.6;
+    src.connect(filt);
+    filt.connect(ac.destination);
+    src.start();
+  } catch(e) {}
+}
+
+function dissolveParticles() {
+  const root = document.getElementById('holoRoot');
+  canvas.width = root.offsetWidth;
+  canvas.height = root.offsetHeight;
+  canvas.style.display = 'block';
+
+  const allLines = out.querySelectorAll('.holo-line');
+  const particles = [];
+  allLines.forEach(line => {
+    const rect = line.getBoundingClientRect();
+    const rootRect = root.getBoundingClientRect();
+    const x = rect.left - rootRect.left + rect.width / 2;
+    const y = rect.top - rootRect.top + rect.height / 2;
+    for (let i = 0; i < 8; i++) {
+      particles.push({
+        x, y,
+        vx: (Math.random()-0.5) * 3,
+        vy: (Math.random()-1.2) * 2.5,
+        life: 1,
+        decay: 0.012 + Math.random()*0.012,
+        r: Math.random()*2+1,
+        hue: Math.random() > 0.5 ? '0,220,255' : '0,150,255',
+      });
+    }
+  });
+
+  out.style.opacity = '0';
+  out.style.transition = 'opacity 0.3s';
+
+  function frame() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    let alive = false;
+    particles.forEach(p => {
+      if (p.life <= 0) return;
+      alive = true;
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.04;
+      p.life -= p.decay;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(${p.hue},${Math.max(0, p.life)})`;
+      ctx.shadowColor = `rgba(${p.hue},0.6)`;
+      ctx.shadowBlur = 4;
+      ctx.fill();
+    });
+    if (alive) requestAnimationFrame(frame);
+    else {
+      canvas.style.display = 'none';
+      out.innerHTML = '';
+      out.style.opacity = '1';
+      out.style.transition = '';
+      addLine('t-cyan', 'PROJECTION CLEARED · MATRIX RESET');
+    }
+  }
+  requestAnimationFrame(frame);
+}
+
+function handleCommand(raw) {
+  const cmd = raw.trim().toUpperCase();
+  addLine('t-dim', `▶ ${raw}`);
+
+  if (cmd === 'CLEAR' || cmd === 'CLR') {
+    setTimeout(dissolveParticles, 200);
+    return;
+  }
+
+  const key = cmd.toLowerCase();
+  let lines = commands[key];
+  if (!lines) {
+    addLine('t-err', `ERR: UNKNOWN COMMAND "${cmd}"`);
+    addLine('t-dim', '  // type HELP for available commands');
+    return;
+  }
+  if (typeof lines === 'function') lines = lines();
+  printLines(lines);
+}
+
+document.getElementById('runBtn').addEventListener('click', () => {
+  const v = inp.value.trim();
+  if (!v) return;
+  handleCommand(v);
+  inp.value = '';
+});
+
+inp.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    const v = inp.value.trim();
+    if (!v) return;
+    handleCommand(v);
+    inp.value = '';
+  }
+});
+
+document.getElementById('clearBtn').addEventListener('click', () => {
+  handleCommand('clear');
+});
+
+boot();
+</script>

@@ -1,0 +1,138 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.stepper-wrap{padding:2rem 1.5rem;font-family:var(--font-sans)}
+.steps-row{display:flex;align-items:center;gap:0;margin-bottom:2.5rem}
+.step-node{display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;z-index:1;position:relative}
+.step-circle{width:44px;height:44px;border-radius:50%;border:2px solid var(--color-border-tertiary);background:var(--color-background-primary);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;color:var(--color-text-secondary);transition:border-color .35s,background .35s,transform .35s,color .35s;position:relative;overflow:hidden}
+.step-circle.active{border-color:#1D9E75;background:#E1F5EE;color:#0F6E56;transform:scale(1.1)}
+.step-circle.done{border-color:#1D9E75;background:#1D9E75;color:#fff}
+.step-circle.active{animation:bounce .4s cubic-bezier(.36,.07,.19,.97)}
+@keyframes bounce{0%,100%{transform:scale(1.1)}30%{transform:scale(1.22)}60%{transform:scale(1.05)}}
+.step-label{font-size:12px;color:var(--color-text-secondary);white-space:nowrap;transition:color .3s,font-weight .3s}
+.step-label.active{color:#0F6E56;font-weight:500}
+.step-label.done{color:#1D9E75}
+.connector{flex:1;height:3px;background:var(--color-background-secondary);border-radius:2px;position:relative;overflow:hidden;margin:0 4px;margin-bottom:28px}
+.connector-fill{position:absolute;left:0;top:0;height:100%;width:0%;background:linear-gradient(90deg,#1D9E75,#9FE1CB);border-radius:2px;transition:width .5s cubic-bezier(.4,0,.2,1)}
+.connector-fill.done{width:100%}
+.content-area{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1.75rem 1.5rem;min-height:180px;position:relative;overflow:hidden}
+.step-content{position:absolute;inset:0;padding:1.75rem 1.5rem;transition:opacity .35s,transform .35s;opacity:0;transform:scale(0.97) translateY(6px);pointer-events:none}
+.step-content.active{opacity:1;transform:scale(1) translateY(0);pointer-events:auto}
+.step-content h3{font-size:16px;font-weight:500;color:var(--color-text-primary);margin-bottom:0.75rem}
+.step-content p{font-size:14px;color:var(--color-text-secondary);line-height:1.6;margin-bottom:1.25rem}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font-size:12px;color:var(--color-text-secondary)}
+.field input,.field select{font-size:13px;height:34px;padding:0 10px;border-radius:var(--border-radius-md)}
+.field.full{grid-column:1/-1}
+.summary-row{display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:0.5px solid var(--color-border-tertiary)}
+.summary-row.total{font-weight:500;font-size:14px;color:var(--color-text-primary);border-bottom:none;margin-top:4px}
+.btn-row{display:flex;gap:10px;margin-top:1.25rem;justify-content:flex-end}
+.btn{padding:8px 20px;font-size:13px;border-radius:var(--border-radius-md);cursor:pointer;transition:opacity .2s,transform .15s}
+.btn:active{transform:scale(0.97)}
+.btn-primary{background:#1D9E75;color:#fff;border:none;font-weight:500}
+.btn-secondary{background:var(--color-background-secondary);border:0.5px solid var(--color-border-secondary);color:var(--color-text-primary)}
+.confirm-icon{width:56px;height:56px;border-radius:50%;background:#E1F5EE;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem}
+svg.morph-check{width:24px;height:24px;overflow:visible}
+</style>
+
+<div class="stepper-wrap">
+  <h2 class="sr-only">Checkout progress indicator with morphing steps</h2>
+  <div class="steps-row" id="stepsRow"></div>
+  <div class="content-area" id="contentArea"></div>
+</div>
+
+<script>
+const steps=[
+  {label:'Cart',icon:'ti-shopping-cart',title:'Your cart',desc:'Review your items before proceeding.',fields:`<div class="summary-row"><span>Wireless Headphones</span><span>₹8,999</span></div><div class="summary-row"><span>USB-C Cable (2m)</span><span>₹799</span></div><div class="summary-row"><span>Shipping</span><span style="color:#1D9E75">Free</span></div><div class="summary-row total"><span>Total</span><span>₹9,798</span></div>`},
+  {label:'Info',icon:'ti-user',title:'Shipping info',desc:'Where should we send your order?',fields:`<div class="field-row"><div class="field"><label>First name</label><input placeholder="Arjun" /></div><div class="field"><label>Last name</label><input placeholder="Sharma" /></div></div><div class="field-row"><div class="field full"><label>Address</label><input placeholder="123 MG Road" /></div></div><div class="field-row"><div class="field"><label>City</label><input placeholder="Mumbai" /></div><div class="field"><label>Pincode</label><input placeholder="400001" /></div></div>`},
+  {label:'Payment',icon:'ti-credit-card',title:'Payment details',desc:'All transactions are encrypted and secure.',fields:`<div class="field-row"><div class="field full"><label>Card number</label><input placeholder="4242 4242 4242 4242" /></div></div><div class="field-row"><div class="field"><label>Expiry</label><input placeholder="MM / YY" /></div><div class="field"><label>CVV</label><input placeholder="···" /></div></div><div class="field-row"><div class="field full"><label>Name on card</label><input placeholder="Arjun Sharma" /></div></div>`},
+  {label:'Confirm',icon:'ti-circle-check',title:'Order confirmed!',desc:'Thank you! Your order #ORD-28471 has been placed. You\'ll receive a confirmation at arjun@email.com.',fields:`<div class="confirm-icon"><i class="ti ti-circle-check" style="font-size:28px;color:#1D9E75" aria-hidden="true"></i></div><div class="summary-row"><span>Estimated delivery</span><span style="color:#1D9E75;font-weight:500">Jun 3–5</span></div><div class="summary-row"><span>Order total</span><span>₹9,798</span></div>`}
+];
+
+let current=0;
+
+function renderSteps(){
+  const row=document.getElementById('stepsRow');
+  row.innerHTML='';
+  steps.forEach((s,i)=>{
+    const node=document.createElement('div');
+    node.className='step-node';
+    node.setAttribute('role','button');
+    node.setAttribute('aria-label','Go to step '+(i+1)+': '+s.label);
+    node.setAttribute('tabindex','0');
+    const isDone=i<current, isActive=i===current;
+    node.innerHTML=`<div class="step-circle ${isDone?'done':isActive?'active':''}" id="circle-${i}">${isDone?morphedCheck():rawNum(i+1)}</div><span class="step-label ${isDone?'done':isActive?'active':''}">${s.label}</span>`;
+    node.addEventListener('click',()=>goTo(i));
+    node.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' ')goTo(i)});
+    row.appendChild(node);
+    if(i<steps.length-1){
+      const conn=document.createElement('div');
+      conn.className='connector';
+      conn.innerHTML=`<div class="connector-fill ${i<current?'done':''}" id="fill-${i}"></div>`;
+      row.appendChild(conn);
+    }
+  });
+}
+
+function morphedCheck(){
+  return `<svg class="morph-check" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline points="4,13 9,18 20,7" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+}
+
+function rawNum(n){
+  return `<span style="transition:all .3s">${n}</span>`;
+}
+
+function renderContent(){
+  const area=document.getElementById('contentArea');
+  if(area.children.length===0){
+    steps.forEach((s,i)=>{
+      const div=document.createElement('div');
+      div.className='step-content'+(i===0?' active':'');
+      div.id='content-'+i;
+      div.innerHTML=buildContent(s,i);
+      area.appendChild(div);
+    });
+  }else{
+    steps.forEach((_,i)=>{
+      const el=document.getElementById('content-'+i);
+      if(el) el.className='step-content'+(i===current?' active':'');
+    });
+  }
+}
+
+function buildContent(s,i){
+  const isLast=i===steps.length-1;
+  const isFirst=i===0;
+  return `<h3>${s.title}</h3><p>${s.desc}</p>${s.fields}<div class="btn-row">${!isFirst?`<button class="btn btn-secondary" onclick="goTo(${i-1})">Back</button>`:''}<button class="btn btn-primary" onclick="${isLast?`sendPrompt('I want to track my order')`:`'goTo(${i+1})'`}">${isLast?'Track order ↗':i===steps.length-2?'Place order':'Continue'}</button></div>`;
+}
+
+function goTo(idx){
+  if(idx<0||idx>steps.length-1)return;
+  const prev=current;
+  current=idx;
+  renderSteps();
+  animateConnectors(prev,idx);
+  steps.forEach((_,i)=>{
+    const el=document.getElementById('content-'+i);
+    if(el) el.className='step-content'+(i===current?' active':'');
+  });
+}
+
+function animateConnectors(from,to){
+  for(let i=0;i<steps.length-1;i++){
+    const fill=document.getElementById('fill-'+i);
+    if(!fill)continue;
+    if(i<to){
+      fill.style.width='0%';
+      setTimeout(()=>{fill.style.width='100%';},i*60);
+    }else{
+      fill.style.width='0%';
+    }
+  }
+}
+
+renderSteps();
+renderContent();
+animateConnectors(-1,0);
+</script>

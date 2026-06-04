@@ -1,0 +1,305 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&display=swap');
+  :root { --green: #33ff33; --amber: #ffb000; --dim: #1a1a1a; }
+  #term-wrap { background: #0a0a0a; border-radius: 12px; padding: 0; overflow: hidden; font-family: 'Share Tech Mono', monospace; min-height: 520px; display: flex; flex-direction: column; border: 1.5px solid #222; }
+  #term-header { background: #111; padding: 10px 16px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #1e1e1e; }
+  .dot { width: 12px; height: 12px; border-radius: 50%; }
+  .dot-r { background: #ff5f56; } .dot-y { background: #ffbd2e; } .dot-g { background: #27c93f; }
+  #term-title { flex: 1; text-align: center; font-size: 12px; color: #444; font-family: 'Share Tech Mono', monospace; letter-spacing: 2px; }
+  #theme-btn { background: none; border: 1px solid #333; color: #555; font-size: 11px; padding: 3px 8px; border-radius: 4px; cursor: pointer; font-family: 'Share Tech Mono', monospace; transition: all 0.2s; }
+  #theme-btn:hover { border-color: var(--green); color: var(--green); }
+  #term-screen { flex: 1; padding: 20px; overflow-y: auto; position: relative; min-height: 420px; cursor: text; }
+  #output { white-space: pre-wrap; word-break: break-all; }
+  .line { display: block; margin-bottom: 2px; line-height: 1.5; font-size: 15px; }
+  .prompt-line { display: flex; align-items: center; gap: 0; }
+  #input-line { display: flex; align-items: center; gap: 0; margin-top: 4px; font-size: 15px; }
+  #prompt { color: var(--green); white-space: nowrap; }
+  #typed { color: var(--green); letter-spacing: 0.03em; }
+  #cursor { display: inline-block; width: 10px; background: var(--green); height: 18px; vertical-align: middle; animation: blink 1s step-end infinite; margin-left: 1px; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+  .cmd-text { color: var(--green); }
+  .out-text { color: #aaa; }
+  .err-text { color: #ff5555; }
+  .info-text { color: #55aaff; }
+  #scanlines { position: absolute; top:0;left:0;right:0;bottom:0; background: repeating-linear-gradient(to bottom, transparent 0px, transparent 3px, rgba(0,0,0,0.07) 3px, rgba(0,0,0,0.07) 4px); pointer-events: none; border-radius: 12px; }
+  #ghost-input { position: absolute; opacity: 0; pointer-events: none; width: 1px; height: 1px; }
+  #key-indicator { position: absolute; bottom: 12px; right: 16px; font-size: 11px; color: #333; font-family: 'Share Tech Mono', monospace; letter-spacing: 1px; }
+  .theme-amber #prompt, .theme-amber #typed, .theme-amber .cmd-text { color: var(--amber) !important; }
+  .theme-amber #cursor { background: var(--amber) !important; }
+  .theme-amber #theme-btn:hover { border-color: var(--amber); color: var(--amber); }
+</style>
+
+<div id="term-wrap">
+  <div id="term-header">
+    <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+    <span id="term-title">RETRO TERMINAL v2.4.1</span>
+    <button id="theme-btn" onclick="toggleTheme()">AMBER</button>
+  </div>
+  <div id="term-screen" onclick="focusInput()">
+    <div id="output"></div>
+    <div id="input-line">
+      <span id="prompt">guest@terminal:~$ </span><span id="typed"></span><span id="cursor"></span>
+    </div>
+    <div id="scanlines"></div>
+    <div id="key-indicator">↑↓ HISTORY · TAB COMPLETE</div>
+  </div>
+  <input id="ghost-input" type="text" autocomplete="off" spellcheck="false" />
+</div>
+
+<script>
+const ctx = new (window.AudioContext || window.webkitAudioContext)();
+let isAmber = false;
+const wrap = document.getElementById('term-wrap');
+const output = document.getElementById('output');
+const typedEl = document.getElementById('typed');
+const promptEl = document.getElementById('prompt');
+const ghost = document.getElementById('ghost-input');
+
+function toggleTheme() {
+  isAmber = !isAmber;
+  wrap.classList.toggle('theme-amber', isAmber);
+  document.getElementById('theme-btn').textContent = isAmber ? 'GREEN' : 'AMBER';
+}
+
+function playClick(type = 'key') {
+  if (!ctx) return;
+  const o = ctx.createOscillator();
+  const g = ctx.createGain();
+  o.connect(g); g.connect(ctx.destination);
+  const now = ctx.currentTime;
+  if (type === 'key') {
+    o.type = 'square';
+    o.frequency.setValueAtTime(800 + Math.random()*400, now);
+    o.frequency.exponentialRampToValueAtTime(200, now + 0.06);
+    g.gain.setValueAtTime(0.06, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+  } else if (type === 'backspace') {
+    o.type = 'sawtooth';
+    o.frequency.setValueAtTime(300, now);
+    o.frequency.exponentialRampToValueAtTime(150, now + 0.05);
+    g.gain.setValueAtTime(0.05, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+  } else if (type === 'enter') {
+    o.type = 'square';
+    o.frequency.setValueAtTime(400, now);
+    o.frequency.exponentialRampToValueAtTime(100, now + 0.15);
+    g.gain.setValueAtTime(0.09, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+  } else if (type === 'whoosh') {
+    o.type = 'sine';
+    o.frequency.setValueAtTime(600, now);
+    o.frequency.exponentialRampToValueAtTime(900, now + 0.08);
+    o.frequency.exponentialRampToValueAtTime(400, now + 0.15);
+    g.gain.setValueAtTime(0.04, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+  }
+  o.start(now); o.stop(now + 0.2);
+}
+
+let currentInput = '';
+let historyIndex = -1;
+const cmdHistory = [];
+let isTyping = false;
+let typeQueue = [];
+let typeTimer = null;
+let pendingLines = [];
+
+const commands = {
+  help: () => [
+    ['info', '┌─────────────────────────────────────────────┐'],
+    ['info', '│  AVAILABLE COMMANDS                         │'],
+    ['info', '├─────────────────────────────────────────────┤'],
+    ['info', '│  help     — show this help screen           │'],
+    ['info', '│  about    — about this terminal             │'],
+    ['info', '│  ls       — list directory contents         │'],
+    ['info', '│  date     — show current date & time        │'],
+    ['info', '│  echo     — repeat your text                │'],
+    ['info', '│  whoami   — display current user            │'],
+    ['info', '│  matrix   — enter the matrix                │'],
+    ['info', '│  clear    — clear the terminal              │'],
+    ['info', '│  specs    — system specifications           │'],
+    ['info', '└─────────────────────────────────────────────┘'],
+  ],
+  about: () => [
+    ['out', 'RETRO TERMINAL v2.4.1'],
+    ['out', 'Built with Web Audio API + mechanical soul.'],
+    ['out', 'Every keystroke is a tiny symphony.'],
+    ['out', ''],
+    ['out', 'Green phosphor or amber — your choice.'],
+  ],
+  ls: () => [
+    ['out', 'drwxr-xr-x  secrets/'],
+    ['out', 'drwxr-xr-x  projects/'],
+    ['out', '-rw-r--r--  readme.txt'],
+    ['out', '-rw-r--r--  manifesto.md'],
+    ['out', '-rwxr-xr-x  launch.sh'],
+  ],
+  date: () => [['out', new Date().toString()]],
+  whoami: () => [['out', 'guest — a curious human at a glowing screen']],
+  specs: () => [
+    ['out', 'CPU:    Motorola 68000 @ 8MHz'],
+    ['out', 'RAM:    512KB (expandable)'],
+    ['out', 'DISK:   400KB floppy'],
+    ['out', 'DISPLAY: 512×342 monochrome'],
+    ['out', 'AUDIO:  Web Audio API (modern magic)'],
+  ],
+  matrix: () => [
+    ['info', 'Wake up, Neo...'],
+    ['info', 'The Matrix has you.'],
+    ['info', 'Follow the white rabbit.'],
+    ['out', ''],
+    ['out', '01001000 01100101 01101100 01101100 01101111'],
+  ],
+  clear: () => { output.innerHTML = ''; return []; },
+};
+
+function addLine(text, cls) {
+  const span = document.createElement('span');
+  span.className = 'line ' + (cls === 'cmd' ? 'cmd-text' : cls === 'err' ? 'err-text' : cls === 'info' ? 'info-text' : 'out-text');
+  span.textContent = text;
+  output.appendChild(span);
+  scrollBottom();
+}
+
+function addCommandEcho(cmd) {
+  const span = document.createElement('span');
+  span.className = 'line cmd-text';
+  span.textContent = promptEl.textContent + cmd;
+  output.appendChild(span);
+}
+
+function scrollBottom() {
+  const s = document.getElementById('term-screen');
+  s.scrollTop = s.scrollHeight;
+}
+
+function typeOutput(lines, onDone) {
+  if (!lines.length) { if (onDone) onDone(); return; }
+  let i = 0;
+  function next() {
+    if (i >= lines.length) { if (onDone) onDone(); return; }
+    const [cls, text] = lines[i++];
+    if (!text && text !== '') { next(); return; }
+    typeLineChars(text, cls, next);
+  }
+  next();
+}
+
+function typeLineChars(text, cls, onDone) {
+  const span = document.createElement('span');
+  span.className = 'line ' + (cls === 'err' ? 'err-text' : cls === 'info' ? 'info-text' : 'out-text');
+  output.appendChild(span);
+  let ci = 0;
+  function tick() {
+    if (ci >= text.length) { scrollBottom(); if (onDone) setTimeout(onDone, 30); return; }
+    span.textContent += text[ci++];
+    playClick('key');
+    scrollBottom();
+    setTimeout(tick, 28 + Math.random() * 10);
+  }
+  tick();
+}
+
+function runCommand(cmd) {
+  const trimmed = cmd.trim();
+  addCommandEcho(trimmed);
+  playClick('enter');
+
+  if (!trimmed) { return; }
+
+  if (trimmed.startsWith('echo ')) {
+    const msg = trimmed.slice(5);
+    typeOutput([['out', msg]]);
+    return;
+  }
+
+  const fn = commands[trimmed.toLowerCase()];
+  if (fn) {
+    const lines = fn();
+    typeOutput(lines);
+  } else {
+    typeOutput([['err', `command not found: ${trimmed}`], ['out', "Type 'help' for available commands."]]);
+  }
+}
+
+function focusInput() {
+  ghost.focus();
+}
+
+ghost.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    const cmd = currentInput;
+    if (cmd.trim()) cmdHistory.unshift(cmd);
+    historyIndex = -1;
+    currentInput = '';
+    typedEl.textContent = '';
+    runCommand(cmd);
+  } else if (e.key === 'Backspace') {
+    e.preventDefault();
+    if (currentInput.length > 0) {
+      currentInput = currentInput.slice(0, -1);
+      typedEl.textContent = currentInput;
+      playClick('backspace');
+    }
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    playClick('whoosh');
+    if (historyIndex < cmdHistory.length - 1) {
+      historyIndex++;
+      currentInput = cmdHistory[historyIndex];
+      typedEl.textContent = currentInput;
+    }
+  } else if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    playClick('whoosh');
+    if (historyIndex > 0) {
+      historyIndex--;
+      currentInput = cmdHistory[historyIndex];
+      typedEl.textContent = currentInput;
+    } else {
+      historyIndex = -1;
+      currentInput = '';
+      typedEl.textContent = '';
+    }
+  } else if (e.key === 'Tab') {
+    e.preventDefault();
+    const cmds = Object.keys(commands);
+    const match = cmds.find(c => c.startsWith(currentInput));
+    if (match) {
+      currentInput = match;
+      typedEl.textContent = currentInput;
+      playClick('key');
+    }
+  } else if (e.key.length === 1) {
+    e.preventDefault();
+    currentInput += e.key;
+    typedEl.textContent = currentInput;
+    playClick('key');
+  }
+});
+
+document.getElementById('term-screen').addEventListener('click', focusInput);
+
+function bootSequence() {
+  const lines = [
+    ['info', '████████╗███████╗██████╗ ███╗   ███╗'],
+    ['info', '╚══██╔══╝██╔════╝██╔══██╗████╗ ████║'],
+    ['info', '   ██║   █████╗  ██████╔╝██╔████╔██║'],
+    ['info', '   ██║   ██╔══╝  ██╔══██╗██║╚██╔╝██║'],
+    ['info', '   ██║   ███████╗██║  ██║██║ ╚═╝ ██║'],
+    ['info', '   ╚═╝   ╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝'],
+    ['out',  ''],
+    ['out',  'BIOS v1.0 ... OK'],
+    ['out',  'Memory check ... 512KB OK'],
+    ['out',  'Loading kernel ... done'],
+    ['out',  ''],
+    ['info', "Type 'help' to see available commands."],
+    ['out',  ''],
+  ];
+  typeOutput(lines, () => { focusInput(); });
+}
+
+setTimeout(bootSequence, 300);
+</script>

@@ -1,0 +1,251 @@
+
+<style>
+.form-wrap { max-width: 420px; margin: 2rem auto; padding: 0 1rem; }
+.field-group { position: relative; margin-bottom: 2rem; }
+.field-label {
+  position: absolute; top: 50%; left: 14px; transform: translateY(-50%);
+  font-size: 15px; color: var(--color-text-tertiary);
+  pointer-events: none; transition: all 0.2s ease;
+  background: var(--color-background-primary); padding: 0 4px;
+}
+.field-input {
+  width: 100%; box-sizing: border-box;
+  padding: 14px 44px 14px 14px;
+  font-size: 15px; font-family: var(--font-sans);
+  background: var(--color-background-primary);
+  color: var(--color-text-primary);
+  border: 1.5px solid var(--color-border-secondary);
+  border-radius: var(--border-radius-md);
+  outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+}
+.field-input:focus { box-shadow: 0 0 0 3px rgba(55,138,221,0.15); }
+.field-input.focused .field-label,
+.field-input:focus ~ .field-label,
+.field-input:not(:placeholder-shown) ~ .field-label {
+  top: 0; font-size: 12px; color: var(--color-text-secondary);
+}
+.field-input:focus ~ .field-label { color: #185FA5; }
+.field-input.valid { border-color: #1D9E75; }
+.field-input.valid:focus { box-shadow: 0 0 0 3px rgba(29,158,117,0.15); }
+.field-input.invalid { border-color: #E24B4A; }
+.field-input.invalid:focus { box-shadow: 0 0 0 3px rgba(226,75,74,0.15); }
+
+.checkmark {
+  position: absolute; right: 14px; top: 50%; transform: translateY(-50%) translateX(20px) rotate(45deg);
+  width: 20px; height: 20px; opacity: 0; pointer-events: none;
+  color: #1D9E75; font-size: 20px;
+  transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1), opacity 0.25s ease;
+}
+.checkmark.visible {
+  opacity: 1; transform: translateY(-50%) translateX(0) rotate(0deg);
+  animation: gentleShake 0.5s ease 0.35s;
+}
+@keyframes gentleShake {
+  0%,100% { transform: translateY(-50%) rotate(0deg); }
+  25% { transform: translateY(-50%) rotate(-4deg); }
+  75% { transform: translateY(-50%) rotate(4deg); }
+}
+
+.error-bubble {
+  position: absolute; left: 0; bottom: -26px;
+  font-size: 12px; color: #A32D2D;
+  display: flex; align-items: center; gap: 5px;
+  opacity: 0; transform: translateY(4px);
+  pointer-events: none;
+  transition: opacity 0.22s ease, transform 0.22s ease;
+}
+.error-bubble.visible { opacity: 1; transform: translateY(0); }
+.error-bubble i { font-size: 13px; }
+
+@keyframes shakeField {
+  0%,100% { transform: translateX(0); }
+  20% { transform: translateX(-5px); }
+  40% { transform: translateX(5px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(3px); }
+}
+.field-input.shake { animation: shakeField 0.35s ease; }
+
+.submit-btn {
+  width: 100%; padding: 13px;
+  font-size: 15px; font-family: var(--font-sans); font-weight: 500;
+  background: #185FA5; color: #E6F1FB;
+  border: none; border-radius: var(--border-radius-md);
+  cursor: pointer; margin-top: 0.5rem;
+  transition: background 0.2s, transform 0.1s;
+}
+.submit-btn:hover { background: #0C447C; }
+.submit-btn:active { transform: scale(0.98); }
+
+.success-banner {
+  text-align: center; padding: 1.5rem;
+  background: var(--color-background-success);
+  border-radius: var(--border-radius-md);
+  color: var(--color-text-success);
+  font-size: 15px; display: none;
+}
+.success-banner i { font-size: 28px; display: block; margin-bottom: 8px; }
+</style>
+
+<div class="form-wrap" role="main">
+  <h2 class="sr-only">Floating validation form — validate fields as you type</h2>
+  <p style="font-size: 13px; color: var(--color-text-secondary); margin: 0 0 1.75rem;">Try typing in each field — validation fires after a short pause.</p>
+
+  <div id="the-form">
+    <div class="field-group" id="g-name">
+      <input class="field-input" type="text" id="f-name" placeholder=" " autocomplete="off" aria-describedby="err-name" />
+      <label class="field-label" for="f-name">Full name</label>
+      <i class="ti ti-check checkmark" id="ck-name" aria-hidden="true"></i>
+      <div class="error-bubble" id="err-name" role="alert" aria-live="polite">
+        <i class="ti ti-alert-circle" aria-hidden="true"></i><span id="err-name-text"></span>
+      </div>
+    </div>
+
+    <div class="field-group" id="g-email">
+      <input class="field-input" type="text" id="f-email" placeholder=" " autocomplete="off" aria-describedby="err-email" />
+      <label class="field-label" for="f-email">Email address</label>
+      <i class="ti ti-check checkmark" id="ck-email" aria-hidden="true"></i>
+      <div class="error-bubble" id="err-email" role="alert" aria-live="polite">
+        <i class="ti ti-alert-circle" aria-hidden="true"></i><span id="err-email-text"></span>
+      </div>
+    </div>
+
+    <div class="field-group" id="g-card">
+      <input class="field-input" type="text" id="f-card" placeholder=" " autocomplete="off" maxlength="19" aria-describedby="err-card" />
+      <label class="field-label" for="f-card">Card number</label>
+      <i class="ti ti-check checkmark" id="ck-card" aria-hidden="true"></i>
+      <div class="error-bubble" id="err-card" role="alert" aria-live="polite">
+        <i class="ti ti-alert-circle" aria-hidden="true"></i><span id="err-card-text"></span>
+      </div>
+    </div>
+
+    <div class="field-group" id="g-zip">
+      <input class="field-input" type="text" id="f-zip" placeholder=" " autocomplete="off" maxlength="6" aria-describedby="err-zip" />
+      <label class="field-label" for="f-zip">Postal / ZIP code</label>
+      <i class="ti ti-check checkmark" id="ck-zip" aria-hidden="true"></i>
+      <div class="error-bubble" id="err-zip" role="alert" aria-live="polite">
+        <i class="ti ti-alert-circle" aria-hidden="true"></i><span id="err-zip-text"></span>
+      </div>
+    </div>
+
+    <button class="submit-btn" id="submit-btn" type="button">Continue to payment</button>
+  </div>
+
+  <div class="success-banner" id="success-banner">
+    <i class="ti ti-circle-check" aria-hidden="true"></i>
+    Payment details verified — you're good to go!
+  </div>
+</div>
+
+<script>
+const fields = {
+  name: {
+    input: document.getElementById('f-name'),
+    check: document.getElementById('ck-name'),
+    err: document.getElementById('err-name'),
+    errTxt: document.getElementById('err-name-text'),
+    validate(v) {
+      if (!v) return 'Name is required';
+      if (v.trim().split(/\s+/).length < 2) return 'Please enter first and last name';
+      return null;
+    }
+  },
+  email: {
+    input: document.getElementById('f-email'),
+    check: document.getElementById('ck-email'),
+    err: document.getElementById('err-email'),
+    errTxt: document.getElementById('err-email-text'),
+    validate(v) {
+      if (!v) return 'Email is required';
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return 'Enter a valid email address';
+      return null;
+    }
+  },
+  card: {
+    input: document.getElementById('f-card'),
+    check: document.getElementById('ck-card'),
+    err: document.getElementById('err-card'),
+    errTxt: document.getElementById('err-card-text'),
+    validate(v) {
+      const digits = v.replace(/\s/g, '');
+      if (!digits) return 'Card number is required';
+      if (!/^\d+$/.test(digits)) return 'Numbers only, please';
+      if (digits.length < 16) return `${16 - digits.length} more digit${16 - digits.length === 1 ? '' : 's'} needed`;
+      return null;
+    }
+  },
+  zip: {
+    input: document.getElementById('f-zip'),
+    check: document.getElementById('ck-zip'),
+    err: document.getElementById('err-zip'),
+    errTxt: document.getElementById('err-zip-text'),
+    validate(v) {
+      if (!v) return 'Postal code is required';
+      if (!/^\d{4,6}$|^[A-Z]\d[A-Z]\s?\d[A-Z]\d$/i.test(v)) return 'Enter a valid postal code';
+      return null;
+    }
+  }
+};
+
+const timers = {};
+
+function setValid(f) {
+  f.input.classList.remove('invalid', 'shake');
+  f.input.classList.add('valid');
+  f.check.classList.add('visible');
+  f.err.classList.remove('visible');
+}
+
+function setInvalid(f, msg) {
+  f.input.classList.remove('valid', 'shake');
+  f.input.classList.add('invalid');
+  f.check.classList.remove('visible');
+  f.errTxt.textContent = msg;
+  f.err.classList.add('visible');
+  void f.input.offsetWidth;
+  f.input.classList.add('shake');
+}
+
+function clearState(f) {
+  f.input.classList.remove('valid', 'invalid', 'shake');
+  f.check.classList.remove('visible');
+  f.err.classList.remove('visible');
+}
+
+Object.entries(fields).forEach(([key, f]) => {
+  f.input.addEventListener('input', () => {
+    clearTimeout(timers[key]);
+    let val = f.input.value;
+    if (key === 'card') {
+      val = val.replace(/\D/g, '').slice(0, 16).replace(/(\d{4})(?=\d)/g, '$1 ');
+      f.input.value = val;
+    }
+    if (!val) { clearState(f); return; }
+    timers[key] = setTimeout(() => {
+      const error = f.validate(f.input.value);
+      error ? setInvalid(f, error) : setValid(f);
+    }, 300);
+  });
+
+  f.input.addEventListener('blur', () => {
+    clearTimeout(timers[key]);
+    if (!f.input.value) { clearState(f); return; }
+    const error = f.validate(f.input.value);
+    error ? setInvalid(f, error) : setValid(f);
+  });
+});
+
+document.getElementById('submit-btn').addEventListener('click', () => {
+  let allValid = true;
+  Object.values(fields).forEach(f => {
+    const error = f.validate(f.input.value);
+    if (error) { setInvalid(f, error); allValid = false; }
+    else if (f.input.value) setValid(f);
+    else { setInvalid(f, f.validate('')); allValid = false; }
+  });
+  if (allValid) {
+    document.getElementById('the-form').style.display = 'none';
+    document.getElementById('success-banner').style.display = 'block';
+  }
+});
+</script>

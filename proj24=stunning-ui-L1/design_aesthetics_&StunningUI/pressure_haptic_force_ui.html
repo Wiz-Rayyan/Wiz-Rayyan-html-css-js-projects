@@ -1,0 +1,379 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: transparent; }
+  .wrap { padding: 1.5rem 1rem 2rem; font-family: var(--font-sans); }
+
+  .stage {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+  }
+
+  .press-zone {
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    background: var(--color-background-secondary);
+    border: 0.5px solid var(--color-border-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    user-select: none;
+    transition: none;
+    position: relative;
+    touch-action: none;
+  }
+
+  .press-label {
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    text-align: center;
+    pointer-events: none;
+  }
+
+  .press-hint {
+    font-size: 11px;
+    color: var(--color-text-tertiary);
+    margin-top: 4px;
+  }
+
+  .meters {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .meter-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .meter-lbl {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    width: 54px;
+    flex-shrink: 0;
+  }
+
+  .meter-track {
+    flex: 1;
+    height: 6px;
+    background: var(--color-background-secondary);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .meter-fill {
+    height: 100%;
+    width: 0%;
+    border-radius: 3px;
+    transition: width 0.05s linear, background 0.1s ease;
+  }
+
+  .meter-val {
+    font-size: 12px;
+    color: var(--color-text-primary);
+    width: 32px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .state-tag {
+    font-size: 13px;
+    font-weight: 500;
+    padding: 4px 14px;
+    border-radius: 20px;
+    background: var(--color-background-secondary);
+    color: var(--color-text-secondary);
+    border: 0.5px solid var(--color-border-tertiary);
+    transition: background 0.15s, color 0.15s;
+    text-align: center;
+  }
+
+  .action-toast {
+    font-size: 13px;
+    color: var(--color-text-success);
+    opacity: 0;
+    transition: opacity 0.2s;
+    min-height: 18px;
+    text-align: center;
+  }
+
+  .sim-section {
+    width: 100%;
+  }
+
+  .sim-label {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    margin-bottom: 8px;
+    text-align: center;
+  }
+
+  .sim-buttons {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .sim-btn {
+    font-size: 12px;
+    padding: 8px 0;
+    border-radius: var(--border-radius-md);
+    border: 0.5px solid var(--color-border-secondary);
+    background: var(--color-background-primary);
+    color: var(--color-text-primary);
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+
+  .sim-btn:hover { background: var(--color-background-secondary); }
+  .sim-btn:active { transform: scale(0.97); }
+
+  .divider {
+    width: 100%;
+    height: 0.5px;
+    background: var(--color-border-tertiary);
+  }
+
+  .note {
+    font-size: 11px;
+    color: var(--color-text-tertiary);
+    text-align: center;
+    line-height: 1.5;
+  }
+</style>
+
+<div class="wrap">
+  <h2 class="sr-only">Pressure and haptic force interactive demo — press and hold the circle to simulate force-based visual feedback</h2>
+
+  <div class="stage">
+
+    <div id="pressBtn" class="press-zone" aria-label="Press and hold to simulate force">
+      <div>
+        <div class="press-label" id="pressText">Hold to press</div>
+        <div class="press-hint" id="pressHint">↓ use buttons below on desktop</div>
+      </div>
+    </div>
+
+    <div class="meters">
+      <div class="meter-row">
+        <span class="meter-lbl">Force</span>
+        <div class="meter-track"><div class="meter-fill" id="mForce"></div></div>
+        <span class="meter-val" id="vForce">0%</span>
+      </div>
+      <div class="meter-row">
+        <span class="meter-lbl">Scale</span>
+        <div class="meter-track"><div class="meter-fill" id="mScale"></div></div>
+        <span class="meter-val" id="vScale">1.00×</span>
+      </div>
+      <div class="meter-row">
+        <span class="meter-lbl">Haptic</span>
+        <div class="meter-track"><div class="meter-fill" id="mHaptic"></div></div>
+        <span class="meter-val" id="vHaptic">off</span>
+      </div>
+      <div class="meter-row">
+        <span class="meter-lbl">Glow</span>
+        <div class="meter-track"><div class="meter-fill" id="mGlow"></div></div>
+        <span class="meter-val" id="vGlow">0%</span>
+      </div>
+    </div>
+
+    <div id="stateTag" class="state-tag">idle</div>
+    <div id="actionToast" class="action-toast">⚡ Action triggered!</div>
+
+    <div class="divider"></div>
+
+    <div class="sim-section">
+      <p class="sim-label">Simulate pressure level</p>
+      <div class="sim-buttons">
+        <button class="sim-btn" onclick="simulate(0.2)">light<br><span style="color:var(--color-text-tertiary);font-size:10px">0–33%</span></button>
+        <button class="sim-btn" onclick="simulate(0.55)">medium<br><span style="color:var(--color-text-tertiary);font-size:10px">34–66%</span></button>
+        <button class="sim-btn" onclick="simulate(0.95)">hard<br><span style="color:var(--color-text-tertiary);font-size:10px">67–100%</span></button>
+      </div>
+    </div>
+
+    <p class="note">On supported iOS devices, touch.force (0–1) maps directly to visual feedback.<br>Android vibration via Navigator.vibrate().</p>
+  </div>
+</div>
+
+<script>
+  const btn = document.getElementById('pressBtn');
+  const pressText = document.getElementById('pressText');
+  const pressHint = document.getElementById('pressHint');
+  const stateTag = document.getElementById('stateTag');
+  const toast = document.getElementById('actionToast');
+
+  const mForce = document.getElementById('mForce');
+  const mScale = document.getElementById('mScale');
+  const mHaptic = document.getElementById('mHaptic');
+  const mGlow = document.getElementById('mGlow');
+  const vForce = document.getElementById('vForce');
+  const vScale = document.getElementById('vScale');
+  const vHaptic = document.getElementById('vHaptic');
+  const vGlow = document.getElementById('vGlow');
+
+  let currentForce = 0;
+  let animFrame = null;
+  let simTimer = null;
+  let actionFired = false;
+  let releaseTimer = null;
+
+  const COLORS = {
+    idle:   { fill: 'var(--color-background-secondary)', border: 'var(--color-border-secondary)', text: 'var(--color-text-secondary)' },
+    light:  { fill: '#E6F1FB', border: '#378ADD', bar: '#378ADD' },
+    medium: { fill: '#EEEDFE', border: '#7F77DD', bar: '#7F77DD' },
+    hard:   { fill: '#F0997B', border: '#D85A30', bar: '#D85A30' },
+  };
+
+  function getLevel(f) {
+    if (f <= 0) return 'idle';
+    if (f < 0.34) return 'light';
+    if (f < 0.67) return 'medium';
+    return 'hard';
+  }
+
+  function applyForce(f) {
+    currentForce = Math.max(0, Math.min(1, f));
+    const level = getLevel(currentForce);
+
+    const scale = 1 + currentForce * 0.3;
+    const hapticPct = currentForce;
+    const glowPct = currentForce;
+
+    btn.style.transform = `scale(${scale})`;
+    btn.style.transition = currentForce > 0
+      ? 'transform 0.05s cubic-bezier(0.34,1.56,0.64,1), background 0.1s ease, border-color 0.1s ease'
+      : 'transform 0.4s cubic-bezier(0.34,1.56,0.64,1), background 0.2s ease, border-color 0.2s ease';
+
+    if (level === 'idle') {
+      btn.style.background = COLORS.idle.fill;
+      btn.style.borderColor = 'var(--color-border-secondary)';
+      btn.style.borderWidth = '0.5px';
+      stateTag.style.background = 'var(--color-background-secondary)';
+      stateTag.style.color = 'var(--color-text-secondary)';
+      stateTag.style.borderColor = 'var(--color-border-tertiary)';
+      stateTag.textContent = 'idle';
+      pressText.textContent = 'Hold to press';
+    } else {
+      const c = COLORS[level];
+      btn.style.background = c.fill;
+      btn.style.borderColor = c.border;
+      btn.style.borderWidth = level === 'hard' ? '2px' : '1px';
+
+      stateTag.style.background = c.fill;
+      stateTag.style.color = c.border;
+      stateTag.style.borderColor = c.border;
+      stateTag.textContent = level + ' press';
+
+      pressText.textContent = level === 'light' ? 'Light press' : level === 'medium' ? 'Medium press' : 'Hard press!';
+    }
+
+    mForce.style.width = (currentForce * 100).toFixed(0) + '%';
+    mForce.style.background = level === 'idle' ? 'var(--color-border-secondary)' : COLORS[level]?.bar || 'var(--color-border-secondary)';
+    vForce.textContent = Math.round(currentForce * 100) + '%';
+
+    const scalePct = ((scale - 1) / 0.3 * 100).toFixed(0);
+    mScale.style.width = scalePct + '%';
+    mScale.style.background = level === 'idle' ? 'var(--color-border-secondary)' : COLORS[level]?.bar || 'var(--color-border-secondary)';
+    vScale.textContent = scale.toFixed(2) + '×';
+
+    mHaptic.style.width = (hapticPct * 100).toFixed(0) + '%';
+    mHaptic.style.background = level === 'idle' ? 'var(--color-border-secondary)' : COLORS[level]?.bar || 'var(--color-border-secondary)';
+    vHaptic.textContent = level === 'idle' ? 'off' : level === 'light' ? 'light' : level === 'medium' ? 'medium' : 'max';
+
+    mGlow.style.width = (glowPct * 100).toFixed(0) + '%';
+    mGlow.style.background = level === 'idle' ? 'var(--color-border-secondary)' : COLORS[level]?.bar || 'var(--color-border-secondary)';
+    vGlow.textContent = Math.round(glowPct * 100) + '%';
+
+    if (level === 'hard' && !actionFired) {
+      actionFired = true;
+      toast.style.opacity = '1';
+      toast.textContent = '⚡ Action triggered!';
+      try { navigator.vibrate && navigator.vibrate([80, 30, 120]); } catch(e) {}
+      setTimeout(() => { toast.style.opacity = '0'; }, 2000);
+    }
+  }
+
+  function release() {
+    actionFired = false;
+    applyForce(0);
+    pressHint.style.display = '';
+  }
+
+  function simulate(target) {
+    clearInterval(simTimer);
+    clearTimeout(releaseTimer);
+    actionFired = false;
+    pressHint.style.display = 'none';
+    let f = 0;
+    const step = target / 20;
+    simTimer = setInterval(() => {
+      f += step;
+      if (f >= target) { f = target; clearInterval(simTimer); }
+      applyForce(f);
+    }, 18);
+    releaseTimer = setTimeout(() => {
+      clearInterval(simTimer);
+      let rf = target;
+      const rstep = target / 15;
+      const releaseInterval = setInterval(() => {
+        rf -= rstep;
+        if (rf <= 0) { rf = 0; clearInterval(releaseInterval); }
+        applyForce(rf);
+      }, 25);
+    }, 900);
+  }
+
+  let holding = false;
+  let holdInterval = null;
+  let holdForce = 0;
+
+  btn.addEventListener('mousedown', () => {
+    holding = true; holdForce = 0; actionFired = false;
+    pressHint.style.display = 'none';
+    holdInterval = setInterval(() => {
+      if (!holding) return;
+      holdForce = Math.min(1, holdForce + 0.035);
+      applyForce(holdForce);
+    }, 40);
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (!holding) return;
+    holding = false;
+    clearInterval(holdInterval);
+    release();
+    pressHint.style.display = '';
+  });
+
+  btn.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    holding = true; holdForce = 0; actionFired = false;
+    pressHint.style.display = 'none';
+    const t = e.touches[0];
+    if (t.force !== undefined && t.force > 0) {
+      applyForce(t.force);
+    } else {
+      holdInterval = setInterval(() => {
+        if (!holding) return;
+        holdForce = Math.min(1, holdForce + 0.035);
+        applyForce(holdForce);
+      }, 40);
+    }
+  }, { passive: false });
+
+  btn.addEventListener('touchforcechange', (e) => {
+    if (e.changedTouches[0]) applyForce(e.changedTouches[0].force);
+  });
+
+  document.addEventListener('touchend', () => {
+    holding = false; clearInterval(holdInterval); release();
+    pressHint.style.display = '';
+  });
+</script>

@@ -1,0 +1,192 @@
+<div style="position:relative;width:100%;height:520px;border-radius:var(--border-radius-lg);overflow:hidden;font-family:var(--font-mono);">
+<canvas id="matrix-bg" style="position:absolute;top:0;left:0;width:100%;height:100%;"></canvas>
+<div id="terminal" style="position:absolute;inset:0;display:flex;flex-direction:column;padding:16px;background:transparent;">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding-bottom:10px;border-bottom:0.5px solid rgba(0,255,65,0.25);">
+    <div style="width:10px;height:10px;border-radius:50%;background:#ff5f56;"></div>
+    <div style="width:10px;height:10px;border-radius:50%;background:#ffbd2e;"></div>
+    <div style="width:10px;height:10px;border-radius:50%;background:#27c93f;"></div>
+    <span style="margin-left:8px;font-size:12px;color:rgba(0,255,65,0.6);letter-spacing:1px;">MATRIX TERMINAL v2.0</span>
+  </div>
+  <div id="output" style="flex:1;overflow-y:auto;font-size:13px;line-height:1.7;color:#00ff41;text-shadow:0 0 6px rgba(0,255,65,0.5);scrollbar-width:thin;scrollbar-color:rgba(0,255,65,0.3) transparent;"></div>
+  <div style="display:flex;align-items:center;gap:6px;margin-top:8px;padding-top:8px;border-top:0.5px solid rgba(0,255,65,0.2);">
+    <span style="color:rgba(0,255,65,0.7);font-size:13px;">❯</span>
+    <input id="cmd-input" type="text" placeholder="enter command..." autocomplete="off" spellcheck="false"
+      style="flex:1;background:transparent;border:none;outline:none;color:#00ff41;font-family:var(--font-mono);font-size:13px;caret-color:#00ff41;" />
+  </div>
+</div>
+
+<script>
+(function(){
+const canvas = document.getElementById('matrix-bg');
+const ctx = canvas.getContext('2d');
+const input = document.getElementById('cmd-input');
+const output = document.getElementById('output');
+
+const CHARS = 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ@#$%&';
+const W = () => canvas.parentElement.offsetWidth;
+const H = () => canvas.parentElement.offsetHeight;
+
+let cols, drops, speeds, chars;
+let mode = 'normal'; // normal, slow, fast, error, success
+let modeTimer = null;
+let fontSize = 14;
+
+function init() {
+  canvas.width = W();
+  canvas.height = H();
+  cols = Math.floor(canvas.width / fontSize);
+  drops = Array.from({length: cols}, () => Math.random() * -50);
+  speeds = Array.from({length: cols}, () => 0.3 + Math.random() * 0.7);
+  chars = Array.from({length: cols}, () => CHARS[Math.floor(Math.random() * CHARS.length)]);
+}
+
+function getColors() {
+  if (mode === 'error') return { bright: '#ff4444', mid: '#cc0000', fade: 'rgba(20,0,0,0.06)' };
+  if (mode === 'success') return { bright: '#00ff88', mid: '#00cc44', fade: 'rgba(0,20,5,0.04)' };
+  return { bright: '#00ff41', mid: '#008f11', fade: 'rgba(0,10,2,0.05)' };
+}
+
+function getSpeedMult() {
+  if (mode === 'slow') return 0.3;
+  if (mode === 'fast') return 2.5;
+  if (mode === 'success') return 1.6;
+  return 1;
+}
+
+function draw() {
+  const { bright, mid, fade } = getColors();
+  const sm = getSpeedMult();
+
+  ctx.fillStyle = fade;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.font = fontSize + 'px monospace';
+
+  for (let i = 0; i < cols; i++) {
+    const y = drops[i] * fontSize;
+    if (y > 0) {
+      ctx.fillStyle = bright;
+      ctx.shadowColor = bright;
+      ctx.shadowBlur = 4;
+      chars[i] = CHARS[Math.floor(Math.random() * CHARS.length)];
+      ctx.fillText(chars[i], i * fontSize, y);
+      ctx.shadowBlur = 0;
+
+      if (y > 20) {
+        ctx.fillStyle = mid;
+        ctx.fillText(CHARS[Math.floor(Math.random() * CHARS.length)], i * fontSize, y - fontSize);
+      }
+    }
+
+    drops[i] += speeds[i] * sm;
+    if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+      drops[i] = Math.random() * -20;
+      speeds[i] = 0.3 + Math.random() * 0.7;
+    }
+  }
+}
+
+function setMode(m, duration) {
+  mode = m;
+  if (modeTimer) clearTimeout(modeTimer);
+  if (duration) {
+    modeTimer = setTimeout(() => { mode = 'normal'; }, duration);
+  }
+}
+
+let animId;
+function loop() {
+  draw();
+  animId = requestAnimationFrame(loop);
+}
+
+init();
+loop();
+window.addEventListener('resize', init);
+
+function print(text, color) {
+  const div = document.createElement('div');
+  div.style.color = color || '#00ff41';
+  div.style.textShadow = '0 0 4px currentColor';
+  div.textContent = text;
+  output.appendChild(div);
+  output.scrollTop = output.scrollHeight;
+}
+
+const commands = {
+  help: () => {
+    print('Available commands:', '#00ff41');
+    print('  help       — show this message', '#7fff7f');
+    print('  whoami     — identify yourself', '#7fff7f');
+    print('  ls         — list directory', '#7fff7f');
+    print('  matrix     — toggle rain speed', '#7fff7f');
+    print('  clear      — clear terminal', '#7fff7f');
+    print('  hack       — initiate hack sequence', '#7fff7f');
+    print('  exit       — you cannot exit the Matrix', '#7fff7f');
+    setMode('normal');
+  },
+  whoami: () => {
+    print('> The One.', '#00ffcc');
+    setMode('success', 1500);
+  },
+  ls: () => {
+    print('total 42', '#7fff7f');
+    print('drwxr-xr-x  system/      [CLASSIFIED]', '#aaffaa');
+    print('-rw-r--r--  red_pill.exe', '#aaffaa');
+    print('-rw-r--r--  blue_pill.exe', '#aaffaa');
+    print('drwxr-xr-x  the_source/', '#aaffaa');
+    setMode('success', 1000);
+  },
+  matrix: () => {
+    print('> Overriding simulation parameters...', '#00ff41');
+    setMode('fast', 2000);
+    setTimeout(() => print('> Stability restored.', '#7fff7f'), 2100);
+  },
+  clear: () => {
+    output.innerHTML = '';
+    setMode('fast', 1000);
+  },
+  hack: () => {
+    print('> Initiating intrusion sequence...', '#ff4444');
+    setMode('error', 600);
+    let i = 0;
+    const steps = [
+      [800, '> Bypassing firewall... ', '#ff6644'],
+      [1600, '> Cracking encryption... ', '#ffaa44'],
+      [2400, '> Access granted. Welcome, Neo.', '#00ff88'],
+    ];
+    steps.forEach(([t, msg, col]) => setTimeout(() => { print(msg, col); if(t===2400) setMode('success', 1500); }, t));
+  },
+  exit: () => {
+    print('> There is no exit.', '#ff4444');
+    print('> You are always in the Matrix.', '#cc0000');
+    setMode('error', 1200);
+  }
+};
+
+input.addEventListener('input', () => {
+  setMode('slow', 400);
+});
+
+input.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    const val = input.value.trim().toLowerCase();
+    if (!val) return;
+    print('❯ ' + val, 'rgba(0,255,65,0.5)');
+    if (commands[val]) {
+      commands[val]();
+    } else {
+      print('command not found: ' + val + ' — try "help"', '#ff4444');
+      setMode('error', 800);
+    }
+    input.value = '';
+  }
+});
+
+print('Initializing Matrix interface...', '#00ff41');
+setTimeout(() => print('Connection established. Type "help" to begin.', '#7fff7f'), 400);
+setTimeout(() => print('', ''), 800);
+input.focus();
+})();
+</script>
+</div>

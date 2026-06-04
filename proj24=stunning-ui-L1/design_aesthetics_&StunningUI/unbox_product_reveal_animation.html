@@ -1,0 +1,192 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.scene{perspective:1000px;width:280px;margin:0 auto}
+.box-wrap{position:relative;width:280px;height:320px;cursor:pointer;transform-style:preserve-3d}
+.box-base{position:absolute;bottom:0;left:0;right:0;height:240px;background:var(--color-background-primary);border:0.5px solid var(--color-border-secondary);border-radius:0 0 12px 12px;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:24px}
+.box-inner-bg{position:absolute;inset:0;background:var(--color-background-secondary);opacity:0.5}
+.product-wrap{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:8px;transform:scale(0.88) translateY(8px);transition:transform 0.5s cubic-bezier(0.34,1.56,0.64,1),opacity 0.4s ease;opacity:0.7}
+.product-icon{width:80px;height:80px;background:var(--color-background-primary);border-radius:16px;border:0.5px solid var(--color-border-secondary);display:flex;align-items:center;justify-content:center;font-size:40px;transition:transform 0.6s cubic-bezier(0.34,1.56,0.64,1)}
+.product-name{font-size:14px;font-weight:500;color:var(--color-text-primary);letter-spacing:0.01em}
+.product-sub{font-size:12px;color:var(--color-text-secondary)}
+.box-lid{position:absolute;top:0;left:0;right:0;height:96px;background:var(--color-background-primary);border:0.5px solid var(--color-border-secondary);border-radius:12px 12px 0 0;transform-origin:bottom center;transform:rotateX(0deg);transition:transform 0.5s cubic-bezier(0.4,0,0.2,1),opacity 0.4s ease;z-index:10;display:flex;align-items:center;justify-content:center;backface-visibility:hidden}
+.lid-stripe{width:60px;height:4px;background:var(--color-border-secondary);border-radius:2px}
+.box-side-l,.box-side-r{position:absolute;bottom:0;width:10px;height:240px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-secondary)}
+.box-side-l{left:0;border-radius:12px 0 0 12px}
+.box-side-r{right:0;border-radius:0 12px 12px 0}
+.details-panel{position:absolute;bottom:-120px;left:0;right:0;background:var(--color-background-primary);border:0.5px solid var(--color-border-secondary);border-radius:12px;padding:16px;transition:transform 0.5s cubic-bezier(0.34,1.56,0.64,1),opacity 0.4s ease;opacity:0;transform:translateY(12px)}
+.detail-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:0.5px solid var(--color-border-tertiary)}
+.detail-row:last-child{border-bottom:none}
+.detail-label{font-size:12px;color:var(--color-text-secondary)}
+.detail-val{font-size:12px;font-weight:500;color:var(--color-text-primary)}
+.price-tag{font-size:18px;font-weight:500;color:var(--color-text-primary);margin-top:8px}
+.close-btn{display:none;margin:12px auto 0;padding:6px 16px;font-size:12px;color:var(--color-text-secondary);background:none;border:0.5px solid var(--color-border-secondary);border-radius:6px;cursor:pointer;transition:background 0.15s}
+.close-btn:hover{background:var(--color-background-secondary)}
+.canvas-wrap{position:absolute;inset:0;pointer-events:none;z-index:20}
+canvas{position:absolute;inset:0;width:100%;height:100%}
+
+.stage{padding:32px 24px 160px;position:relative}
+.hint{text-align:center;font-size:13px;color:var(--color-text-secondary);margin-bottom:24px;transition:opacity 0.3s}
+
+.box-wrap.hover-state .box-lid{transform:rotateX(-28deg) translateY(-6px)}
+.box-wrap.hover-state .product-wrap{transform:scale(0.95) translateY(2px);opacity:0.9}
+.box-wrap.open-state .box-lid{transform:rotateX(-90deg) translateY(-80px);opacity:0;pointer-events:none}
+.box-wrap.open-state .product-wrap{transform:scale(1) translateY(-10px);opacity:1}
+.box-wrap.open-state .product-icon{transform:translateY(-4px)}
+.box-wrap.open-state .details-panel{opacity:1;transform:translateY(0)}
+.box-wrap.open-state .close-btn{display:block}
+</style>
+
+<h2 class="sr-only">Unbox product reveal — hover to peek, click to open the box and reveal product details</h2>
+
+<div class="stage" id="stage">
+  <p class="hint" id="hint">Hover to peek · Click to unbox</p>
+
+  <div class="scene">
+    <div class="box-wrap" id="box" tabindex="0" role="button" aria-label="Product box — click to open">
+      <canvas id="sparks"></canvas>
+
+      <div class="box-lid" id="lid">
+        <div class="lid-stripe"></div>
+      </div>
+
+      <div class="box-base">
+        <div class="box-inner-bg"></div>
+        <div class="product-wrap" id="product">
+          <div class="product-icon" aria-hidden="true">📱</div>
+          <span class="product-name">Nova X1</span>
+          <span class="product-sub">Titanium · 256 GB</span>
+        </div>
+      </div>
+
+      <div class="box-side-l"></div>
+      <div class="box-side-r"></div>
+
+      <div class="details-panel" id="details">
+        <div class="detail-row">
+          <span class="detail-label">Model</span>
+          <span class="detail-val">Nova X1 Pro</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Color</span>
+          <span class="detail-val">Titanium Silver</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Storage</span>
+          <span class="detail-val">256 GB</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Battery</span>
+          <span class="detail-val">4800 mAh</span>
+        </div>
+        <div class="price-tag">$1,199</div>
+        <button class="close-btn" id="closeBtn" aria-label="Close box">Close box</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const box = document.getElementById('box');
+const hint = document.getElementById('hint');
+const cv = document.getElementById('sparks');
+const ctx = cv.getContext('2d');
+let isOpen = false;
+let particles = [];
+
+function resize(){
+  const stage = document.getElementById('stage');
+  cv.width = box.offsetWidth;
+  cv.height = box.offsetHeight + 160;
+}
+resize();
+
+class Particle {
+  constructor(){
+    this.reset();
+  }
+  reset(){
+    const bw = cv.width;
+    const bh = 320;
+    this.x = bw/2 + (Math.random()-0.5)*60;
+    this.y = bh*0.35;
+    const angle = -Math.PI/2 + (Math.random()-0.5)*Math.PI*1.4;
+    const speed = 2.5 + Math.random()*4;
+    this.vx = Math.cos(angle)*speed;
+    this.vy = Math.sin(angle)*speed;
+    this.life = 1;
+    this.decay = 0.018 + Math.random()*0.022;
+    this.size = 3 + Math.random()*4;
+    const hues = [210,260,180,340,45];
+    this.hue = hues[Math.floor(Math.random()*hues.length)];
+  }
+  update(){
+    this.x += this.vx;
+    this.y += this.vy;
+    this.vy += 0.12;
+    this.life -= this.decay;
+  }
+  draw(){
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, this.life * 0.9);
+    ctx.fillStyle = `hsl(${this.hue},75%,62%)`;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size * this.life, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+let animating = false;
+function burst(){
+  for(let i=0;i<55;i++) particles.push(new Particle());
+  if(!animating) loop();
+}
+
+function loop(){
+  animating = true;
+  ctx.clearRect(0,0,cv.width,cv.height);
+  particles = particles.filter(p=>p.life>0);
+  particles.forEach(p=>{p.update();p.draw()});
+  if(particles.length>0) requestAnimationFrame(loop);
+  else { animating=false; ctx.clearRect(0,0,cv.width,cv.height); }
+}
+
+box.addEventListener('mouseenter',()=>{
+  if(!isOpen) box.classList.add('hover-state');
+});
+box.addEventListener('mouseleave',()=>{
+  if(!isOpen) box.classList.remove('hover-state');
+});
+
+function open(){
+  isOpen = true;
+  box.classList.remove('hover-state');
+  box.classList.add('open-state');
+  hint.style.opacity='0';
+  setTimeout(burst, 250);
+}
+
+function close(){
+  isOpen = false;
+  box.classList.remove('open-state');
+  hint.style.opacity='1';
+  particles = [];
+  ctx.clearRect(0,0,cv.width,cv.height);
+}
+
+box.addEventListener('click',(e)=>{
+  if(e.target.id==='closeBtn') return;
+  if(!isOpen) open();
+});
+
+document.getElementById('closeBtn').addEventListener('click',(e)=>{
+  e.stopPropagation();
+  close();
+});
+
+box.addEventListener('keydown',(e)=>{
+  if(e.key==='Enter'||e.key===' '){e.preventDefault(); isOpen?close():open();}
+  if(e.key==='Escape'&&isOpen) close();
+});
+</script>

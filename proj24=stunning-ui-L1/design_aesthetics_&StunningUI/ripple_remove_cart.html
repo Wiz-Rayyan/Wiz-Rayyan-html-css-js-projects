@@ -1,0 +1,264 @@
+<h2 class="sr-only">Interactive shopping cart with ripple remove animation demo</h2>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-sans); }
+
+.cart-wrap { padding: 1.5rem 0; max-width: 520px; margin: 0 auto; }
+.cart-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 1.25rem; }
+.cart-title { font-size: 17px; font-weight: 500; color: var(--color-text-primary); }
+.cart-count { font-size: 13px; color: var(--color-text-secondary); }
+
+.cart-items { display: flex; flex-direction: column; gap: 0; }
+
+.cart-item {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 0;
+  border-bottom: 0.5px solid var(--color-border-tertiary);
+  position: relative; overflow: hidden;
+  transition: opacity 0.35s ease, transform 0.35s ease, max-height 0.4s ease, padding 0.4s ease;
+  max-height: 120px;
+}
+.cart-item.removing {
+  opacity: 0; transform: translateX(-20px);
+  max-height: 0; padding-top: 0; padding-bottom: 0;
+  pointer-events: none;
+}
+
+.item-img {
+  width: 52px; height: 52px; border-radius: var(--border-radius-md);
+  background: var(--color-background-secondary);
+  border: 0.5px solid var(--color-border-tertiary);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px; flex-shrink: 0;
+}
+.item-info { flex: 1; min-width: 0; }
+.item-name { font-size: 14px; font-weight: 500; color: var(--color-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.item-meta { font-size: 12px; color: var(--color-text-secondary); margin-top: 2px; }
+.item-price { font-size: 14px; font-weight: 500; color: var(--color-text-primary); white-space: nowrap; }
+.item-remove {
+  background: none; border: none; cursor: pointer;
+  color: var(--color-text-secondary); padding: 6px;
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  transition: color 0.15s, background 0.15s;
+  position: relative; z-index: 2;
+}
+.item-remove:hover { color: #E24B4A; background: var(--color-background-secondary); }
+
+.ripple {
+  position: absolute; border-radius: 50%;
+  background: rgba(226,75,74,0.18);
+  pointer-events: none; transform: scale(0);
+  animation: ripple-expand 0.55s cubic-bezier(0.22,0.61,0.36,1) forwards;
+}
+@keyframes ripple-expand {
+  0%   { transform: scale(0); opacity: 1; }
+  60%  { opacity: 0.7; }
+  100% { transform: scale(20); opacity: 0; }
+}
+
+.cart-footer { margin-top: 1.25rem; display: flex; align-items: center; justify-content: space-between; }
+.total-label { font-size: 13px; color: var(--color-text-secondary); }
+.total-val { font-size: 22px; font-weight: 500; color: var(--color-text-primary); transition: color 0.2s; }
+.total-val.counting { color: #E24B4A; }
+
+.undo-bar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px;
+  background: var(--color-background-secondary);
+  border: 0.5px solid var(--color-border-secondary);
+  border-radius: var(--border-radius-md);
+  margin-top: 14px;
+  opacity: 0; transform: translateY(6px);
+  transition: opacity 0.25s, transform 0.25s;
+  pointer-events: none;
+}
+.undo-bar.visible { opacity: 1; transform: translateY(0); pointer-events: auto; }
+.undo-msg { font-size: 13px; color: var(--color-text-secondary); flex: 1; }
+.undo-btn {
+  font-size: 13px; font-weight: 500; color: var(--color-text-info);
+  background: none; border: none; cursor: pointer; padding: 0;
+}
+.undo-timer {
+  width: 28px; height: 28px; position: relative;
+}
+.undo-timer svg { transform: rotate(-90deg); }
+.undo-timer circle.bg { fill: none; stroke: var(--color-border-tertiary); stroke-width: 2.5; }
+.undo-timer circle.prog { fill: none; stroke: #378ADD; stroke-width: 2.5; stroke-linecap: round;
+  stroke-dasharray: 69.1; stroke-dashoffset: 0; transition: stroke-dashoffset 0.1s linear; }
+
+.empty-state { text-align: center; padding: 2rem 0; color: var(--color-text-secondary); font-size: 14px; }
+</style>
+
+<div class="cart-wrap">
+  <div class="cart-header">
+    <span class="cart-title">Your cart</span>
+    <span class="cart-count" id="count-label">4 items</span>
+  </div>
+
+  <div class="cart-items" id="cart-items"></div>
+
+  <div class="undo-bar" id="undo-bar">
+    <span class="undo-msg" id="undo-msg">Item removed</span>
+    <button class="undo-btn" id="undo-btn">Undo</button>
+    <div class="undo-timer">
+      <svg viewBox="0 0 24 24" width="28" height="28">
+        <circle class="bg" cx="12" cy="12" r="11"/>
+        <circle class="prog" cx="12" cy="12" r="11" id="timer-circle"/>
+      </svg>
+    </div>
+  </div>
+
+  <div class="cart-footer">
+    <span class="total-label">Total</span>
+    <span class="total-val" id="total-val">$0.00</span>
+  </div>
+</div>
+
+<script>
+const ITEMS = [
+  { id: 1, emoji: '🎧', name: 'Wireless Headphones', meta: 'Color: Midnight Black', price: 79.99 },
+  { id: 2, emoji: '👟', name: 'Running Shoes', meta: 'Size: US 10 · White', price: 124.00 },
+  { id: 3, emoji: '🧴', name: 'Face Moisturizer', meta: '50ml · SPF 30', price: 22.50 },
+  { id: 4, emoji: '📚', name: 'Design Thinking Book', meta: 'Paperback', price: 18.99 },
+];
+
+let cartItems = [...ITEMS];
+let undoTimeout = null;
+let timerRAF = null;
+let removedItem = null;
+let removedIndex = null;
+
+const cartEl = document.getElementById('cart-items');
+const totalEl = document.getElementById('total-val');
+const countEl = document.getElementById('count-label');
+const undoBar = document.getElementById('undo-bar');
+const undoMsg = document.getElementById('undo-msg');
+const undoBtn = document.getElementById('undo-btn');
+const timerCircle = document.getElementById('timer-circle');
+const CIRCUMFERENCE = 69.1;
+
+function fmt(n) { return '$' + n.toFixed(2); }
+
+function calcTotal() {
+  return cartItems.reduce((s, i) => s + i.price, 0);
+}
+
+function animateTotal(from, to) {
+  const steps = 18;
+  let step = 0;
+  totalEl.classList.add('counting');
+  const id = setInterval(() => {
+    step++;
+    const t = step / steps;
+    const val = from + (to - from) * t;
+    totalEl.textContent = fmt(val);
+    if (step >= steps) {
+      clearInterval(id);
+      totalEl.textContent = fmt(to);
+      totalEl.classList.remove('counting');
+    }
+  }, 20);
+}
+
+function renderCart() {
+  cartEl.innerHTML = '';
+  if (cartItems.length === 0) {
+    cartEl.innerHTML = '<div class="empty-state"><i class="ti ti-shopping-cart" style="font-size:28px;display:block;margin-bottom:8px" aria-hidden="true"></i>Your cart is empty</div>';
+    countEl.textContent = '0 items';
+    totalEl.textContent = '$0.00';
+    return;
+  }
+  countEl.textContent = cartItems.length + (cartItems.length === 1 ? ' item' : ' items');
+  cartItems.forEach((item, idx) => {
+    const div = document.createElement('div');
+    div.className = 'cart-item';
+    div.dataset.id = item.id;
+    div.innerHTML = `
+      <div class="item-img">${item.emoji}</div>
+      <div class="item-info">
+        <div class="item-name">${item.name}</div>
+        <div class="item-meta">${item.meta}</div>
+      </div>
+      <div class="item-price">${fmt(item.price)}</div>
+      <button class="item-remove" aria-label="Remove ${item.name}">
+        <i class="ti ti-x" style="font-size:16px" aria-hidden="true"></i>
+      </button>
+    `;
+    div.querySelector('.item-remove').addEventListener('click', e => removeItem(e, item, idx, div));
+    cartEl.appendChild(div);
+  });
+  totalEl.textContent = fmt(calcTotal());
+}
+
+function removeItem(e, item, idx, div) {
+  const btn = e.currentTarget;
+  const rect = btn.getBoundingClientRect();
+  const parentRect = div.getBoundingClientRect();
+  const x = rect.left - parentRect.left + rect.width / 2;
+  const y = rect.top - parentRect.top + rect.height / 2;
+  const size = 48;
+
+  const ripple = document.createElement('div');
+  ripple.className = 'ripple';
+  ripple.style.cssText = `width:${size}px;height:${size}px;left:${x - size/2}px;top:${y - size/2}px`;
+  div.appendChild(ripple);
+
+  const prevTotal = calcTotal();
+  div.classList.add('removing');
+
+  removedItem = item;
+  removedIndex = idx;
+  cartItems = cartItems.filter(i => i.id !== item.id);
+
+  const newTotal = calcTotal();
+
+  setTimeout(() => {
+    renderCart();
+    animateTotal(prevTotal, newTotal);
+    showUndo(item.name);
+  }, 380);
+}
+
+function showUndo(name) {
+  clearTimeout(undoTimeout);
+  cancelAnimationFrame(timerRAF);
+  undoMsg.textContent = `"${name}" removed`;
+  undoBar.classList.add('visible');
+  timerCircle.style.strokeDashoffset = '0';
+
+  const duration = 3000;
+  const start = performance.now();
+  function tick(now) {
+    const elapsed = now - start;
+    const progress = Math.min(elapsed / duration, 1);
+    timerCircle.style.strokeDashoffset = (progress * CIRCUMFERENCE).toFixed(2);
+    if (progress < 1) { timerRAF = requestAnimationFrame(tick); }
+    else { hideUndo(); }
+  }
+  timerRAF = requestAnimationFrame(tick);
+
+  undoTimeout = setTimeout(hideUndo, duration);
+}
+
+function hideUndo() {
+  undoBar.classList.remove('visible');
+  clearTimeout(undoTimeout);
+  cancelAnimationFrame(timerRAF);
+  removedItem = null;
+  removedIndex = null;
+}
+
+undoBtn.addEventListener('click', () => {
+  if (!removedItem) return;
+  clearTimeout(undoTimeout);
+  cancelAnimationFrame(timerRAF);
+  const prev = calcTotal();
+  cartItems.splice(removedIndex, 0, removedItem);
+  renderCart();
+  animateTotal(prev, calcTotal());
+  hideUndo();
+});
+
+renderCart();
+</script>

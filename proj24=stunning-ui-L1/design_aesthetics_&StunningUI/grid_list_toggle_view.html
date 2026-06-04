@@ -1,0 +1,373 @@
+
+<style>
+  :root { --dur: 0.42s; --ease: cubic-bezier(0.4,0,0.2,1); }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font-sans); background: transparent; }
+
+  .shell { padding: 1.5rem 0; }
+
+  .toolbar {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 1.25rem; padding-bottom: 1rem;
+    border-bottom: 0.5px solid var(--color-border-tertiary);
+  }
+
+  .toolbar-left { display: flex; flex-direction: column; gap: 2px; }
+  .label-count { font-size: 13px; color: var(--color-text-secondary); }
+  .label-title { font-size: 15px; font-weight: 500; color: var(--color-text-primary); }
+
+  .toggle-wrap { display: flex; align-items: center; gap: 6px; }
+  .toggle-label { font-size: 13px; color: var(--color-text-secondary); margin-right: 4px; }
+
+  .view-btn {
+    width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;
+    border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md);
+    background: transparent; cursor: pointer; transition: all 0.2s;
+    color: var(--color-text-secondary);
+  }
+  .view-btn.active {
+    background: var(--color-background-secondary);
+    border-color: var(--color-border-primary);
+    color: var(--color-text-primary);
+  }
+  .view-btn:hover:not(.active) { background: var(--color-background-secondary); }
+  .view-btn i { font-size: 17px; }
+
+  /* GRID */
+  .product-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    transition: gap var(--dur) var(--ease);
+  }
+  .product-grid.list-mode {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  /* CARD */
+  .card {
+    background: var(--color-background-primary);
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--border-radius-lg);
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color 0.2s;
+    display: flex;
+    flex-direction: column;
+  }
+  .card:hover { border-color: var(--color-border-secondary); }
+
+  .list-mode .card {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  /* IMAGE WRAP */
+  .card-img-wrap {
+    overflow: hidden;
+    flex-shrink: 0;
+    transition: width var(--dur) var(--ease), height var(--dur) var(--ease), border-radius 0.2s;
+    width: 100%;
+    aspect-ratio: 4/3;
+    position: relative;
+  }
+  .list-mode .card-img-wrap {
+    width: 84px;
+    height: 84px;
+    aspect-ratio: unset;
+    border-radius: 0;
+    margin: 0;
+  }
+
+  .card-img-wrap img {
+    width: 100%; height: 100%; object-fit: cover;
+    transition: transform 0.3s var(--ease);
+    display: block;
+  }
+  .card:hover .card-img-wrap img { transform: scale(1.04); }
+
+  /* BADGE */
+  .card-badge {
+    position: absolute; top: 8px; left: 8px;
+    font-size: 11px; font-weight: 500; padding: 2px 7px;
+    border-radius: 99px;
+    letter-spacing: 0.01em;
+  }
+  .badge-new { background: #E1F5EE; color: #0F6E56; }
+  .badge-sale { background: #FAECE7; color: #993C1D; }
+  .badge-hot { background: #FAEEDA; color: #854F0B; }
+  .list-mode .card-badge { display: none; }
+
+  /* BODY */
+  .card-body {
+    padding: 12px;
+    display: flex; flex-direction: column; gap: 5px;
+    flex: 1;
+    transition: padding var(--dur) var(--ease);
+  }
+  .list-mode .card-body { padding: 12px 14px; gap: 4px; }
+
+  .card-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .card-name {
+    font-size: 13px; font-weight: 500; color: var(--color-text-primary);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    transition: font-size var(--dur) var(--ease);
+  }
+  .list-mode .card-name { font-size: 14px; white-space: normal; }
+
+  .card-stars { font-size: 11px; color: #BA7517; letter-spacing: 1px; white-space: nowrap; }
+
+  .card-price-row {
+    display: flex; align-items: baseline; gap: 6px;
+  }
+  .card-price {
+    font-size: 15px; font-weight: 500; color: var(--color-text-primary);
+    transition: font-size var(--dur) var(--ease);
+  }
+  .list-mode .card-price { font-size: 16px; }
+
+  .card-price-old {
+    font-size: 12px; color: var(--color-text-tertiary);
+    text-decoration: line-through;
+  }
+
+  /* DESCRIPTION — only in list */
+  .card-desc {
+    font-size: 12px; color: var(--color-text-secondary); line-height: 1.5;
+    opacity: 0; max-height: 0; overflow: hidden;
+    transition: opacity var(--dur) var(--ease), max-height var(--dur) var(--ease);
+  }
+  .list-mode .card-desc { opacity: 1; max-height: 40px; }
+
+  /* LIST actions */
+  .card-actions {
+    opacity: 0; max-width: 0; overflow: hidden;
+    margin-left: auto; padding-right: 0;
+    display: flex; align-items: center; gap: 8px;
+    transition: opacity var(--dur) var(--ease), max-width var(--dur) var(--ease), padding-right var(--dur) var(--ease);
+    flex-shrink: 0;
+  }
+  .list-mode .card-actions { opacity: 1; max-width: 120px; padding-right: 14px; }
+
+  .btn-cart {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 12px; font-weight: 500; padding: 6px 10px;
+    background: var(--color-text-primary); color: var(--color-background-primary);
+    border: none; border-radius: var(--border-radius-md); cursor: pointer;
+    white-space: nowrap;
+    transition: opacity 0.2s;
+  }
+  .btn-cart:hover { opacity: 0.85; }
+  .btn-cart i { font-size: 14px; }
+
+  .btn-wish {
+    width: 30px; height: 30px; border-radius: var(--border-radius-md);
+    border: 0.5px solid var(--color-border-tertiary);
+    background: transparent; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; color: var(--color-text-secondary);
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .btn-wish:hover { color: #D85A30; border-color: #D85A30; }
+  .btn-wish i { font-size: 15px; pointer-events: none; }
+  .btn-wish.wished { color: #D85A30; border-color: #D85A30; }
+  .btn-wish.wished i::before { content: "\eaf3"; }
+
+  /* SVG Toggle icon morph */
+  .icon-svg { width: 18px; height: 18px; display: block; }
+  .icon-svg rect, .icon-svg line {
+    transition: all var(--dur) var(--ease);
+    stroke: currentColor; stroke-width: 1.5; fill: none;
+    stroke-linecap: round;
+  }
+</style>
+
+<div class="shell">
+  <h2 class="sr-only">Product grid with toggle between grid and list view</h2>
+
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <span class="label-count">6 products found</span>
+      <span class="label-title">Artisan Collection</span>
+    </div>
+    <div class="toggle-wrap">
+      <span class="toggle-label">View</span>
+      <button class="view-btn active" id="btn-grid" aria-label="Grid view" onclick="setView('grid')">
+        <svg class="icon-svg" viewBox="0 0 18 18" id="icon-grid">
+          <rect id="g1" x="1.5" y="1.5" width="6" height="6" rx="1"/>
+          <rect id="g2" x="10.5" y="1.5" width="6" height="6" rx="1"/>
+          <rect id="g3" x="1.5" y="10.5" width="6" height="6" rx="1"/>
+          <rect id="g4" x="10.5" y="10.5" width="6" height="6" rx="1"/>
+        </svg>
+      </button>
+      <button class="view-btn" id="btn-list" aria-label="List view" onclick="setView('list')">
+        <svg class="icon-svg" viewBox="0 0 18 18" id="icon-list">
+          <rect id="l1" x="1.5" y="2" width="4" height="4" rx="1"/>
+          <line id="l2" x1="8" y1="4" x2="16.5" y2="4"/>
+          <rect id="l3" x="1.5" y="7.5" width="4" height="4" rx="1"/>
+          <line id="l4" x1="8" y1="9.5" x2="16.5" y2="9.5"/>
+          <rect id="l5" x="1.5" y="13" width="4" height="4" rx="1"/>
+          <line id="l6" x1="8" y1="15" x2="16.5" y2="15"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="product-grid" id="pgrid">
+
+    <div class="card">
+      <div class="card-img-wrap" style="background:#E1F5EE;">
+        <span class="card-badge badge-new">New</span>
+        <img src="https://images.unsplash.com/photo-1516483638261-f4dbaf036963?w=400&q=80" alt="Ceramic mug">
+      </div>
+      <div class="card-body">
+        <div class="card-meta">
+          <span class="card-name">Ceramic Mug</span>
+          <span class="card-stars">★★★★★</span>
+        </div>
+        <div class="card-price-row">
+          <span class="card-price">₹1,299</span>
+        </div>
+        <span class="card-desc">Hand-thrown stoneware mug with a matte glaze finish. Microwave and dishwasher safe.</span>
+      </div>
+      <div class="card-actions">
+        <button class="btn-wish" onclick="toggleWish(this)" aria-label="Wishlist"><i class="ti ti-heart"></i></button>
+        <button class="btn-cart"><i class="ti ti-shopping-cart"></i> Add</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-img-wrap" style="background:#FAEEDA;">
+        <span class="card-badge badge-hot">Hot</span>
+        <img src="https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=400&q=80" alt="Linen tote">
+      </div>
+      <div class="card-body">
+        <div class="card-meta">
+          <span class="card-name">Linen Tote Bag</span>
+          <span class="card-stars">★★★★☆</span>
+        </div>
+        <div class="card-price-row">
+          <span class="card-price">₹2,199</span>
+          <span class="card-price-old">₹2,800</span>
+        </div>
+        <span class="card-desc">Unbleached natural linen with leather handles. Roomy interior with an inner zip pocket.</span>
+      </div>
+      <div class="card-actions">
+        <button class="btn-wish" onclick="toggleWish(this)" aria-label="Wishlist"><i class="ti ti-heart"></i></button>
+        <button class="btn-cart"><i class="ti ti-shopping-cart"></i> Add</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-img-wrap" style="background:#FAECE7;">
+        <span class="card-badge badge-sale">Sale</span>
+        <img src="https://images.unsplash.com/photo-1506439773649-6e0eb8cfb237?w=400&q=80" alt="Wooden bowl">
+      </div>
+      <div class="card-body">
+        <div class="card-meta">
+          <span class="card-name">Acacia Wood Bowl</span>
+          <span class="card-stars">★★★★★</span>
+        </div>
+        <div class="card-price-row">
+          <span class="card-price">₹3,450</span>
+          <span class="card-price-old">₹4,200</span>
+        </div>
+        <span class="card-desc">Sustainably sourced acacia bowl. Each piece has a unique grain pattern. Food safe oil finish.</span>
+      </div>
+      <div class="card-actions">
+        <button class="btn-wish" onclick="toggleWish(this)" aria-label="Wishlist"><i class="ti ti-heart"></i></button>
+        <button class="btn-cart"><i class="ti ti-shopping-cart"></i> Add</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-img-wrap" style="background:#EEEDFE;">
+        <span class="card-badge badge-new">New</span>
+        <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80" alt="Candle">
+      </div>
+      <div class="card-body">
+        <div class="card-meta">
+          <span class="card-name">Soy Wax Candle</span>
+          <span class="card-stars">★★★★☆</span>
+        </div>
+        <div class="card-price-row">
+          <span class="card-price">₹899</span>
+        </div>
+        <span class="card-desc">100% soy wax with cedarwood and vanilla scent. 40-hour burn time. Cotton wick.</span>
+      </div>
+      <div class="card-actions">
+        <button class="btn-wish" onclick="toggleWish(this)" aria-label="Wishlist"><i class="ti ti-heart"></i></button>
+        <button class="btn-cart"><i class="ti ti-shopping-cart"></i> Add</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-img-wrap" style="background:#E6F1FB;">
+        <span class="card-badge badge-hot">Hot</span>
+        <img src="https://images.unsplash.com/photo-1464983953574-0892a716854b?w=400&q=80" alt="Throw blanket">
+      </div>
+      <div class="card-body">
+        <div class="card-meta">
+          <span class="card-name">Merino Throw</span>
+          <span class="card-stars">★★★★★</span>
+        </div>
+        <div class="card-price-row">
+          <span class="card-price">₹5,799</span>
+        </div>
+        <span class="card-desc">Super-soft 100% merino wool throw. Machine washable, generous 130×180cm size.</span>
+      </div>
+      <div class="card-actions">
+        <button class="btn-wish" onclick="toggleWish(this)" aria-label="Wishlist"><i class="ti ti-heart"></i></button>
+        <button class="btn-cart"><i class="ti ti-shopping-cart"></i> Add</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-img-wrap" style="background:#EAF3DE;">
+        <span class="card-badge badge-sale">Sale</span>
+        <img src="https://images.unsplash.com/photo-1617196034183-421b4040ed20?w=400&q=80" alt="Plant pot">
+      </div>
+      <div class="card-body">
+        <div class="card-meta">
+          <span class="card-name">Terracotta Pot</span>
+          <span class="card-stars">★★★★☆</span>
+        </div>
+        <div class="card-price-row">
+          <span class="card-price">₹699</span>
+          <span class="card-price-old">₹950</span>
+        </div>
+        <span class="card-desc">Handmade terracotta pot with drainage hole. Includes a matching saucer. Indoor/outdoor.</span>
+      </div>
+      <div class="card-actions">
+        <button class="btn-wish" onclick="toggleWish(this)" aria-label="Wishlist"><i class="ti ti-heart"></i></button>
+        <button class="btn-cart"><i class="ti ti-shopping-cart"></i> Add</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+let currentView = 'grid';
+
+function setView(v) {
+  if (v === currentView) return;
+  currentView = v;
+  const grid = document.getElementById('pgrid');
+  const btnG = document.getElementById('btn-grid');
+  const btnL = document.getElementById('btn-list');
+  if (v === 'list') {
+    grid.classList.add('list-mode');
+    btnG.classList.remove('active');
+    btnL.classList.add('active');
+  } else {
+    grid.classList.remove('list-mode');
+    btnL.classList.remove('active');
+    btnG.classList.add('active');
+  }
+}
+
+function toggleWish(btn) {
+  btn.classList.toggle('wished');
+}
+</script>

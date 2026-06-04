@@ -1,0 +1,292 @@
+
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font-sans)}
+  #canvas{
+    width:100%;height:520px;
+    background:var(--color-background-secondary);
+    border-radius:var(--border-radius-lg);
+    border:0.5px solid var(--color-border-tertiary);
+    position:relative;overflow:hidden;cursor:default;
+    user-select:none;-webkit-user-select:none;touch-action:none;
+  }
+  .hint{
+    position:absolute;top:50%;left:50%;
+    transform:translate(-50%,-50%);
+    text-align:center;pointer-events:none;
+    transition:opacity .4s;
+  }
+  .hint i{font-size:32px;color:var(--color-text-tertiary);display:block;margin-bottom:8px}
+  .hint p{font-size:13px;color:var(--color-text-tertiary)}
+  #toast{
+    position:absolute;bottom:20px;left:50%;transform:translateX(-50%) translateY(10px);
+    background:var(--color-text-primary);color:var(--color-background-primary);
+    font-size:13px;padding:7px 16px;border-radius:20px;
+    opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;white-space:nowrap;
+  }
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  #hold-ring{
+    position:absolute;pointer-events:none;
+    width:52px;height:52px;margin:-26px 0 0 -26px;
+    opacity:0;transition:opacity .1s;
+  }
+  #hold-ring circle.track{fill:none;stroke:var(--color-border-secondary);stroke-width:3}
+  #hold-ring circle.fill{fill:none;stroke:#7F77DD;stroke-width:3;
+    stroke-dasharray:0 163;stroke-linecap:round;
+    transform-origin:50% 50%;transform:rotate(-90deg);
+    transition:stroke-dasharray .05s linear}
+  .petal{
+    position:absolute;pointer-events:none;
+    width:52px;height:52px;margin:-26px 0 0 -26px;
+    display:flex;align-items:center;justify-content:center;
+    flex-direction:column;gap:2px;
+    background:var(--color-background-primary);
+    border:0.5px solid var(--color-border-tertiary);
+    border-radius:50%;
+    font-size:11px;color:var(--color-text-secondary);
+    opacity:0;transform:scale(0);
+    transition:background .15s,color .15s,border-color .15s,
+               transform .3s cubic-bezier(.34,1.56,.64,1),
+               opacity .25s;
+    cursor:pointer;
+  }
+  .petal i{font-size:18px;color:var(--color-text-primary);transition:color .15s}
+  .petal.active{
+    background:#EEEDFE;border-color:#7F77DD;color:#534AB7;
+  }
+  .petal.active i{color:#534AB7}
+  @media(prefers-color-scheme:dark){
+    .petal.active{background:#26215C;border-color:#7F77DD;color:#CECBF6}
+    .petal.active i{color:#CECBF6}
+  }
+  .petal.visible{opacity:1;transform:scale(1)}
+  .petal.fly{transition:transform .45s cubic-bezier(.2,-0.1,.6,1.2),opacity .35s ease-in}
+  #center-btn{
+    position:absolute;pointer-events:none;
+    width:36px;height:36px;margin:-18px 0 0 -18px;
+    background:var(--color-background-primary);
+    border:0.5px solid var(--color-border-secondary);
+    border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    opacity:0;transform:scale(0);
+    transition:transform .25s cubic-bezier(.34,1.56,.64,1),opacity .2s;
+  }
+  #center-btn i{font-size:16px;color:var(--color-text-secondary)}
+  #center-btn.visible{opacity:1;transform:scale(1)}
+  #ripple{
+    position:absolute;pointer-events:none;
+    border-radius:50%;
+    background:rgba(127,119,221,.18);
+    transform:scale(0);opacity:0;
+  }
+</style>
+<h2 class="sr-only">Petal context menu demo — long-press anywhere to open a radial menu of 8 actions</h2>
+<div id="canvas">
+  <div class="hint" id="hint">
+    <i class="ti ti-hand-finger" aria-hidden="true"></i>
+    <p>Long-press anywhere to open the petal menu</p>
+  </div>
+  <div id="hold-ring">
+    <svg viewBox="0 0 52 52" width="52" height="52">
+      <circle class="track" cx="26" cy="26" r="22"/>
+      <circle class="fill" id="ring-fill" cx="26" cy="26" r="22"/>
+    </svg>
+  </div>
+  <div id="center-btn"><i class="ti ti-x" aria-hidden="true"></i></div>
+  <div id="toast"></div>
+  <div id="ripple"></div>
+</div>
+<script>
+const ITEMS = [
+  {icon:'ti-heart',label:'Like'},
+  {icon:'ti-bookmark',label:'Save'},
+  {icon:'ti-share',label:'Share'},
+  {icon:'ti-copy',label:'Copy'},
+  {icon:'ti-edit',label:'Edit'},
+  {icon:'ti-trash',label:'Delete'},
+  {icon:'ti-download',label:'Export'},
+  {icon:'ti-info-circle',label:'Info'},
+];
+const RADIUS = 88;
+const canvas = document.getElementById('canvas');
+const hint = document.getElementById('hint');
+const holdRing = document.getElementById('hold-ring');
+const ringFill = document.getElementById('ring-fill');
+const centerBtn = document.getElementById('center-btn');
+const toast = document.getElementById('toast');
+const rippleEl = document.getElementById('ripple');
+let petals = [];
+let mx=0,my=0,pressTimer=null,menuOpen=false,holdStart=null,rafId=null,activeIdx=-1,dismissed=false;
+
+function createPetals(){
+  petals.forEach(p=>p.remove());
+  petals=[];
+  ITEMS.forEach((_,i)=>{
+    const el=document.createElement('div');
+    el.className='petal';
+    el.innerHTML=`<i class="ti ${ITEMS[i].icon}" aria-hidden="true"></i><span>${ITEMS[i].label}</span>`;
+    canvas.appendChild(el);
+    petals.push(el);
+  });
+}
+createPetals();
+
+function getPos(e){
+  const r=canvas.getBoundingClientRect();
+  if(e.touches) return {x:e.touches[0].clientX-r.left,y:e.touches[0].clientY-r.top};
+  return {x:e.clientX-r.left,y:e.clientY-r.top};
+}
+
+function clamp(v,lo,hi){return Math.max(lo,Math.min(hi,v))}
+
+function showRing(x,y){
+  holdRing.style.left=x+'px';holdRing.style.top=y+'px';
+  holdRing.style.opacity='1';ringFill.style.strokeDasharray='0 163';
+}
+function hideRing(){holdRing.style.opacity='0';}
+
+function animateRing(){
+  holdStart=performance.now();
+  function frame(ts){
+    const pct=Math.min((ts-holdStart)/500,1);
+    const arc=pct*163;
+    ringFill.style.strokeDasharray=arc+' '+(163-arc);
+    if(pct<1) rafId=requestAnimationFrame(frame);
+  }
+  rafId=requestAnimationFrame(frame);
+}
+
+function doRipple(x,y){
+  const s=90;
+  Object.assign(rippleEl.style,{
+    width:s+'px',height:s+'px',
+    left:(x-s/2)+'px',top:(y-s/2)+'px',
+    transform:'scale(0)',opacity:'1',transition:'none'
+  });
+  requestAnimationFrame(()=>{
+    Object.assign(rippleEl.style,{
+      transform:'scale(2.6)',opacity:'0',
+      transition:'transform .5s ease-out,opacity .5s ease-out'
+    });
+  });
+}
+
+function openMenu(x,y){
+  if(menuOpen)return;
+  menuOpen=true;dismissed=false;
+  hint.style.opacity='0';
+  holdRing.style.opacity='0';
+  doRipple(x,y);
+  petals.forEach((p,i)=>{
+    const angle=(i*45-90)*Math.PI/180;
+    const px=x+RADIUS*Math.cos(angle);
+    const py=y+RADIUS*Math.sin(angle);
+    p.style.left=clamp(px,30,canvas.clientWidth-30)+'px';
+    p.style.top=clamp(py,30,canvas.clientHeight-30)+'px';
+    p.style.transform='scale(0)';p.style.opacity='0';
+    p.dataset.angle=angle;p.dataset.cx=px;p.dataset.cy=py;
+    p.classList.remove('fly','active','visible');
+    void p.offsetWidth;
+    setTimeout(()=>p.classList.add('visible'),i*30);
+  });
+  centerBtn.style.left=x+'px';centerBtn.style.top=y+'px';
+  centerBtn.classList.add('visible');
+  if(navigator.vibrate) navigator.vibrate(8);
+}
+
+function closeMenu(triggerIdx=-1){
+  if(!menuOpen&&dismissed)return;
+  menuOpen=false;dismissed=true;
+  centerBtn.classList.remove('visible');
+  petals.forEach((p,i)=>{
+    const angle=parseFloat(p.dataset.angle)||((i*45-90)*Math.PI/180);
+    const flyDist=triggerIdx===i?30:180;
+    const tx=flyDist*Math.cos(angle);
+    const ty=flyDist*Math.sin(angle);
+    p.classList.add('fly');
+    p.style.transform=`scale(${triggerIdx===i?1.2:0.4}) translate(${tx}px,${ty}px)`;
+    p.style.opacity='0';
+    setTimeout(()=>{p.classList.remove('visible','fly','active');p.style.transform='scale(0)';},420);
+  });
+  setTimeout(()=>{if(!menuOpen)hint.style.opacity='1';},600);
+}
+
+function triggerAction(idx){
+  const label=ITEMS[idx].label;
+  toast.textContent='✦ '+label;
+  toast.classList.add('show');
+  if(navigator.vibrate) navigator.vibrate([12,30,8]);
+  closeMenu(idx);
+  setTimeout(()=>toast.classList.remove('show'),1800);
+}
+
+function getHoveredPetal(x,y){
+  for(let i=0;i<petals.length;i++){
+    const p=petals[i];
+    const px=parseFloat(p.style.left);
+    const py=parseFloat(p.style.top);
+    const dx=x-px,dy=y-py;
+    if(dx*dx+dy*dy<32*32) return i;
+  }
+  return -1;
+}
+
+function onDown(e){
+  if(menuOpen){closeMenu();return;}
+  dismissed=false;
+  const {x,y}=getPos(e);
+  mx=x;my=y;
+  showRing(x,y);
+  animateRing();
+  pressTimer=setTimeout(()=>{
+    cancelAnimationFrame(rafId);
+    hideRing();
+    openMenu(x,y);
+  },500);
+}
+
+function onMove(e){
+  e.preventDefault();
+  const {x,y}=getPos(e);
+  if(!menuOpen){
+    const d=Math.hypot(x-mx,y-my);
+    if(d>10){clearTimeout(pressTimer);cancelAnimationFrame(rafId);hideRing();}
+    return;
+  }
+  const hi=getHoveredPetal(x,y);
+  petals.forEach((p,i)=>{
+    if(i===hi) p.classList.add('active');
+    else p.classList.remove('active');
+  });
+  if(hi!==activeIdx){
+    if(hi>=0&&navigator.vibrate) navigator.vibrate(4);
+    activeIdx=hi;
+  }
+  const cx=parseFloat(centerBtn.style.left);
+  const cy=parseFloat(centerBtn.style.top);
+  const distCenter=Math.hypot(x-cx,y-cy);
+  if(distCenter<20) petals.forEach(p=>p.classList.remove('active'));
+}
+
+function onUp(e){
+  clearTimeout(pressTimer);cancelAnimationFrame(rafId);hideRing();
+  if(!menuOpen) return;
+  const {x,y}=e.changedTouches?{x:e.changedTouches[0].clientX-canvas.getBoundingClientRect().left,y:e.changedTouches[0].clientY-canvas.getBoundingClientRect().top}:getPos(e);
+  const hi=getHoveredPetal(x,y);
+  if(hi>=0) triggerAction(hi);
+  else closeMenu();
+  petals.forEach(p=>p.classList.remove('active'));
+  activeIdx=-1;
+}
+
+canvas.addEventListener('mousedown',onDown);
+canvas.addEventListener('mousemove',onMove);
+canvas.addEventListener('mouseup',onUp);
+canvas.addEventListener('touchstart',onDown,{passive:false});
+canvas.addEventListener('touchmove',onMove,{passive:false});
+canvas.addEventListener('touchend',onUp);
+canvas.addEventListener('mouseleave',()=>{
+  clearTimeout(pressTimer);cancelAnimationFrame(rafId);hideRing();
+  if(menuOpen) closeMenu();
+});
+</script>

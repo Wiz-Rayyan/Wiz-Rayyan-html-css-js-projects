@@ -1,0 +1,388 @@
+
+<style>
+  .swipe-demo { padding: 2rem 1rem; max-width: 420px; margin: 0 auto; font-family: var(--font-sans); }
+  .hint { font-size: 13px; color: var(--color-text-secondary); text-align: center; margin-bottom: 1.5rem; display: flex; justify-content: center; gap: 2rem; }
+  .hint span { display: flex; align-items: center; gap: 6px; }
+  .cards-stack { position: relative; height: 300px; }
+  .card-wrap { position: absolute; inset: 0; display: flex; flex-direction: column; touch-action: none; user-select: none; }
+  .card {
+    position: relative; flex: 1; background: var(--color-background-primary);
+    border: 0.5px solid var(--color-border-tertiary); border-radius: 16px;
+    overflow: hidden; cursor: grab; transition: box-shadow 0.15s;
+  }
+  .card:active { cursor: grabbing; }
+  .card-content { padding: 1.25rem 1.5rem; height: 100%; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; position: relative; z-index: 2; }
+  .card-avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--color-background-secondary); display: flex; align-items: center; justify-content: center; font-weight: 500; font-size: 14px; color: var(--color-text-secondary); margin-bottom: 12px; }
+  .card-title { font-size: 16px; font-weight: 500; color: var(--color-text-primary); margin: 0 0 4px; }
+  .card-body { font-size: 13px; color: var(--color-text-secondary); line-height: 1.6; margin: 0; }
+  .card-meta { display: flex; justify-content: space-between; align-items: center; }
+  .card-tag { font-size: 11px; padding: 3px 10px; border-radius: 20px; background: var(--color-background-secondary); color: var(--color-text-secondary); border: 0.5px solid var(--color-border-tertiary); }
+  .card-time { font-size: 12px; color: var(--color-text-tertiary); }
+
+  .delete-layer {
+    position: absolute; inset: 0; z-index: 1; border-radius: 16px;
+    background: transparent; pointer-events: none;
+    transition: opacity 0.05s;
+  }
+  .archive-fold {
+    position: absolute; top: 0; right: 0; width: 0; height: 0; z-index: 3; pointer-events: none;
+    transform-origin: top right;
+  }
+  .action-hint {
+    position: absolute; inset: 0; display: flex; align-items: center; border-radius: 16px;
+    z-index: 1; opacity: 0; transition: opacity 0.1s; pointer-events: none;
+  }
+  .action-hint-delete { justify-content: flex-start; padding-left: 1.5rem; }
+  .action-hint-archive { justify-content: flex-end; padding-right: 1.5rem; }
+  .action-icon { font-size: 28px; }
+
+  .particles { position: absolute; inset: 0; pointer-events: none; z-index: 10; border-radius: 16px; overflow: hidden; }
+  .particle { position: absolute; width: 6px; height: 6px; border-radius: 50%; }
+
+  .action-bar { display: flex; justify-content: center; gap: 1rem; margin-top: 1.5rem; }
+  .action-btn { font-size: 13px; padding: 6px 16px; border-radius: 20px; border: 0.5px solid var(--color-border-secondary); background: var(--color-background-secondary); color: var(--color-text-secondary); cursor: pointer; }
+  .action-btn:hover { background: var(--color-background-primary); }
+
+  .status-bar { text-align: center; margin-top: 1rem; height: 20px; }
+  .status-text { font-size: 12px; color: var(--color-text-tertiary); }
+  .threshold-line {
+    position: absolute; top: 0; bottom: 0; width: 1px; background: transparent;
+    z-index: 5; pointer-events: none;
+  }
+  .progress-track { margin-top: 1rem; display: flex; gap: 8px; align-items: center; }
+  .progress-label { font-size: 11px; color: var(--color-text-tertiary); min-width: 60px; }
+  .progress-bar-wrap { flex: 1; height: 3px; background: var(--color-background-secondary); border-radius: 2px; overflow: hidden; }
+  .progress-bar-fill { height: 100%; width: 0%; border-radius: 2px; transition: width 0.05s, background 0.1s; }
+</style>
+
+<div class="swipe-demo">
+  <h2 class="sr-only">Morphing swipe interaction demo — drag cards left to delete or right to archive</h2>
+
+  <div class="hint">
+    <span><i class="ti ti-arrow-left" aria-hidden="true"></i> swipe left to delete</span>
+    <span>swipe right to archive <i class="ti ti-arrow-right" aria-hidden="true"></i></span>
+  </div>
+
+  <div class="cards-stack" id="stack"></div>
+
+  <div class="progress-track" id="progressTrack" style="display:none;">
+    <span class="progress-label" id="progressLabel">delete 0%</span>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-fill" id="progressFill"></div>
+    </div>
+  </div>
+
+  <div class="status-bar"><span class="status-text" id="statusText">drag a card to interact</span></div>
+
+  <div class="action-bar">
+    <button class="action-btn" onclick="resetCards()"><i class="ti ti-refresh" aria-hidden="true"></i> reset cards</button>
+  </div>
+</div>
+
+<script>
+const CARDS = [
+  { avatar: "MR", name: "Maya Rodriguez", preview: "Re: Q3 sync — sounds good, I'll prep the deck by Thursday and share with the team.", tag: "Work", time: "2m ago", avatarBg: "#E6F1FB", avatarColor: "#0C447C" },
+  { avatar: "JK", name: "James Kim", preview: "Your package has shipped! Expected delivery Tuesday between 2–6pm. Track your order...", tag: "Shopping", time: "1h ago", avatarBg: "#E1F5EE", avatarColor: "#085041" },
+  { avatar: "AL", name: "Aria Lopes", preview: "Hey! Are you still up for the hike this weekend? The trail should be clear after the rain.", tag: "Personal", time: "3h ago", avatarBg: "#FAEEDA", avatarColor: "#633806" },
+];
+
+let cards = [];
+let dragging = null;
+let startX = 0, startY = 0, currentX = 0;
+let hapticFired = false;
+
+function buildCard(data, index) {
+  const wrap = document.createElement('div');
+  wrap.className = 'card-wrap';
+  wrap.style.zIndex = CARDS.length - index;
+  wrap.style.transform = `scale(${1 - index * 0.03}) translateY(${index * 12}px)`;
+  wrap.style.opacity = index > 2 ? 0 : 1 - index * 0.2;
+  wrap.style.transition = 'transform 0.35s cubic-bezier(.22,1,.36,1), opacity 0.35s';
+
+  wrap.innerHTML = `
+    <div class="card" id="card-${index}">
+      <div class="delete-layer" id="del-${index}"></div>
+      <div class="action-hint action-hint-delete" id="hint-del-${index}">
+        <i class="ti ti-trash action-icon" style="color:#E24B4A" aria-hidden="true"></i>
+      </div>
+      <div class="action-hint action-hint-archive" id="hint-arc-${index}">
+        <i class="ti ti-archive action-icon" style="color:#1D9E75" aria-hidden="true"></i>
+      </div>
+      <div class="card-content">
+        <div>
+          <div class="card-avatar" style="background:${data.avatarBg};color:${data.avatarColor}">${data.avatar}</div>
+          <p class="card-title">${data.name}</p>
+          <p class="card-body">${data.preview}</p>
+        </div>
+        <div class="card-meta">
+          <span class="card-tag">${data.tag}</span>
+          <span class="card-time">${data.time}</span>
+        </div>
+      </div>
+      <canvas class="particles" id="particles-${index}" width="420" height="300"></canvas>
+    </div>
+  `;
+
+  const cardEl = wrap.querySelector('.card');
+
+  const onDown = (e) => {
+    if (dragging) return;
+    const point = e.touches ? e.touches[0] : e;
+    startX = point.clientX;
+    startY = point.clientY;
+    currentX = 0;
+    hapticFired = false;
+    dragging = { wrap, cardEl, index, data };
+    wrap.style.transition = 'none';
+    document.getElementById('progressTrack').style.display = 'flex';
+  };
+
+  cardEl.addEventListener('mousedown', onDown);
+  cardEl.addEventListener('touchstart', onDown, { passive: true });
+
+  return wrap;
+}
+
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+function onMove(e) {
+  if (!dragging) return;
+  const point = e.touches ? e.touches[0] : e;
+  currentX = point.clientX - startX;
+
+  const { wrap, cardEl, index } = dragging;
+  const maxDrag = 200;
+  const pct = clamp(Math.abs(currentX) / maxDrag, 0, 1);
+  const isDelete = currentX < 0;
+  const isArchive = currentX > 0;
+
+  wrap.style.transform = `translateX(${currentX}px) rotate(${currentX * 0.05}deg)`;
+
+  const progressLabel = document.getElementById('progressLabel');
+  const progressFill = document.getElementById('progressFill');
+  progressLabel.textContent = `${isDelete ? 'delete' : isArchive ? 'archive' : 'idle'} ${Math.round(pct * 100)}%`;
+  progressFill.style.width = `${pct * 100}%`;
+  progressFill.style.background = isDelete ? '#E24B4A' : '#1D9E75';
+
+  const delLayer = document.getElementById(`del-${index}`);
+  const hintDel = document.getElementById(`hint-del-${index}`);
+  const hintArc = document.getElementById(`hint-arc-${index}`);
+  const card = cardEl;
+
+  if (isDelete) {
+    const glow = `radial-gradient(ellipse ${pct * 140 + 40}% ${pct * 200 + 60}% at 0% 50%, rgba(226,75,74,${pct * 0.55}) 0%, transparent 100%)`;
+    delLayer.style.background = glow;
+    card.style.border = `0.5px solid rgba(226,75,74,${pct * 0.8})`;
+    hintDel.style.opacity = pct > 0.15 ? Math.min(1, pct * 2) : 0;
+    hintArc.style.opacity = 0;
+    delLayer.style.borderLeft = pct > 0.3 ? `${pct * 3}px solid rgba(226,75,74,${pct})` : '';
+
+    const statusEl = document.getElementById('statusText');
+    if (pct >= 0.5) {
+      statusEl.textContent = pct >= 0.85 ? '🔴 release to delete' : '⚡ threshold reached — keep going';
+      statusEl.style.color = 'var(--color-text-danger)';
+    } else {
+      statusEl.textContent = 'bleeding edge — swipe further to delete';
+      statusEl.style.color = 'var(--color-text-tertiary)';
+    }
+  } else if (isArchive) {
+    const sz = pct * 90;
+    drawFold(index, sz, pct);
+    card.style.border = `0.5px solid rgba(29,158,117,${pct * 0.7})`;
+    hintArc.style.opacity = pct > 0.15 ? Math.min(1, pct * 2) : 0;
+    hintDel.style.opacity = 0;
+    delLayer.style.background = 'transparent';
+    delLayer.style.borderLeft = '';
+
+    const statusEl = document.getElementById('statusText');
+    if (pct >= 0.5) {
+      statusEl.textContent = pct >= 0.85 ? '📂 release to archive' : '⚡ threshold reached — keep going';
+      statusEl.style.color = 'var(--color-text-success)';
+    } else {
+      statusEl.textContent = 'corner folding — swipe further to archive';
+      statusEl.style.color = 'var(--color-text-tertiary)';
+    }
+  } else {
+    resetCardVisuals(index, cardEl);
+    document.getElementById('statusText').textContent = 'drag a card to interact';
+    document.getElementById('statusText').style.color = 'var(--color-text-tertiary)';
+  }
+
+  if (pct >= 0.5 && !hapticFired) {
+    hapticFired = true;
+    if (navigator.vibrate) navigator.vibrate([15, 10, 15]);
+    triggerPulse(cardEl, isDelete);
+  }
+}
+
+function drawFold(index, sz, pct) {
+  const canvas = document.getElementById(`particles-${index}`);
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (sz < 2) return;
+
+  ctx.save();
+  const x = canvas.width, y = 0;
+  ctx.beginPath();
+  ctx.moveTo(x - sz, y);
+  ctx.lineTo(x, y);
+  ctx.lineTo(x, y + sz);
+  ctx.closePath();
+  ctx.fillStyle = `rgba(29,158,117,${0.12 + pct * 0.15})`;
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(x - sz, y);
+  ctx.lineTo(x, y + sz);
+  ctx.strokeStyle = `rgba(29,158,117,${0.5 + pct * 0.4})`;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  const shadow = pct * 0.25;
+  const grad = ctx.createLinearGradient(x - sz, y, x, y + sz);
+  grad.addColorStop(0, `rgba(0,0,0,0)`);
+  grad.addColorStop(1, `rgba(0,0,0,${shadow})`);
+  ctx.beginPath();
+  ctx.moveTo(x - sz, y);
+  ctx.lineTo(x, y + sz);
+  ctx.lineTo(x - Math.min(sz, 30), y);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function triggerPulse(cardEl, isDelete) {
+  cardEl.style.transition = 'transform 0.1s';
+  cardEl.style.transform = 'scale(0.98)';
+  setTimeout(() => { cardEl.style.transform = ''; cardEl.style.transition = ''; }, 120);
+}
+
+function onUp() {
+  if (!dragging) return;
+  const { wrap, cardEl, index } = dragging;
+  const maxDrag = 200;
+  const pct = Math.abs(currentX) / maxDrag;
+  const isDelete = currentX < 0;
+  const isArchive = currentX > 0;
+
+  if (pct >= 0.85) {
+    executeAction(wrap, cardEl, index, isDelete ? 'delete' : 'archive');
+  } else {
+    wrap.style.transition = 'transform 0.45s cubic-bezier(.22,1,.36,1)';
+    wrap.style.transform = `scale(${1 - (cards.indexOf(wrap)) * 0.03}) translateY(${(cards.indexOf(wrap)) * 12}px)`;
+    resetCardVisuals(index, cardEl);
+    document.getElementById('statusText').textContent = 'drag a card to interact';
+    document.getElementById('statusText').style.color = 'var(--color-text-tertiary)';
+    document.getElementById('progressTrack').style.display = 'none';
+  }
+
+  dragging = null;
+}
+
+function resetCardVisuals(index, cardEl) {
+  const delLayer = document.getElementById(`del-${index}`);
+  const hintDel = document.getElementById(`hint-del-${index}`);
+  const hintArc = document.getElementById(`hint-arc-${index}`);
+  const canvas = document.getElementById(`particles-${index}`);
+  if (delLayer) { delLayer.style.background = 'transparent'; delLayer.style.borderLeft = ''; }
+  if (cardEl) cardEl.style.border = '0.5px solid var(--color-border-tertiary)';
+  if (hintDel) hintDel.style.opacity = 0;
+  if (hintArc) hintArc.style.opacity = 0;
+  if (canvas) { const ctx = canvas.getContext('2d'); ctx.clearRect(0,0,canvas.width,canvas.height); }
+}
+
+function executeAction(wrap, cardEl, index, action) {
+  const isDelete = action === 'delete';
+  const tx = isDelete ? -window.innerWidth : window.innerWidth;
+
+  wrap.style.transition = 'transform 0.4s cubic-bezier(.55,.06,.68,.19), opacity 0.35s';
+  wrap.style.transform = `translateX(${tx}px) rotate(${isDelete ? -12 : 12}deg)`;
+  wrap.style.opacity = '0';
+
+  burstParticles(cardEl, index, isDelete);
+
+  const statusEl = document.getElementById('statusText');
+  statusEl.textContent = isDelete ? '🗑 deleted' : '📂 archived';
+  statusEl.style.color = isDelete ? 'var(--color-text-danger)' : 'var(--color-text-success)';
+
+  setTimeout(() => {
+    wrap.remove();
+    const pos = cards.indexOf(wrap);
+    if (pos > -1) cards.splice(pos, 1);
+    restack();
+    document.getElementById('progressTrack').style.display = 'none';
+    if (cards.length === 0) {
+      document.getElementById('statusText').textContent = 'all done! press reset ↓';
+    }
+  }, 400);
+}
+
+function burstParticles(cardEl, index, isDelete) {
+  const canvas = document.getElementById(`particles-${index}`);
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  const cx = isDelete ? 30 : canvas.width - 30;
+  const cy = canvas.height / 2;
+  const color = isDelete ? '#E24B4A' : '#1D9E75';
+  const count = 18;
+  const particles = Array.from({length: count}, (_, i) => ({
+    x: cx, y: cy,
+    vx: (Math.random() - 0.5) * (isDelete ? -14 : 14) * (Math.random() + 0.5),
+    vy: (Math.random() - 0.5) * 12,
+    r: Math.random() * 4 + 2,
+    life: 1,
+    decay: Math.random() * 0.04 + 0.03,
+  }));
+
+  let frame = 0;
+  function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    let alive = false;
+    particles.forEach(p => {
+      p.x += p.vx; p.y += p.vy; p.vy += 0.4; p.life -= p.decay;
+      if (p.life > 0) {
+        alive = true;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r * p.life, 0, Math.PI * 2);
+        ctx.fillStyle = color + Math.round(p.life * 220).toString(16).padStart(2,'0');
+        ctx.fill();
+      }
+    });
+    if (alive && frame++ < 60) requestAnimationFrame(animate);
+  }
+  animate();
+}
+
+function restack() {
+  cards.forEach((w, i) => {
+    w.style.transition = 'transform 0.4s cubic-bezier(.22,1,.36,1), opacity 0.4s';
+    w.style.transform = `scale(${1 - i * 0.03}) translateY(${i * 12}px)`;
+    w.style.opacity = i > 2 ? '0' : String(1 - i * 0.2);
+    w.style.zIndex = CARDS.length - i;
+  });
+}
+
+function resetCards() {
+  const stack = document.getElementById('stack');
+  stack.innerHTML = '';
+  cards = [];
+  dragging = null;
+  CARDS.forEach((data, i) => {
+    const w = buildCard(data, i);
+    stack.appendChild(w);
+    cards.push(w);
+  });
+  document.getElementById('statusText').textContent = 'drag a card to interact';
+  document.getElementById('statusText').style.color = 'var(--color-text-tertiary)';
+  document.getElementById('progressTrack').style.display = 'none';
+}
+
+document.addEventListener('mousemove', onMove);
+document.addEventListener('touchmove', (e) => { e.preventDefault(); onMove(e); }, { passive: false });
+document.addEventListener('mouseup', onUp);
+document.addEventListener('touchend', onUp);
+
+resetCards();
+</script>

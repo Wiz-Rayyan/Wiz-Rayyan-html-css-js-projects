@@ -1,0 +1,279 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:transparent}
+#viewer{width:100%;padding:2rem 0;display:flex;flex-direction:column;align-items:center;gap:1.5rem;user-select:none;-webkit-user-select:none}
+#stage{width:340px;height:340px;perspective:900px;cursor:grab;position:relative;display:flex;align-items:center;justify-content:center}
+#stage.dragging{cursor:grabbing}
+#scene{width:220px;height:220px;transform-style:preserve-3d;position:relative}
+#shadow{width:160px;height:30px;background:radial-gradient(ellipse,rgba(0,0,0,0.22) 0%,transparent 70%);border-radius:50%;position:absolute;bottom:-40px;left:50%;transform:translateX(-50%);transition:transform 0.1s,opacity 0.1s;pointer-events:none}
+.product-face{position:absolute;width:220px;height:220px;border-radius:18px;backface-visibility:hidden;overflow:hidden;display:flex;align-items:center;justify-content:center}
+#hint{font-size:13px;color:var(--color-text-tertiary);display:flex;align-items:center;gap:6px;letter-spacing:0.01em}
+#controls{display:flex;gap:8px;align-items:center}
+#controls button{font-size:12px;padding:6px 14px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-secondary);cursor:pointer;transition:background 0.15s}
+#controls button:hover{background:var(--color-background-secondary)}
+#controls button.active{background:var(--color-background-secondary);color:var(--color-text-primary)}
+#rot-display{font-size:12px;color:var(--color-text-tertiary);font-variant-numeric:tabular-nums;min-width:60px;text-align:center}
+#product-label{font-size:15px;font-weight:500;color:var(--color-text-primary);letter-spacing:-0.01em}
+#product-sub{font-size:13px;color:var(--color-text-secondary);margin-top:2px;text-align:center}
+</style>
+
+<div id="viewer">
+  <h2 class="sr-only">Interactive 3D product orbit viewer — drag to rotate, double-click to reset</h2>
+
+  <div>
+    <p id="product-label">AirForm Pro X1</p>
+    <p id="product-sub">Wireless Noise-Cancelling Headphones</p>
+  </div>
+
+  <div id="stage">
+    <div id="scene">
+      <canvas id="productCanvas" width="220" height="220" style="border-radius:18px;display:block;position:absolute;top:0;left:0"></canvas>
+      <div id="shadow"></div>
+    </div>
+  </div>
+
+  <div id="hint"><i class="ti ti-rotate-clockwise" aria-hidden="true"></i> Drag to orbit &nbsp;·&nbsp; <i class="ti ti-arrows-up-down" aria-hidden="true"></i> Tilt vertically &nbsp;·&nbsp; Double-click to reset</div>
+
+  <div id="controls">
+    <button id="btn-auto" class="active"><i class="ti ti-player-play" aria-hidden="true"></i> Auto-rotate</button>
+    <button id="btn-reset"><i class="ti ti-refresh" aria-hidden="true"></i> Reset</button>
+    <span id="rot-display">0°</span>
+  </div>
+</div>
+
+<script>
+const stage = document.getElementById('stage');
+const scene = document.getElementById('scene');
+const shadow = document.getElementById('shadow');
+const rotDisplay = document.getElementById('rot-display');
+const btnAuto = document.getElementById('btn-auto');
+const btnReset = document.getElementById('btn-reset');
+const canvas = document.getElementById('productCanvas');
+const ctx = canvas.getContext('2d');
+
+let rotY = -25, rotX = 15;
+let autoRotate = true;
+let dragging = false;
+let lastX = 0, lastY = 0;
+let lastFullRot = 0;
+let raf;
+
+function drawProduct(rotYd, rotXd) {
+  ctx.clearRect(0, 0, 220, 220);
+  const W = 220, H = 220;
+
+  const norm = (rotYd % 360 + 360) % 360;
+  const isFront = norm < 90 || norm > 270;
+  const isLeft = norm >= 45 && norm < 135;
+  const isRight = norm >= 225 && norm < 315;
+  const isBack = norm >= 90 && norm <= 270;
+
+  const faceT = isFront ? (norm < 90 ? norm / 90 : (360 - norm) / 90) : 0;
+  const backT = isBack ? (norm < 180 ? (norm - 90) / 90 : (270 - norm) / 90) : 0;
+
+  const tiltR = rotXd * Math.PI / 180;
+  const shadowScale = 0.6 + 0.4 * Math.cos(tiltR);
+  const shadowOp = 0.4 + 0.3 * Math.cos(tiltR);
+  shadow.style.transform = `translateX(-50%) scaleX(${shadowScale.toFixed(3)})`;
+  shadow.style.opacity = shadowOp.toFixed(3);
+
+  const lightAngle = ((rotYd + 30) % 360) * Math.PI / 180;
+  const lightX = Math.cos(lightAngle);
+  const lightY = Math.sin(lightAngle) * 0.3;
+  const ambientLight = 0.55;
+  const dirLight = Math.max(0, lightX * 0.35 + lightY * 0.1);
+  const brightness = Math.min(1, ambientLight + dirLight);
+
+  const r = Math.round(230 * brightness);
+  const g = Math.round(235 * brightness);
+  const b = Math.round(245 * brightness);
+
+  const bg = ctx.createLinearGradient(0, 0, W, H);
+  bg.addColorStop(0, `rgb(${Math.min(255,r+20)},${Math.min(255,g+18)},${Math.min(255,b+15)})`);
+  bg.addColorStop(1, `rgb(${Math.max(0,r-30)},${Math.max(0,g-25)},${Math.max(0,b-20)})`);
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.roundRect(8, 8, W-16, H-16, 16);
+  ctx.fillStyle = bg;
+  ctx.fill();
+  ctx.restore();
+
+  ctx.save();
+  const rimBr = Math.min(1, brightness + 0.2);
+  ctx.strokeStyle = `rgba(${Math.round(200*rimBr)},${Math.round(205*rimBr)},${Math.round(220*rimBr)},0.8)`;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.roundRect(8, 8, W-16, H-16, 16);
+  ctx.stroke();
+  ctx.restore();
+
+  const headBr = Math.min(1, brightness * 1.15);
+  const hg = ctx.createLinearGradient(55, 60, 165, 80);
+  hg.addColorStop(0, `rgb(${Math.round(50*headBr)},${Math.round(50*headBr)},${Math.round(55*headBr)})`);
+  hg.addColorStop(1, `rgb(${Math.round(30*headBr)},${Math.round(30*headBr)},${Math.round(35*headBr)})`);
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(55, 105);
+  ctx.bezierCurveTo(55, 60, 165, 60, 165, 105);
+  ctx.lineWidth = 18;
+  ctx.strokeStyle = hg;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+  ctx.restore();
+
+  const cupBr = Math.min(1, brightness * 1.05);
+  for (const [cx, cy] of [[65, 125],[155, 125]]) {
+    const isLeftCup = cx < 110;
+    const specX = isLeftCup ? cx - 12 : cx + 12;
+    const cg = ctx.createRadialGradient(specX, cy - 14, 2, cx, cy, 40);
+    cg.addColorStop(0, `rgb(${Math.round(95*cupBr)},${Math.round(95*cupBr)},${Math.round(100*cupBr)})`);
+    cg.addColorStop(0.5, `rgb(${Math.round(55*cupBr)},${Math.round(55*cupBr)},${Math.round(60*cupBr)})`);
+    cg.addColorStop(1, `rgb(${Math.round(30*cupBr)},${Math.round(30*cupBr)},${Math.round(35*cupBr)})`);
+    ctx.save();
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, 34, 40, 0, 0, Math.PI*2);
+    ctx.fillStyle = cg;
+    ctx.fill();
+    ctx.restore();
+    ctx.save();
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, 34, 40, 0, 0, Math.PI*2);
+    ctx.strokeStyle = `rgba(${Math.round(120*cupBr)},${Math.round(120*cupBr)},${Math.round(130*cupBr)},0.6)`;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.restore();
+    ctx.save();
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, 22, 26, 0, 0, Math.PI*2);
+    const mg = ctx.createRadialGradient(cx, cy, 2, cx, cy, 22);
+    mg.addColorStop(0, `rgba(${Math.round(140*cupBr)},${Math.round(140*cupBr)},${Math.round(150*cupBr)},0.6)`);
+    mg.addColorStop(1, `rgba(${Math.round(60*cupBr)},${Math.round(60*cupBr)},${Math.round(70*cupBr)},0.4)`);
+    ctx.fillStyle = mg;
+    ctx.fill();
+    ctx.restore();
+    const specBr = Math.min(1, brightness + 0.3);
+    ctx.save();
+    ctx.beginPath();
+    ctx.ellipse(specX, cy - 14, 6, 4, -0.4, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(255,255,255,${(0.12 + specBr * 0.1).toFixed(2)})`;
+    ctx.fill();
+    ctx.restore();
+  }
+
+  const logoBr = Math.min(1, brightness * 0.9);
+  ctx.save();
+  ctx.font = '500 11px system-ui, sans-serif';
+  ctx.fillStyle = `rgba(${Math.round(180*logoBr)},${Math.round(185*logoBr)},${Math.round(200*logoBr)},0.9)`;
+  ctx.textAlign = 'center';
+  ctx.fillText('AirForm', W/2, 85);
+  ctx.restore();
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.ellipse(W/2, 70, 4, 4, 0, 0, Math.PI*2);
+  const r2 = Math.round(100 + 155 * brightness);
+  ctx.fillStyle = `rgb(${r2},${Math.round(r2*0.6)},${Math.round(r2*0.6)})`;
+  ctx.fill();
+  ctx.restore();
+
+  const envBr = brightness;
+  ctx.save();
+  ctx.beginPath();
+  ctx.roundRect(8, 8, W-16, H-16, 16);
+  ctx.clip();
+  const envG = ctx.createLinearGradient(0, 0, W, H);
+  envG.addColorStop(0, `rgba(255,255,255,${(0.04 + envBr * 0.04).toFixed(3)})`);
+  envG.addColorStop(0.5, `rgba(255,255,255,0)`);
+  envG.addColorStop(1, `rgba(0,0,0,${(0.03 + (1-envBr)*0.05).toFixed(3)})`);
+  ctx.fillStyle = envG;
+  ctx.fillRect(0, 0, W, H);
+  ctx.restore();
+}
+
+function applyTransform() {
+  scene.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg)`;
+  const deg = Math.round(((rotY % 360) + 360) % 360);
+  rotDisplay.textContent = deg + '°';
+  drawProduct(rotY, rotX);
+}
+
+function checkHaptic(oldY, newY) {
+  const snapOld = Math.floor(oldY / 360);
+  const snapNew = Math.floor(newY / 360);
+  if (snapOld !== snapNew && navigator.vibrate) navigator.vibrate(12);
+}
+
+function startAuto() {
+  autoRotate = true;
+  btnAuto.classList.add('active');
+  tick();
+}
+function stopAuto() {
+  autoRotate = false;
+  btnAuto.classList.remove('active');
+  cancelAnimationFrame(raf);
+}
+
+let lastTime = 0;
+function tick(ts = 0) {
+  if (!autoRotate) return;
+  const dt = Math.min(ts - lastTime, 50);
+  lastTime = ts;
+  const oldY = rotY;
+  rotY += 0.3 * (dt / 16.67);
+  checkHaptic(oldY, rotY);
+  applyTransform();
+  raf = requestAnimationFrame(tick);
+}
+
+stage.addEventListener('mousedown', e => {
+  dragging = true;
+  lastX = e.clientX; lastY = e.clientY;
+  stage.classList.add('dragging');
+  stopAuto();
+});
+window.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  const dx = e.clientX - lastX, dy = e.clientY - lastY;
+  const oldY = rotY;
+  rotY += dx * 0.5;
+  rotX -= dy * 0.35;
+  rotX = Math.max(-80, Math.min(80, rotX));
+  checkHaptic(oldY, rotY);
+  lastX = e.clientX; lastY = e.clientY;
+  applyTransform();
+});
+window.addEventListener('mouseup', () => { dragging = false; stage.classList.remove('dragging'); });
+
+let lastTap = 0;
+stage.addEventListener('touchstart', e => {
+  const now = Date.now();
+  if (now - lastTap < 300) { rotY = -25; rotX = 15; applyTransform(); }
+  lastTap = now;
+  dragging = true;
+  lastX = e.touches[0].clientX; lastY = e.touches[0].clientY;
+  stopAuto();
+}, {passive:true});
+stage.addEventListener('touchmove', e => {
+  if (!dragging) return;
+  const dx = e.touches[0].clientX - lastX, dy = e.touches[0].clientY - lastY;
+  const oldY = rotY;
+  rotY += dx * 0.5;
+  rotX -= dy * 0.35;
+  rotX = Math.max(-80, Math.min(80, rotX));
+  checkHaptic(oldY, rotY);
+  lastX = e.touches[0].clientX; lastY = e.touches[0].clientY;
+  applyTransform();
+}, {passive:true});
+stage.addEventListener('touchend', () => { dragging = false; });
+
+stage.addEventListener('dblclick', () => { rotY = -25; rotX = 15; applyTransform(); });
+
+btnAuto.addEventListener('click', () => { autoRotate ? stopAuto() : (lastTime = performance.now(), startAuto()); });
+btnReset.addEventListener('click', () => { rotY = -25; rotX = 15; applyTransform(); });
+
+applyTransform();
+requestAnimationFrame(ts => { lastTime = ts; startAuto(); });
+</script>

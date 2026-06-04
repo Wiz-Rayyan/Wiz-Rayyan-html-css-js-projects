@@ -1,0 +1,295 @@
+
+<style>
+  @keyframes shimmer-spin {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  @keyframes img-in {
+    from { opacity: 0; transform: scale(1.06); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  @keyframes pulse-ring {
+    0% { box-shadow: 0 0 0 0 var(--ring-color); }
+    70% { box-shadow: 0 0 0 6px transparent; }
+    100% { box-shadow: 0 0 0 0 transparent; }
+  }
+  .swatch {
+    width: 44px; height: 44px; border-radius: 50%; cursor: pointer;
+    border: 2.5px solid transparent;
+    background-size: 300% 300%;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+    position: relative; outline: none; flex-shrink: 0;
+  }
+  .swatch:hover { transform: scale(1.13); }
+  .swatch.active {
+    border-color: var(--color-background-primary);
+    outline: 2.5px solid rgba(0,0,0,0.25);
+    outline-offset: 2px;
+    transform: scale(1.18);
+    animation: shimmer-spin 1.8s ease infinite, pulse-ring 0.5s ease-out;
+  }
+  .product-img {
+    width: 100%; height: 100%; object-fit: cover;
+    border-radius: var(--border-radius-lg);
+    position: absolute; inset: 0;
+  }
+  .product-img.entering { animation: img-in 0.38s cubic-bezier(0.22,1,0.36,1) forwards; }
+  .img-wrap {
+    position: relative; overflow: hidden;
+    border-radius: var(--border-radius-lg);
+    background: var(--color-background-secondary);
+    aspect-ratio: 1;
+    border: 0.5px solid var(--color-border-tertiary);
+  }
+  .palette-overlay {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0.52);
+    display: flex; align-items: center; justify-content: center;
+    border-radius: var(--border-radius-lg);
+    z-index: 10;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.22s ease;
+  }
+  .palette-overlay.visible { opacity: 1; pointer-events: all; }
+  .palette-grid {
+    display: grid; grid-template-columns: repeat(5, 44px); gap: 10px;
+    padding: 20px; background: var(--color-background-primary);
+    border-radius: var(--border-radius-lg);
+  }
+  .palette-swatch {
+    width: 44px; height: 44px; border-radius: 50%; cursor: pointer;
+    border: 2px solid transparent;
+    background-size: 300% 300%;
+    transition: transform 0.18s ease, border-color 0.18s ease;
+  }
+  .palette-swatch:hover { transform: scale(1.15); border-color: rgba(255,255,255,0.6); }
+  .badge {
+    display: inline-block; font-size: 11px; font-weight: 500;
+    padding: 3px 9px; border-radius: 99px;
+    background: var(--color-background-secondary);
+    color: var(--color-text-secondary);
+    letter-spacing: 0.03em;
+    border: 0.5px solid var(--color-border-tertiary);
+  }
+  .hint { font-size: 12px; color: var(--color-text-tertiary); margin-top: 6px; }
+</style>
+
+<h2 class="sr-only">Color swatch shimmer selector — hover for glow, click to select, double-click for full palette</h2>
+
+<div style="padding: 1.5rem 0; max-width: 540px; margin: 0 auto;">
+  <div style="display: flex; gap: 24px; align-items: flex-start;">
+
+    <div style="flex: 0 0 200px;">
+      <div class="img-wrap" style="width:200px; height:200px;" id="imgWrap">
+        <div id="imgContainer" style="position:absolute;inset:0;"></div>
+        <div class="palette-overlay" id="paletteOverlay">
+          <div class="palette-grid" id="paletteGrid"></div>
+        </div>
+      </div>
+      <p class="hint" style="text-align:center; margin-top:8px;">double-click swatch for full palette</p>
+    </div>
+
+    <div style="flex: 1; padding-top: 4px;">
+      <p style="font-size: 13px; color: var(--color-text-secondary); margin: 0 0 2px;">STUDIO COLLECTION</p>
+      <p style="font-size: 20px; font-weight: 500; margin: 0 0 4px; color: var(--color-text-primary);" id="productName">Titanium Natural</p>
+      <p style="font-size: 15px; color: var(--color-text-secondary); margin: 0 0 20px;" id="productPrice">$1,199</p>
+
+      <p style="font-size: 11px; color: var(--color-text-tertiary); letter-spacing: 0.08em; margin: 0 0 10px;">COLOUR — <span id="colourLabel" style="color:var(--color-text-primary); font-weight:500;">Natural Titanium</span></p>
+
+      <div style="display: flex; gap: 10px; flex-wrap: wrap;" id="swatchRow"></div>
+
+      <div style="margin-top: 20px; display: flex; gap: 8px; flex-wrap: wrap;" id="badgeRow"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const colours = [
+  {
+    name: "Natural Titanium",
+    price: "$1,199",
+    gradient: "linear-gradient(135deg, #d4c9b8, #e8ddd0, #c8bcaa, #b0a496, #d4c9b8)",
+    glow: "#c8bcaa",
+    bg: "linear-gradient(160deg, #ede8e0 0%, #d9d3c8 40%, #c8c0b4 100%)",
+    tags: ["Most popular", "New finish"]
+  },
+  {
+    name: "Black Titanium",
+    price: "$1,199",
+    gradient: "linear-gradient(135deg, #3a3a3a, #1c1c1e, #4a4a4a, #2c2c2e, #3a3a3a)",
+    glow: "#5a5a5a",
+    bg: "linear-gradient(160deg, #2c2c2e 0%, #1c1c1e 50%, #111 100%)",
+    tags: ["Stealth", "Limited"]
+  },
+  {
+    name: "White Titanium",
+    price: "$1,199",
+    gradient: "linear-gradient(135deg, #f5f5f0, #ffffff, #eae8e4, #f8f8f6, #f0eeea)",
+    glow: "#d0cfc8",
+    bg: "linear-gradient(160deg, #f8f8f6 0%, #eeece8 50%, #e4e2de 100%)",
+    tags: ["Clean", "Classic"]
+  },
+  {
+    name: "Desert Titanium",
+    price: "$1,199",
+    gradient: "linear-gradient(135deg, #c8a882, #e0c09a, #b89068, #d4aa80, #c8a882)",
+    glow: "#c8a882",
+    bg: "linear-gradient(160deg, #e8d0b0 0%, #d4b890 40%, #c0a070 100%)",
+    tags: ["New", "Warm tone"]
+  },
+  {
+    name: "Midnight Blue",
+    price: "$1,249",
+    gradient: "linear-gradient(135deg, #1a2a4a, #2a3d6a, #0f1f3c, #223058, #1a2a4a)",
+    glow: "#3a5090",
+    bg: "linear-gradient(160deg, #1e3260 0%, #152548 50%, #0c1a38 100%)",
+    tags: ["Premium", "Deep blue"]
+  },
+  {
+    name: "Rose Gold",
+    price: "$1,249",
+    gradient: "linear-gradient(135deg, #e8a090, #f8c0b0, #d48878, #f0b0a0, #e8a090)",
+    glow: "#e8a090",
+    bg: "linear-gradient(160deg, #f8d0c0 0%, #eebaaa 40%, #e0a090 100%)",
+    tags: ["Signature", "Limited"]
+  }
+];
+
+let selected = 0;
+let lastImg = null;
+
+function buildSVGProduct(colour) {
+  const w = 200, h = 200;
+  return `<svg xmlns='http://www.w3.org/2000/svg' width='${w}' height='${h}' viewBox='0 0 ${w} ${h}'>
+    <defs>
+      <linearGradient id='bg' x1='0' y1='0' x2='1' y2='1'>
+        <stop offset='0%' stop-color='${colour.bgTop}'/>
+        <stop offset='100%' stop-color='${colour.bgBot}'/>
+      </linearGradient>
+      <linearGradient id='body' x1='0' y1='0' x2='1' y2='1'>
+        <stop offset='0%' stop-color='${colour.top}'/>
+        <stop offset='100%' stop-color='${colour.bot}'/>
+      </linearGradient>
+      <linearGradient id='screen' x1='0' y1='0' x2='0.5' y2='1'>
+        <stop offset='0%' stop-color='#1a1a2e'/>
+        <stop offset='100%' stop-color='#0a0a1a'/>
+      </linearGradient>
+    </defs>
+    <rect width='${w}' height='${h}' fill='url(#bg)'/>
+    <rect x='62' y='30' width='76' height='140' rx='14' fill='url(#body)' stroke='${colour.stroke}' stroke-width='0.5'/>
+    <rect x='68' y='42' width='64' height='105' rx='8' fill='url(#screen)'/>
+    <circle cx='100' cy='157' r='5' fill='${colour.stroke}' opacity='0.4'/>
+    <rect x='88' y='26' width='24' height='4' rx='2' fill='${colour.stroke}' opacity='0.3'/>
+    <rect x='70' y='55' width='40' height='2' rx='1' fill='white' opacity='0.07'/>
+    <rect x='70' y='62' width='60' height='2' rx='1' fill='white' opacity='0.05'/>
+    <rect x='70' y='70' width='50' height='2' rx='1' fill='white' opacity='0.05'/>
+    <rect x='70' y='55' width='40' height='2' rx='1' fill='white' opacity='0.06'/>
+    <rect x='72' y='90' width='56' height='30' rx='4' fill='white' opacity='0.04'/>
+    <rect x='58' y='65' width='4' height='22' rx='2' fill='${colour.stroke}' opacity='0.25'/>
+    <rect x='58' y='92' width='4' height='16' rx='2' fill='${colour.stroke}' opacity='0.25'/>
+    <rect x='138' y='72' width='4' height='18' rx='2' fill='${colour.stroke}' opacity='0.25'/>
+    <ellipse cx='100' cy='95' rx='18' ry='18' fill='none' stroke='white' stroke-width='0.5' opacity='0.05'/>
+    <line x1='62' y1='120' x2='138' y2='120' stroke='white' stroke-width='0.5' opacity='0.04'/>
+  </svg>`;
+}
+
+const colourData = [
+  { bgTop: '#ede8e0', bgBot: '#c8c0b4', top: '#d4c9b8', bot: '#a89c90', stroke: '#b0a496' },
+  { bgTop: '#2c2c2e', bgBot: '#111', top: '#3a3a3a', bot: '#1c1c1e', stroke: '#666' },
+  { bgTop: '#f8f8f6', bgBot: '#e4e2de', top: '#f0eeea', bot: '#d8d6d0', stroke: '#ccc' },
+  { bgTop: '#e8d0b0', bgBot: '#c0a070', top: '#c8a882', bot: '#9c7c58', stroke: '#b89068' },
+  { bgTop: '#1e3260', bgBot: '#0c1a38', top: '#2a3d6a', bot: '#0f1f3c', stroke: '#3a5090' },
+  { bgTop: '#f8d0c0', bgBot: '#e0a090', top: '#e8a090', bot: '#c0786a', stroke: '#d49088' },
+];
+
+function renderImage(idx, animate) {
+  const container = document.getElementById('imgContainer');
+  const svg = buildSVGProduct(colourData[idx]);
+  const blob = new Blob([svg], { type: 'image/svg+xml' });
+  const url = URL.createObjectURL(blob);
+  const img = document.createElement('img');
+  img.className = 'product-img' + (animate ? ' entering' : '');
+  img.src = url;
+  img.onload = () => URL.revokeObjectURL(url);
+  if (lastImg) {
+    const old = lastImg;
+    setTimeout(() => { if (container.contains(old)) container.removeChild(old); }, 400);
+  }
+  container.appendChild(img);
+  lastImg = img;
+}
+
+function selectSwatch(idx, animate = true) {
+  selected = idx;
+  const c = colours[idx];
+  document.getElementById('productName').textContent = c.name;
+  document.getElementById('productPrice').textContent = c.price;
+  document.getElementById('colourLabel').textContent = c.name;
+  renderImage(idx, animate);
+  document.querySelectorAll('.swatch').forEach((s, i) => {
+    s.classList.toggle('active', i === idx);
+    s.style.setProperty('--ring-color', colours[i].glow);
+  });
+  const badgeRow = document.getElementById('badgeRow');
+  badgeRow.innerHTML = c.tags.map(t => `<span class="badge">${t}</span>`).join('');
+}
+
+function buildSwatches() {
+  const row = document.getElementById('swatchRow');
+  const paletteGrid = document.getElementById('paletteGrid');
+  colours.forEach((c, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'swatch';
+    btn.style.background = c.gradient;
+    btn.style.backgroundSize = '300% 300%';
+    btn.setAttribute('aria-label', c.name);
+    btn.setAttribute('title', c.name);
+    btn.style.setProperty('--ring-color', c.glow);
+    btn.addEventListener('mouseenter', () => {
+      if (i !== selected) {
+        btn.style.animation = 'shimmer-spin 1.4s ease infinite';
+        btn.style.boxShadow = `0 0 14px 3px ${c.glow}88`;
+      }
+    });
+    btn.addEventListener('mouseleave', () => {
+      if (i !== selected) {
+        btn.style.animation = '';
+        btn.style.boxShadow = '';
+      }
+    });
+    btn.addEventListener('click', () => selectSwatch(i));
+    btn.addEventListener('dblclick', () => {
+      const overlay = document.getElementById('paletteOverlay');
+      overlay.classList.add('visible');
+    });
+    row.appendChild(btn);
+
+    const ps = document.createElement('button');
+    ps.className = 'palette-swatch';
+    ps.style.background = c.gradient;
+    ps.style.backgroundSize = '300% 300%';
+    ps.setAttribute('title', c.name);
+    ps.addEventListener('mouseenter', () => {
+      ps.style.animation = 'shimmer-spin 1.4s ease infinite';
+      ps.style.boxShadow = `0 0 12px 3px ${c.glow}88`;
+    });
+    ps.addEventListener('mouseleave', () => {
+      ps.style.animation = '';
+      ps.style.boxShadow = '';
+    });
+    ps.addEventListener('click', () => {
+      selectSwatch(i);
+      document.getElementById('paletteOverlay').classList.remove('visible');
+    });
+    paletteGrid.appendChild(ps);
+  });
+
+  document.getElementById('paletteOverlay').addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('visible');
+  });
+}
+
+buildSwatches();
+selectSwatch(0, false);
+</script>

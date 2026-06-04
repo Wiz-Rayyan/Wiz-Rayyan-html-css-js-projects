@@ -1,0 +1,461 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+#canvas-wrap{position:relative;width:100%;overflow:hidden;border-radius:var(--border-radius-lg);border:0.5px solid var(--color-border-tertiary);background:var(--color-background-secondary)}
+canvas{display:block;width:100%;cursor:default}
+#panel{position:absolute;top:0;right:-300px;width:280px;height:100%;background:var(--color-background-primary);border-left:0.5px solid var(--color-border-tertiary);padding:16px;transition:right .3s cubic-bezier(.4,0,.2,1);border-radius:0 var(--border-radius-lg) var(--border-radius-lg) 0;overflow-y:auto}
+#panel.open{right:0}
+#panel-close{float:right;cursor:pointer;font-size:16px;color:var(--color-text-secondary);background:none;border:none;padding:0;line-height:1}
+.ph{font-size:11px;color:var(--color-text-secondary);margin:0 0 2px;font-weight:500;text-transform:uppercase;letter-spacing:.04em}
+.pv{font-size:13px;color:var(--color-text-primary);margin:0 0 10px;word-break:break-all;font-family:var(--font-mono)}
+.pbig{font-size:16px;font-weight:500;color:var(--color-text-primary);margin:0 0 14px}
+.tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:4px;margin:2px 2px 8px 0}
+#toolbar{display:flex;gap:8px;padding:8px 10px;border-bottom:0.5px solid var(--color-border-tertiary);background:var(--color-background-primary);border-radius:var(--border-radius-lg) var(--border-radius-lg) 0 0;flex-wrap:wrap;align-items:center}
+#toolbar button{font-size:12px;padding:4px 10px;border-radius:6px;border:0.5px solid var(--color-border-secondary);background:transparent;color:var(--color-text-primary);cursor:pointer}
+#toolbar button:hover{background:var(--color-background-secondary)}
+#toolbar span{font-size:12px;color:var(--color-text-secondary)}
+#tooltip{position:absolute;pointer-events:none;background:var(--color-background-primary);border:0.5px solid var(--color-border-secondary);border-radius:6px;font-size:12px;padding:5px 10px;color:var(--color-text-primary);opacity:0;transition:opacity .15s;white-space:nowrap;z-index:10}
+#hint{font-size:11px;color:var(--color-text-tertiary);padding:6px 12px;text-align:center;border-top:0.5px solid var(--color-border-tertiary)}
+</style>
+<h2 class="sr-only">Interactive Git branch tree visualization showing commits as nodes on branches with drag-to-merge and click-for-details</h2>
+<div id="toolbar">
+  <button onclick="addCommit()"><i class="ti ti-git-commit" aria-hidden="true"></i> New commit</button>
+  <button onclick="addBranch()"><i class="ti ti-git-branch" aria-hidden="true"></i> New branch</button>
+  <span id="hint-bar">Click commit for details · Drag commit onto another to merge · Hover branch to highlight</span>
+</div>
+<div id="canvas-wrap">
+  <canvas id="gc"></canvas>
+  <div id="tooltip"></div>
+  <div id="panel">
+    <button id="panel-close" onclick="closePanel()" aria-label="Close">×</button>
+    <div id="panel-content"></div>
+  </div>
+</div>
+<div id="hint">Drag any commit node onto another to merge branches</div>
+<script>
+const canvas=document.getElementById('gc');
+const ctx=canvas.getContext('2d');
+const wrap=document.getElementById('canvas-wrap');
+const tooltip=document.getElementById('tooltip');
+
+const W=680,H=420;
+canvas.width=W; canvas.height=H;
+canvas.style.height=H+'px';
+
+const dark=matchMedia('(prefers-color-scheme: dark)').matches;
+const C={
+  bg: dark?'#1a1a18':'#f8f7f4',
+  text: dark?'#c2c0b6':'#3d3d3a',
+  textMuted: dark?'#888780':'#73726c',
+  panel: dark?'#242422':'#ffffff',
+  border: dark?'rgba(255,255,255,0.15)':'rgba(0,0,0,0.12)',
+};
+
+const BRANCH_COLORS=[
+  {line:'#7F77DD',node:'#AFA9EC',light:'#EEEDFE'},
+  {line:'#1D9E75',node:'#5DCAA5',light:'#E1F5EE'},
+  {line:'#D85A30',node:'#F0997B',light:'#FAECE7'},
+  {line:'#378ADD',node:'#85B7EB',light:'#E6F1FB'},
+  {line:'#BA7517',node:'#EF9F27',light:'#FAEEDA'},
+  {line:'#D4537E',node:'#ED93B1',light:'#FBEAF0'},
+];
+
+let branches=[
+  {id:0,name:'main',color:BRANCH_COLORS[0],x:60,commits:[],parent:null,parentCommit:null},
+  {id:1,name:'feature/ui',color:BRANCH_COLORS[1],x:160,commits:[],parent:0,parentCommit:null},
+  {id:2,name:'fix/auth',color:BRANCH_COLORS[2],x:260,commits:[],parent:0,parentCommit:null},
+];
+let commits=[];
+let nextId=0;
+let sparkles=[];
+let mergeLines=[];
+let animNodes=[];
+let dragging=null,dragX=0,dragY=0,dragStart=null;
+let hoverBranch=-1,selectedCommit=null;
+let nameEdit=null;
+let raf=null;
+
+function hash(){let h='';for(let i=0;i<7;i++)h+='0123456789abcdef'[Math.floor(Math.random()*16)];return h;}
+const msgs=['Add login page','Fix null ref','Refactor auth','Update deps','Style tweaks','Add tests','Hotfix crash','Implement cache','Remove dead code','Add API endpoint','Fix race condition','Improve perf','Add dark mode','Update README','Bump version'];
+const authors=['Alice','Bob','Carol','Dave','Eve'];
+
+function addCommit(branchId){
+  if(branchId===undefined){
+    const avail=branches.filter(b=>b.commits.length<7);
+    if(!avail.length)return;
+    branchId=avail[Math.floor(Math.random()*avail.length)].id;
+  }
+  const b=branches.find(x=>x.id===branchId);
+  if(!b)return;
+  const prev=b.commits[b.commits.length-1];
+  const prevC=prev?commits.find(x=>x.id===prev):null;
+  const y=prevC?prevC.y-56:H-60;
+  if(y<60)return;
+  const c={
+    id:nextId++,
+    branchId,
+    x:b.x,
+    y,
+    hash:hash(),
+    msg:msgs[Math.floor(Math.random()*msgs.length)],
+    author:authors[Math.floor(Math.random()*authors.length)],
+    date:new Date(Date.now()-Math.random()*1e8).toLocaleDateString(),
+    scale:0,
+    isMerge:false,
+    parents:[prev],
+    label:null,
+  };
+  commits.push(c);
+  b.commits.push(c.id);
+  animNodes.push({id:c.id,t:0});
+  if(!prev&&b.parentCommit!==null){
+    const pc=commits.find(x=>x.id===b.parentCommit);
+    if(pc) mergeLines.push({x1:b.x,y1:pc.y,x2:b.x,y2:y,color:b.color.line,alpha:0.35,dash:[4,4]});
+  }
+  loop();
+}
+
+function addBranch(){
+  if(branches.length>=6)return;
+  const srcBranch=branches[0];
+  const srcCommit=commits.find(c=>c.branchId===0);
+  if(!srcCommit)return;
+  const idx=branches.length;
+  const col=BRANCH_COLORS[idx%BRANCH_COLORS.length];
+  const bx=60+idx*100;
+  const b={id:idx,name:'branch-'+idx,color:col,x:bx,commits:[],parent:0,parentCommit:srcCommit.id};
+  branches.push(b);
+  addCommit(b.id);
+}
+
+function doMerge(srcId,dstId){
+  const src=commits.find(c=>c.id===srcId);
+  const dst=commits.find(c=>c.id===dstId);
+  if(!src||!dst||src.branchId===dst.branchId)return;
+  const dstBranch=branches.find(b=>b.id===dst.branchId);
+  const y=dst.y-56;
+  if(y<60)return;
+  const mc={
+    id:nextId++,
+    branchId:dst.branchId,
+    x:dst.x,
+    y,
+    hash:hash(),
+    msg:'Merge '+branches.find(b=>b.id===src.branchId)?.name+' → '+dstBranch?.name,
+    author:'Git',
+    date:new Date().toLocaleDateString(),
+    scale:0,
+    isMerge:true,
+    parents:[dstBranch.commits[dstBranch.commits.length-1],srcId],
+    label:'merge',
+  };
+  commits.push(mc);
+  dstBranch.commits.push(mc.id);
+  animNodes.push({id:mc.id,t:0});
+  spawnSparkles(dst.x+(src.x-dst.x)/2,dst.y-30,dstBranch.color.line);
+  mergeLines.push({x1:src.x,y1:src.y,x2:dst.x,y2:y,color:dstBranch.color.line,alpha:0.6,dash:[]});
+  loop();
+}
+
+function spawnSparkles(cx,cy,color){
+  for(let i=0;i<22;i++){
+    const ang=Math.random()*Math.PI*2,spd=1+Math.random()*3.5;
+    sparkles.push({x:cx,y:cy,vx:Math.cos(ang)*spd,vy:Math.sin(ang)*spd,life:1,color,size:1.5+Math.random()*3});
+  }
+}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle=C.bg; ctx.fillRect(0,0,W,H);
+
+  const bnames=[];
+  branches.forEach(b=>{
+    const cs=b.commits.map(id=>commits.find(c=>c.id===id)).filter(Boolean);
+    if(cs.length<2)return;
+    const highlighted=hoverBranch===b.id;
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(b.x,cs[cs.length-1].y);
+    for(let i=cs.length-2;i>=0;i--) ctx.lineTo(b.x,cs[i].y);
+    ctx.strokeStyle=highlighted?b.color.line:b.color.node;
+    ctx.lineWidth=highlighted?3:2;
+    ctx.globalAlpha=highlighted?1:0.7;
+    ctx.stroke();
+    ctx.restore();
+    if(highlighted){
+      const top=cs[0];
+      bnames.push({x:b.x,y:top.y-18,name:b.name,color:b.color});
+    }
+  });
+
+  mergeLines.forEach(ml=>{
+    ctx.save();
+    ctx.beginPath();
+    if(ml.dash.length) ctx.setLineDash(ml.dash);
+    const cpx=(ml.x1+ml.x2)/2;
+    ctx.moveTo(ml.x1,ml.y1);
+    ctx.bezierCurveTo(cpx,ml.y1,cpx,ml.y2,ml.x2,ml.y2);
+    ctx.strokeStyle=ml.color;
+    ctx.lineWidth=1.5;
+    ctx.globalAlpha=ml.alpha;
+    ctx.stroke();
+    ctx.restore();
+  });
+
+  commits.forEach(c=>{
+    const s=c.scale;
+    if(s<=0) return;
+    const b=branches.find(x=>x.id===c.branchId);
+    const col=b?b.color:BRANCH_COLORS[0];
+    const isDragging=dragging&&dragging.id===c.id;
+    const isSelected=selectedCommit&&selectedCommit.id===c.id;
+    const cx=isDragging?dragX:c.x;
+    const cy=isDragging?dragY:c.y;
+    ctx.save();
+    ctx.translate(cx,cy);
+    ctx.scale(s,s);
+    if(c.isMerge){
+      ctx.beginPath();
+      for(let i=0;i<6;i++){const a=i*Math.PI/3-Math.PI/6;ctx.lineTo(Math.cos(a)*13,Math.sin(a)*13);}
+      ctx.closePath();
+      ctx.fillStyle=col.node;
+      ctx.globalAlpha=0.9;
+      ctx.fill();
+      if(isSelected){ctx.strokeStyle=col.line;ctx.lineWidth=2.5/s;ctx.stroke();}
+    } else {
+      ctx.beginPath();
+      ctx.arc(0,0,10,0,Math.PI*2);
+      ctx.fillStyle=col.light;
+      ctx.globalAlpha=0.85;
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(0,0,10,0,Math.PI*2);
+      ctx.strokeStyle=col.line;
+      ctx.lineWidth=(isSelected?3:1.5)/s;
+      ctx.globalAlpha=1;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(0,0,4,0,Math.PI*2);
+      ctx.fillStyle=col.line;
+      ctx.globalAlpha=1;
+      ctx.fill();
+    }
+    ctx.restore();
+    ctx.save();
+    ctx.globalAlpha=s*0.85;
+    ctx.fillStyle=C.textMuted;
+    ctx.font='10px var(--font-mono, monospace)';
+    ctx.fillText(c.hash,(isDragging?dragX:c.x)+14,(isDragging?dragY:c.y)+4);
+    ctx.restore();
+  });
+
+  bnames.forEach(bn=>{
+    ctx.save();
+    ctx.font='500 12px var(--font-sans,sans-serif)';
+    const tw=ctx.measureText(bn.name).width;
+    ctx.fillStyle=bn.color.light;
+    ctx.globalAlpha=0.92;
+    roundRect(ctx,bn.x-tw/2-7,bn.y-11,tw+14,18,5);
+    ctx.fill();
+    ctx.strokeStyle=bn.color.line;
+    ctx.lineWidth=1;
+    ctx.globalAlpha=0.9;
+    ctx.stroke();
+    ctx.fillStyle=bn.color.line;
+    ctx.globalAlpha=1;
+    ctx.textAlign='center';
+    ctx.fillText(bn.name,bn.x,bn.y+2);
+    ctx.restore();
+  });
+
+  sparkles=sparkles.filter(sp=>{
+    sp.x+=sp.vx; sp.y+=sp.vy; sp.vy+=0.12; sp.life-=0.04;
+    if(sp.life<=0)return false;
+    ctx.save();
+    ctx.globalAlpha=sp.life;
+    ctx.fillStyle=sp.color;
+    ctx.beginPath();
+    ctx.arc(sp.x,sp.y,sp.size*sp.life,0,Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+    return true;
+  });
+
+  if(dragging){
+    ctx.save();
+    ctx.strokeStyle='rgba(200,160,255,0.5)';
+    ctx.lineWidth=1.5;
+    ctx.setLineDash([4,4]);
+    const from=commits.find(c=>c.id===dragging.id);
+    if(from){ctx.beginPath();ctx.moveTo(from.x,from.y);ctx.lineTo(dragX,dragY);ctx.stroke();}
+    ctx.restore();
+  }
+}
+
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);
+  ctx.closePath();
+}
+
+let animating=false;
+function loop(){
+  if(animating)return;
+  animating=true;
+  function frame(){
+    let dirty=false;
+    animNodes=animNodes.filter(a=>{
+      a.t+=0.08;
+      const c=commits.find(x=>x.id===a.id);
+      if(c){c.scale=Math.min(1,a.t<0.5?4*a.t*a.t*a.t:1-Math.pow(-2*a.t+2,3)/2);}
+      if(a.t<1){dirty=true;return true;}
+      if(c)c.scale=1;
+      return false;
+    });
+    dirty=dirty||sparkles.length>0;
+    draw();
+    if(dirty)requestAnimationFrame(frame);
+    else animating=false;
+  }
+  requestAnimationFrame(frame);
+}
+
+function getCommitAt(x,y){
+  return commits.find(c=>{
+    const cx=c.x,cy=c.y;
+    return Math.hypot(cx-x,cy-y)<14&&c.scale>0.5;
+  });
+}
+
+function getBranchAt(x,y){
+  return branches.find(b=>{
+    return Math.abs(b.x-x)<14&&b.commits.length>0;
+  });
+}
+
+canvas.addEventListener('mousedown',e=>{
+  const r=canvas.getBoundingClientRect();
+  const sx=W/r.width;
+  const px=(e.clientX-r.left)*sx,py=(e.clientY-r.top)*sx;
+  const c=getCommitAt(px,py);
+  if(c){dragging=c;dragX=px;dragY=py;dragStart={x:px,y:py};}
+});
+
+canvas.addEventListener('mousemove',e=>{
+  const r=canvas.getBoundingClientRect();
+  const sx=W/r.width;
+  const px=(e.clientX-r.left)*sx,py=(e.clientY-r.top)*sx;
+  if(dragging){
+    dragX=px;dragY=py;
+    const target=commits.find(c=>c.id!==dragging.id&&Math.hypot(c.x-px,c.y-py)<16&&c.scale>0.5);
+    canvas.style.cursor=target?'copy':'grabbing';
+    draw();
+    return;
+  }
+  const b=getBranchAt(px,py);
+  const prev=hoverBranch;
+  hoverBranch=b?b.id:-1;
+  if(hoverBranch!==prev)draw();
+  const c=getCommitAt(px,py);
+  if(c){
+    canvas.style.cursor='pointer';
+    tooltip.style.opacity='1';
+    tooltip.style.left=(e.clientX-wrap.getBoundingClientRect().left+10)+'px';
+    tooltip.style.top=(e.clientY-wrap.getBoundingClientRect().top-28)+'px';
+    tooltip.textContent=c.msg+' ('+c.hash+')';
+  } else {
+    canvas.style.cursor=b?'pointer':'default';
+    tooltip.style.opacity='0';
+  }
+});
+
+canvas.addEventListener('mouseup',e=>{
+  const r=canvas.getBoundingClientRect();
+  const sx=W/r.width;
+  const px=(e.clientX-r.left)*sx,py=(e.clientY-r.top)*sx;
+  if(dragging){
+    const moved=dragStart&&Math.hypot(px-dragStart.x,py-dragStart.y)>8;
+    if(moved){
+      const target=commits.find(c=>c.id!==dragging.id&&Math.hypot(c.x-px,c.y-py)<16&&c.scale>0.5);
+      if(target&&target.branchId!==dragging.branchId) doMerge(dragging.id,target.id);
+    } else {
+      openPanel(dragging);
+    }
+    dragging=null;dragStart=null;
+    canvas.style.cursor='default';
+    draw();
+  }
+});
+
+canvas.addEventListener('mouseleave',()=>{tooltip.style.opacity='0';if(dragging){dragging=null;draw();}});
+
+canvas.addEventListener('dblclick',e=>{
+  const r=canvas.getBoundingClientRect();
+  const sx=W/r.width;
+  const px=(e.clientX-r.left)*sx,py=(e.clientY-r.top)*sx;
+  const b=getBranchAt(px,py);
+  if(b){
+    const newName=prompt('Rename branch:',b.name);
+    if(newName&&newName.trim())b.name=newName.trim();
+    draw();
+  }
+});
+
+function openPanel(c){
+  selectedCommit=c;
+  const b=branches.find(x=>x.id===c.branchId);
+  const col=b?b.color:BRANCH_COLORS[0];
+  document.getElementById('panel-content').innerHTML=`
+    <p class="pbig">${c.msg}</p>
+    <p class="ph">Branch</p>
+    <p class="pv" style="font-family:var(--font-sans);margin-bottom:10px"><span style="display:inline-block;padding:2px 10px;border-radius:4px;background:${col.light};color:${col.line};font-size:12px">${b?.name||'unknown'}</span></p>
+    <p class="ph">Commit hash</p>
+    <p class="pv">${c.hash}</p>
+    <p class="ph">Author</p>
+    <p class="pv" style="font-family:var(--font-sans)">${c.author}</p>
+    <p class="ph">Date</p>
+    <p class="pv" style="font-family:var(--font-sans)">${c.date}</p>
+    ${c.isMerge?'<span class="tag" style="background:'+col.light+';color:'+col.line+'">merge commit</span>':''}
+  `;
+  document.getElementById('panel').classList.add('open');
+  draw();
+}
+
+function closePanel(){
+  document.getElementById('panel').classList.remove('open');
+  selectedCommit=null;
+  draw();
+}
+window.closePanel=closePanel;
+
+window.addCommit=addCommit;
+window.addBranch=addBranch;
+
+['main','feature/ui','fix/auth'].forEach((name,i)=>{
+  branches[i].name=name;
+  const count=i===0?4:i===1?3:2;
+  for(let j=0;j<count;j++) addCommit(i);
+});
+setTimeout(()=>{
+  mergeLines=[];
+  const mainLatest=commits.filter(c=>c.branchId===0).sort((a,b)=>a.y-b.y)[0];
+  const feat=commits.filter(c=>c.branchId===1).sort((a,b)=>a.y-b.y)[0];
+  if(mainLatest&&feat){
+    const mc={
+      id:nextId++,branchId:0,x:60,y:mainLatest.y-56,
+      hash:hash(),msg:'Merge feature/ui → main',author:'Alice',
+      date:new Date().toLocaleDateString(),scale:0,isMerge:true,
+      parents:[mainLatest.id,feat.id],label:'merge'
+    };
+    commits.push(mc);
+    branches[0].commits.push(mc.id);
+    animNodes.push({id:mc.id,t:0});
+    mergeLines.push({x1:160,y1:feat.y,x2:60,y2:mc.y,color:BRANCH_COLORS[0].line,alpha:0.6,dash:[]});
+    spawnSparkles(110,(feat.y+mc.y)/2,BRANCH_COLORS[0].line);
+    loop();
+  }
+},600);
+</script>

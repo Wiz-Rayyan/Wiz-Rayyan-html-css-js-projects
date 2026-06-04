@@ -1,0 +1,349 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: transparent; }
+  #app { font-family: var(--font-mono, monospace); padding: 16px; min-height: 520px; }
+  .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .repo-label { font-size: 13px; color: var(--color-text-secondary); display: flex; align-items: center; gap: 6px; }
+  .branch-badge { font-size: 11px; background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); border-radius: 20px; padding: 2px 10px; color: var(--color-text-secondary); }
+  .zones { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; height: 340px; }
+  .zone { border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 12px; background: var(--color-background-primary); display: flex; flex-direction: column; gap: 0; overflow: hidden; position: relative; transition: border-color 0.2s; }
+  .zone.drag-over { border-color: #7F77DD; background: #EEEDFE22; }
+  .zone-header { font-size: 11px; font-weight: 500; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
+  .zone-count { background: var(--color-background-secondary); border-radius: 20px; padding: 1px 8px; font-size: 10px; color: var(--color-text-secondary); }
+  .cards-area { display: flex; flex-direction: column; gap: 6px; flex: 1; overflow-y: auto; }
+  .file-card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); padding: 8px 10px; cursor: grab; user-select: none; display: flex; align-items: center; gap: 8px; transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s; position: relative; }
+  .file-card:hover { transform: scale(1.02) translateY(-1px); border-color: var(--color-border-secondary); }
+  .file-card:active { cursor: grabbing; transform: scale(1.03); }
+  .file-card.dragging { opacity: 0.3; }
+  .file-card.bounce { animation: bounce-in 0.5s cubic-bezier(0.34,1.56,0.64,1); }
+  .file-icon { font-size: 14px; flex-shrink: 0; }
+  .file-info { flex: 1; min-width: 0; }
+  .file-name { font-size: 12px; font-weight: 500; color: var(--color-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .file-stat { font-size: 10px; color: var(--color-text-tertiary); margin-top: 1px; }
+  .file-diff { font-size: 10px; display: flex; gap: 4px; }
+  .add { color: #1D9E75; }
+  .del { color: #D85A30; }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .status-M { background: #EF9F27; }
+  .status-A { background: #1D9E75; }
+  .status-D { background: #D85A30; }
+  .status-R { background: #7F77DD; }
+  .bottom-bar { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+  .commit-input { flex: 1; font-size: 12px; font-family: var(--font-mono); background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); padding: 8px 12px; color: var(--color-text-primary); outline: none; }
+  .commit-input:focus { border-color: #7F77DD; }
+  .commit-btn { font-size: 12px; font-family: var(--font-mono); background: #534AB7; color: #EEEDFE; border: none; border-radius: var(--border-radius-md); padding: 8px 16px; cursor: pointer; font-weight: 500; transition: background 0.15s, transform 0.1s; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .commit-btn:hover:not(:disabled) { background: #3C3489; }
+  .commit-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .commit-btn:active:not(:disabled) { transform: scale(0.97); }
+  .undo-btn { font-size: 12px; font-family: var(--font-mono); background: transparent; border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); padding: 8px 12px; color: var(--color-text-secondary); cursor: pointer; transition: border-color 0.15s, color 0.15s; white-space: nowrap; }
+  .undo-btn:hover { border-color: var(--color-border-secondary); color: var(--color-text-primary); }
+  #canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 999; }
+  .diff-panel { position: absolute; right: -320px; top: 0; width: 300px; height: 100%; background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 12px; z-index: 10; transition: right 0.3s cubic-bezier(0.25,0.46,0.45,0.94); overflow-y: auto; }
+  .diff-panel.open { right: 4px; }
+  .diff-panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .diff-panel-title { font-size: 12px; font-weight: 500; color: var(--color-text-primary); }
+  .diff-close { cursor: pointer; font-size: 14px; color: var(--color-text-tertiary); background: none; border: none; padding: 2px 6px; border-radius: 4px; }
+  .diff-close:hover { color: var(--color-text-primary); background: var(--color-background-secondary); }
+  .diff-line { font-size: 10px; line-height: 1.6; font-family: var(--font-mono); padding: 1px 4px; border-radius: 2px; }
+  .diff-line.add-line { color: #085041; background: #E1F5EE; }
+  .diff-line.del-line { color: #711B13; background: #FAECE7; }
+  .diff-line.ctx-line { color: var(--color-text-tertiary); }
+  .trail-particle { position: fixed; width: 4px; height: 4px; border-radius: 50%; pointer-events: none; z-index: 998; }
+  .success-toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(60px); background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 10px 20px; font-size: 13px; color: var(--color-text-primary); font-family: var(--font-mono); z-index: 1000; opacity: 0; transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1), opacity 0.3s; display: flex; align-items: center; gap: 8px; }
+  .success-toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+  @keyframes bounce-in { 0% { transform: scale(0.7) translateY(8px); opacity:0.5; } 60% { transform: scale(1.04) translateY(-2px); } 100% { transform: scale(1) translateY(0); opacity:1; } }
+  @keyframes fly-up { 0% { opacity:1; transform: translateY(0) scale(1); } 100% { opacity:0; transform: translateY(-180px) scale(0.3); } }
+  @keyframes confetti-fall { 0% { opacity:1; transform: translateY(0) rotate(0deg); } 100% { opacity:0; transform: translateY(200px) rotate(720deg); } }
+</style>
+
+<h2 class="sr-only">Git staging area: drag files between unstaged and staged zones, then commit.</h2>
+<div id="app">
+  <div class="header">
+    <div class="repo-label"><i class="ti ti-git-branch" aria-hidden="true" style="font-size:16px"></i> my-project</div>
+    <div class="branch-badge">main</div>
+  </div>
+  <div class="zones">
+    <div class="zone" id="zone-unstaged" ondragover="onDragOver(event,'unstaged')" ondragleave="onDragLeave(event,'unstaged')" ondrop="onDrop(event,'unstaged')">
+      <div class="zone-header">
+        <span><i class="ti ti-files" aria-hidden="true" style="font-size:13px;margin-right:4px"></i>unstaged</span>
+        <span class="zone-count" id="count-unstaged">0</span>
+      </div>
+      <div class="cards-area" id="cards-unstaged"></div>
+    </div>
+    <div class="zone" id="zone-staged" ondragover="onDragOver(event,'staged')" ondragleave="onDragLeave(event,'staged')" ondrop="onDrop(event,'staged')">
+      <div class="zone-header">
+        <span><i class="ti ti-check" aria-hidden="true" style="font-size:13px;margin-right:4px"></i>staged</span>
+        <span class="zone-count" id="count-staged">0</span>
+      </div>
+      <div class="cards-area" id="cards-staged"></div>
+      <div class="diff-panel" id="diff-panel">
+        <div class="diff-panel-header">
+          <span class="diff-panel-title" id="diff-title">diff</span>
+          <button class="diff-close" onclick="closeDiff()" aria-label="close diff">✕</button>
+        </div>
+        <div id="diff-content"></div>
+      </div>
+    </div>
+  </div>
+  <div class="bottom-bar">
+    <input class="commit-input" id="commit-msg" type="text" placeholder="commit message..." aria-label="commit message" />
+    <button class="undo-btn" id="undo-btn" onclick="doUndo()" style="display:none">↩ undo</button>
+    <button class="commit-btn" id="commit-btn" onclick="doCommit()" disabled>
+      <i class="ti ti-arrow-up" aria-hidden="true" style="font-size:14px"></i> commit
+    </button>
+  </div>
+</div>
+<canvas id="canvas"></canvas>
+<div class="success-toast" id="toast"><i class="ti ti-check" aria-hidden="true" style="font-size:16px;color:#1D9E75"></i> committed successfully</div>
+
+<script>
+const files = [
+  { id:'f1', name:'src/App.tsx', status:'M', adds:12, dels:4, diff:[
+    {t:'ctx',l:'import React from "react"'},
+    {t:'del',l:'const App = () => <div>Hello</div>'},
+    {t:'add',l:'const App = () => <Layout>'},
+    {t:'add',l:'  <Header title="My App" />'},
+    {t:'add',l:'  <Main />'},
+    {t:'add',l:'</Layout>'},
+    {t:'ctx',l:'export default App'},
+  ]},
+  { id:'f2', name:'src/components/Header.tsx', status:'A', adds:28, dels:0, diff:[
+    {t:'add',l:'import React from "react"'},
+    {t:'add',l:'interface Props { title: string }'},
+    {t:'add',l:'export const Header = ({ title }: Props) => ('},
+    {t:'add',l:'  <header className="header">'},
+    {t:'add',l:'    <h1>{title}</h1>'},
+    {t:'add',l:'  </header>'},
+    {t:'add',l:')'},
+  ]},
+  { id:'f3', name:'styles/main.css', status:'M', adds:6, dels:2, diff:[
+    {t:'ctx',l:'.container { max-width: 1200px; }'},
+    {t:'del',l:'.header { color: black; }'},
+    {t:'add',l:'.header { color: #534AB7; }'},
+    {t:'add',l:'.header h1 { font-size: 1.5rem; }'},
+    {t:'ctx',l:'body { margin: 0; }'},
+  ]},
+  { id:'f4', name:'README.md', status:'M', adds:3, dels:1, diff:[
+    {t:'ctx',l:'# My Project'},
+    {t:'del',l:'A simple app.'},
+    {t:'add',l:'A modern React application.'},
+    {t:'add',l:''},
+    {t:'add',l:'## Features'},
+  ]},
+  { id:'f5', name:'package.json', status:'M', adds:2, dels:2, diff:[
+    {t:'ctx',l:'"name": "my-project",'},
+    {t:'del',l:'"version": "1.0.0",'},
+    {t:'add',l:'"version": "1.1.0",'},
+    {t:'del',l:'"react": "^17.0.0"'},
+    {t:'add',l:'"react": "^18.0.0"'},
+  ]},
+  { id:'f6', name:'src/api/client.ts', status:'D', adds:0, dels:45, diff:[
+    {t:'del',l:'import axios from "axios"'},
+    {t:'del',l:'export const client = axios.create({'},
+    {t:'del',l:'  baseURL: process.env.API_URL,'},
+    {t:'del',l:'  timeout: 5000,'},
+    {t:'del',l:'})'},
+  ]},
+];
+
+let state = { unstaged: files.map(f=>f.id), staged: [] };
+let lastState = null;
+let dragId = null;
+let openDiff = null;
+let commitHistory = [];
+
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; });
+
+function render() {
+  ['unstaged','staged'].forEach(zone => {
+    const area = document.getElementById('cards-' + zone);
+    const ids = state[zone];
+    area.innerHTML = '';
+    ids.forEach(id => {
+      const f = files.find(x=>x.id===id);
+      const card = document.createElement('div');
+      card.className = 'file-card';
+      card.draggable = true;
+      card.dataset.id = id;
+      card.innerHTML = `
+        <div class="status-dot status-${f.status}"></div>
+        <div class="file-info">
+          <div class="file-name">${f.name}</div>
+          <div class="file-diff"><span class="add">+${f.adds}</span><span class="del">-${f.dels}</span></div>
+        </div>
+        <span style="font-size:10px;color:var(--color-text-tertiary);padding:2px 6px;border:0.5px solid var(--color-border-tertiary);border-radius:4px">${f.status}</span>
+      `;
+      card.addEventListener('dragstart', e => onDragStart(e, id));
+      card.addEventListener('dragend', e => onDragEnd(e, id));
+      card.addEventListener('click', () => toggleDiff(id, zone));
+      area.appendChild(card);
+    });
+    document.getElementById('count-' + zone).textContent = ids.length;
+  });
+  const btn = document.getElementById('commit-btn');
+  btn.disabled = state.staged.length === 0;
+  document.getElementById('undo-btn').style.display = commitHistory.length > 0 ? 'block' : 'none';
+}
+
+function onDragStart(e, id) {
+  dragId = id;
+  setTimeout(() => {
+    const el = document.querySelector(`[data-id="${id}"]`);
+    if(el) el.classList.add('dragging');
+  }, 0);
+  e.dataTransfer.effectAllowed = 'move';
+  spawnTrail(e);
+}
+
+function onDragEnd(e, id) {
+  dragId = null;
+  const el = document.querySelector(`[data-id="${id}"]`);
+  if(el) el.classList.remove('dragging');
+}
+
+function onDragOver(e, zone) {
+  e.preventDefault();
+  document.getElementById('zone-' + zone).classList.add('drag-over');
+}
+
+function onDragLeave(e, zone) {
+  document.getElementById('zone-' + zone).classList.remove('drag-over');
+}
+
+function onDrop(e, zone) {
+  e.preventDefault();
+  document.getElementById('zone-' + zone).classList.remove('drag-over');
+  if(!dragId) return;
+  const other = zone === 'staged' ? 'unstaged' : 'staged';
+  if(state[zone].includes(dragId)) return;
+  state[other] = state[other].filter(x=>x!==dragId);
+  state[zone] = [...state[zone], dragId];
+  spawnMoveParticles(e.clientX, e.clientY);
+  render();
+  closeDiff();
+}
+
+let particles = [];
+function spawnMoveParticles(x, y) {
+  for(let i=0;i<12;i++) {
+    particles.push({ x, y, vx:(Math.random()-0.5)*4, vy:(Math.random()-0.5)*4-1, life:1, color:['#7F77DD','#1D9E75','#EF9F27'][Math.floor(Math.random()*3)], r:3 });
+  }
+  if(!animRunning) animateParticles();
+}
+
+let trailInterval = null;
+function spawnTrail(e) {
+  if(trailInterval) clearInterval(trailInterval);
+  trailInterval = setInterval(() => {
+    if(!dragId) { clearInterval(trailInterval); return; }
+    particles.push({ x: e.clientX + (Math.random()-0.5)*10, y: e.clientY + (Math.random()-0.5)*10, vx:(Math.random()-0.5)*1.5, vy:-0.5, life:0.7, color:'#AFA9EC', r:2 });
+    if(!animRunning) animateParticles();
+  }, 40);
+  document.addEventListener('dragover', updateTrailPos);
+  document.addEventListener('dragend', () => { clearInterval(trailInterval); document.removeEventListener('dragover', updateTrailPos); }, {once:true});
+}
+let lastMouse = {x:0,y:0};
+function updateTrailPos(e) { lastMouse = {x:e.clientX, y:e.clientY}; }
+
+let animRunning = false;
+function animateParticles() {
+  animRunning = true;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  particles = particles.filter(p=>p.life>0);
+  particles.forEach(p => {
+    p.x += p.vx; p.y += p.vy; p.life -= 0.04;
+    ctx.globalAlpha = Math.max(0, p.life);
+    ctx.fillStyle = p.color;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+  if(particles.length > 0) requestAnimationFrame(animateParticles);
+  else { animRunning = false; ctx.clearRect(0,0,canvas.width,canvas.height); }
+}
+
+function doCommit() {
+  const msg = document.getElementById('commit-msg').value.trim();
+  if(state.staged.length === 0) return;
+  lastState = { unstaged:[...state.unstaged], staged:[...state.staged] };
+  const stagedIds = [...state.staged];
+  animateFlyUp(stagedIds, () => {
+    commitHistory.push({ ids: stagedIds, msg });
+    state.staged = [];
+    render();
+    document.getElementById('commit-msg').value = '';
+    spawnConfetti();
+    showToast(msg);
+  });
+}
+
+function animateFlyUp(ids, cb) {
+  let done = 0;
+  ids.forEach((id, i) => {
+    const el = document.querySelector(`[data-id="${id}"]`);
+    if(!el) { done++; if(done===ids.length) cb(); return; }
+    const rect = el.getBoundingClientRect();
+    const ghost = document.createElement('div');
+    ghost.className = 'file-card';
+    ghost.style.cssText = `position:fixed;left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;height:${rect.height}px;pointer-events:none;z-index:100;animation:fly-up 0.6s ease-in ${i*80}ms forwards;background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:8px 10px;display:flex;align-items:center;gap:8px`;
+    ghost.innerHTML = el.innerHTML;
+    document.body.appendChild(ghost);
+    ghost.addEventListener('animationend', () => { ghost.remove(); done++; if(done===ids.length) cb(); });
+  });
+}
+
+function doUndo() {
+  if(commitHistory.length === 0) return;
+  const last = commitHistory.pop();
+  state.staged = [...last.ids, ...state.staged];
+  render();
+  setTimeout(() => {
+    last.ids.forEach(id => {
+      const el = document.querySelector(`[data-id="${id}"]`);
+      if(el) { el.classList.add('bounce'); el.addEventListener('animationend', () => el.classList.remove('bounce'), {once:true}); }
+    });
+  }, 50);
+}
+
+function toggleDiff(id, zone) {
+  if(openDiff === id) { closeDiff(); return; }
+  openDiff = id;
+  const f = files.find(x=>x.id===id);
+  document.getElementById('diff-title').textContent = f.name;
+  const content = document.getElementById('diff-content');
+  content.innerHTML = f.diff.map(line => {
+    const cls = line.t==='add'?'add-line':line.t==='del'?'del-line':'ctx-line';
+    const prefix = line.t==='add'?'+ ':line.t==='del'?'- ':'  ';
+    return `<div class="diff-line ${cls}">${prefix}${line.l}</div>`;
+  }).join('');
+  document.getElementById('diff-panel').classList.add('open');
+}
+
+function closeDiff() {
+  openDiff = null;
+  document.getElementById('diff-panel').classList.remove('open');
+}
+
+function spawnConfetti() {
+  const colors = ['#7F77DD','#1D9E75','#EF9F27','#D4537E','#378ADD'];
+  for(let i=0;i<60;i++) {
+    const el = document.createElement('div');
+    const size = 6 + Math.random()*6;
+    el.style.cssText = `position:fixed;left:${20+Math.random()*60}%;top:40%;width:${size}px;height:${size}px;background:${colors[Math.floor(Math.random()*colors.length)]};border-radius:${Math.random()>0.5?'50%':'2px'};pointer-events:none;z-index:1000;animation:confetti-fall ${0.8+Math.random()*0.6}s ease-in ${Math.random()*0.3}s forwards`;
+    document.body.appendChild(el);
+    el.addEventListener('animationend', ()=>el.remove());
+  }
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.innerHTML = `<i class="ti ti-check" aria-hidden="true" style="font-size:16px;color:#1D9E75"></i> ${msg || 'committed successfully'}`;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2800);
+}
+
+render();
+</script>

@@ -1,0 +1,139 @@
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.scene{padding:2rem 1.5rem;display:flex;gap:1.5rem;justify-content:center;flex-wrap:wrap;background:var(--color-background-tertiary);border-radius:var(--border-radius-lg)}
+.card{width:200px;background:var(--color-background-primary);border-radius:var(--border-radius-lg);border:0.5px solid var(--color-border-tertiary);overflow:hidden;cursor:pointer;transition:transform 0.25s cubic-bezier(0.2,0.9,0.4,1.1),box-shadow 0.25s cubic-bezier(0.2,0.9,0.4,1.1);position:relative;flex-shrink:0}
+.card:hover{transform:translateY(-8px);box-shadow:0 16px 40px rgba(0,0,0,0.14),0 4px 12px rgba(0,0,0,0.08)}
+.card-img{width:100%;height:160px;display:flex;align-items:center;justify-content:center;font-size:48px;position:relative;overflow:hidden}
+.card-img.c1{background:#f0ede8}
+.card-img.c2{background:#e8edf0}
+.card-img.c3{background:#eee8f0}
+.quick-view{position:absolute;bottom:12px;left:50%;transform:translateX(-50%) scale(0.9);opacity:0;background:var(--color-background-primary);border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:6px 14px;font-size:12px;color:var(--color-text-primary);white-space:nowrap;cursor:pointer;transition:opacity 0.2s cubic-bezier(0.2,0.9,0.4,1.1),transform 0.2s cubic-bezier(0.2,0.9,0.4,1.1);pointer-events:none}
+.card:hover .quick-view{opacity:1;transform:translateX(-50%) scale(1);pointer-events:all}
+.card-body{padding:12px 14px 0}
+.card-name{font-size:13px;font-weight:500;color:var(--color-text-primary);margin-bottom:2px}
+.card-sub{font-size:12px;color:var(--color-text-secondary);margin-bottom:6px}
+.card-price{font-size:14px;font-weight:500;color:var(--color-text-primary)}
+.card-options{padding:8px 14px 12px;overflow:hidden;max-height:0;transition:max-height 0.25s cubic-bezier(0.2,0.9,0.4,1.1)}
+.card:hover .card-options{max-height:80px}
+.opts-row{display:flex;align-items:center;gap:6px;margin-bottom:6px;transform:translateY(20px);opacity:0;transition:transform 0.25s cubic-bezier(0.2,0.9,0.4,1.1) 0.04s,opacity 0.2s ease 0.04s}
+.card:hover .opts-row{transform:translateY(0);opacity:1}
+.opts-label{font-size:11px;color:var(--color-text-tertiary);width:34px;flex-shrink:0}
+.swatch{width:16px;height:16px;border-radius:50%;border:0.5px solid var(--color-border-tertiary);cursor:pointer;flex-shrink:0}
+.size-pill{font-size:10px;border:0.5px solid var(--color-border-tertiary);border-radius:4px;padding:2px 5px;color:var(--color-text-secondary);cursor:pointer;flex-shrink:0}
+.size-pill:hover,.size-pill.active{background:var(--color-text-primary);color:var(--color-background-primary);border-color:var(--color-text-primary)}
+.modal-wrap{display:none;position:fixed;inset:0;z-index:100;background:rgba(0,0,0,0.45);align-items:center;justify-content:center}
+.modal-wrap.open{display:flex}
+.modal{background:var(--color-background-primary);border-radius:var(--border-radius-lg);border:0.5px solid var(--color-border-tertiary);width:420px;max-width:90vw;overflow:hidden;animation:pop 0.3s cubic-bezier(0.2,0.9,0.4,1.1) both}
+@keyframes pop{from{transform:scale(0.92) translateY(12px);opacity:0}to{transform:scale(1) translateY(0);opacity:1}}
+.modal-img{width:100%;height:200px;display:flex;align-items:center;justify-content:center;font-size:72px}
+.modal-info{padding:1.25rem}
+.modal-title{font-size:16px;font-weight:500;color:var(--color-text-primary);margin-bottom:4px}
+.modal-desc{font-size:13px;color:var(--color-text-secondary);line-height:1.6;margin-bottom:1rem}
+.modal-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem}
+.modal-price{font-size:18px;font-weight:500;color:var(--color-text-primary)}
+.modal-rating{font-size:13px;color:var(--color-text-secondary)}
+.modal-section{font-size:11px;font-weight:500;color:var(--color-text-tertiary);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.swatch-lg{width:20px;height:20px;border-radius:50%;border:0.5px solid var(--color-border-secondary);cursor:pointer}
+.modal-footer{display:flex;gap:8px;padding:0 1.25rem 1.25rem}
+.btn-primary{flex:1;padding:10px;background:var(--color-text-primary);color:var(--color-background-primary);border:none;border-radius:var(--border-radius-md);font-size:13px;font-weight:500;cursor:pointer}
+.btn-secondary{padding:10px 16px;background:transparent;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);font-size:13px;cursor:pointer;color:var(--color-text-primary)}
+.close-btn{position:absolute;top:12px;right:12px;background:var(--color-background-secondary);border:none;border-radius:50%;width:28px;height:28px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--color-text-secondary)}
+</style>
+
+<h2 class="sr-only">Hover lift reveal product card demo — hover any card to see quick view and options slide up</h2>
+
+<div class="scene">
+
+  <div class="card" onclick="openModal(0)">
+    <div class="card-img c1">
+      <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="12" y="8" width="40" height="48" rx="4" fill="#c8b9a8"/><rect x="18" y="16" width="28" height="20" rx="2" fill="#e8ddd0"/><circle cx="32" cy="46" r="4" fill="#a89880"/></svg>
+      <button class="quick-view" onclick="event.stopPropagation();openModal(0)">Quick view</button>
+    </div>
+    <div class="card-body">
+      <div class="card-name">Matte Ceramic Lamp</div>
+      <div class="card-sub">Home & Living</div>
+      <div class="card-price">₹4,299</div>
+    </div>
+    <div class="card-options">
+      <div class="opts-row"><span class="opts-label">Color</span><span class="swatch" style="background:#c8b9a8"></span><span class="swatch" style="background:#8aafb8"></span><span class="swatch" style="background:#b8a890"></span></div>
+      <div class="opts-row" style="transition-delay:0.07s"><span class="opts-label">Size</span><span class="size-pill active">S</span><span class="size-pill">M</span><span class="size-pill">L</span></div>
+    </div>
+  </div>
+
+  <div class="card" onclick="openModal(1)">
+    <div class="card-img c2">
+      <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><ellipse cx="32" cy="50" rx="22" ry="6" fill="#b8ccd4"/><rect x="14" y="16" width="36" height="32" rx="18" fill="#a8bec8"/><circle cx="24" cy="30" r="3" fill="#7a9bab"/><circle cx="40" cy="30" r="3" fill="#7a9bab"/></svg>
+      <button class="quick-view" onclick="event.stopPropagation();openModal(1)">Quick view</button>
+    </div>
+    <div class="card-body">
+      <div class="card-name">Wireless Headphones</div>
+      <div class="card-sub">Electronics</div>
+      <div class="card-price">₹12,499</div>
+    </div>
+    <div class="card-options">
+      <div class="opts-row"><span class="opts-label">Color</span><span class="swatch" style="background:#8aafb8"></span><span class="swatch" style="background:#2c2c2a"></span><span class="swatch" style="background:#d4c8b8"></span></div>
+      <div class="opts-row" style="transition-delay:0.07s"><span class="opts-label">Band</span><span class="size-pill active">One size</span></div>
+    </div>
+  </div>
+
+  <div class="card" onclick="openModal(2)">
+    <div class="card-img c3">
+      <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="16" y="20" width="32" height="28" rx="3" fill="#c8b4d0"/><rect x="22" y="12" width="6" height="10" rx="3" fill="#a890b8"/><rect x="36" y="12" width="6" height="10" rx="3" fill="#a890b8"/><rect x="22" y="32" width="20" height="8" rx="2" fill="#b09ac0"/></svg>
+      <button class="quick-view" onclick="event.stopPropagation();openModal(2)">Quick view</button>
+    </div>
+    <div class="card-body">
+      <div class="card-name">Linen Tote Bag</div>
+      <div class="card-sub">Accessories</div>
+      <div class="card-price">₹2,199</div>
+    </div>
+    <div class="card-options">
+      <div class="opts-row"><span class="opts-label">Color</span><span class="swatch" style="background:#c8b4d0"></span><span class="swatch" style="background:#d4c8b0"></span><span class="swatch" style="background:#b0c8c0"></span></div>
+      <div class="opts-row" style="transition-delay:0.07s"><span class="opts-label">Size</span><span class="size-pill active">S</span><span class="size-pill">M</span><span class="size-pill">L</span><span class="size-pill">XL</span></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="modal-wrap" id="modal">
+  <div class="modal" id="modal-inner" style="position:relative">
+    <div class="modal-img" id="m-img"></div>
+    <div class="modal-info">
+      <div class="modal-row"><div><div class="modal-title" id="m-name"></div><div style="font-size:12px;color:var(--color-text-secondary)" id="m-sub"></div></div><div><div class="modal-price" id="m-price"></div><div class="modal-rating" id="m-rating"></div></div></div>
+      <div class="modal-desc" id="m-desc"></div>
+      <div class="modal-section">Color</div>
+      <div style="display:flex;gap:8px;margin-bottom:1rem" id="m-colors"></div>
+      <div class="modal-section">Size</div>
+      <div style="display:flex;gap:6px;margin-bottom:1rem" id="m-sizes"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal()"><i class="ti ti-heart" aria-hidden="true"></i></button>
+      <button class="btn-primary">Add to bag</button>
+    </div>
+    <button class="close-btn" onclick="closeModal()" aria-label="Close"><i class="ti ti-x" aria-hidden="true"></i></button>
+  </div>
+</div>
+
+<script>
+const products=[
+  {name:"Matte Ceramic Lamp",sub:"Home & Living",price:"₹4,299",rating:"★★★★☆ 4.2 (184)",desc:"Handcrafted stoneware lamp with a matte glaze finish. Warm diffused light. Pairs with any minimalist or earthy interior.",colors:["#c8b9a8","#8aafb8","#b8a890"],sizes:["S","M","L"],bg:"#f0ede8",emoji:"🏺"},
+  {name:"Wireless Headphones",sub:"Electronics",price:"₹12,499",rating:"★★★★★ 4.8 (3.1k)",desc:"40-hour battery, adaptive noise cancellation, and a lightweight over-ear design with memory foam cushions.",colors:["#8aafb8","#2c2c2a","#d4c8b8"],sizes:["One size"],bg:"#e8edf0",emoji:"🎧"},
+  {name:"Linen Tote Bag",sub:"Accessories",price:"₹2,199",rating:"★★★★☆ 4.5 (620)",desc:"Washed linen with reinforced handles and an interior zip pocket. Folds flat for travel. Sustainable and deadstock fabric.",colors:["#c8b4d0","#d4c8b0","#b0c8c0"],sizes:["S","M","L","XL"],bg:"#eee8f0",emoji:"👜"}
+];
+
+function openModal(i){
+  const p=products[i];
+  document.getElementById('m-img').style.background=p.bg;
+  document.getElementById('m-img').innerHTML=`<span style="font-size:64px">${p.emoji}</span>`;
+  document.getElementById('m-name').textContent=p.name;
+  document.getElementById('m-sub').textContent=p.sub;
+  document.getElementById('m-price').textContent=p.price;
+  document.getElementById('m-rating').textContent=p.rating;
+  document.getElementById('m-desc').textContent=p.desc;
+  document.getElementById('m-colors').innerHTML=p.colors.map(c=>`<span class="swatch-lg" style="background:${c}"></span>`).join('');
+  document.getElementById('m-sizes').innerHTML=p.sizes.map((s,j)=>`<span class="size-pill${j===0?' active':''}" onclick="this.parentNode.querySelectorAll('.size-pill').forEach(el=>el.classList.remove('active'));this.classList.add('active')">${s}</span>`).join('');
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal(){document.getElementById('modal').classList.remove('open')}
+document.getElementById('modal').addEventListener('click',function(e){if(e.target===this)closeModal()});
+document.querySelectorAll('.size-pill').forEach(p=>{p.addEventListener('click',function(e){e.stopPropagation();this.closest('.card-options').querySelectorAll('.size-pill').forEach(el=>el.classList.remove('active'));this.classList.add('active')})});
+</script>

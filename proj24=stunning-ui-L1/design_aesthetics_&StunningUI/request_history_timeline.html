@@ -1,0 +1,221 @@
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.tl-wrap{padding:1rem 0 1.5rem;font-family:var(--font-sans)}
+.tl-toolbar{display:flex;align-items:center;gap:10px;padding:0 1rem 1rem;flex-wrap:wrap}
+.tl-toolbar h2{font-size:14px;font-weight:500;color:var(--color-text-secondary);flex:none}
+.search-wrap{position:relative;flex:1;min-width:180px}
+.search-wrap i{position:absolute;left:9px;top:50%;transform:translateY(-50%);font-size:15px;color:var(--color-text-secondary);pointer-events:none}
+#search{padding:6px 10px 6px 30px;width:100%;font-size:13px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:var(--color-background-secondary);color:var(--color-text-primary)}
+.count-badge{font-size:12px;color:var(--color-text-secondary);white-space:nowrap}
+.clear-btn{font-size:12px;padding:5px 10px;cursor:pointer}
+.timeline-outer{overflow-x:auto;scroll-snap-type:x mandatory;padding:8px 1rem 16px;display:flex;gap:12px;scrollbar-width:thin;scrollbar-color:var(--color-border-secondary) transparent}
+.timeline-outer::-webkit-scrollbar{height:4px}
+.timeline-outer::-webkit-scrollbar-thumb{background:var(--color-border-secondary);border-radius:2px}
+.req-card{flex:none;width:260px;scroll-snap-align:center;background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:14px;cursor:pointer;transition:transform .15s,border-color .15s;position:relative;user-select:none}
+.req-card:hover{transform:translateY(-4px);border-color:var(--color-border-primary)}
+.req-card.active{border-color:var(--color-border-info);border-width:1.5px}
+.card-top{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.method{font-size:11px;font-weight:500;padding:3px 7px;border-radius:5px;letter-spacing:.4px;flex:none}
+.m-get{background:#EAF3DE;color:#3B6D11}
+.m-post{background:#E6F1FB;color:#185FA5}
+.m-put{background:#FAEEDA;color:#854F0B}
+.m-delete{background:#FCEBEB;color:#A32D2D}
+.m-patch{background:#EEEDFE;color:#3C3489}
+.url{font-size:12px;color:var(--color-text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:var(--font-mono);flex:1;min-width:0}
+.card-meta{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.ts{font-size:11px;color:var(--color-text-tertiary);display:flex;align-items:center;gap:4px}
+.status{font-size:11px;font-weight:500;padding:2px 7px;border-radius:4px}
+.s-2xx{background:#EAF3DE;color:#3B6D11}
+.s-3xx{background:#FAEEDA;color:#854F0B}
+.s-4xx{background:#FAECE7;color:#993C1D}
+.s-5xx{background:#FCEBEB;color:#A32D2D}
+.card-footer{font-size:11px;color:var(--color-text-secondary);display:flex;align-items:center;gap:4px;border-top:0.5px solid var(--color-border-tertiary);padding-top:8px;margin-top:2px}
+.empty-state{width:100%;text-align:center;padding:3rem 0;color:var(--color-text-secondary);font-size:13px}
+.ctx-menu{position:fixed;background:var(--color-background-primary);border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);box-shadow:none;z-index:999;min-width:160px;overflow:hidden;display:none}
+.ctx-menu.visible{display:block}
+.ctx-item{padding:9px 14px;font-size:13px;cursor:pointer;color:var(--color-text-primary);display:flex;align-items:center;gap:8px}
+.ctx-item:hover{background:var(--color-background-secondary)}
+.ctx-item.danger{color:#A32D2D}
+.ctx-divider{height:0.5px;background:var(--color-border-tertiary)}
+.builder{margin:0 1rem;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:14px 16px;background:var(--color-background-secondary);transition:all .2s}
+.builder.slide-in{animation:slideIn .25s ease}
+@keyframes slideIn{from{opacity:.3;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
+.builder-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.builder-label{font-size:11px;color:var(--color-text-secondary);font-weight:500;min-width:56px}
+.builder-val{font-size:12px;font-family:var(--font-mono);color:var(--color-text-primary);flex:1;word-break:break-all}
+.builder-row+.builder-row{margin-top:8px}
+.replay-btn{font-size:12px;padding:5px 12px;cursor:pointer;display:flex;align-items:center;gap:5px;margin-top:10px}
+.section-label{font-size:11px;color:var(--color-text-secondary);font-weight:500;padding:0 1rem;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.snap-hint{font-size:11px;color:var(--color-text-tertiary);padding:0 1rem;margin-bottom:4px;display:flex;align-items:center;gap:4px}
+</style>
+
+<h2 class="sr-only">Request history timeline — horizontal scrollable cards with method badges, status codes, and context menu actions</h2>
+
+<div class="tl-wrap">
+  <div class="tl-toolbar">
+    <h2>Request history</h2>
+    <div class="search-wrap">
+      <i class="ti ti-search" aria-hidden="true"></i>
+      <input type="text" id="search" placeholder="Filter by URL or method…" oninput="filterCards()">
+    </div>
+    <span class="count-badge" id="count-badge">12 requests</span>
+    <button class="clear-btn" onclick="clearAll()">Clear all</button>
+  </div>
+
+  <div class="snap-hint"><i class="ti ti-arrow-left" aria-hidden="true" style="font-size:12px"></i> scroll to browse · right-click card for options</div>
+
+  <div class="timeline-outer" id="timeline"></div>
+
+  <div id="empty" class="empty-state" style="display:none">
+    <i class="ti ti-history" style="font-size:32px;display:block;margin-bottom:8px" aria-hidden="true"></i>
+    No requests match your filter
+  </div>
+
+  <div style="padding:0 1rem;margin-top:12px">
+    <div class="section-label"><i class="ti ti-terminal" aria-hidden="true" style="font-size:14px"></i> request builder</div>
+    <div class="builder" id="builder">
+      <div style="font-size:12px;color:var(--color-text-secondary);display:flex;align-items:center;gap:6px">
+        <i class="ti ti-click" aria-hidden="true" style="font-size:15px"></i>
+        Click a card to load it into the builder
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="ctx-menu" id="ctxMenu" role="menu">
+  <div class="ctx-item" onclick="ctxAction('replay')" role="menuitem"><i class="ti ti-player-play" aria-hidden="true"></i> Replay request</div>
+  <div class="ctx-item" onclick="ctxAction('duplicate')" role="menuitem"><i class="ti ti-copy" aria-hidden="true"></i> Duplicate</div>
+  <div class="ctx-item" onclick="ctxAction('save')" role="menuitem"><i class="ti ti-bookmark" aria-hidden="true"></i> Save to collection</div>
+  <div class="ctx-divider"></div>
+  <div class="ctx-item danger" onclick="ctxAction('delete')" role="menuitem"><i class="ti ti-trash" aria-hidden="true"></i> Delete</div>
+</div>
+
+<script>
+const METHODS = ['GET','POST','PUT','DELETE','PATCH'];
+const PATHS = [
+  '/api/users','api/users/42','/api/auth/login','/api/products','/api/orders/7',
+  '/api/sessions','/api/search?q=shoes','/api/checkout','/api/config','/api/metrics',
+  '/api/users/99/profile','/api/notifications'
+];
+const STATUSES = [200,201,204,301,400,401,403,404,422,500,502];
+const HOSTS = ['api.example.com','staging.myapp.io','localhost:3000'];
+
+function rndItem(arr){return arr[Math.floor(Math.random()*arr.length)]}
+function rndStatus(){return rndItem(STATUSES)}
+function rndMs(){return Math.floor(Math.random()*1800)+30}
+function timeAgo(min){if(min<1)return 'just now';if(min<60)return min+'m ago';if(min<1440)return Math.floor(min/60)+'h ago';return Math.floor(min/1440)+'d ago'}
+
+let requests = Array.from({length:12},(_,i)=>{
+  const m=rndItem(METHODS);
+  const s=rndStatus();
+  return {id:i,method:m,host:rndItem(HOSTS),path:rndItem(PATHS),status:s,ms:rndMs(),minAgo:i*Math.floor(Math.random()*18+2)};
+});
+
+let ctxTarget=null;
+
+function methodClass(m){return 'm-'+m.toLowerCase()}
+function statusClass(s){if(s<300)return 's-2xx';if(s<400)return 's-3xx';if(s<500)return 's-4xx';return 's-5xx'}
+function renderTimeline(filter=''){
+  const tl=document.getElementById('timeline');
+  const empty=document.getElementById('empty');
+  const badge=document.getElementById('count-badge');
+  const q=filter.toLowerCase();
+  const filtered=requests.filter(r=>!q||r.method.toLowerCase().includes(q)||r.path.includes(q)||r.host.includes(q));
+  badge.textContent=filtered.length+' request'+(filtered.length!==1?'s':'');
+  if(!filtered.length){tl.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+  tl.innerHTML=filtered.map(r=>`
+    <div class="req-card" id="card-${r.id}" data-id="${r.id}"
+      onclick="loadRequest(${r.id})"
+      oncontextmenu="openCtx(event,${r.id})">
+      <div class="card-top">
+        <span class="method ${methodClass(r.method)}">${r.method}</span>
+        <span class="url" title="${r.host}${r.path}">${r.path}</span>
+      </div>
+      <div class="card-meta">
+        <span class="ts"><i class="ti ti-clock" aria-hidden="true" style="font-size:11px"></i>${timeAgo(r.minAgo)}</span>
+        <span class="status ${statusClass(r.status)}">${r.status}</span>
+      </div>
+      <div class="card-footer">
+        <i class="ti ti-globe" aria-hidden="true" style="font-size:11px"></i>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px">${r.host}</span>
+        <span style="margin-left:auto">${r.ms}ms</span>
+      </div>
+    </div>`).join('');
+}
+
+function loadRequest(id){
+  const r=requests.find(x=>x.id===id);if(!r)return;
+  document.querySelectorAll('.req-card').forEach(c=>c.classList.remove('active'));
+  const el=document.getElementById('card-'+id);
+  if(el)el.classList.add('active');
+  const b=document.getElementById('builder');
+  b.innerHTML=`
+    <div class="builder-row">
+      <span class="builder-label">Method</span>
+      <span class="method ${methodClass(r.method)}" style="font-size:11px">${r.method}</span>
+    </div>
+    <div class="builder-row">
+      <span class="builder-label">URL</span>
+      <span class="builder-val">${r.host}${r.path}</span>
+    </div>
+    <div class="builder-row">
+      <span class="builder-label">Status</span>
+      <span class="status ${statusClass(r.status)}">${r.status}</span>
+      <span style="font-size:11px;color:var(--color-text-secondary);margin-left:8px">${r.ms}ms</span>
+    </div>
+    <div class="builder-row">
+      <span class="builder-label">Time</span>
+      <span class="builder-val" style="font-family:var(--font-sans);font-size:12px">${timeAgo(r.minAgo)}</span>
+    </div>
+    <button class="replay-btn" onclick="replayRequest(${r.id})">
+      <i class="ti ti-player-play" aria-hidden="true"></i> Replay
+    </button>`;
+  b.classList.remove('slide-in');
+  void b.offsetWidth;
+  b.classList.add('slide-in');
+}
+
+function replayRequest(id){
+  const r=requests.find(x=>x.id===id);if(!r)return;
+  sendPrompt('Replay '+r.method+' '+r.host+r.path);
+}
+
+function openCtx(e,id){
+  e.preventDefault();
+  ctxTarget=id;
+  const m=document.getElementById('ctxMenu');
+  m.style.left=e.clientX+'px';
+  m.style.top=e.clientY+'px';
+  m.classList.add('visible');
+}
+
+function closeCtx(){document.getElementById('ctxMenu').classList.remove('visible');ctxTarget=null;}
+
+function ctxAction(action){
+  if(ctxTarget===null){closeCtx();return;}
+  const r=requests.find(x=>x.id===ctxTarget);
+  if(action==='delete'){
+    requests=requests.filter(x=>x.id!==ctxTarget);
+    renderTimeline(document.getElementById('search').value);
+  } else if(action==='duplicate'){
+    const newR={...r,id:Date.now(),minAgo:0};
+    requests.unshift(newR);
+    renderTimeline(document.getElementById('search').value);
+  } else if(action==='save'){
+    sendPrompt('Save '+r.method+' '+r.host+r.path+' to a collection');
+  } else if(action==='replay'){
+    loadRequest(ctxTarget);
+    replayRequest(ctxTarget);
+  }
+  closeCtx();
+}
+
+function filterCards(){renderTimeline(document.getElementById('search').value);}
+function clearAll(){if(confirm('Clear all request history?')){requests=[];renderTimeline();}}
+
+document.addEventListener('click',e=>{if(!e.target.closest('#ctxMenu'))closeCtx();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeCtx();});
+
+renderTimeline();
+</script>

@@ -1,0 +1,302 @@
+
+<style>
+  * { box-sizing: border-box; user-select: none; }
+  body { margin: 0; }
+  #scene {
+    position: relative;
+    width: 100%;
+    height: 520px;
+    overflow: hidden;
+    background: var(--color-background-secondary);
+    border-radius: var(--border-radius-lg);
+    border: 0.5px solid var(--color-border-tertiary);
+  }
+  .label {
+    position: absolute;
+    font-size: 12px;
+    color: var(--color-text-tertiary);
+    pointer-events: none;
+    letter-spacing: 0.04em;
+  }
+  .widget-card {
+    position: absolute;
+    width: 96px;
+    height: 96px;
+    border-radius: var(--border-radius-lg);
+    border: 0.5px solid var(--color-border-secondary);
+    background: var(--color-background-primary);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: grab;
+    touch-action: none;
+    transition: box-shadow 0.15s, transform 0.15s;
+    z-index: 10;
+  }
+  .widget-card:active { cursor: grabbing; }
+  .widget-card i { font-size: 28px; pointer-events: none; }
+  .widget-card span { font-size: 11px; color: var(--color-text-secondary); pointer-events: none; }
+  .drop-zone {
+    position: absolute;
+    border-radius: var(--border-radius-lg);
+    border: 1.5px dashed var(--color-border-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color 0.2s, background 0.2s;
+    pointer-events: none;
+  }
+  .drop-zone span { font-size: 12px; color: var(--color-text-tertiary); }
+  .drop-zone.pulse {
+    animation: dzPulse 0.7s ease-in-out infinite alternate;
+    border-color: #7F77DD;
+    background: rgba(127,119,221,0.07);
+  }
+  @keyframes dzPulse {
+    from { box-shadow: 0 0 0 0 rgba(127,119,221,0.2); }
+    to   { box-shadow: 0 0 0 8px rgba(127,119,221,0); }
+  }
+  .particle {
+    position: absolute;
+    border-radius: var(--border-radius-lg);
+    border: 0.5px solid var(--color-border-tertiary);
+    background: var(--color-background-primary);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    pointer-events: none;
+    z-index: 5;
+    will-change: transform, opacity;
+  }
+  .particle i { font-size: 24px; }
+  .particle span { font-size: 10px; color: var(--color-text-secondary); }
+  .burst {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 4;
+    animation: burstAnim 0.5s ease-out forwards;
+  }
+  @keyframes burstAnim {
+    0%   { transform: scale(0.5); opacity: 0.7; }
+    100% { transform: scale(2.8); opacity: 0; }
+  }
+  #hint {
+    position: absolute;
+    bottom: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 12px;
+    color: var(--color-text-tertiary);
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  .dropped-badge {
+    position: absolute;
+    bottom: -22px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px;
+    color: var(--color-text-success);
+    white-space: nowrap;
+    animation: fadeUp 1.4s ease-out forwards;
+    pointer-events: none;
+  }
+  @keyframes fadeUp {
+    0%   { opacity: 1; transform: translateX(-50%) translateY(0); }
+    100% { opacity: 0; transform: translateX(-50%) translateY(-14px); }
+  }
+  .pickBounce { animation: pickB 0.25s ease-out; }
+  @keyframes pickB {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.18); }
+    100% { transform: scale(1.08); }
+  }
+</style>
+
+<div id="scene" aria-label="Ghost trail particle drag demo">
+  <div class="label" style="top:16px;left:20px">ghost trail / particle drag</div>
+
+  <div class="drop-zone" id="dz1" style="width:120px;height:120px;left:32px;top:180px;">
+    <span>drop here</span>
+  </div>
+  <div class="drop-zone" id="dz2" style="width:120px;height:120px;right:32px;top:180px;">
+    <span>drop here</span>
+  </div>
+
+  <div class="widget-card" id="card1" style="left:calc(50% - 108px);top:60px;" data-icon="ti-home" data-label="Home">
+    <i class="ti ti-home" style="color:#7F77DD" aria-hidden="true"></i>
+    <span>Home</span>
+  </div>
+  <div class="widget-card" id="card2" style="left:calc(50% + 12px);top:60px;" data-icon="ti-music" data-label="Music">
+    <i class="ti ti-music" style="color:#1D9E75" aria-hidden="true"></i>
+    <span>Music</span>
+  </div>
+
+  <div id="hint"><i class="ti ti-drag-drop" aria-hidden="true"></i> drag the widgets</div>
+</div>
+
+<script>
+const scene = document.getElementById('scene');
+const dropZones = [document.getElementById('dz1'), document.getElementById('dz2')];
+const cards = document.querySelectorAll('.widget-card');
+const MAX_PARTICLES = 10;
+let particles = [];
+let dragging = null;
+let dragOffX = 0, dragOffY = 0;
+let lastParticleTime = 0;
+let dragX = 0, dragY = 0;
+
+function vibrate(pattern) {
+  if (navigator.vibrate) navigator.vibrate(pattern);
+}
+
+function getSceneRect() { return scene.getBoundingClientRect(); }
+
+function getCardCenter(el) {
+  const r = el.getBoundingClientRect();
+  const s = getSceneRect();
+  return { x: r.left - s.left + r.width/2, y: r.top - s.top + r.height/2 };
+}
+
+function spawnParticle(cx, cy, icon, label, color) {
+  if (particles.length >= MAX_PARTICLES) {
+    const old = particles.shift();
+    if (old && old.parentNode) old.parentNode.removeChild(old);
+  }
+  const p = document.createElement('div');
+  p.className = 'particle';
+  const dx = (Math.random() - 0.5) * 18;
+  const dy = (Math.random() - 0.5) * 18;
+  const size = 72;
+  p.style.cssText = `width:${size}px;height:${size}px;left:${cx - size/2 + dx}px;top:${cy - size/2 + dy}px;`;
+  p.innerHTML = `<i class="ti ${icon}" style="color:${color};font-size:22px" aria-hidden="true"></i><span>${label}</span>`;
+  scene.appendChild(p);
+  particles.push(p);
+
+  const start = performance.now();
+  const dur = 480;
+  function animate(now) {
+    const t = Math.min((now - start) / dur, 1);
+    const ease = 1 - Math.pow(t, 2);
+    p.style.opacity = ease;
+    p.style.transform = `scale(${0.9 - 0.5*t}) translateY(${t * 12}px)`;
+    if (t < 1 && p.parentNode) requestAnimationFrame(animate);
+    else if (p.parentNode) {
+      p.parentNode.removeChild(p);
+      const idx = particles.indexOf(p);
+      if (idx > -1) particles.splice(idx, 1);
+    }
+  }
+  requestAnimationFrame(animate);
+  return p;
+}
+
+function burstAt(cx, cy, color) {
+  for (let i = 0; i < 6; i++) {
+    const b = document.createElement('div');
+    b.className = 'burst';
+    const sz = 18 + Math.random() * 22;
+    const angle = (Math.PI * 2 * i) / 6 + Math.random() * 0.4;
+    const dist = 28 + Math.random() * 20;
+    const bx = cx + Math.cos(angle) * dist;
+    const by = cy + Math.sin(angle) * dist;
+    b.style.cssText = `width:${sz}px;height:${sz}px;left:${bx - sz/2}px;top:${by - sz/2}px;border:1.5px solid ${color};`;
+    scene.appendChild(b);
+    setTimeout(() => { if (b.parentNode) b.parentNode.removeChild(b); }, 550);
+  }
+}
+
+function getDropZoneAt(x, y) {
+  const s = getSceneRect();
+  for (const dz of dropZones) {
+    const r = dz.getBoundingClientRect();
+    if (x + s.left >= r.left && x + s.left <= r.right && y + s.top >= r.top && y + s.top <= r.bottom) return dz;
+  }
+  return null;
+}
+
+function startDrag(el, clientX, clientY) {
+  const s = getSceneRect();
+  const r = el.getBoundingClientRect();
+  dragOffX = clientX - (r.left - s.left);
+  dragOffY = clientY - (r.top - s.top);
+  dragging = el;
+  el.style.zIndex = 20;
+  el.style.transition = 'none';
+  el.classList.add('pickBounce');
+  vibrate(30);
+  dropZones.forEach(dz => dz.classList.add('pulse'));
+  particles = [];
+  lastParticleTime = 0;
+}
+
+function moveDrag(clientX, clientY) {
+  if (!dragging) return;
+  const s = getSceneRect();
+  dragX = clientX - s.left - dragOffX;
+  dragY = clientY - s.top - dragOffY;
+  dragging.style.left = dragX + 'px';
+  dragging.style.top  = dragY + 'px';
+
+  const now = performance.now();
+  if (now - lastParticleTime > 28) {
+    lastParticleTime = now;
+    const cx = dragX + 48;
+    const cy = dragY + 48;
+    const icon = dragging.dataset.icon;
+    const label = dragging.dataset.label;
+    const color = dragging.querySelector('i').style.color;
+    spawnParticle(cx, cy, icon, label, color);
+  }
+}
+
+function endDrag(clientX, clientY) {
+  if (!dragging) return;
+  const el = dragging;
+  dragging = null;
+  el.style.zIndex = 10;
+  el.style.transition = 'transform 0.15s';
+  el.style.transform = 'scale(1)';
+
+  const s = getSceneRect();
+  const cx = (clientX - s.left - dragOffX) + 48;
+  const cy = (clientY - s.top - dragOffY) + 48;
+  const color = el.querySelector('i').style.color;
+  burstAt(cx, cy, color);
+
+  const dz = getDropZoneAt(cx - 48 + 48, cy - 48 + 48);
+  if (dz) {
+    const dzR = dz.getBoundingClientRect();
+    el.style.left = (dzR.left - s.left + (dzR.width - 96)/2) + 'px';
+    el.style.top  = (dzR.top - s.top + (dzR.height - 96)/2) + 'px';
+    vibrate([20, 30, 20]);
+    const badge = document.createElement('div');
+    badge.className = 'dropped-badge';
+    badge.textContent = '✓ dropped';
+    el.style.position = 'absolute';
+    el.appendChild(badge);
+    setTimeout(() => { if (badge.parentNode) badge.parentNode.removeChild(badge); }, 1500);
+  } else {
+    vibrate(15);
+  }
+
+  dropZones.forEach(dz => dz.classList.remove('pulse'));
+  particles.forEach(p => { if (p.parentNode) p.parentNode.removeChild(p); });
+  particles = [];
+}
+
+cards.forEach(card => {
+  card.addEventListener('mousedown', e => { e.preventDefault(); startDrag(card, e.clientX, e.clientY); });
+  card.addEventListener('touchstart', e => { e.preventDefault(); startDrag(card, e.touches[0].clientX, e.touches[0].clientY); }, {passive:false});
+});
+
+window.addEventListener('mousemove', e => moveDrag(e.clientX, e.clientY));
+window.addEventListener('touchmove', e => { if (dragging) { e.preventDefault(); moveDrag(e.touches[0].clientX, e.touches[0].clientY); }}, {passive:false});
+window.addEventListener('mouseup', e => endDrag(e.clientX, e.clientY));
+window.addEventListener('touchend', e => { if (dragging) endDrag(e.changedTouches[0].clientX, e.changedTouches[0].clientY); });
+</script>

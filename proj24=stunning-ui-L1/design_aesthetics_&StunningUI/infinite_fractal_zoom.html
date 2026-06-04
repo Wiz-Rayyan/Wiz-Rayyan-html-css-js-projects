@@ -1,0 +1,477 @@
+
+<style>
+  #fz-root { position: relative; width: 100%; height: 520px; overflow: hidden; background: #0a0a12; cursor: grab; user-select: none; border-radius: 12px; touch-action: none; }
+  #fz-root:active { cursor: grabbing; }
+  #fz-canvas { position: absolute; inset: 0; }
+  #fz-hud { position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; align-items: center; pointer-events: none; }
+  .hud-pill { background: rgba(255,255,255,0.08); border: 0.5px solid rgba(255,255,255,0.15); border-radius: 20px; padding: 5px 12px; font-size: 12px; color: rgba(255,255,255,0.5); font-family: var(--font-sans); }
+  #fz-zoom-badge { background: rgba(255,255,255,0.08); border: 0.5px solid rgba(255,255,255,0.15); border-radius: 20px; padding: 5px 14px; font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.7); font-family: var(--font-mono, monospace); pointer-events: none; }
+  #fz-layer-badge { border-radius: 20px; padding: 5px 14px; font-size: 12px; font-weight: 500; font-family: var(--font-sans); pointer-events: none; transition: all 0.4s; }
+  #fz-hint { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); background: rgba(255,255,255,0.06); border: 0.5px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 6px 16px; font-size: 12px; color: rgba(255,255,255,0.35); font-family: var(--font-sans); white-space: nowrap; pointer-events: none; transition: opacity 0.5s; }
+  #fz-reset { position: absolute; top: 16px; right: 16px; background: rgba(255,255,255,0.07); border: 0.5px solid rgba(255,255,255,0.15); border-radius: 8px; padding: 6px 12px; font-size: 12px; color: rgba(255,255,255,0.5); font-family: var(--font-sans); cursor: pointer; transition: all 0.2s; }
+  #fz-reset:hover { background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.8); }
+</style>
+
+<div id="fz-root" aria-label="Infinite fractal zoom — pinch or scroll to explore, double-tap to reset">
+  <canvas id="fz-canvas"></canvas>
+  <div id="fz-hint">scroll / pinch to zoom &nbsp;·&nbsp; double-click to reset</div>
+  <button id="fz-reset">reset</button>
+  <div id="fz-hud">
+    <div id="fz-zoom-badge">1.0×</div>
+    <div id="fz-layer-badge">—</div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const root = document.getElementById('fz-root');
+  const canvas = document.getElementById('fz-canvas');
+  const ctx = canvas.getContext('2d');
+  const zoomBadge = document.getElementById('fz-zoom-badge');
+  const layerBadge = document.getElementById('fz-layer-badge');
+  const hint = document.getElementById('fz-hint');
+  const resetBtn = document.getElementById('fz-reset');
+
+  let W, H;
+  let zoom = 1, targetZoom = 1;
+  let panX = 0, panY = 0, targetPanX = 0, targetPanY = 0;
+  const MIN_ZOOM = 0.5, MAX_ZOOM = 64;
+  let bouncing = false;
+  let hintTimeout;
+  let raf;
+  let lastTap = 0;
+
+  function resize() {
+    W = root.clientWidth;
+    H = root.clientHeight;
+    canvas.width = W * devicePixelRatio;
+    canvas.height = H * devicePixelRatio;
+    canvas.style.width = W + 'px';
+    canvas.style.height = H + 'px';
+    ctx.scale(devicePixelRatio, devicePixelRatio);
+  }
+
+  // ---- Fractal layers ----
+  // Layer 0 (base):  galaxy / cosmos abstraction — circles of circles
+  // Layer 1 (2×):    solar system — planets, orbits
+  // Layer 2 (4×):    city grid — buildings, streets
+  // Layer 3 (8×):    circuit board — traces, pads
+  // Layer 4 (16×):   atoms — nucleus + electrons
+  // Layer 5 (32×):   back to cosmos (seamless loop)
+
+  const THRESHOLDS = [1, 2, 4, 8, 16, 32];
+  const LAYER_NAMES = ['cosmos', 'solar system', 'city', 'circuit', 'atoms', 'cosmos'];
+  const LAYER_COLORS = [
+    { bg: '#0a0a18', badge: 'rgba(110,80,200,0.35)', text: '#c8aaff' },
+    { bg: '#050d1a', badge: 'rgba(30,100,200,0.35)', text: '#88c8ff' },
+    { bg: '#0d1008', badge: 'rgba(60,130,50,0.35)', text: '#a8f888' },
+    { bg: '#0a0a0a', badge: 'rgba(180,120,20,0.35)', text: '#ffd888' },
+    { bg: '#080510', badge: 'rgba(200,50,120,0.35)', text: '#ff99cc' },
+    { bg: '#0a0a18', badge: 'rgba(110,80,200,0.35)', text: '#c8aaff' },
+  ];
+
+  function getLayer(z) {
+    if (z >= 32) return 5;
+    if (z >= 16) return 4;
+    if (z >= 8) return 3;
+    if (z >= 4) return 2;
+    if (z >= 2) return 1;
+    return 0;
+  }
+
+  // Seeded pseudo-random for consistent patterns
+  function seededRng(seed) {
+    let s = seed;
+    return function() { s = (s * 1664525 + 1013904223) & 0xffffffff; return (s >>> 0) / 0xffffffff; };
+  }
+
+  // ---- Drawing layers ----
+
+  function drawCosmos(cx, cy, scale, alpha) {
+    ctx.save(); ctx.globalAlpha = alpha;
+    const rng = seededRng(42);
+    const starCount = 80;
+    for (let i = 0; i < starCount; i++) {
+      const x = cx + (rng() - 0.5) * W * 2.2;
+      const y = cy + (rng() - 0.5) * H * 2.2;
+      const r = rng() * 1.8 + 0.3;
+      const bright = rng();
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+      const g = Math.floor(bright * 200 + 55);
+      const b = Math.floor(bright * 100 + 155);
+      ctx.fillStyle = `rgba(${g},${g},${b},${0.4 + bright * 0.6})`;
+      ctx.fill();
+    }
+    // Nebula clusters
+    for (let n = 0; n < 4; n++) {
+      const nx = cx + (rng() - 0.5) * W * 1.6;
+      const ny = cy + (rng() - 0.5) * H * 1.6;
+      const nr = (rng() * 80 + 60) * scale;
+      const gr = ctx.createRadialGradient(nx, ny, 0, nx, ny, nr);
+      const hue = rng() * 80 + 240;
+      gr.addColorStop(0, `hsla(${hue},70%,70%,0.06)`);
+      gr.addColorStop(1, `hsla(${hue},70%,40%,0)`);
+      ctx.beginPath(); ctx.arc(nx, ny, nr, 0, Math.PI * 2);
+      ctx.fillStyle = gr; ctx.fill();
+    }
+    // Galaxy spiral hint
+    for (let i = 0; i < 200; i++) {
+      const t = i / 200 * Math.PI * 6;
+      const r2 = t * 18 * scale;
+      const jitter = (rng() - 0.5) * 12 * scale;
+      const x = cx + (Math.cos(t) * r2 + jitter);
+      const y = cy + (Math.sin(t) * r2 * 0.5 + jitter * 0.5);
+      ctx.beginPath(); ctx.arc(x, y, rng() + 0.5, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(180,160,255,${0.2 + rng() * 0.3})`; ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function drawSolarSystem(cx, cy, scale, alpha) {
+    ctx.save(); ctx.globalAlpha = alpha;
+    // Sun
+    const sunR = 28 * scale;
+    const sun = ctx.createRadialGradient(cx, cy, 0, cx, cy, sunR);
+    sun.addColorStop(0, '#fffbe0'); sun.addColorStop(0.4, '#ffe566'); sun.addColorStop(1, 'rgba(255,180,0,0)');
+    ctx.beginPath(); ctx.arc(cx, cy, sunR, 0, Math.PI * 2); ctx.fillStyle = sun; ctx.fill();
+    // Planets
+    const planets = [
+      { d: 60, r: 5, col: '#c8a06e', speed: 0 },
+      { d: 90, r: 7, col: '#e8d090', speed: 0.4 },
+      { d: 130, r: 8, col: '#4a90d8', speed: 0.7 },
+      { d: 175, r: 6, col: '#d87040', speed: 1.1 },
+      { d: 220, r: 18, col: '#e0b870', speed: 1.8, rings: true },
+    ];
+    const rng = seededRng(17);
+    planets.forEach(p => {
+      const orbitR = p.d * scale;
+      ctx.beginPath(); ctx.arc(cx, cy, orbitR, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(255,255,255,0.07)'; ctx.lineWidth = 0.5; ctx.stroke();
+      const ang = rng() * Math.PI * 2;
+      const px = cx + Math.cos(ang) * orbitR;
+      const py = cy + Math.sin(ang) * orbitR;
+      const pr = p.r * scale;
+      ctx.beginPath(); ctx.arc(px, py, pr, 0, Math.PI * 2);
+      ctx.fillStyle = p.col; ctx.fill();
+      if (p.rings) {
+        ctx.save(); ctx.translate(px, py); ctx.scale(1, 0.3);
+        ctx.beginPath(); ctx.arc(0, 0, pr * 1.8, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(220,180,80,0.5)'; ctx.lineWidth = pr * 0.8; ctx.stroke();
+        ctx.restore();
+      }
+    });
+    // Background stars
+    for (let i = 0; i < 40; i++) {
+      const x = cx + (rng() - 0.5) * W * 2;
+      const y = cy + (rng() - 0.5) * H * 2;
+      ctx.beginPath(); ctx.arc(x, y, rng(), 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255,255,255,${0.2 + rng() * 0.5})`; ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function drawCity(cx, cy, scale, alpha) {
+    ctx.save(); ctx.globalAlpha = alpha;
+    const rng = seededRng(99);
+    const blockSize = 48 * scale;
+    const gap = 10 * scale;
+    const cols = 9, rows = 7;
+    const startX = cx - (cols / 2) * (blockSize + gap);
+    const startY = cy - (rows / 2) * (blockSize + gap);
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const bx = startX + c * (blockSize + gap);
+        const by = startY + r * (blockSize + gap);
+        const h = (rng() * 0.6 + 0.3) * blockSize * 2;
+        // building
+        ctx.fillStyle = `hsl(${220 + rng() * 30},${10 + rng() * 20}%,${15 + rng() * 15}%)`;
+        ctx.fillRect(bx, by - h + blockSize, blockSize, h);
+        // windows
+        const wCols = Math.floor(2 + rng() * 3);
+        const wRows = Math.floor(3 + rng() * 5);
+        const wW = (blockSize - 8 * scale) / wCols - 2 * scale;
+        const wH = wW * 1.4;
+        for (let wr = 0; wr < wRows; wr++) {
+          for (let wc = 0; wc < wCols; wc++) {
+            const lit = rng() > 0.35;
+            if (!lit) continue;
+            const wx = bx + 4 * scale + wc * (wW + 2 * scale);
+            const wy = by - h + blockSize + 4 * scale + wr * (wH + 2 * scale);
+            ctx.fillStyle = rng() > 0.7 ? '#fffbe8' : '#a8d8ff';
+            ctx.fillRect(wx, wy, wW, wH);
+          }
+        }
+      }
+    }
+    // Streets
+    ctx.strokeStyle = 'rgba(255,220,100,0.12)'; ctx.lineWidth = gap;
+    for (let c = 0; c <= cols; c++) {
+      const x = startX + c * (blockSize + gap) - gap / 2;
+      ctx.beginPath(); ctx.moveTo(x, startY - H); ctx.lineTo(x, startY + H * 2); ctx.stroke();
+    }
+    for (let r = 0; r <= rows; r++) {
+      const y = startY + r * (blockSize + gap) - gap / 2;
+      ctx.beginPath(); ctx.moveTo(startX - W, y); ctx.lineTo(startX + W * 2, y); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawCircuit(cx, cy, scale, alpha) {
+    ctx.save(); ctx.globalAlpha = alpha;
+    const rng = seededRng(7);
+    ctx.strokeStyle = '#1a5a1a'; ctx.lineWidth = 1.5 * scale;
+    const traces = 30;
+    for (let i = 0; i < traces; i++) {
+      const x1 = cx + (rng() - 0.5) * W * 1.8;
+      const y1 = cy + (rng() - 0.5) * H * 1.8;
+      const x2 = x1 + (rng() - 0.5) * 150 * scale;
+      const y2 = y1 + (rng() - 0.5) * 150 * scale;
+      ctx.beginPath(); ctx.moveTo(x1, y1);
+      if (rng() > 0.5) { ctx.lineTo(x2, y1); ctx.lineTo(x2, y2); }
+      else { ctx.lineTo(x1, y2); ctx.lineTo(x2, y2); }
+      ctx.strokeStyle = rng() > 0.3 ? '#1a6a2a' : '#2a8a4a';
+      ctx.stroke();
+      // pads
+      ctx.beginPath(); ctx.arc(x1, y1, 4 * scale, 0, Math.PI * 2);
+      ctx.fillStyle = '#2aaa4a'; ctx.fill();
+      ctx.beginPath(); ctx.arc(x2, y2, 4 * scale, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // ICs
+    for (let i = 0; i < 5; i++) {
+      const ix = cx + (rng() - 0.5) * W * 1.4;
+      const iy = cy + (rng() - 0.5) * H * 1.4;
+      const iw = (rng() * 40 + 30) * scale;
+      const ih = (rng() * 30 + 20) * scale;
+      ctx.fillStyle = '#0a1a0a';
+      ctx.strokeStyle = '#2aaa4a'; ctx.lineWidth = 1 * scale;
+      ctx.beginPath(); ctx.roundRect(ix - iw / 2, iy - ih / 2, iw, ih, 3 * scale);
+      ctx.fill(); ctx.stroke();
+      const pins = Math.floor(rng() * 4 + 3);
+      for (let p = 0; p < pins; p++) {
+        const px = ix - iw / 2 - 6 * scale;
+        const py = iy - ih / 2 + (p + 0.5) * ih / pins;
+        ctx.beginPath(); ctx.moveTo(px + 6 * scale, py); ctx.lineTo(px, py);
+        ctx.strokeStyle = '#2aaa4a'; ctx.lineWidth = 1.2 * scale; ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
+
+  function drawAtoms(cx, cy, scale, alpha) {
+    ctx.save(); ctx.globalAlpha = alpha;
+    const rng = seededRng(55);
+    const atomsArr = [
+      { x: 0, y: 0 },
+      { x: -180, y: -80 },
+      { x: 190, y: -100 },
+      { x: -160, y: 120 },
+      { x: 170, y: 140 },
+    ];
+    atomsArr.forEach(a => {
+      const ax = cx + a.x * scale;
+      const ay = cy + a.y * scale;
+      // Orbits
+      const orbitCount = Math.floor(rng() * 2 + 2);
+      for (let o = 0; o < orbitCount; o++) {
+        const or = (25 + o * 18) * scale;
+        const tilt = rng() * Math.PI;
+        ctx.save(); ctx.translate(ax, ay); ctx.rotate(tilt); ctx.scale(1, 0.4 + rng() * 0.3);
+        ctx.beginPath(); ctx.arc(0, 0, or, 0, Math.PI * 2);
+        ctx.strokeStyle = `hsla(${200 + rng() * 80},80%,70%,0.4)`;
+        ctx.lineWidth = 0.8 * scale; ctx.stroke();
+        ctx.restore();
+        // electron
+        const eAng = rng() * Math.PI * 2;
+        const ex = ax + Math.cos(eAng) * or;
+        const ey = ay + Math.sin(eAng) * or * (0.4 + rng() * 0.3);
+        ctx.beginPath(); ctx.arc(ex, ey, 3 * scale, 0, Math.PI * 2);
+        ctx.fillStyle = `hsl(${200 + rng() * 80},80%,80%)`; ctx.fill();
+      }
+      // Nucleus
+      const nR = 10 * scale;
+      const ng = ctx.createRadialGradient(ax, ay, 0, ax, ay, nR);
+      ng.addColorStop(0, '#ff9999'); ng.addColorStop(1, '#cc3333');
+      ctx.beginPath(); ctx.arc(ax, ay, nR, 0, Math.PI * 2);
+      ctx.fillStyle = ng; ctx.fill();
+      ctx.beginPath(); ctx.arc(ax, ay, nR * 1.5, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(255,100,100,0.2)'; ctx.lineWidth = 2 * scale; ctx.stroke();
+    });
+    ctx.restore();
+  }
+
+  // ---- Render loop ----
+
+  let lastLayer = -1;
+  let layerAlpha = [0, 0, 0, 0, 0, 0];
+  const FADE_SPEED = 0.06;
+
+  function render() {
+    ctx.clearRect(0, 0, W, H);
+
+    const layer = getLayer(zoom);
+    const lc = LAYER_COLORS[layer];
+    ctx.fillStyle = lc.bg;
+    ctx.fillRect(0, 0, W, H);
+
+    const cx = W / 2 + panX;
+    const cy = H / 2 + panY;
+    const s = zoom;
+
+    // Blend layers at transitions
+    const thresholds = [1, 2, 4, 8, 16, 32];
+    for (let i = 0; i < 6; i++) {
+      const thr = thresholds[i];
+      const nextThr = thresholds[i + 1] || thr * 2;
+      let targetAlpha;
+      if (zoom >= thr && zoom < nextThr) {
+        const t = (zoom - thr) / (nextThr - thr);
+        targetAlpha = i === layer ? 1 : 0;
+        if (layer === i) targetAlpha = 1;
+        else if (layer - 1 === i) targetAlpha = Math.max(0, 1 - (zoom - thresholds[i + 1] * 0.8) / (thresholds[i + 1] * 0.2));
+        else if (layer + 1 === i) targetAlpha = Math.min(1, (zoom - thr * 0.8) / (thr * 0.2));
+        else targetAlpha = 0;
+      } else {
+        targetAlpha = (i === layer) ? 1 : 0;
+      }
+      layerAlpha[i] += (targetAlpha - layerAlpha[i]) * FADE_SPEED;
+      if (layerAlpha[i] < 0.01) layerAlpha[i] = 0;
+    }
+
+    if (layerAlpha[0] > 0.01) drawCosmos(cx, cy, s, layerAlpha[0]);
+    if (layerAlpha[1] > 0.01) drawSolarSystem(cx, cy, s / 2, layerAlpha[1]);
+    if (layerAlpha[2] > 0.01) drawCity(cx, cy, s / 4, layerAlpha[2]);
+    if (layerAlpha[3] > 0.01) drawCircuit(cx, cy, s / 8, layerAlpha[3]);
+    if (layerAlpha[4] > 0.01) drawAtoms(cx, cy, s / 16, layerAlpha[4]);
+    if (layerAlpha[5] > 0.01) drawCosmos(cx, cy, s / 32, layerAlpha[5]);
+
+    // Vignette
+    const vig = ctx.createRadialGradient(W / 2, H / 2, H * 0.3, W / 2, H / 2, H * 0.75);
+    vig.addColorStop(0, 'rgba(0,0,0,0)'); vig.addColorStop(1, 'rgba(0,0,0,0.5)');
+    ctx.fillStyle = vig; ctx.fillRect(0, 0, W, H);
+
+    // Update HUD
+    zoomBadge.textContent = zoom.toFixed(1) + '×';
+    const lName = LAYER_NAMES[layer];
+    const lCol = LAYER_COLORS[layer];
+    layerBadge.textContent = lName;
+    layerBadge.style.background = lCol.badge;
+    layerBadge.style.color = lCol.text;
+    layerBadge.style.border = `0.5px solid ${lCol.text}33`;
+  }
+
+  // ---- Easing ----
+
+  function lerp(a, b, t) { return a + (b - a) * t; }
+
+  function tick() {
+    const EASE = 0.13;
+    zoom = lerp(zoom, targetZoom, EASE);
+    panX = lerp(panX, targetPanX, EASE);
+    panY = lerp(panY, targetPanY, EASE);
+    render();
+    raf = requestAnimationFrame(tick);
+  }
+
+  // ---- Input handling ----
+
+  function clampZoom(z) { return Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, z)); }
+
+  function applyZoomAround(delta, ox, oy) {
+    const factor = 1 + delta;
+    const newZoom = clampZoom(targetZoom * factor);
+
+    if (newZoom === targetZoom) {
+      // Bounce
+      if (!bouncing) {
+        bouncing = true;
+        const bounceDir = targetZoom >= MAX_ZOOM ? 1 : -1;
+        const orig = targetZoom;
+        targetZoom *= 1 + bounceDir * 0.04;
+        setTimeout(() => { targetZoom = orig; bouncing = false; }, 150);
+      }
+      return;
+    }
+
+    // Zoom toward pointer
+    const scaleRatio = newZoom / targetZoom;
+    const cx = W / 2, cy = H / 2;
+    const dx = ox - cx, dy = oy - cy;
+    targetPanX = targetPanX * scaleRatio + dx * (1 - scaleRatio);
+    targetPanY = targetPanY * scaleRatio + dy * (1 - scaleRatio);
+    targetZoom = newZoom;
+  }
+
+  // Wheel
+  root.addEventListener('wheel', e => {
+    e.preventDefault();
+    const delta = -e.deltaY * 0.001 * (e.ctrlKey ? 8 : 1);
+    applyZoomAround(delta, e.offsetX, e.offsetY);
+    dismissHint();
+  }, { passive: false });
+
+  // Touch — pinch + pan
+  let lastTouches = null;
+  root.addEventListener('touchstart', e => {
+    e.preventDefault();
+    if (e.touches.length === 2) {
+      lastTouches = Array.from(e.touches).map(t => ({ x: t.clientX, y: t.clientY }));
+    }
+    dismissHint();
+  }, { passive: false });
+
+  root.addEventListener('touchmove', e => {
+    e.preventDefault();
+    if (e.touches.length === 2 && lastTouches && lastTouches.length === 2) {
+      const t1 = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      const t2 = { x: e.touches[1].clientX, y: e.touches[1].clientY };
+      const prevDist = Math.hypot(lastTouches[1].x - lastTouches[0].x, lastTouches[1].y - lastTouches[0].y);
+      const newDist = Math.hypot(t2.x - t1.x, t2.y - t1.y);
+      const delta = (newDist - prevDist) / prevDist * 0.9;
+      const mx = (t1.x + t2.x) / 2 - root.getBoundingClientRect().left;
+      const my = (t1.y + t2.y) / 2 - root.getBoundingClientRect().top;
+      applyZoomAround(delta, mx, my);
+      lastTouches = [t1, t2];
+    }
+  }, { passive: false });
+
+  root.addEventListener('touchend', e => { if (e.touches.length < 2) lastTouches = null; });
+
+  // Double tap / double click reset
+  root.addEventListener('dblclick', resetView);
+  root.addEventListener('touchend', e => {
+    if (e.changedTouches.length === 1) {
+      const now = Date.now();
+      if (now - lastTap < 300) resetView();
+      lastTap = now;
+    }
+  });
+
+  // Drag to pan
+  let dragging = false, dragStart = null;
+  root.addEventListener('mousedown', e => { dragging = true; dragStart = { x: e.clientX - targetPanX, y: e.clientY - targetPanY }; dismissHint(); });
+  window.addEventListener('mouseup', () => { dragging = false; });
+  root.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    targetPanX = e.clientX - dragStart.x;
+    targetPanY = e.clientY - dragStart.y;
+  });
+
+  function resetView() {
+    targetZoom = 1; targetPanX = 0; targetPanY = 0;
+  }
+
+  resetBtn.addEventListener('click', resetView);
+
+  function dismissHint() {
+    clearTimeout(hintTimeout);
+    hintTimeout = setTimeout(() => { hint.style.opacity = '0'; }, 2500);
+  }
+
+  // Init
+  resize();
+  window.addEventListener('resize', () => { resize(); });
+  tick();
+  dismissHint();
+})();
+</script>

@@ -1,0 +1,267 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-mono);font-size:13px}
+#app{padding:1rem 0}
+.toolbar{display:flex;gap:8px;margin-bottom:12px;align-items:center}
+.toolbar input{flex:1;font-size:13px;padding:6px 10px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:var(--color-background-primary);color:var(--color-text-primary);font-family:var(--font-mono)}
+.toolbar input:focus{outline:none;box-shadow:0 0 0 2px var(--color-border-info)}
+.tb-btn{padding:6px 12px;font-size:12px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:var(--color-background-secondary);color:var(--color-text-secondary);cursor:pointer;white-space:nowrap;font-family:var(--font-sans)}
+.tb-btn:hover{background:var(--color-background-tertiary);color:var(--color-text-primary)}
+.tb-btn.active{background:var(--color-background-info);color:var(--color-text-info);border-color:var(--color-border-info)}
+.tree-wrap{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:12px 16px;overflow:auto;max-height:520px}
+.node{line-height:1.6;position:relative}
+.node.hidden{display:none}
+.node-row{display:flex;align-items:baseline;gap:5px;cursor:default;padding:1px 0;border-radius:4px;padding-right:4px}
+.node-row:hover{background:var(--color-background-secondary)}
+.toggle{width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;border-radius:3px;color:var(--color-text-tertiary);transition:transform 0.18s ease;font-size:9px;margin-top:1px}
+.toggle:hover{color:var(--color-text-primary);background:var(--color-background-tertiary)}
+.toggle.open{transform:rotate(90deg)}
+.toggle.leaf{cursor:default;opacity:0}
+.key{color:var(--color-text-secondary);font-weight:500}
+.colon{color:var(--color-text-tertiary)}
+.value{cursor:pointer;border-radius:3px;padding:0 2px}
+.value:hover{background:var(--color-background-warning)}
+.value.highlighted{background:#FAEEDA;color:#633806}
+@media(prefers-color-scheme:dark){.value.highlighted{background:#412402;color:#FAC775}}
+.badge{font-size:10px;padding:1px 5px;border-radius:3px;font-family:var(--font-sans);font-weight:500;flex-shrink:0}
+.b-string{background:#EAF3DE;color:#3B6D11}
+.b-number{background:#E6F1FB;color:#185FA5}
+.b-boolean{background:#FAEEDA;color:#854F0B}
+.b-null{background:#F1EFE8;color:#5F5E5A}
+.b-array{background:#EEEDFE;color:#3C3489}
+.b-object{background:#E6F1FB;color:#042C53}
+@media(prefers-color-scheme:dark){
+.b-string{background:#173404;color:#97C459}
+.b-number{background:#042C53;color:#85B7EB}
+.b-boolean{background:#412402;color:#FAC775}
+.b-null{background:#2C2C2A;color:#B4B2A9}
+.b-array{background:#26215C;color:#CECBF6}
+.b-object{background:#042C53;color:#B5D4F4}
+}
+.children{margin-left:22px;border-left:1.5px dotted var(--color-border-tertiary);padding-left:8px}
+.count{color:var(--color-text-tertiary);font-size:11px;font-family:var(--font-sans)}
+.bracket{color:var(--color-text-tertiary)}
+.toast{position:fixed;bottom:16px;right:16px;background:var(--color-background-primary);border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:8px 14px;font-size:12px;font-family:var(--font-sans);color:var(--color-text-primary);box-shadow:0 2px 8px rgba(0,0,0,0.08);opacity:0;transition:opacity 0.2s;pointer-events:none;z-index:999}
+.toast.show{opacity:1}
+.paste-area{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.paste-area textarea{font-size:12px;font-family:var(--font-mono);padding:8px 10px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:var(--color-background-secondary);color:var(--color-text-primary);resize:vertical;min-height:72px}
+.paste-area textarea:focus{outline:none;box-shadow:0 0 0 2px var(--color-border-info)}
+.parse-btn{align-self:flex-start;padding:6px 14px;font-size:13px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:var(--color-background-primary);color:var(--color-text-primary);cursor:pointer;font-family:var(--font-sans)}
+.parse-btn:hover{background:var(--color-background-info);color:var(--color-text-info);border-color:var(--color-border-info)}
+.err{color:var(--color-text-danger);font-size:12px;font-family:var(--font-sans)}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+</style>
+
+<h2 class="sr-only">JSON Response Tree Explorer — collapsible, searchable JSON viewer with type badges</h2>
+<div id="app">
+  <div class="paste-area">
+    <textarea id="json-input" placeholder="Paste your JSON here…" rows="3"></textarea>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="parse-btn" onclick="parseInput()"><i class="ti ti-refresh" aria-hidden="true"></i> Parse JSON</button>
+      <span id="parse-err" class="err"></span>
+    </div>
+  </div>
+  <div class="toolbar">
+    <input type="text" id="search-box" placeholder="Search keys or values…" oninput="onSearch()" />
+    <button class="tb-btn" id="filter-btn" onclick="toggleFilter()"><i class="ti ti-filter" aria-hidden="true"></i> Filter</button>
+    <button class="tb-btn" onclick="expandAll()"><i class="ti ti-chevrons-down" aria-hidden="true"></i> Expand all</button>
+    <button class="tb-btn" onclick="collapseAll()"><i class="ti ti-chevrons-up" aria-hidden="true"></i> Collapse all</button>
+  </div>
+  <div class="tree-wrap" id="tree-wrap">
+    <div id="tree-root"></div>
+  </div>
+</div>
+<div class="toast" id="toast">Copied!</div>
+
+<script>
+const SAMPLE = {
+  "status": "success",
+  "meta": {"version": "3.1.4","generated_at": "2025-05-31T09:00:00Z","total": 3},
+  "users": [
+    {"id": 1,"name": "Ada Lovelace","email": "ada@example.com","active": true,"score": 98.5,"tags": ["admin","engineer"],"address": {"city": "London","country": "GB"}},
+    {"id": 2,"name": "Grace Hopper","email": "grace@example.com","active": false,"score": 76.0,"tags": ["compiler"],"address": {"city": "New York","country": "US"}},
+    {"id": 3,"name": "Alan Turing","email": null,"active": true,"score": null,"tags": [],"address": {"city": "Manchester","country": "GB"}}
+  ],
+  "config": {"max_results": 100,"allow_empty": false,"nested": {"retry": 3,"timeout_ms": 5000}}
+};
+
+let currentData = SAMPLE;
+let filterMode = false;
+let searchTerm = '';
+let expandedSet = new Set();
+
+function getType(v){
+  if(v===null) return 'null';
+  if(Array.isArray(v)) return 'array';
+  return typeof v;
+}
+
+function badge(type){
+  const labels={string:'str',number:'num',boolean:'bool',null:'null',array:'arr',object:'obj'};
+  return `<span class="badge b-${type}" aria-label="${type} type">${labels[type]||type}</span>`;
+}
+
+let nodeId=0;
+function buildTree(data, parentKey='root', depth=0, path='root'){
+  const type = getType(data);
+  const id = 'n'+(nodeId++);
+  expandedSet.add(id);
+
+  if(type==='object'||type==='array'){
+    const entries = type==='array' ? data.map((v,i)=>[i,v]) : Object.entries(data);
+    const count = entries.length;
+    const bracket = type==='array' ? ['[',']'] : ['{','}'];
+    let html = `<div class="node" id="${id}" data-path="${path}" data-key="${parentKey}" data-type="${type}">
+      <div class="node-row" style="padding-left:0">
+        <span class="toggle open" onclick="toggleNode('${id}')" aria-label="collapse">&#9658;</span>
+        ${depth>0?`<span class="key">"${parentKey}"</span><span class="colon">:</span>`:''}
+        <span class="bracket">${bracket[0]}</span>
+        ${badge(type)}
+        <span class="count">${count} ${count===1?'item':'items'}</span>
+      </div>
+      <div class="children" id="${id}-ch">`;
+    for(const [k,v] of entries){
+      html += buildTree(v, k, depth+1, `${path}.${k}`);
+    }
+    html += `</div>
+      <div class="node-row" style="padding-left:18px"><span class="bracket">${bracket[1]}</span></div>
+    </div>`;
+    return html;
+  } else {
+    const display = type==='string' ? `"${data}"` : String(data);
+    return `<div class="node" id="${id}" data-path="${path}" data-key="${parentKey}" data-val="${String(data)}" data-type="${type}">
+      <div class="node-row" style="padding-left:0">
+        <span class="toggle leaf" aria-hidden="true">&#9658;</span>
+        <span class="key">"${parentKey}"</span>
+        <span class="colon">:</span>
+        <span class="value" onclick="copyValue(this,'${String(data).replace(/'/g,"&#39;")}')" title="Click to copy">${display}</span>
+        ${badge(type)}
+      </div>
+    </div>`;
+  }
+}
+
+function render(data){
+  nodeId=0;
+  expandedSet=new Set();
+  const root = document.getElementById('tree-root');
+  root.innerHTML = buildTree(data);
+}
+
+function toggleNode(id){
+  const ch = document.getElementById(id+'-ch');
+  const toggle = document.querySelector(`#${id} > .node-row > .toggle`);
+  if(!ch||!toggle) return;
+  const isOpen = toggle.classList.contains('open');
+  if(isOpen){
+    ch.style.display='none';
+    toggle.classList.remove('open');
+    expandedSet.delete(id);
+  } else {
+    ch.style.display='';
+    toggle.classList.add('open');
+    expandedSet.add(id);
+  }
+}
+
+function expandAll(){
+  document.querySelectorAll('.toggle:not(.leaf)').forEach(t=>{
+    const id=t.closest('.node').id;
+    const ch=document.getElementById(id+'-ch');
+    if(ch) ch.style.display='';
+    t.classList.add('open');
+  });
+}
+
+function collapseAll(){
+  document.querySelectorAll('.toggle:not(.leaf)').forEach(t=>{
+    const id=t.closest('.node').id;
+    const ch=document.getElementById(id+'-ch');
+    if(ch) ch.style.display='none';
+    t.classList.remove('open');
+  });
+}
+
+function copyValue(el, val){
+  navigator.clipboard.writeText(val).catch(()=>{});
+  showToast('Copied!');
+}
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.classList.add('show');
+  clearTimeout(t._tid);
+  t._tid=setTimeout(()=>t.classList.remove('show'),1600);
+}
+
+function onSearch(){
+  searchTerm = document.getElementById('search-box').value.toLowerCase().trim();
+  applySearch();
+}
+
+function applySearch(){
+  const nodes = document.querySelectorAll('.node');
+  if(!searchTerm){
+    nodes.forEach(n=>{
+      n.classList.remove('hidden');
+      n.querySelectorAll('.value,.key').forEach(el=>el.classList.remove('highlighted'));
+    });
+    if(filterMode) nodes.forEach(n=>n.classList.remove('hidden'));
+    return;
+  }
+  nodes.forEach(n=>{
+    const key=(n.dataset.key||'').toLowerCase();
+    const val=(n.dataset.val||'').toLowerCase();
+    const match = key.includes(searchTerm)||val.includes(searchTerm);
+    n.querySelectorAll('.value,.key').forEach(el=>{
+      el.classList.toggle('highlighted', match && (el.classList.contains('value')?val.includes(searchTerm):key.includes(searchTerm)));
+    });
+    if(filterMode){
+      if(match){
+        n.classList.remove('hidden');
+        let p=n.parentElement;
+        while(p){
+          if(p.classList&&p.classList.contains('node')) p.classList.remove('hidden');
+          if(p.classList&&p.classList.contains('children')){
+            const pid=p.id.replace('-ch','');
+            const pnode=document.getElementById(pid);
+            if(pnode) pnode.classList.remove('hidden');
+          }
+          p=p.parentElement;
+        }
+      } else {
+        const hasMatchingChild = n.querySelector('.highlighted');
+        if(!hasMatchingChild) n.classList.add('hidden');
+      }
+    }
+  });
+}
+
+function toggleFilter(){
+  filterMode=!filterMode;
+  document.getElementById('filter-btn').classList.toggle('active',filterMode);
+  applySearch();
+  if(!filterMode){
+    document.querySelectorAll('.node.hidden').forEach(n=>n.classList.remove('hidden'));
+  }
+}
+
+function parseInput(){
+  const raw = document.getElementById('json-input').value.trim();
+  const err = document.getElementById('parse-err');
+  if(!raw){err.textContent='';return;}
+  try{
+    const parsed = JSON.parse(raw);
+    currentData = parsed;
+    err.textContent='';
+    render(parsed);
+    showToast('Parsed!');
+  } catch(e){
+    err.textContent='Invalid JSON: '+e.message;
+  }
+}
+
+render(currentData);
+</script>
