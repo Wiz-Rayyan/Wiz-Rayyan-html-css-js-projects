@@ -1,0 +1,96 @@
+<div style="display:flex;flex-direction:column;gap:1rem;max-width:320px">
+  <div style="display:flex;gap:6px;flex-wrap:wrap">
+    <button data-status="up" class="status-btn" style="font-size:12px;padding:4px 10px">Up</button>
+    <button data-status="down" class="status-btn" style="font-size:12px;padding:4px 10px">Down</button>
+    <button data-status="warning" class="status-btn" style="font-size:12px;padding:4px 10px">Warning</button>
+    <button data-status="neutral" class="status-btn" style="font-size:12px;padding:4px 10px">Neutral</button>
+  </div>
+
+  <div id="kpi-card" style="background:var(--surface-2);border-radius:12px;border:0.5px solid var(--border);padding:1rem 1.25rem;position:relative">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <p style="font-size:13px;color:var(--text-secondary);margin:0 0 4px">Weekly active users</p>
+        <p style="font-size:24px;font-weight:500;margin:0" id="kpi-value">128,430</p>
+        <p style="font-size:13px;margin:4px 0 0" id="kpi-delta">+4.2% vs last week</p>
+      </div>
+      <div id="icon-wrap" tabindex="0" role="button" aria-label="Status icon, click for trend detail" style="width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative">
+        <i id="kpi-icon" class="ti ti-trending-up" style="font-size:26px" aria-hidden="true"></i>
+      </div>
+    </div>
+    <div id="tooltip" style="display:none;position:absolute;top:8px;right:8px;background:var(--surface-3);border:0.5px solid var(--border);border-radius:var(--radius);padding:6px 10px;font-size:12px;color:var(--text-secondary);max-width:200px;box-shadow:0 0 0 0"></div>
+  </div>
+</div>
+
+<style>
+@keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
+@keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-3px)} 75%{transform:translateX(3px)} }
+@keyframes pulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.15);opacity:0.75} }
+@keyframes breathe { 0%,100%{opacity:0.7} 50%{opacity:1} }
+.icon-up { animation: bounce 1s ease-in-out infinite; }
+.icon-down { animation: shake 0.7s ease-in-out infinite; }
+.icon-warning { animation: pulse 1.2s ease-in-out infinite; }
+.icon-neutral { animation: breathe 2.5s ease-in-out infinite; }
+</style>
+
+<script>
+(function(){
+  var statuses = {
+    up: { icon:'ti-trending-up', bg:'var(--bg-success)', color:'var(--text-success)', anim:'icon-up',
+          value:'128,430', delta:'+4.2% vs last week', tooltip:'Trending up: metric improved versus prior period.' },
+    down: { icon:'ti-trending-down', bg:'var(--bg-danger)', color:'var(--text-danger)', anim:'icon-down',
+          value:'94,210', delta:'-6.8% vs last week', tooltip:'Trending down: metric declined versus prior period.' },
+    warning: { icon:'ti-alert-triangle', bg:'var(--bg-warning)', color:'var(--text-warning)', anim:'icon-warning',
+          value:'110,050', delta:'Flat, close to threshold', tooltip:'Warning: approaching a defined threshold.' },
+    neutral: { icon:'ti-minus', bg:'var(--surface-1)', color:'var(--text-secondary)', anim:'icon-neutral',
+          value:'112,300', delta:'No significant change', tooltip:'Neutral: no meaningful change detected.' }
+  };
+
+  var iconEl = document.getElementById('kpi-icon');
+  var wrapEl = document.getElementById('icon-wrap');
+  var valueEl = document.getElementById('kpi-value');
+  var deltaEl = document.getElementById('kpi-delta');
+  var tooltipEl = document.getElementById('tooltip');
+  var current = 'up';
+
+  function applyStatus(key, morph){
+    var s = statuses[key];
+    if (morph) {
+      iconEl.style.transition = 'opacity 0.2s, transform 0.2s';
+      iconEl.style.opacity = '0';
+      iconEl.style.transform = 'scale(0.6) rotate(45deg)';
+      setTimeout(function(){
+        setIcon(s);
+        iconEl.style.opacity = '1';
+        iconEl.style.transform = 'scale(1) rotate(0deg)';
+      }, 200);
+    } else {
+      setIcon(s);
+    }
+    wrapEl.style.background = s.bg;
+    iconEl.style.color = s.color;
+    valueEl.textContent = s.value;
+    deltaEl.textContent = s.delta;
+    deltaEl.style.color = s.color;
+    tooltipEl.textContent = s.tooltip;
+    current = key;
+  }
+
+  function setIcon(s){
+    iconEl.className = 'ti ' + s.icon + ' ' + s.anim;
+  }
+
+  applyStatus('up', false);
+
+  document.querySelectorAll('.status-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      applyStatus(btn.dataset.status, true);
+    });
+  });
+
+  wrapEl.addEventListener('mouseenter', function(){ tooltipEl.style.display = 'block'; });
+  wrapEl.addEventListener('mouseleave', function(){ tooltipEl.style.display = 'none'; });
+  wrapEl.addEventListener('click', function(){
+    sendPrompt('Show me the trend detail for the ' + current + ' status KPI');
+  });
+})();
+</script>

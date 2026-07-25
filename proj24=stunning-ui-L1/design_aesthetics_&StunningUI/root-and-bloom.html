@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Root & Bloom — Slow Botanical Skincare</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,500&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream:#FDF6E3;
+    --beige:#F5EDE0;
+    --mist-green:#E8F5E9;
+    --leaf:#2E7D32;
+    --leaf-deep:#1F5522;
+    --leaf-soft:#6BA36E;
+    --terracotta:#C46D5E;
+    --sky:#4FC3F7;
+    --yellow:#F4D03F;
+    --ink:#33291F;
+    --ink-soft:#6B5E4D;
+    --paper-line: rgba(46,125,50,0.15);
+    --shadow: 0 10px 30px rgba(51,41,31,0.08);
+  }
+
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--cream);
+    color:var(--ink);
+    font-family:'Nunito', sans-serif;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+
+  /* paper grain texture */
+  body::before{
+    content:"";
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    opacity:0.35;
+    z-index:1;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E");
+  }
+
+  h1,h2,h3,.serif{
+    font-family:'Cormorant Garamond', serif;
+    font-weight:600;
+    color:var(--leaf-deep);
+    margin:0;
+  }
+
+  a{color:inherit;}
+
+  .wrap{max-width:1180px; margin:0 auto; padding:0 48px;}
+  @media(max-width:640px){.wrap{padding:0 24px;}}
+
+  /* ---------- NAV ---------- */
+  nav{
+    position:sticky; top:0; z-index:40;
+    background:rgba(253,246,227,0.85);
+    backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--paper-line);
+  }
+  .nav-inner{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:20px 48px;
+    max-width:1180px; margin:0 auto;
+  }
+  @media(max-width:640px){.nav-inner{padding:16px 24px;}}
+  .logo{
+    display:flex; align-items:center; gap:10px;
+    font-family:'Cormorant Garamond',serif;
+    font-size:1.5rem; font-weight:600; color:var(--leaf-deep);
+    letter-spacing:0.02em;
+  }
+  .logo svg{width:26px;height:26px;}
+  .nav-links{display:flex; gap:36px; list-style:none; margin:0; padding:0;}
+  .nav-links a{
+    font-size:0.92rem; font-weight:700; text-decoration:none;
+    color:var(--ink-soft); position:relative; padding-bottom:4px;
+    transition:color 0.25s ease;
+  }
+  .nav-links a::after{
+    content:""; position:absolute; left:0; bottom:0; height:2px; width:0;
+    background:var(--leaf); transition:width 0.3s ease;
+  }
+  .nav-links a:hover{color:var(--leaf-deep);}
+  .nav-links a:hover::after{width:100%;}
+  @media(max-width:800px){.nav-links{display:none;}}
+
+  /* ---------- signature: growing vine ---------- */
+  .vine-rail{
+    position:fixed; left:0; top:0; bottom:0; width:64px;
+    z-index:5; pointer-events:none; display:flex; justify-content:center;
+  }
+  @media(max-width:900px){.vine-rail{display:none;}}
+  .vine-rail svg{height:100%; width:100%;}
+  #vinePath{
+    fill:none; stroke:var(--leaf); stroke-width:2.5;
+    stroke-linecap:round;
+  }
+  .vine-leaf{ opacity:0; transform-origin:center; transition:opacity 0.6s ease;}
+  .vine-leaf.show{opacity:1;}
+
+  /* ---------- HERO ---------- */
+  .hero{
+    position:relative; z-index:2;
+    padding:100px 48px 140px;
+    display:grid; grid-template-columns:1.1fr 0.9fr; gap:60px; align-items:center;
+    max-width:1180px; margin:0 auto;
+  }
+  @media(max-width:900px){.hero{grid-template-columns:1fr; padding:60px 24px 90px; text-align:left;}}
+
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:8px;
+    font-size:0.8rem; font-weight:800; letter-spacing:0.12em; text-transform:uppercase;
+    color:var(--terracotta); margin-bottom:22px;
+  }
+  .eyebrow .dot{width:7px;height:7px;border-radius:50%;background:var(--terracotta);}
+
+  .hero h1{
+    font-size:clamp(2.6rem, 5vw, 4.4rem);
+    line-height:1.05;
+    letter-spacing:-0.01em;
+  }
+  .hero h1 em{
+    font-style:italic; color:var(--terracotta); font-weight:500;
+  }
+  .hero p.lede{
+    font-size:1.15rem; line-height:1.7; color:var(--ink-soft);
+    max-width:46ch; margin:26px 0 36px;
+  }
+
+  .cta-row{display:flex; gap:18px; flex-wrap:wrap;}
+
+  .btn{
+    display:inline-flex; align-items:center; gap:10px;
+    padding:16px 30px;
+    font-family:'Nunito',sans-serif; font-weight:800; font-size:0.95rem;
+    border:none; cursor:pointer;
+    border-radius:30px 12px 28px 12px;
+    box-shadow:var(--shadow);
+    transition:transform 0.25s ease, box-shadow 0.25s ease;
+  }
+  .btn:hover{transform:scale(1.02); box-shadow:0 14px 34px rgba(46,125,50,0.18);}
+  .btn:active{opacity:0.85; transform:scale(0.99);}
+  .btn-primary{background:var(--leaf); color:var(--cream);}
+  .btn-ghost{
+    background:transparent; color:var(--leaf-deep);
+    border:1.5px solid var(--leaf); box-shadow:none;
+  }
+  .btn-ghost:hover{background:rgba(46,125,50,0.06);}
+
+  /* hero organic image */
+  .hero-art{position:relative; height:420px;}
+  .blob{
+    position:absolute; inset:0;
+    border-radius:42% 58% 65% 35% / 45% 40% 60% 55%;
+    background:linear-gradient(155deg, var(--mist-green), var(--beige) 70%);
+    border:1px solid var(--paper-line);
+    animation:morph 12s ease-in-out infinite;
+    display:flex; align-items:center; justify-content:center;
+    overflow:hidden;
+  }
+  @keyframes morph{
+    0%,100%{border-radius:42% 58% 65% 35% / 45% 40% 60% 55%;}
+    50%{border-radius:58% 42% 40% 60% / 55% 65% 35% 45%;}
+  }
+  .blob svg{width:72%; height:72%;}
+  .float-chip{
+    position:absolute; background:var(--cream); border:1px solid var(--paper-line);
+    border-radius:20px 6px 20px 6px; box-shadow:var(--shadow);
+    padding:12px 18px; font-weight:700; font-size:0.85rem; color:var(--leaf-deep);
+    display:flex; align-items:center; gap:8px;
+    animation:bob 5s ease-in-out infinite;
+  }
+  .float-chip.c1{top:8%; left:-6%; animation-delay:0s;}
+  .float-chip.c2{bottom:6%; right:-4%; animation-delay:1.4s;}
+  @keyframes bob{0%,100%{transform:translateY(0);}50%{transform:translateY(-10px);}}
+
+  /* ---------- fade-in on scroll ---------- */
+  .reveal{opacity:0; transform:translateY(24px) scale(0.97); transition:opacity 0.8s ease, transform 0.8s ease;}
+  .reveal.in{opacity:1; transform:translateY(0) scale(1);}
+
+  /* ---------- SECTION: philosophy ---------- */
+  .philosophy{
+    padding:90px 48px; position:relative; z-index:2;
+    background:var(--beige);
+    border-top:1px solid var(--paper-line);
+    border-bottom:1px solid var(--paper-line);
+  }
+  .philosophy-inner{
+    max-width:1180px; margin:0 auto;
+    display:grid; grid-template-columns:0.7fr 1.3fr; gap:56px; align-items:start;
+  }
+  @media(max-width:900px){.philosophy-inner{grid-template-columns:1fr; padding:0 24px;}}
+  .philosophy h2{font-size:2.2rem; line-height:1.15;}
+  .philosophy-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:36px;}
+  @media(max-width:700px){.philosophy-grid{grid-template-columns:1fr;}}
+  .p-item .icon{
+    width:52px; height:52px; margin-bottom:16px;
+    display:flex; align-items:center; justify-content:center;
+    border-radius:16px 6px 16px 6px; background:var(--mist-green);
+  }
+  .p-item h3{font-size:1.3rem; margin-bottom:8px; color:var(--leaf-deep);}
+  .p-item p{color:var(--ink-soft); line-height:1.6; font-size:0.95rem; margin:0;}
+
+  /* ---------- SECTION: products ---------- */
+  .products{padding:110px 48px; position:relative; z-index:2;}
+  .section-head{max-width:1180px; margin:0 auto 50px; display:flex; justify-content:space-between; align-items:flex-end; gap:24px; flex-wrap:wrap;}
+  .section-head h2{font-size:2.4rem;}
+  .section-head p{color:var(--ink-soft); max-width:38ch; margin:0; line-height:1.6;}
+
+  .card-grid{
+    max-width:1180px; margin:0 auto;
+    display:grid; grid-template-columns:repeat(3,1fr); gap:30px;
+  }
+  @media(max-width:900px){.card-grid{grid-template-columns:1fr 1fr;}}
+  @media(max-width:640px){.card-grid{grid-template-columns:1fr;}}
+
+  .card{
+    background:var(--cream);
+    border:1px solid var(--paper-line);
+    border-radius:20px 4px 24px 8px;
+    padding:28px;
+    position:relative;
+    box-shadow:var(--shadow);
+    transition:transform 0.3s ease, box-shadow 0.3s ease;
+    overflow:hidden;
+  }
+  .card:hover{transform:scale(1.02); box-shadow:0 16px 36px rgba(46,125,50,0.16);}
+  .card .leaf-deco{
+    position:absolute; top:-18px; right:-18px; width:90px; height:90px;
+    opacity:0.14; transform:rotate(12deg);
+    transition:transform 0.5s ease, opacity 0.5s ease;
+  }
+  .card:hover .leaf-deco{transform:rotate(28deg) scale(1.1); opacity:0.22;}
+  .card .swatch{
+    width:100%; height:150px; border-radius:16px 6px 18px 6px;
+    margin-bottom:20px; display:flex; align-items:center; justify-content:center;
+  }
+  .card h3{font-size:1.4rem; margin-bottom:6px;}
+  .card .tag{font-size:0.75rem; font-weight:800; letter-spacing:0.08em; text-transform:uppercase; color:var(--terracotta); margin-bottom:10px; display:block;}
+  .card p{color:var(--ink-soft); font-size:0.92rem; line-height:1.6; margin:0 0 18px;}
+  .card .price{display:flex; justify-content:space-between; align-items:center; font-weight:800; color:var(--leaf-deep);}
+  .card .price button{
+    background:none; border:1.5px solid var(--leaf); color:var(--leaf-deep);
+    border-radius:14px 6px 14px 6px; padding:8px 16px; font-weight:800; font-size:0.85rem;
+    cursor:pointer; transition:all 0.25s ease;
+  }
+  .card .price button:hover{background:var(--leaf); color:var(--cream); transform:scale(1.02);}
+
+  /* ---------- SECTION: process (growing path) ---------- */
+  .process{
+    padding:110px 48px; background:var(--mist-green);
+    border-top:1px solid var(--paper-line); border-bottom:1px solid var(--paper-line);
+    position:relative; z-index:2;
+  }
+  .process-inner{max-width:900px; margin:0 auto; text-align:center;}
+  .process h2{font-size:2.3rem; margin-bottom:14px;}
+  .process > .process-inner > p{color:var(--ink-soft); max-width:52ch; margin:0 auto 60px; line-height:1.7;}
+
+  .steps{position:relative; max-width:640px; margin:0 auto;}
+  .step{
+    display:flex; gap:24px; text-align:left; padding:0 0 56px 0; position:relative;
+  }
+  .step:last-child{padding-bottom:0;}
+  .step-mark{
+    flex:none; width:48px; height:48px; border-radius:50%;
+    background:var(--cream); border:2px solid var(--leaf-soft);
+    display:flex; align-items:center; justify-content:center;
+    position:relative; z-index:2;
+  }
+  .step-line{
+    position:absolute; left:24px; top:48px; bottom:-8px; width:2px;
+    background:repeating-linear-gradient(var(--leaf-soft) 0 6px, transparent 6px 12px);
+  }
+  .step:last-child .step-line{display:none;}
+  .step h3{font-size:1.25rem; margin-bottom:6px; color:var(--leaf-deep);}
+  .step p{margin:0; color:var(--ink-soft); font-size:0.94rem; line-height:1.6;}
+
+  /* ---------- SECTION: testimonial ---------- */
+  .testimonial{padding:110px 48px; position:relative; z-index:2;}
+  .t-inner{
+    max-width:760px; margin:0 auto; text-align:center; position:relative;
+  }
+  .t-inner .mark{font-family:'Cormorant Garamond',serif; font-size:5rem; color:var(--leaf-soft); line-height:0.5; display:block; margin-bottom:10px;}
+  .t-inner blockquote{
+    font-family:'Cormorant Garamond',serif; font-style:italic; font-size:1.8rem;
+    line-height:1.5; color:var(--leaf-deep); margin:0 0 26px;
+  }
+  .t-inner .who{font-weight:800; color:var(--ink-soft); font-size:0.9rem;}
+
+  /* ---------- FOOTER / newsletter ---------- */
+  footer{
+    background:var(--leaf-deep); color:var(--cream);
+    padding:90px 48px 40px; position:relative; z-index:2; overflow:hidden;
+  }
+  .footer-top{
+    max-width:1180px; margin:0 auto 70px;
+    display:grid; grid-template-columns:1fr 1fr; gap:40px; align-items:center;
+  }
+  @media(max-width:800px){.footer-top{grid-template-columns:1fr;}}
+  footer h2{color:var(--cream); font-size:2rem; margin-bottom:14px;}
+  footer p{color:rgba(253,246,227,0.75); line-height:1.6; max-width:42ch;}
+  .signup{display:flex; gap:12px; margin-top:24px; flex-wrap:wrap;}
+  .signup input{
+    flex:1; min-width:220px; padding:14px 20px; border-radius:26px;
+    border:1.5px solid rgba(253,246,227,0.3); background:rgba(253,246,227,0.06);
+    color:var(--cream); font-family:'Nunito',sans-serif; font-size:0.95rem; outline:none;
+    transition:border-color 0.25s ease;
+  }
+  .signup input::placeholder{color:rgba(253,246,227,0.5);}
+  .signup input:focus{border-color:var(--yellow);}
+  .signup .btn-primary{background:var(--yellow); color:var(--leaf-deep);}
+  .signup .btn-primary:hover{box-shadow:0 14px 30px rgba(244,208,63,0.25);}
+
+  .footer-bottom{
+    max-width:1180px; margin:0 auto; padding-top:30px;
+    border-top:1px solid rgba(253,246,227,0.15);
+    display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;
+    font-size:0.85rem; color:rgba(253,246,227,0.6);
+  }
+  .footer-links{display:flex; gap:22px; list-style:none; padding:0; margin:0;}
+  .footer-links a{text-decoration:none; color:rgba(253,246,227,0.75); transition:color 0.2s ease;}
+  .footer-links a:hover{color:var(--yellow);}
+
+  .confirm-msg{
+    margin-top:14px; font-size:0.88rem; font-weight:700; color:var(--yellow);
+    opacity:0; transform:translateY(-6px); transition:all 0.35s ease;
+  }
+  .confirm-msg.show{opacity:1; transform:translateY(0);}
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation:none !important; transition:none !important;}
+    html{scroll-behavior:auto;}
+  }
+</style>
+</head>
+<body>
+
+<div class="vine-rail" aria-hidden="true">
+  <svg viewBox="0 0 64 2400" preserveAspectRatio="none">
+    <path id="vinePath" d="M32,0 C10,150 54,300 32,450 C10,600 54,750 32,900 C10,1050 54,1200 32,1350 C10,1500 54,1650 32,1800 C10,1950 54,2100 32,2250 L32,2400"/>
+  </svg>
+</div>
+
+<nav>
+  <div class="nav-inner">
+    <div class="logo">
+      <svg viewBox="0 0 24 24"><path d="M12 2C8 6 6 10 6 14c0 3.3 2.7 6 6 6s6-2.7 6-6c0-4-2-8-6-12z" fill="#2E7D32"/><path d="M12 6v14" stroke="#FDF6E3" stroke-width="1" stroke-linecap="round"/></svg>
+      Root &amp; Bloom
+    </div>
+    <ul class="nav-links">
+      <li><a href="#products">Apothecary</a></li>
+      <li><a href="#process">Our Process</a></li>
+      <li><a href="#story">Story</a></li>
+      <li><a href="#join">Journal</a></li>
+    </ul>
+    <button class="btn btn-ghost" style="padding:10px 20px; font-size:0.85rem;">Basket (0)</button>
+  </div>
+</nav>
+
+<section class="hero">
+  <div>
+    <span class="eyebrow"><span class="dot"></span>Single-origin botanicals</span>
+    <h1>Skincare grown at the <em>speed of the plant</em>, not the season.</h1>
+    <p class="lede">We work with three family farms and a five-year rotation to harvest each ingredient at its peak — then leave it mostly alone. No synthetic fillers, no rush.</p>
+    <div class="cta-row">
+      <button class="btn btn-primary">Shop the harvest</button>
+      <button class="btn btn-ghost">Read our sourcing notes</button>
+    </div>
+  </div>
+  <div class="hero-art reveal">
+    <div class="blob">
+      <svg viewBox="0 0 200 200" fill="none">
+        <path d="M100 20C70 50 40 80 40 120c0 33 27 60 60 60s60-27 60-60c0-40-30-70-60-100z" fill="#2E7D32" opacity="0.85"/>
+        <path d="M100 40v130" stroke="#E8F5E9" stroke-width="2" stroke-linecap="round"/>
+        <path d="M100 70c-15 5-25 15-28 28" stroke="#E8F5E9" stroke-width="2" stroke-linecap="round" fill="none"/>
+        <path d="M100 100c15 5 25 15 28 28" stroke="#E8F5E9" stroke-width="2" stroke-linecap="round" fill="none"/>
+      </svg>
+    </div>
+    <div class="float-chip c1">🌿 Cold-pressed</div>
+    <div class="float-chip c2">☀️ Sun-cured, 14 days</div>
+  </div>
+</section>
+
+<section class="philosophy" id="story">
+  <div class="philosophy-inner">
+    <div class="reveal">
+      <h2>Three beliefs behind every jar.</h2>
+    </div>
+    <div class="philosophy-grid">
+      <div class="p-item reveal">
+        <div class="icon"><svg width="26" height="26" viewBox="0 0 24 24"><path d="M12 2C8 6 6 10 6 14c0 3.3 2.7 6 6 6s6-2.7 6-6c0-4-2-8-6-12z" fill="#2E7D32"/></svg></div>
+        <h3>Whole, not extracted</h3>
+        <p>We use the full leaf, root, or petal wherever we can, so nothing is isolated past recognition.</p>
+      </div>
+      <div class="p-item reveal">
+        <div class="icon"><svg width="26" height="26" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="#4FC3F7"/></svg></div>
+        <h3>Traceable to a field</h3>
+        <p>Every batch lists the farm, the harvest week, and the hands that picked it.</p>
+      </div>
+      <div class="p-item reveal">
+        <div class="icon"><svg width="26" height="26" viewBox="0 0 24 24"><path d="M4 20c4-10 8-14 16-16-2 8-6 12-16 16z" fill="#C46D5E"/></svg></div>
+        <h3>Made to run out</h3>
+        <p>Small batches, honest shelf life, refill jars — we'd rather you buy less, more often.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="products" id="products">
+  <div class="section-head reveal">
+    <h2>The current harvest</h2>
+    <p>Four formulas, released this season, each tied to a single farm partner.</p>
+  </div>
+  <div class="card-grid">
+
+    <div class="card reveal">
+      <svg class="leaf-deco" viewBox="0 0 100 100"><path d="M50 5C30 25 20 45 20 65c0 16 13 29 29 29s30-13 30-29c0-20-9-40-29-60z" fill="#2E7D32"/></svg>
+      <div class="swatch" style="background:var(--mist-green);">
+        <svg width="70" height="70" viewBox="0 0 24 24"><path d="M12 2C8 6 6 10 6 14c0 3.3 2.7 6 6 6s6-2.7 6-6c0-4-2-8-6-12z" fill="#2E7D32"/></svg>
+      </div>
+      <span class="tag">Calendula · Farm No.2</span>
+      <h3>Slow Balm</h3>
+      <p>A dense, marigold-steeped balm for skin that's had a long week outdoors.</p>
+      <div class="price"><span>$38</span><button>Add</button></div>
+    </div>
+
+    <div class="card reveal">
+      <svg class="leaf-deco" viewBox="0 0 100 100"><path d="M50 5C30 25 20 45 20 65c0 16 13 29 29 29s30-13 30-29c0-20-9-40-29-60z" fill="#C46D5E"/></svg>
+      <div class="swatch" style="background:#FBEAE5;">
+        <svg width="70" height="70" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="#C46D5E"/></svg>
+      </div>
+      <span class="tag">Clay &amp; Root · Farm No.1</span>
+      <h3>Terracotta Mask</h3>
+      <p>Mineral clay from the same hillside as our herbs, loosened with rosehip.</p>
+      <div class="price"><span>$32</span><button>Add</button></div>
+    </div>
+
+    <div class="card reveal">
+      <svg class="leaf-deco" viewBox="0 0 100 100"><path d="M50 5C30 25 20 45 20 65c0 16 13 29 29 29s30-13 30-29c0-20-9-40-29-60z" fill="#4FC3F7"/></svg>
+      <div class="swatch" style="background:#E6F7FD;">
+        <svg width="70" height="70" viewBox="0 0 24 24"><path d="M4 12c4-8 12-8 16 0-4 8-12 8-16 0z" fill="#4FC3F7"/></svg>
+      </div>
+      <span class="tag">Chamomile Water · Farm No.3</span>
+      <h3>Morning Mist</h3>
+      <p>A featherlight toner distilled the same day the chamomile is cut.</p>
+      <div class="price"><span>$26</span><button>Add</button></div>
+    </div>
+  </div>
+</section>
+
+<section class="process" id="process">
+  <div class="process-inner">
+    <h2 class="reveal">From field to jar, in five weeks</h2>
+    <p class="reveal">Nothing here is instant, and we've stopped apologizing for that.</p>
+    <div class="steps">
+      <div class="step reveal">
+        <div class="step-line"></div>
+        <div class="step-mark"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M12 2C8 6 6 10 6 14c0 3.3 2.7 6 6 6s6-2.7 6-6c0-4-2-8-6-12z" fill="#2E7D32"/></svg></div>
+        <div><h3>Week 1 — Harvest at peak</h3><p>Pickers work at dawn, when oils in the leaf are most concentrated.</p></div>
+      </div>
+      <div class="step reveal">
+        <div class="step-line"></div>
+        <div class="step-mark"><svg width="20" height="20" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" fill="#F4D03F"/></svg></div>
+        <div><h3>Week 2 — Sun-cure</h3><p>Slow drying in open air, never a dehydrator, to keep the plant's structure intact.</p></div>
+      </div>
+      <div class="step reveal">
+        <div class="step-line"></div>
+        <div class="step-mark"><svg width="20" height="20" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="3" fill="#4FC3F7"/></svg></div>
+        <div><h3>Week 3 — Cold infusion</h3><p>Steeped in oil at room temperature for ten days — heat would flatten the scent.</p></div>
+      </div>
+      <div class="step reveal">
+        <div class="step-line"></div>
+        <div class="step-mark"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M4 20c4-10 8-14 16-16-2 8-6 12-16 16z" fill="#C46D5E"/></svg></div>
+        <div><h3>Week 4 — Small-batch blend</h3><p>Batches capped at 40 jars, mixed and poured by hand.</p></div>
+      </div>
+      <div class="step reveal">
+        <div class="step-mark"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M12 2C8 6 6 10 6 14c0 3.3 2.7 6 6 6s6-2.7 6-6c0-4-2-8-6-12z" fill="#2E7D32"/></svg></div>
+        <div><h3>Week 5 — Rests, then ships</h3><p>Every jar cures a final week on the shelf before it leaves the workshop.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="testimonial">
+  <div class="t-inner reveal">
+    <span class="mark">"</span>
+    <blockquote>The balm smells like the exact hillside they say it comes from. I didn't know skincare could feel that specific.</blockquote>
+    <div class="who">— Mira T., subscriber since Farm No.1's first harvest</div>
+  </div>
+</section>
+
+<footer id="join">
+  <div class="footer-top">
+    <div class="reveal">
+      <h2>Get next season's harvest dates first.</h2>
+      <p>One email, roughly monthly, when a farm partner has something ready. No noise between.</p>
+    </div>
+    <div class="reveal">
+      <form class="signup" id="signupForm">
+        <input type="email" placeholder="you@earthy-email.com" required id="emailInput">
+        <button type="submit" class="btn btn-primary">Notify me</button>
+      </form>
+      <div class="confirm-msg" id="confirmMsg">🌱 You're on the list — see you at the next harvest.</div>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 Root &amp; Bloom Apothecary</span>
+    <ul class="footer-links">
+      <li><a href="#">Sourcing</a></li>
+      <li><a href="#">Shipping</a></li>
+      <li><a href="#">Contact</a></li>
+    </ul>
+  </div>
+</footer>
+
+<script>
+  // reveal on scroll
+  const revealEls = document.querySelectorAll('.reveal');
+  const io = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting){ e.target.classList.add('in'); }
+    });
+  }, {threshold:0.15});
+  revealEls.forEach(el=>io.observe(el));
+
+  // growing vine tied to scroll
+  const vinePath = document.getElementById('vinePath');
+  const vineLength = vinePath.getTotalLength();
+  vinePath.style.strokeDasharray = vineLength;
+  vinePath.style.strokeDashoffset = vineLength;
+
+  function updateVine(){
+    const scrollTop = window.scrollY;
+    const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+    const progress = Math.min(scrollTop / docHeight, 1);
+    vinePath.style.strokeDashoffset = vineLength * (1 - progress);
+  }
+  window.addEventListener('scroll', updateVine, {passive:true});
+  updateVine();
+
+  // newsletter form
+  const form = document.getElementById('signupForm');
+  const msg = document.getElementById('confirmMsg');
+  form.addEventListener('submit', (e)=>{
+    e.preventDefault();
+    msg.classList.add('show');
+    document.getElementById('emailInput').value = '';
+    setTimeout(()=>msg.classList.remove('show'), 5000);
+  });
+</script>
+
+</body>
+</html>

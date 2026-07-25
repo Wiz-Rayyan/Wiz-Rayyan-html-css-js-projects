@@ -1,0 +1,154 @@
+<h2 class="sr-only">A sortable data table where clicking a column header rotates an arrow icon, highlights the column, and reorders rows with a slide animation; double-click resets sort</h2>
+<style>
+.st-table{width:100%;border-collapse:collapse;font-size:14px}
+.st-th{cursor:pointer;user-select:none;padding:10px 12px;text-align:left;color:var(--text-secondary);font-weight:500;border-bottom:0.5px solid var(--border-strong);transition:background 0.2s ease,color 0.2s ease;white-space:nowrap}
+.st-th.active{background:var(--bg-accent);color:var(--text-accent)}
+.st-th-inner{display:flex;align-items:center;gap:6px}
+.st-arrow{display:inline-flex;transform:rotate(0deg);transition:transform 0.35s cubic-bezier(.4,0,.2,1);opacity:0.35}
+.st-th.active .st-arrow{opacity:1}
+.st-arrow.desc{transform:rotate(180deg)}
+.st-td{padding:10px 12px;border-bottom:0.5px solid var(--border)}
+.st-td.active{background:var(--bg-accent)}
+.st-row{transition:transform 0.4s cubic-bezier(.4,0,.2,1),opacity 0.3s ease}
+</style>
+<table class="st-table" id="st-table">
+  <thead>
+    <tr id="st-head"></tr>
+  </thead>
+  <tbody id="st-body"></tbody>
+</table>
+<p style="font-size:12px;color:var(--text-muted);margin-top:10px">Click a header to sort, click again to reverse, double-click to reset.</p>
+<script>
+(function(){
+  var columns = [
+    {key:"name", label:"Name", type:"string"},
+    {key:"role", label:"Role", type:"string"},
+    {key:"score", label:"Score", type:"number"},
+    {key:"joined", label:"Joined", type:"string"}
+  ];
+  var data = [
+    {name:"Ava Chen", role:"Engineer", score:92, joined:"2022-03-11"},
+    {name:"Marcus Lee", role:"Designer", score:78, joined:"2021-07-04"},
+    {name:"Priya Nair", role:"Manager", score:85, joined:"2020-11-19"},
+    {name:"Diego Ruiz", role:"Engineer", score:67, joined:"2023-01-27"},
+    {name:"Sofia Rossi", role:"Analyst", score:74, joined:"2019-05-08"},
+    {name:"Tom Baker", role:"Designer", score:88, joined:"2022-09-30"}
+  ];
+  var original = data.slice();
+  var sortKey = null;
+  var sortDir = "asc";
+
+  var headRow = document.getElementById("st-head");
+  var body = document.getElementById("st-body");
+
+  columns.forEach(function(col){
+    var th = document.createElement("th");
+    th.className = "st-th";
+    th.dataset.key = col.key;
+    th.innerHTML = '<span class="st-th-inner">' + col.label +
+      '<span class="st-arrow"><i class="ti ti-arrow-up" aria-hidden="true" style="font-size:14px"></i></span></span>';
+    th.addEventListener("click", function(){ handleSort(col); });
+    th.addEventListener("dblclick", function(e){ e.stopPropagation(); resetSort(); });
+    headRow.appendChild(th);
+  });
+
+  function handleSort(col){
+    if(sortKey === col.key){
+      sortDir = sortDir === "asc" ? "desc" : "asc";
+    } else {
+      sortKey = col.key;
+      sortDir = "asc";
+    }
+    render(true);
+  }
+
+  function resetSort(){
+    sortKey = null;
+    sortDir = "asc";
+    data = original.slice();
+    render(true);
+  }
+
+  function getSorted(){
+    if(!sortKey) return data;
+    var col = columns.find(function(c){ return c.key === sortKey; });
+    var copy = data.slice();
+    copy.sort(function(a,b){
+      var av = a[sortKey], bv = b[sortKey];
+      var cmp;
+      if(col.type === "number") cmp = av - bv;
+      else cmp = String(av).localeCompare(String(bv));
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+    return copy;
+  }
+
+  function render(animate){
+    var headers = headRow.querySelectorAll(".st-th");
+    headers.forEach(function(th){
+      var arrow = th.querySelector(".st-arrow");
+      if(th.dataset.key === sortKey){
+        th.classList.add("active");
+        arrow.classList.toggle("desc", sortDir === "desc");
+      } else {
+        th.classList.remove("active");
+        arrow.classList.remove("desc");
+      }
+    });
+
+    var sorted = getSorted();
+    var existingRows = {};
+    Array.from(body.children).forEach(function(tr){
+      existingRows[tr.dataset.name] = tr;
+    });
+
+    if(animate && Object.keys(existingRows).length === sorted.length){
+      var oldPositions = {};
+      Array.from(body.children).forEach(function(tr, i){
+        oldPositions[tr.dataset.name] = tr.getBoundingClientRect().top;
+      });
+
+      var frag = document.createDocumentFragment();
+      sorted.forEach(function(row){ frag.appendChild(existingRows[row.name]); });
+      body.appendChild(frag);
+
+      Array.from(body.children).forEach(function(tr, i){
+        var newTop = tr.getBoundingClientRect().top;
+        var oldTop = oldPositions[tr.dataset.name];
+        var delta = oldTop - newTop;
+        tr.style.transition = "none";
+        tr.style.transform = "translateY(" + delta + "px)";
+        tr.offsetHeight;
+        tr.style.transition = "transform 0.4s cubic-bezier(.4,0,.2,1)";
+        tr.style.transitionDelay = (i * 25) + "ms";
+        tr.style.transform = "translateY(0)";
+      });
+
+      Array.from(body.children).forEach(function(tr){
+        var cells = tr.querySelectorAll("td");
+        cells.forEach(function(td){
+          td.classList.toggle("active", td.dataset.col === sortKey);
+        });
+      });
+    } else {
+      body.innerHTML = "";
+      sorted.forEach(function(row){
+        var tr = document.createElement("tr");
+        tr.className = "st-row";
+        tr.dataset.name = row.name;
+        columns.forEach(function(col){
+          var td = document.createElement("td");
+          td.className = "st-td";
+          td.dataset.col = col.key;
+          if(col.key === sortKey) td.classList.add("active");
+          td.textContent = row[col.key];
+          tr.appendChild(td);
+        });
+        body.appendChild(tr);
+      });
+    }
+  }
+
+  render(false);
+})();
+</script>

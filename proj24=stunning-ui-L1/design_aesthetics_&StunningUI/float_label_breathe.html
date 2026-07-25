@@ -1,0 +1,97 @@
+<div style="max-width:420px; margin:0 auto; padding:1rem 0;">
+<h2 class="sr-only">Interactive demo of a floating label input that breathes on focus, with valid and invalid states</h2>
+
+<style>
+.fl-field{position:relative; margin-bottom:2rem;}
+.fl-input{width:100%; height:48px; padding:0 14px; font-size:16px; font-family:var(--font-sans); border:0.5px solid var(--border-strong); border-radius:var(--radius); background:var(--surface-2); color:var(--text-primary); outline:none; transition:border-color 0.3s cubic-bezier(0.2,0.9,0.4,1.1), box-shadow 0.3s cubic-bezier(0.2,0.9,0.4,1.1);}
+.fl-label{position:absolute; left:14px; top:50%; transform:translateY(-50%); font-size:16px; color:var(--text-muted); pointer-events:none; transition:all 0.3s cubic-bezier(0.2,0.9,0.4,1.1); background:var(--surface-2); padding:0 4px;}
+.fl-input:focus{border-color:var(--border-accent); box-shadow:0 0 0 3px var(--bg-accent);}
+.fl-field.active .fl-label{top:0; font-size:12px; color:var(--text-accent); transform:translateY(-50%) scale(1);}
+.fl-field.breathe .fl-label{animation:fl-breathe 1.6s ease-in-out infinite;}
+@keyframes fl-breathe{0%,100%{transform:translateY(-50%) scale(1);} 50%{transform:translateY(-50%) scale(1.05);}}
+.fl-field.valid .fl-input{border-color:var(--border-success);}
+.fl-field.valid .fl-label{color:var(--text-success);}
+.fl-field.invalid .fl-input{border-color:var(--border-danger); animation:fl-shake 0.4s;}
+.fl-field.invalid .fl-label{color:var(--text-danger);}
+@keyframes fl-shake{0%,100%{transform:translateX(0);} 25%{transform:translateX(-4px);} 75%{transform:translateX(4px);}}
+.fl-hint{font-size:12px; margin-top:6px; color:var(--text-muted);}
+.fl-field.valid .fl-hint{color:var(--text-success);}
+.fl-field.invalid .fl-hint{color:var(--text-danger);}
+</style>
+
+<div class="fl-field" id="field-email">
+  <input class="fl-input" id="input-email" type="text" autocomplete="off">
+  <label class="fl-label" id="label-email">Email address</label>
+  <div class="fl-hint" id="hint-email">Try typing an invalid then a valid email.</div>
+</div>
+
+<div style="display:flex; gap:8px; margin-bottom:1.5rem;">
+  <button id="btn-valid">Simulate valid</button>
+  <button id="btn-invalid">Simulate invalid</button>
+  <button id="btn-reset">Reset</button>
+</div>
+
+<div style="font-size:13px; color:var(--text-secondary); line-height:1.6;">
+  Focus the field to see the label float and gently breathe. Type an email and click away to validate it live.
+</div>
+</div>
+
+<script>
+(function(){
+  const field = document.getElementById('field-email');
+  const input = document.getElementById('input-email');
+  const hint = document.getElementById('hint-email');
+
+  function setState(state){
+    field.classList.remove('valid','invalid');
+    if(state==='valid'){ field.classList.add('valid'); hint.textContent='Looks good.'; }
+    else if(state==='invalid'){ field.classList.add('invalid'); hint.textContent='Enter a valid email address.'; }
+    else { hint.textContent='Try typing an invalid then a valid email.'; }
+  }
+
+  function refreshActive(){
+    if(input.value.length>0 || document.activeElement===input){
+      field.classList.add('active');
+    } else {
+      field.classList.remove('active');
+    }
+  }
+
+  input.addEventListener('focus', ()=>{
+    field.classList.add('active','breathe');
+  });
+
+  input.addEventListener('blur', ()=>{
+    field.classList.remove('breathe');
+    refreshActive();
+    const v = input.value.trim();
+    if(v.length===0){ setState('none'); return; }
+    const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+    setState(ok ? 'valid' : 'invalid');
+  });
+
+  input.addEventListener('input', ()=>{
+    refreshActive();
+    field.classList.remove('valid','invalid');
+    hint.textContent='Try typing an invalid then a valid email.';
+  });
+
+  document.getElementById('btn-valid').addEventListener('click', ()=>{
+    input.value='hello@example.com';
+    refreshActive();
+    setState('valid');
+  });
+  document.getElementById('btn-invalid').addEventListener('click', ()=>{
+    input.value='not-an-email';
+    refreshActive();
+    setState('invalid');
+  });
+  document.getElementById('btn-reset').addEventListener('click', ()=>{
+    input.value='';
+    field.classList.remove('active','breathe');
+    setState('none');
+    input.focus();
+    input.blur();
+  });
+})();
+</script>

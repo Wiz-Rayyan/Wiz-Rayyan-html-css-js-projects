@@ -1,0 +1,124 @@
+<h2 class="sr-only">A 1 to 10 rating scale with an animated slider, glowing thumb, and tick marks that snap to the nearest value.</h2>
+<div style="padding: 1.5rem 0.5rem;">
+  <p style="font-size: 14px; color: var(--text-secondary); margin: 0 0 2rem; text-align: center;">How likely are you to recommend us to a friend?</p>
+
+  <div style="position: relative; padding: 0 8px;">
+    <div id="badge" style="position: absolute; top: -46px; left: 0; transform: translateX(-50%) scale(0); background: var(--fill-accent); color: var(--on-accent); font-size: 15px; font-weight: 500; padding: 4px 12px; border-radius: 999px; transition: transform 0.15s var(--ease-out, ease-out); white-space: nowrap;">5</div>
+
+    <div id="track-wrap" style="position: relative; height: 40px; display: flex; align-items: center;">
+      <div style="position: absolute; left: 0; right: 0; height: 4px; border-radius: 999px; background: var(--border-strong);"></div>
+      <div id="fill" style="position: absolute; left: 0; height: 4px; border-radius: 999px; background: var(--fill-accent); width: 44%; transition: width 0.12s linear;"></div>
+
+      <div id="ticks" style="position: absolute; left: 0; right: 0; display: flex; justify-content: space-between; pointer-events: none;"></div>
+
+      <div id="thumb" style="position: absolute; width: 24px; height: 24px; border-radius: 50%; background: var(--fill-accent); box-shadow: 0 0 0 4px var(--bg-accent); left: 44%; transform: translateX(-50%); cursor: grab; transition: left 0.12s linear, box-shadow 0.15s ease-out;"></div>
+
+      <input type="range" id="slider" min="1" max="10" step="1" value="5" style="position: absolute; left: 0; right: 0; width: 100%; opacity: 0; cursor: pointer; height: 40px; margin: 0;" />
+    </div>
+
+    <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 12px; color: var(--text-muted);">
+      <span>1</span><span>10</span>
+    </div>
+  </div>
+
+  <div style="display: flex; justify-content: space-between; margin-top: 1.5rem; font-size: 12px; color: var(--text-muted);">
+    <span>Not likely</span>
+    <span>Very likely</span>
+  </div>
+</div>
+
+<style>
+@keyframes tickIn {
+  from { transform: scale(0); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+@keyframes badgePop {
+  0% { transform: translateX(-50%) scale(0); }
+  60% { transform: translateX(-50%) scale(1.2); }
+  100% { transform: translateX(-50%) scale(1); }
+}
+.tick {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--border-strong);
+  animation: tickIn 0.3s var(--ease-out, ease-out) backwards;
+  transition: background 0.15s ease-out, box-shadow 0.15s ease-out;
+}
+.tick.active {
+  background: var(--fill-accent);
+}
+.tick.glow {
+  box-shadow: 0 0 0 5px var(--bg-accent);
+}
+#thumb.dragging {
+  box-shadow: 0 0 0 7px var(--bg-accent);
+  cursor: grabbing;
+}
+</style>
+
+<script>
+(function() {
+  var slider = document.getElementById('slider');
+  var thumb = document.getElementById('thumb');
+  var fill = document.getElementById('fill');
+  var badge = document.getElementById('badge');
+  var ticksWrap = document.getElementById('ticks');
+  var min = 1, max = 10;
+
+  var ticks = [];
+  for (var i = min; i <= max; i++) {
+    var t = document.createElement('div');
+    t.className = 'tick';
+    t.style.animationDelay = ((i - min) * 0.04) + 's';
+    ticksWrap.appendChild(t);
+    ticks.push(t);
+  }
+
+  function pct(v) {
+    return ((v - min) / (max - min)) * 100;
+  }
+
+  function update(v, animateBadge) {
+    var p = pct(v);
+    fill.style.width = p + '%';
+    thumb.style.left = p + '%';
+    badge.style.left = p + '%';
+    badge.textContent = v;
+    badge.style.transform = 'translateX(-50%) scale(1)';
+    if (animateBadge) {
+      badge.style.animation = 'none';
+      void badge.offsetWidth;
+      badge.style.animation = 'badgePop 0.3s var(--ease-out, ease-out)';
+    }
+    ticks.forEach(function(t, idx) {
+      var val = idx + min;
+      t.classList.toggle('active', val <= v);
+    });
+  }
+
+  update(parseInt(slider.value, 10), false);
+
+  slider.addEventListener('input', function() {
+    update(parseInt(slider.value, 10), false);
+  });
+
+  slider.addEventListener('change', function() {
+    update(parseInt(slider.value, 10), true);
+  });
+
+  slider.addEventListener('pointerdown', function() {
+    thumb.classList.add('dragging');
+  });
+  ['pointerup', 'pointerleave', 'pointercancel'].forEach(function(ev) {
+    slider.addEventListener(ev, function() {
+      thumb.classList.remove('dragging');
+    });
+  });
+
+  ticks.forEach(function(t) {
+    t.addEventListener('mouseenter', function() { t.classList.add('glow'); });
+    t.addEventListener('mouseleave', function() { t.classList.remove('glow'); });
+  });
+})();
+</script>

@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meridian — Time, Considered</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant:wght@300;400;500;600&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0A0A0A;
+    --bg-alt: #0D0D0D;
+    --surface: #141414;
+    --card: rgba(255,255,255,0.03);
+    --card-border: rgba(255,255,255,0.07);
+    --warm-white: #F5F5F0;
+    --muted: rgba(245,245,240,0.52);
+    --muted-dim: rgba(245,245,240,0.32);
+    --gold: #C6A43F;
+    --gold-soft: rgba(198,164,63,0.16);
+    --gold-line: rgba(198,164,63,0.35);
+  }
+
+  *{ box-sizing:border-box; margin:0; padding:0; }
+
+  html{ scroll-behavior:smooth; }
+
+  body{
+    background: var(--bg);
+    color: var(--warm-white);
+    font-family: 'Inter', sans-serif;
+    font-weight: 300;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  /* grain texture overlay */
+  body::before{
+    content:"";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 999;
+    opacity: 0.045;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .eyebrow{
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    letter-spacing: 3.5px;
+    text-transform: uppercase;
+    color: var(--gold);
+    font-weight: 500;
+  }
+
+  h1, h2, h3, .serif{
+    font-family: 'Cormorant', serif;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+  }
+
+  a{ color: inherit; text-decoration: none; }
+
+  .fade-in{
+    opacity: 0;
+    transform: translateY(14px);
+    animation: fadeIn 1s ease forwards;
+  }
+  @keyframes fadeIn{ to{ opacity:1; transform:none; } }
+
+  /* ---------- NAV ---------- */
+  nav{
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding: 28px 64px;
+    backdrop-filter: blur(12px);
+    background: linear-gradient(to bottom, rgba(10,10,10,0.85), transparent);
+  }
+  .logo{
+    font-family:'Cormorant', serif;
+    font-size: 22px;
+    letter-spacing: 5px;
+    font-weight: 500;
+  }
+  .nav-links{
+    display:flex;
+    gap: 44px;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+    color: var(--muted);
+  }
+  .nav-links a{ transition: color 0.35s ease; position:relative; }
+  .nav-links a:hover{ color: var(--warm-white); }
+  .nav-cta{
+    border: 1px solid rgba(255,255,255,0.16);
+    padding: 9px 22px;
+    border-radius: 100px;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    transition: all 0.4s ease;
+  }
+  .nav-cta:hover{
+    border-color: var(--gold-line);
+    box-shadow: 0 0 24px var(--gold-soft);
+    background: rgba(198,164,63,0.05);
+  }
+
+  /* ---------- HERO ---------- */
+  .hero{
+    min-height: 100vh;
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    padding: 0 64px;
+    max-width: 1400px;
+    margin: 0 auto;
+    gap: 40px;
+  }
+  .hero-copy{ max-width: 560px; }
+  .hero-copy .eyebrow{ margin-bottom: 22px; display:block; }
+  .hero-copy h1{
+    font-size: 68px;
+    line-height: 1.08;
+    margin-bottom: 26px;
+    font-weight: 500;
+  }
+  .hero-copy h1 em{
+    font-style: italic;
+    color: var(--gold);
+    font-weight: 400;
+  }
+  .hero-copy p{
+    color: var(--muted);
+    font-size: 17px;
+    font-weight: 300;
+    max-width: 440px;
+    margin-bottom: 40px;
+  }
+  .btn-primary{
+    display:inline-block;
+    background: var(--warm-white);
+    color: var(--bg);
+    padding: 16px 34px;
+    border-radius: 100px;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+    font-weight: 500;
+    transition: all 0.4s ease;
+    margin-right: 18px;
+  }
+  .btn-primary:hover{
+    transform: translateY(-2px);
+    box-shadow: 0 0 30px rgba(255,255,255,0.12);
+  }
+  .btn-primary:active{ transform: scale(0.98) translateY(0); }
+  .btn-ghost{
+    display:inline-block;
+    color: var(--muted);
+    font-size: 13px;
+    letter-spacing: 0.5px;
+    padding: 16px 6px;
+    border-bottom: 1px solid transparent;
+    transition: all 0.3s ease;
+  }
+  .btn-ghost:hover{ color: var(--warm-white); border-color: var(--gold-line); }
+
+  /* signature watch dial */
+  .dial-wrap{
+    position: relative;
+    width: 420px;
+    height: 420px;
+    flex-shrink: 0;
+  }
+  .dial-glow{
+    position:absolute; inset: -60px;
+    background: radial-gradient(circle, rgba(198,164,63,0.10) 0%, transparent 70%);
+  }
+  svg.dial{ position:relative; width:100%; height:100%; }
+  .tick{ stroke: rgba(245,245,240,0.25); stroke-width: 1; }
+  .tick.major{ stroke: var(--gold); stroke-width: 1.6; }
+  .hand{ stroke-linecap: round; transform-origin: 210px 210px; }
+  .hand-hour{ stroke: var(--warm-white); stroke-width: 4; animation: rotate 43200s linear infinite; }
+  .hand-min{ stroke: var(--warm-white); stroke-width: 2.5; animation: rotate 3600s linear infinite; }
+  .hand-sec{ stroke: var(--gold); stroke-width: 1.2; animation: rotate 60s linear infinite; }
+  @keyframes rotate{ from{ transform: rotate(0deg);} to{ transform: rotate(360deg);} }
+
+  /* ---------- SECTION SHARED ---------- */
+  section{ padding: 160px 64px; max-width: 1400px; margin: 0 auto; }
+  .section-head{ max-width: 620px; margin-bottom: 80px; }
+  .section-head .eyebrow{ display:block; margin-bottom: 18px; }
+  .section-head h2{ font-size: 42px; line-height: 1.2; }
+  .section-head p{ color: var(--muted); margin-top: 20px; font-size: 16px; max-width: 480px; }
+
+  /* ---------- PHILOSOPHY ---------- */
+  .philosophy{
+    display:grid;
+    grid-template-columns: 0.9fr 1.1fr;
+    gap: 80px;
+    align-items:center;
+  }
+  .philosophy-visual{
+    aspect-ratio: 4/5;
+    border-radius: 16px;
+    background:
+      radial-gradient(120% 90% at 20% 0%, rgba(198,164,63,0.10), transparent 55%),
+      linear-gradient(160deg, #17140d 0%, #0d0d0d 60%);
+    border: 1px solid var(--card-border);
+    position: relative;
+    overflow: hidden;
+  }
+  .philosophy-visual::after{
+    content:"";
+    position:absolute; inset:0;
+    background-image: repeating-linear-gradient(115deg, rgba(255,255,255,0.025) 0px, rgba(255,255,255,0.025) 1px, transparent 1px, transparent 8px);
+  }
+  .philosophy-visual .tag{
+    position:absolute; bottom: 32px; left: 32px;
+    font-size: 12px; letter-spacing: 1px; color: var(--muted-dim);
+  }
+  .philosophy-text p{
+    color: var(--muted);
+    font-size: 16px;
+    margin-bottom: 22px;
+    max-width: 480px;
+  }
+  .philosophy-text p:first-child{ color: var(--warm-white); font-weight: 300; font-size: 19px; }
+  .stat-row{
+    display:flex; gap: 56px; margin-top: 48px;
+  }
+  .stat h3{ font-size: 38px; color: var(--gold); font-weight: 500; }
+  .stat span{ display:block; font-size: 12px; color: var(--muted-dim); letter-spacing: 0.5px; margin-top: 6px; }
+
+  /* ---------- COLLECTION ---------- */
+  .collection-grid{
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 28px;
+  }
+  .watch-card{
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 40px 32px;
+    transition: all 0.5s ease;
+  }
+  .watch-card:hover{
+    transform: translateY(-4px);
+    border-color: rgba(255,255,255,0.14);
+    box-shadow: 0 0 32px rgba(255,255,255,0.04);
+  }
+  .card-face{
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 12px;
+    background: radial-gradient(circle at 50% 40%, #1c1c1c, #0c0c0c 70%);
+    border: 1px solid rgba(255,255,255,0.06);
+    margin-bottom: 28px;
+    position:relative;
+  }
+  .card-face .ring{
+    position:absolute; inset: 18%;
+    border-radius: 50%;
+    border: 1px solid var(--gold-line);
+    opacity: 0.5;
+  }
+  .card-face .dot{
+    position:absolute; top:50%; left:50%;
+    width:6px; height:6px; border-radius:50%;
+    background: var(--gold);
+    transform: translate(-50%,-50%);
+  }
+  .watch-card h3{ font-size: 24px; margin-bottom: 6px; }
+  .watch-card .material{ font-size: 13px; color: var(--muted-dim); margin-bottom: 18px; }
+  .watch-card .price{ font-size: 15px; color: var(--warm-white); font-weight: 400; }
+  .watch-card .price span{ color: var(--muted-dim); font-size: 12px; margin-left: 6px; }
+
+  /* ---------- CTA BANNER ---------- */
+  .cta-banner{
+    border-radius: 16px;
+    border: 1px solid var(--card-border);
+    background: linear-gradient(135deg, rgba(198,164,63,0.06), rgba(255,255,255,0.02));
+    padding: 90px 64px;
+    text-align:center;
+  }
+  .cta-banner h2{ font-size: 44px; max-width: 620px; margin: 0 auto 20px; line-height:1.2; }
+  .cta-banner p{ color: var(--muted); margin-bottom: 40px; }
+  .cities{
+    display:flex; justify-content:center; gap: 36px; margin-top: 56px;
+    font-size: 12px; letter-spacing: 1.5px; color: var(--muted-dim); text-transform: uppercase;
+  }
+
+  /* ---------- FOOTER ---------- */
+  footer{
+    border-top: 1px solid var(--card-border);
+    padding: 56px 64px;
+    display:flex; justify-content:space-between; align-items:flex-start;
+    max-width: 1400px; margin: 0 auto;
+    font-size: 13px; color: var(--muted-dim);
+  }
+  footer .logo{ font-size: 18px; margin-bottom: 14px; color: var(--warm-white); }
+  .footer-cols{ display:flex; gap: 80px; }
+  .footer-col h4{ font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 16px; font-weight: 500; }
+  .footer-col a{ display:block; margin-bottom: 10px; transition: color 0.3s ease; }
+  .footer-col a:hover{ color: var(--warm-white); }
+
+  @media (max-width: 980px){
+    nav{ padding: 22px 28px; }
+    .nav-links{ display:none; }
+    .hero{ flex-direction: column-reverse; padding: 140px 28px 80px; text-align:center; align-items:center; }
+    .hero-copy{ text-align:center; }
+    .hero-copy p{ margin-left:auto; margin-right:auto; }
+    .hero-copy h1{ font-size: 44px; }
+    .dial-wrap{ width: 280px; height:280px; }
+    section{ padding: 100px 28px; }
+    .philosophy{ grid-template-columns: 1fr; }
+    .collection-grid{ grid-template-columns: 1fr; }
+    footer{ flex-direction:column; gap: 40px; padding: 48px 28px; }
+    .cities{ flex-wrap: wrap; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .hand-hour, .hand-min, .hand-sec{ animation: none; }
+    .fade-in{ animation: none; opacity:1; transform:none; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">MERIDIAN</div>
+  <div class="nav-links">
+    <a href="#collection">Collection</a>
+    <a href="#atelier">Atelier</a>
+    <a href="#heritage">Heritage</a>
+  </div>
+  <a href="#book" class="nav-cta">Book a Viewing</a>
+</nav>
+
+<section class="hero" style="padding-top:120px;">
+  <div class="hero-copy fade-in">
+    <span class="eyebrow">Geneva, since 1994</span>
+    <h1>Time,<br><em>considered.</em></h1>
+    <p>Mechanical watches assembled by hand, one movement at a time, for people who set their own pace rather than follow the market's.</p>
+    <a href="#book" class="btn-primary">Reserve a Private Viewing</a>
+    <a href="#collection" class="btn-ghost">View the Collection →</a>
+  </div>
+
+  <div class="dial-wrap fade-in" style="animation-delay:0.2s;">
+    <div class="dial-glow"></div>
+    <svg class="dial" viewBox="0 0 420 420">
+      <circle cx="210" cy="210" r="180" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+      <circle cx="210" cy="210" r="150" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+      <g id="ticks"></g>
+      <line class="hand hand-hour" x1="210" y1="210" x2="210" y2="130"/>
+      <line class="hand hand-min" x1="210" y1="210" x2="210" y2="95"/>
+      <line class="hand hand-sec" x1="210" y1="210" x2="210" y2="80"/>
+      <circle cx="210" cy="210" r="4.5" fill="#C6A43F"/>
+    </svg>
+  </div>
+</section>
+
+<section id="atelier" class="philosophy">
+  <div class="philosophy-visual fade-in">
+    <span class="tag">Atelier, Rue du Rhône</span>
+  </div>
+  <div class="philosophy-text fade-in">
+    <span class="eyebrow" style="display:block; margin-bottom:18px;">The Atelier</span>
+    <h2 style="font-size:36px; margin-bottom:28px; line-height:1.25;">Every movement passes through eleven hands before it earns the Meridian name.</h2>
+    <p>We build fewer than four hundred watches a year, not because we can't build more, but because a movement rushed is a movement that will fail its owner at the wrong hour.</p>
+    <p>Cases are milled from a single billet of 316L steel or 18k gold. Dials are lacquered in small batches, so no two years of the same reference are ever quite identical.</p>
+    <div class="stat-row">
+      <div class="stat"><h3>72h</h3><span>Power reserve</span></div>
+      <div class="stat"><h3>4</h3><span>Watchmakers on staff</span></div>
+      <div class="stat"><h3>1994</h3><span>Founded in Geneva</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="collection">
+  <div class="section-head fade-in">
+    <span class="eyebrow">The Collection</span>
+    <h2>Three references. No complications for their own sake.</h2>
+    <p>Each design earns its place by solving one problem well — a date, a second time zone, a moon that keeps its own calendar.</p>
+  </div>
+  <div class="collection-grid">
+    <div class="watch-card fade-in">
+      <div class="card-face"><div class="ring"></div><div class="dot"></div></div>
+      <h3>The Meridian One</h3>
+      <div class="material">Steel · Sapphire · 39mm</div>
+      <div class="price">CHF 8,400 <span>· time only</span></div>
+    </div>
+    <div class="watch-card fade-in" style="animation-delay:0.1s;">
+      <div class="card-face"><div class="ring"></div><div class="dot"></div></div>
+      <h3>The Equinox</h3>
+      <div class="material">18k Gold · Sapphire · 40mm</div>
+      <div class="price">CHF 24,900 <span>· dual time</span></div>
+    </div>
+    <div class="watch-card fade-in" style="animation-delay:0.2s;">
+      <div class="card-face"><div class="ring"></div><div class="dot"></div></div>
+      <h3>The Solstice</h3>
+      <div class="material">Steel · Titanium caseback · 41mm</div>
+      <div class="price">CHF 12,600 <span>· moonphase</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="heritage">
+  <div class="cta-banner fade-in">
+    <span class="eyebrow">Book a Viewing</span>
+    <h2 style="margin-top:20px;">See a movement finished by hand before you decide to wear one for thirty years.</h2>
+    <p>Private appointments run forty-five minutes, no obligation, coffee included.</p>
+    <a href="#" class="btn-primary" style="margin-right:0;">Request an Appointment</a>
+    <div class="cities">
+      <span>Geneva</span><span>London</span><span>New York</span><span>Tokyo</span>
+    </div>
+  </div>
+</section>
+
+<footer id="book">
+  <div>
+    <div class="logo serif">MERIDIAN</div>
+    <p>12 Rue du Rhône, Geneva</p>
+  </div>
+  <div class="footer-cols">
+    <div class="footer-col">
+      <h4>Collection</h4>
+      <a href="#">Meridian One</a>
+      <a href="#">Equinox</a>
+      <a href="#">Solstice</a>
+    </div>
+    <div class="footer-col">
+      <h4>House</h4>
+      <a href="#">Atelier</a>
+      <a href="#">Heritage</a>
+      <a href="#">Journal</a>
+    </div>
+    <div class="footer-col">
+      <h4>Contact</h4>
+      <a href="#">Book a Viewing</a>
+      <a href="#">Care & Service</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // build tick marks for the hero dial
+  const ticksGroup = document.getElementById('ticks');
+  const cx = 210, cy = 210, rOuter = 180, rInner = 168, rInnerMajor = 158;
+  for(let i=0;i<60;i++){
+    const angle = (i/60)*2*Math.PI - Math.PI/2;
+    const major = i % 5 === 0;
+    const rI = major ? rInnerMajor : rInner;
+    const x1 = cx + rOuter*Math.cos(angle);
+    const y1 = cy + rOuter*Math.sin(angle);
+    const x2 = cx + rI*Math.cos(angle);
+    const y2 = cy + rI*Math.sin(angle);
+    const line = document.createElementNS("http://www.w3.org/2000/svg","line");
+    line.setAttribute("x1",x1); line.setAttribute("y1",y1);
+    line.setAttribute("x2",x2); line.setAttribute("y2",y2);
+    line.setAttribute("class", major ? "tick major" : "tick");
+    ticksGroup.appendChild(line);
+  }
+
+  // set initial hand rotation to current time, then let CSS animation continue
+  const now = new Date();
+  const h = now.getHours() % 12, m = now.getMinutes(), s = now.getSeconds();
+  const hourDeg = (h + m/60) * 30;
+  const minDeg = (m + s/60) * 6;
+  const secDeg = s * 6;
+  document.querySelector('.hand-hour').style.transform = `rotate(${hourDeg}deg)`;
+  document.querySelector('.hand-min').style.transform = `rotate(${minDeg}deg)`;
+  document.querySelector('.hand-sec').style.transform = `rotate(${secDeg}deg)`;
+
+  // scroll reveal
+  const io = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting){ e.target.style.animationPlayState = 'running'; }
+    });
+  }, {threshold:0.15});
+  document.querySelectorAll('.fade-in').forEach(el=>{
+    el.style.animationPlayState = 'paused';
+    io.observe(el);
+  });
+</script>
+
+</body>
+</html>

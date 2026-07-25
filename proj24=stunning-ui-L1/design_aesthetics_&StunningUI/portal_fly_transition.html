@@ -1,0 +1,108 @@
+<h2 class="sr-only">Demo of a portal fly transition: submitting a form causes its content to shrink, blur, and fly into a portal marker, then the next page emerges from that same portal.</h2>
+<div style="position: relative; min-height: 460px; background: var(--surface-1); border-radius: 12px; overflow: hidden; padding: 2rem;">
+
+  <div id="portal-dot" style="position: absolute; top: 20px; right: 20px; width: 14px; height: 14px; border-radius: 50%; background: var(--fill-accent); z-index: 5; box-shadow: 0 0 0 4px var(--bg-accent);"></div>
+
+  <div id="page1" style="max-width: 360px; margin: 0 auto;">
+    <p style="font-size: 13px; color: var(--text-muted); margin: 0 0 4px;">Step 1 of 2</p>
+    <h3 style="margin: 0 0 1.25rem;">Shipping details</h3>
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <input type="text" placeholder="Full name" value="Asha Mehta" />
+      <input type="text" placeholder="Address" value="14 Marine Drive, Mumbai" />
+      <input type="text" placeholder="Pin code" value="400020" />
+    </div>
+    <button id="submit-btn" style="margin-top: 1.5rem; width: 100%; background: var(--fill-primary); color: var(--on-primary); border: none;">
+      Continue to payment
+    </button>
+  </div>
+
+  <div id="page2" style="max-width: 360px; margin: 0 auto; display: none; opacity: 0;">
+    <p style="font-size: 13px; color: var(--text-muted); margin: 0 0 4px;">Step 2 of 2</p>
+    <h3 style="margin: 0 0 1.25rem;">Payment</h3>
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <input type="text" placeholder="Card number" value="4242 4242 4242 4242" />
+      <div style="display: flex; gap: 12px;">
+        <input type="text" placeholder="MM/YY" value="09/28" style="flex: 1;" />
+        <input type="text" placeholder="CVC" value="123" style="flex: 1;" />
+      </div>
+    </div>
+    <button id="pay-btn" style="margin-top: 1.5rem; width: 100%; background: var(--fill-primary); color: var(--on-primary); border: none;">
+      Pay now
+    </button>
+    <button id="back-btn" style="margin-top: 8px; width: 100%;">Back</button>
+  </div>
+
+</div>
+<script>
+const page1 = document.getElementById('page1');
+const page2 = document.getElementById('page2');
+const portalDot = document.getElementById('portal-dot');
+
+function getPortalOffset(el) {
+  const dot = portalDot.getBoundingClientRect();
+  const box = el.getBoundingClientRect();
+  const dx = (dot.left + dot.width / 2) - (box.left + box.width / 2);
+  const dy = (dot.top + dot.height / 2) - (box.top + box.height / 2);
+  return { dx, dy };
+}
+
+function flyOut(el, onDone) {
+  const { dx, dy } = getPortalOffset(el);
+  el.style.transition = 'transform 480ms cubic-bezier(0.4, 0, 0.2, 1), filter 480ms ease, opacity 480ms ease';
+  el.style.transformOrigin = 'center center';
+  requestAnimationFrame(() => {
+    el.style.transform = 'scale(0.5) translate(' + (dx * 0.6) + 'px, ' + (dy * 0.6) + 'px)';
+    el.style.filter = 'blur(2px)';
+    setTimeout(() => {
+      el.style.transform = 'scale(0) translate(' + dx + 'px, ' + dy + 'px)';
+      el.style.filter = 'blur(8px)';
+      el.style.opacity = '0';
+    }, 240);
+  });
+  portalDot.style.transition = 'transform 480ms ease';
+  portalDot.style.transform = 'scale(1.6)';
+  if (navigator.vibrate) navigator.vibrate(12);
+  setTimeout(() => {
+    portalDot.style.transform = 'scale(1)';
+    onDone();
+  }, 480);
+}
+
+function flyIn(el) {
+  el.style.display = 'block';
+  const { dx, dy } = getPortalOffset(el);
+  el.style.transition = 'none';
+  el.style.transform = 'scale(0) translate(' + dx + 'px, ' + dy + 'px)';
+  el.style.filter = 'blur(8px)';
+  el.style.opacity = '0';
+  requestAnimationFrame(() => {
+    el.style.transition = 'transform 480ms cubic-bezier(0.4, 0, 0.2, 1), filter 480ms ease, opacity 480ms ease';
+    el.style.transform = 'scale(1) translate(0, 0)';
+    el.style.filter = 'blur(0px)';
+    el.style.opacity = '1';
+  });
+  if (navigator.vibrate) navigator.vibrate(8);
+}
+
+document.getElementById('submit-btn').addEventListener('click', () => {
+  flyOut(page1, () => {
+    page1.style.display = 'none';
+    flyIn(page2);
+  });
+});
+
+document.getElementById('back-btn').addEventListener('click', () => {
+  flyOut(page2, () => {
+    page2.style.display = 'none';
+    flyIn(page1);
+  });
+});
+
+document.getElementById('pay-btn').addEventListener('click', () => {
+  flyOut(page2, () => {
+    page2.style.display = 'none';
+    page2.innerHTML = '<div style="text-align:center; padding: 2rem 0;"><i class="ti ti-check" style="font-size:32px; color: var(--text-success);" aria-hidden="true"></i><p style="font-size:15px; font-weight:500; margin-top:12px;">Payment complete</p></div>';
+    flyIn(page2);
+  });
+});
+</script>

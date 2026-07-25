@@ -1,0 +1,264 @@
+<h2 class="sr-only">Live particle stream showing real-time network data flowing from three sources to a central hub, colored green for healthy and red for degraded, with adjustable speed, hover for values, and click for detail</h2>
+
+<div style="display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:12px; flex-wrap:wrap;">
+  <div style="display:flex; align-items:center; gap:10px;">
+    <i class="ti ti-activity" style="font-size:18px; color:var(--text-secondary);" aria-hidden="true"></i>
+    <span style="font-size:14px; color:var(--text-secondary);">network traffic stream</span>
+  </div>
+  <div style="display:flex; align-items:center; gap:10px;">
+    <label style="font-size:13px; color:var(--text-secondary);">speed</label>
+    <input type="range" id="speed" min="0.2" max="3" step="0.1" value="1" style="width:120px;" />
+    <span id="speedOut" style="font-size:13px; font-weight:500; min-width:28px;">1.0x</span>
+  </div>
+</div>
+
+<div style="position:relative; background:var(--surface-1); border-radius:12px; padding:8px;">
+  <canvas id="cv" style="width:100%; height:340px; display:block;"></canvas>
+  <div id="tooltip" style="position:absolute; pointer-events:none; display:none; background:var(--surface-3); border:0.5px solid var(--border-strong); border-radius:var(--radius); padding:6px 10px; font-size:12px; box-shadow:var(--shadow-popover); white-space:nowrap;"></div>
+</div>
+
+<div style="display:flex; gap:16px; margin-top:10px; font-size:12px; color:var(--text-secondary);">
+  <span><span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#0F6E56; margin-right:6px;"></span>healthy</span>
+  <span><span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#A32D2D; margin-right:6px;"></span>degraded</span>
+  <span style="margin-left:auto;">hover a particle for its value, click for detail</span>
+</div>
+
+<div id="modalWrap" style="display:none; min-height:340px; position:absolute; inset:0; background:rgba(0,0,0,0.45); border-radius:12px; align-items:center; justify-content:center; z-index:5;">
+  <div style="background:var(--surface-2); border-radius:12px; border:0.5px solid var(--border); padding:1.25rem 1.5rem; width:260px;">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+      <span style="font-size:15px; font-weight:500;" id="modalTitle">packet detail</span>
+      <button id="modalClose" aria-label="Close" style="border:none; background:none; padding:2px; cursor:pointer; color:var(--text-secondary);"><i class="ti ti-x" style="font-size:18px;" aria-hidden="true"></i></button>
+    </div>
+    <table style="width:100%; font-size:13px; border-collapse:collapse;">
+      <tr><td style="color:var(--text-secondary); padding:4px 0;">source</td><td style="text-align:right; padding:4px 0;" id="modalSource">-</td></tr>
+      <tr><td style="color:var(--text-secondary); padding:4px 0;">value</td><td style="text-align:right; padding:4px 0;" id="modalValue">-</td></tr>
+      <tr><td style="color:var(--text-secondary); padding:4px 0;">status</td><td style="text-align:right; padding:4px 0;" id="modalStatus">-</td></tr>
+      <tr><td style="color:var(--text-secondary); padding:4px 0;">magnitude</td><td style="text-align:right; padding:4px 0;" id="modalMag">-</td></tr>
+    </table>
+  </div>
+</div>
+
+<script>
+(function(){
+  var canvas = document.getElementById('cv');
+  var ctx = canvas.getContext('2d');
+  var tooltip = document.getElementById('tooltip');
+  var modalWrap = document.getElementById('modalWrap');
+  var speedSlider = document.getElementById('speed');
+  var speedOut = document.getElementById('speedOut');
+  var container = canvas.parentElement;
+
+  var W = 0, H = 0, DPR = window.devicePixelRatio || 1;
+
+  function resize(){
+    var rect = canvas.getBoundingClientRect();
+    W = rect.width; H = 340;
+    canvas.width = W * DPR; canvas.height = H * DPR;
+    canvas.style.height = H + 'px';
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  var sources = [
+    { name: 'edge-us-east', y: 0.2 },
+    { name: 'edge-eu-west', y: 0.5 },
+    { name: 'edge-ap-south', y: 0.8 }
+  ];
+  var destName = 'core-hub';
+
+  function sx(){ return 60; }
+  function sy(frac){ return 30 + frac * (H - 60); }
+  function dx(){ return W - 70; }
+  function dy(){ return H / 2; }
+
+  var particles = [];
+  var idCounter = 1;
+  var hovered = null;
+
+  function spawn(){
+    var src = sources[Math.floor(Math.random() * sources.length)];
+    var value = (Math.random() * 2 - 1);
+    var mag = 1 + Math.random() * 9;
+    particles.push({
+      id: idCounter++,
+      source: src.name,
+      x: sx(), y: sy(src.y),
+      startY: sy(src.y),
+      value: value,
+      mag: mag,
+      t: 0,
+      dur: 2.2 + Math.random() * 0.8,
+      fading: false,
+      fadeT: 0,
+      alpha: 1
+    });
+  }
+
+  var spawnTimer = 0;
+  function colorFor(value){
+    var t = (value + 1) / 2;
+    var neg = [163,45,45];
+    var pos = [15,110,86];
+    var r = Math.round(neg[0] + (pos[0]-neg[0]) * t);
+    var g = Math.round(neg[1] + (pos[1]-neg[1]) * t);
+    var b = Math.round(neg[2] + (pos[2]-neg[2]) * t);
+    return 'rgb(' + r + ',' + g + ',' + b + ')';
+  }
+
+  function drawPaths(){
+    ctx.strokeStyle = getComputedStyle(document.body).getPropertyValue('--border') || 'rgba(120,120,120,0.3)';
+    ctx.lineWidth = 1;
+    sources.forEach(function(s){
+      ctx.beginPath();
+      ctx.moveTo(sx(), sy(s.y));
+      ctx.bezierCurveTo(W*0.4, sy(s.y), W*0.4, dy(), dx(), dy());
+      ctx.stroke();
+    });
+  }
+
+  function drawNodes(){
+    ctx.font = '11px sans-serif';
+    ctx.fillStyle = '#888780';
+    sources.forEach(function(s){
+      ctx.beginPath();
+      ctx.arc(sx(), sy(s.y), 5, 0, Math.PI*2);
+      ctx.fillStyle = '#5F5E5A';
+      ctx.fill();
+      ctx.fillStyle = '#888780';
+      ctx.fillText(s.name, sx() - 8, sy(s.y) - 12);
+    });
+    ctx.beginPath();
+    ctx.arc(dx(), dy(), 7, 0, Math.PI*2);
+    ctx.fillStyle = '#5F5E5A';
+    ctx.fill();
+    ctx.fillStyle = '#888780';
+    ctx.fillText(destName, dx() - 18, dy() - 16);
+  }
+
+  function pointOnPath(s, frac){
+    var x0 = sx(), y0 = sy(s.y);
+    var x3 = dx(), y3 = dy();
+    var x1 = W*0.4, y1 = y0;
+    var x2 = W*0.4, y2 = y3;
+    var u = 1 - frac;
+    var x = u*u*u*x0 + 3*u*u*frac*x1 + 3*u*frac*frac*x2 + frac*frac*frac*x3;
+    var y = u*u*u*y0 + 3*u*u*frac*y1 + 3*u*frac*frac*y2 + frac*frac*frac*y3;
+    return { x: x, y: y };
+  }
+
+  var lastTime = null;
+  function tick(now){
+    if(lastTime === null) lastTime = now;
+    var dt = (now - lastTime) / 1000;
+    lastTime = now;
+    var speed = parseFloat(speedSlider.value);
+
+    spawnTimer += dt;
+    var spawnInterval = 0.5 / speed;
+    if(spawnTimer > spawnInterval){
+      spawnTimer = 0;
+      spawn();
+    }
+
+    ctx.clearRect(0,0,W,H);
+    drawPaths();
+    drawNodes();
+
+    particles.forEach(function(p){
+      if(!p.fading){
+        p.t += dt * speed / p.dur;
+        if(p.t >= 1){
+          p.fading = true;
+          p.t = 1;
+        }
+      } else {
+        p.fadeT += dt / 1.0;
+        p.alpha = Math.max(0, 1 - p.fadeT);
+      }
+    });
+    particles = particles.filter(function(p){ return p.alpha > 0; });
+
+    particles.forEach(function(p){
+      var srcObj = sources.filter(function(s){ return s.name === p.source; })[0];
+      var pos = pointOnPath(srcObj, p.t);
+      p.x = pos.x; p.y = pos.y;
+      var r = 1 + (p.mag / 10) * 9;
+      ctx.globalAlpha = p.alpha;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, r, 0, Math.PI*2);
+      ctx.fillStyle = colorFor(p.value);
+      ctx.fill();
+      if(p === hovered){
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = '#378ADD';
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    });
+
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+
+  speedSlider.addEventListener('input', function(){
+    speedOut.textContent = parseFloat(speedSlider.value).toFixed(1) + 'x';
+  });
+
+  function findParticleAt(mx, my){
+    var found = null, bestDist = 12;
+    particles.forEach(function(p){
+      var r = 1 + (p.mag / 10) * 9;
+      var d = Math.hypot(p.x - mx, p.y - my);
+      if(d < Math.max(r + 4, 8) && d < bestDist){
+        bestDist = d;
+        found = p;
+      }
+    });
+    return found;
+  }
+
+  canvas.addEventListener('mousemove', function(e){
+    var rect = canvas.getBoundingClientRect();
+    var mx = e.clientX - rect.left;
+    var my = e.clientY - rect.top;
+    var p = findParticleAt(mx, my);
+    hovered = p;
+    if(p){
+      tooltip.style.display = 'block';
+      tooltip.style.left = (mx + 14) + 'px';
+      tooltip.style.top = (my - 10) + 'px';
+      tooltip.textContent = p.source + '  ' + (p.value >= 0 ? '+' : '') + p.value.toFixed(2);
+      canvas.style.cursor = 'pointer';
+    } else {
+      tooltip.style.display = 'none';
+      canvas.style.cursor = 'default';
+    }
+  });
+  canvas.addEventListener('mouseleave', function(){
+    tooltip.style.display = 'none';
+    hovered = null;
+  });
+
+  canvas.addEventListener('click', function(e){
+    var rect = canvas.getBoundingClientRect();
+    var mx = e.clientX - rect.left;
+    var my = e.clientY - rect.top;
+    var p = findParticleAt(mx, my);
+    if(p){
+      document.getElementById('modalSource').textContent = p.source;
+      document.getElementById('modalValue').textContent = (p.value >= 0 ? '+' : '') + p.value.toFixed(2);
+      document.getElementById('modalStatus').textContent = p.value >= 0 ? 'healthy' : 'degraded';
+      document.getElementById('modalMag').textContent = p.mag.toFixed(1) + ' px';
+      modalWrap.style.display = 'flex';
+    }
+  });
+
+  document.getElementById('modalClose').addEventListener('click', function(){
+    modalWrap.style.display = 'none';
+  });
+  modalWrap.addEventListener('click', function(e){
+    if(e.target === modalWrap) modalWrap.style.display = 'none';
+  });
+})();
+</script>

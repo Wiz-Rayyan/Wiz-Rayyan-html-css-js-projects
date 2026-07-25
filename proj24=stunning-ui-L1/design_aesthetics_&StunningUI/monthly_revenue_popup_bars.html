@@ -1,0 +1,95 @@
+<h2 class="sr-only">Bar chart of monthly revenue, January through December, with bars animating upward on load</h2>
+<div style="display:flex; align-items:baseline; justify-content:space-between; margin-bottom:1.25rem;">
+  <div>
+    <p style="font-size:13px; color:var(--text-secondary); margin:0;">Monthly revenue</p>
+    <p style="font-size:24px; font-weight:500; margin:2px 0 0;" id="total-val">$0</p>
+  </div>
+  <p style="font-size:13px; color:var(--text-muted); margin:0;">2026, in thousands</p>
+</div>
+
+<div id="chart" style="display:flex; align-items:flex-end; gap:14px; height:220px; padding:0 4px; position:relative;"></div>
+
+<div id="tooltip" style="position:absolute; display:none; background:var(--surface-2); border:0.5px solid var(--border-strong); border-radius:var(--radius); padding:4px 10px; font-size:13px; font-weight:500; color:var(--text-primary); pointer-events:none; transform:translate(-50%,-8px); white-space:nowrap; z-index:2;"></div>
+
+<script>
+const data = [
+  { m: 'Jan', v: 42 }, { m: 'Feb', v: 38 }, { m: 'Mar', v: 51 },
+  { m: 'Apr', v: 47 }, { m: 'May', v: 60 }, { m: 'Jun', v: 55 },
+  { m: 'Jul', v: 68 }, { m: 'Aug', v: 71 }, { m: 'Sep', v: 64 },
+  { m: 'Oct', v: 77 }, { m: 'Nov', v: 82 }, { m: 'Dec', v: 90 }
+];
+
+const max = Math.max(...data.map(d => d.v));
+const chart = document.getElementById('chart');
+const tooltip = document.getElementById('tooltip');
+const totalEl = document.getElementById('total-val');
+totalEl.textContent = '$' + data.reduce((s, d) => s + d.v, 0).toLocaleString() + 'K';
+
+data.forEach((d, i) => {
+  const col = document.createElement('div');
+  col.style.cssText = 'flex:1; display:flex; flex-direction:column; align-items:center; height:100%; position:relative;';
+
+  const barWrap = document.createElement('div');
+  barWrap.style.cssText = 'flex:1; display:flex; align-items:flex-end; width:100%; justify-content:center;';
+
+  const bar = document.createElement('div');
+  const pct = (d.v / max) * 100;
+  bar.style.cssText = `
+    width:22px;
+    height:${pct}%;
+    max-width:24px;
+    background:var(--fill-accent, #378ADD);
+    border-radius:4px 4px 0 0;
+    transform:scaleY(0);
+    transform-origin:bottom;
+    position:relative;
+    cursor:pointer;
+    transition:transform 0.15s ease, filter 0.15s ease;
+    animation:pop-rise 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards;
+    animation-delay:${i * 0.05}s;
+  `;
+
+  const dot = document.createElement('div');
+  dot.style.cssText = `
+    width:8px; height:8px; border-radius:50%;
+    background:var(--fill-accent, #378ADD);
+    position:absolute; top:-4px; left:50%; transform:translateX(-50%);
+    opacity:0; transition:opacity 0.2s ease;
+  `;
+  bar.appendChild(dot);
+  setTimeout(() => { dot.style.opacity = '1'; }, i * 50 + 400);
+
+  bar.addEventListener('mouseenter', () => {
+    bar.style.transform = 'scaleY(1) translateY(-4px)';
+    bar.style.filter = 'brightness(1.08)';
+    const rect = bar.getBoundingClientRect();
+    const chartRect = chart.getBoundingClientRect();
+    tooltip.style.display = 'block';
+    tooltip.style.left = (rect.left - chartRect.left + rect.width / 2) + 'px';
+    tooltip.style.top = (rect.top - chartRect.top) + 'px';
+    tooltip.textContent = '$' + d.v + 'K';
+  });
+  bar.addEventListener('mouseleave', () => {
+    bar.style.transform = 'scaleY(1)';
+    bar.style.filter = 'none';
+    tooltip.style.display = 'none';
+  });
+  bar.addEventListener('click', () => {
+    sendPrompt('Break down ' + d.m + ' 2026 revenue by category');
+  });
+
+  barWrap.appendChild(bar);
+  col.appendChild(barWrap);
+
+  const label = document.createElement('span');
+  label.textContent = d.m;
+  label.style.cssText = 'font-size:12px; color:var(--text-muted); margin-top:8px;';
+  col.appendChild(label);
+
+  chart.appendChild(col);
+});
+
+const styleTag = document.createElement('style');
+styleTag.textContent = `@keyframes pop-rise { from { transform: scaleY(0); } to { transform: scaleY(1); } }`;
+document.head.appendChild(styleTag);
+</script>

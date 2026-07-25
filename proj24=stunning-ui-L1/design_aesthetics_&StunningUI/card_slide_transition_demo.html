@@ -1,0 +1,100 @@
+<h2 class="sr-only">Interactive demo of a multi-step form using a sliding card transition with 3D perspective</h2>
+<div style="max-width: 420px; margin: 0 auto;">
+  <div style="display: flex; justify-content: center; gap: 8px; margin-bottom: 1.5rem;" id="dots"></div>
+
+  <div style="position: relative; height: 260px; perspective: 1000px;" id="stage">
+  </div>
+
+  <div style="display: flex; justify-content: space-between; margin-top: 1.5rem;">
+    <button id="backBtn" style="visibility: hidden;"><i class="ti ti-arrow-left" style="font-size:16px; vertical-align:-2px; margin-right:6px" aria-hidden="true"></i>Back</button>
+    <button id="nextBtn"><span id="nextLabel">Next</span><i class="ti ti-arrow-right" style="font-size:16px; vertical-align:-2px; margin-left:6px" aria-hidden="true"></i></button>
+  </div>
+</div>
+
+<script>
+const steps = [
+  { icon: 'ti-user', title: 'Your name', desc: 'Tell us what to call you.', placeholder: 'Jordan Lee' },
+  { icon: 'ti-mail', title: 'Your email', desc: 'We will send a confirmation here.', placeholder: 'name@company.com' },
+  { icon: 'ti-building', title: 'Your company', desc: 'Optional, helps us tailor things.', placeholder: 'Acme inc' },
+  { icon: 'ti-check', title: 'All set', desc: 'Review and submit when ready.', placeholder: '' }
+];
+
+let current = 0;
+const stage = document.getElementById('stage');
+const dotsEl = document.getElementById('dots');
+const backBtn = document.getElementById('backBtn');
+const nextBtn = document.getElementById('nextBtn');
+const nextLabel = document.getElementById('nextLabel');
+
+function cardHTML(step, idx) {
+  const inputHTML = step.placeholder
+    ? '<input type="text" placeholder="' + step.placeholder + '" style="margin-top: 1rem; width: 100%;" />'
+    : '';
+  return '<div class="card" data-idx="' + idx + '" style="position: absolute; inset: 0; background: var(--surface-2); border: 0.5px solid var(--border); border-radius: 12px; padding: 1.5rem; display: flex; flex-direction: column; justify-content: center; backface-visibility: hidden;">' +
+    '<i class="ti ' + step.icon + '" style="font-size: 28px; color: var(--text-accent); margin-bottom: 12px;" aria-hidden="true"></i>' +
+    '<h3 style="margin: 0 0 4px;">' + step.title + '</h3>' +
+    '<p style="margin: 0; color: var(--text-secondary); font-size: 14px;">' + step.desc + '</p>' +
+    inputHTML +
+  '</div>';
+}
+
+function renderDots() {
+  dotsEl.innerHTML = steps.map((_, i) => {
+    const active = i === current;
+    return '<div style="width: ' + (active ? '20px' : '8px') + '; height: 8px; border-radius: 4px; transition: all 0.3s ease; background: ' + (active ? 'var(--fill-accent)' : 'var(--border-strong)') + ';"></div>';
+  }).join('');
+}
+
+function renderInitial() {
+  stage.innerHTML = cardHTML(steps[current], current);
+  renderDots();
+  updateButtons();
+}
+
+function updateButtons() {
+  backBtn.style.visibility = current === 0 ? 'hidden' : 'visible';
+  nextLabel.textContent = current === steps.length - 1 ? 'Submit' : 'Next';
+}
+
+function go(direction) {
+  const next = current + direction;
+  if (next < 0 || next >= steps.length) return;
+
+  const outgoing = stage.querySelector('.card');
+  const incoming = document.createElement('div');
+  incoming.innerHTML = cardHTML(steps[next], next);
+  const incomingCard = incoming.firstElementChild;
+
+  incomingCard.style.transform = direction > 0
+    ? 'translateX(100%) rotateY(-10deg)'
+    : 'translateX(-100%) rotateY(10deg)';
+  incomingCard.style.transition = 'transform 0.4s ease';
+  stage.appendChild(incomingCard);
+
+  requestAnimationFrame(() => {
+    outgoing.style.transition = 'transform 0.4s ease';
+    outgoing.style.transform = direction > 0
+      ? 'translateX(-100%) rotateY(10deg)'
+      : 'translateX(100%) rotateY(-10deg)';
+    incomingCard.style.transform = 'translateX(0) rotateY(0deg)';
+  });
+
+  setTimeout(() => {
+    outgoing.remove();
+    current = next;
+    renderDots();
+    updateButtons();
+  }, 420);
+}
+
+nextBtn.addEventListener('click', () => {
+  if (current === steps.length - 1) {
+    sendPrompt('Show me more slide transition patterns like this one');
+    return;
+  }
+  go(1);
+});
+backBtn.addEventListener('click', () => go(-1));
+
+renderInitial();
+</script>

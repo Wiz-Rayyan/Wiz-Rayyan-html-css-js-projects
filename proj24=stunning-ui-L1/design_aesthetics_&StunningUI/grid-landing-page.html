@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grid — Plan like a system</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #FAFAF8;
+    --ink: #14141A;
+    --grey: #6E6E68;
+    --line: #D9D9D4;
+    --accent: #C6361F;
+    --accent-soft: #F4E4DF;
+    --mono: 'IBM Plex Mono', monospace;
+    --display: 'Archivo', sans-serif;
+    --body: 'Inter', sans-serif;
+    --col-gap: 20px;
+    --edge: 48px;
+  }
+
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html{ scroll-behavior:smooth; }
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--body);
+    font-size:16px;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    position:relative;
+    overflow-x:hidden;
+  }
+
+  a{ color:inherit; }
+
+  /* ---------- grid overlay ---------- */
+  .grid-overlay{
+    position:fixed;
+    top:0; left:0; right:0; bottom:0;
+    pointer-events:none;
+    z-index:2;
+    display:grid;
+    grid-template-columns:repeat(12, 1fr);
+    padding:0 var(--edge);
+    gap:var(--col-gap);
+    opacity:0;
+    transition:opacity .5s ease;
+  }
+  .grid-overlay.on{ opacity:1; }
+  .grid-overlay span{
+    border-left:1px solid rgba(198,54,31,0.18);
+    border-right:1px solid rgba(198,54,31,0.18);
+    height:100%;
+  }
+
+  .content{ position:relative; z-index:3; }
+
+  .wrap{
+    max-width:1400px;
+    margin:0 auto;
+    padding:0 var(--edge);
+  }
+
+  .rule{ border-top:1px solid var(--line); }
+
+  /* ---------- coordinate tag ---------- */
+  .coord{
+    font-family:var(--mono);
+    font-size:12px;
+    letter-spacing:0.06em;
+    color:var(--accent);
+    text-transform:uppercase;
+  }
+
+  /* ---------- nav ---------- */
+  header{
+    position:sticky;
+    top:0;
+    z-index:10;
+    background:rgba(250,250,248,0.92);
+    backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--line);
+  }
+  .nav{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:22px var(--edge);
+  }
+  .logo{
+    font-family:var(--display);
+    font-weight:800;
+    font-size:20px;
+    letter-spacing:-0.02em;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .logo .dot{ width:8px; height:8px; background:var(--accent); display:inline-block; }
+  nav.links{ display:flex; gap:36px; }
+  .navlinks a{
+    font-size:14px;
+    color:var(--grey);
+    text-decoration:none;
+    font-weight:500;
+  }
+  .navlinks a:hover{ color:var(--ink); }
+  .nav-right{ display:flex; align-items:center; gap:24px; }
+
+  .btn{
+    font-family:var(--body);
+    font-weight:600;
+    font-size:14px;
+    padding:11px 20px;
+    border:1px solid var(--ink);
+    background:var(--ink);
+    color:var(--bg);
+    cursor:pointer;
+    transition:all .15s ease;
+    text-decoration:none;
+    display:inline-block;
+  }
+  .btn:hover{ background:var(--accent); border-color:var(--accent); }
+  .btn.ghost{
+    background:transparent;
+    color:var(--ink);
+    border:1px solid var(--line);
+  }
+  .btn.ghost:hover{ border-color:var(--ink); background:transparent; color:var(--ink); }
+
+  .grid-toggle{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-family:var(--mono);
+    font-size:12px;
+    color:var(--grey);
+    background:none;
+    border:1px solid var(--line);
+    padding:8px 12px;
+    cursor:pointer;
+  }
+  .grid-toggle:hover{ border-color:var(--ink); color:var(--ink); }
+  .grid-toggle .sw{
+    width:24px; height:12px;
+    border:1px solid var(--grey);
+    position:relative;
+    transition:border-color .15s;
+  }
+  .grid-toggle .sw::after{
+    content:'';
+    position:absolute;
+    top:1px; left:1px;
+    width:8px; height:8px;
+    background:var(--grey);
+    transition:transform .2s ease, background .2s ease;
+  }
+  .grid-toggle.active .sw::after{ transform:translateX(11px); background:var(--accent); }
+  .grid-toggle.active .sw{ border-color:var(--accent); }
+
+  /* ---------- hero ---------- */
+  .hero{
+    padding:100px var(--edge) 90px;
+    display:grid;
+    grid-template-columns:repeat(12,1fr);
+    gap:var(--col-gap);
+    max-width:1400px;
+    margin:0 auto;
+  }
+  .hero-tag{
+    grid-column:1/13;
+    display:flex;
+    align-items:center;
+    gap:14px;
+    margin-bottom:28px;
+    opacity:0;
+    animation:rise .7s ease forwards;
+  }
+  .hero-tag::after{
+    content:'';
+    flex:1;
+    height:1px;
+    background:var(--line);
+  }
+  .hero h1{
+    grid-column:1/8;
+    font-family:var(--display);
+    font-weight:800;
+    font-size:clamp(40px, 5.4vw, 84px);
+    line-height:0.98;
+    letter-spacing:-0.02em;
+    opacity:0;
+    animation:rise .8s ease .08s forwards;
+  }
+  .hero h1 em{
+    font-style:normal;
+    color:var(--accent);
+  }
+  .hero-meta{
+    grid-column:9/13;
+    display:flex;
+    flex-direction:column;
+    gap:22px;
+    padding-top:10px;
+    opacity:0;
+    animation:rise .8s ease .18s forwards;
+  }
+  .hero-meta p{
+    font-size:15px;
+    color:var(--grey);
+    line-height:1.6;
+  }
+  .hero-cta{
+    grid-column:1/8;
+    margin-top:38px;
+    display:flex;
+    align-items:center;
+    gap:22px;
+    opacity:0;
+    animation:rise .8s ease .26s forwards;
+  }
+  .hero-cta .fine{
+    font-family:var(--mono);
+    font-size:12px;
+    color:var(--grey);
+  }
+
+  @keyframes rise{
+    from{ opacity:0; transform:translateY(14px); }
+    to{ opacity:1; transform:translateY(0); }
+  }
+
+  /* ---------- section header pattern ---------- */
+  .sec-head{
+    display:grid;
+    grid-template-columns:repeat(12,1fr);
+    gap:var(--col-gap);
+    padding:56px var(--edge) 36px;
+    max-width:1400px;
+    margin:0 auto;
+    align-items:end;
+  }
+  .sec-head .coord{ grid-column:1/3; }
+  .sec-head h2{
+    grid-column:3/10;
+    font-family:var(--display);
+    font-weight:700;
+    font-size:clamp(26px,2.6vw,38px);
+    letter-spacing:-0.01em;
+  }
+  .sec-head .sec-note{
+    grid-column:10/13;
+    font-size:13px;
+    color:var(--grey);
+    text-align:right;
+  }
+
+  /* ---------- feature rows ---------- */
+  .features{ max-width:1400px; margin:0 auto; padding:0 var(--edge) 20px; }
+  .frow{
+    display:grid;
+    grid-template-columns:repeat(12,1fr);
+    gap:var(--col-gap);
+    padding:38px 0;
+    border-top:1px solid var(--line);
+  }
+  .frow:last-child{ border-bottom:1px solid var(--line); }
+  .frow .fcoord{
+    grid-column:1/2;
+    font-family:var(--mono);
+    font-size:12px;
+    color:var(--accent);
+    padding-top:4px;
+  }
+  .frow .ftitle{
+    grid-column:2/5;
+    font-family:var(--display);
+    font-weight:700;
+    font-size:22px;
+    letter-spacing:-0.01em;
+  }
+  .frow .fdesc{
+    grid-column:5/9;
+    color:var(--grey);
+    font-size:15px;
+    line-height:1.65;
+    padding-right:20px;
+  }
+  .frow .fvisual{
+    grid-column:9/13;
+    border:1px solid var(--line);
+    min-height:120px;
+    position:relative;
+    overflow:hidden;
+    background:
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size:20px 20px;
+  }
+  .fvisual .tick{
+    position:absolute;
+    background:var(--accent);
+    opacity:0.85;
+  }
+
+  /* ---------- quote / stat band ---------- */
+  .band{
+    border-top:1px solid var(--line);
+    border-bottom:1px solid var(--line);
+    padding:70px var(--edge);
+    max-width:1400px;
+    margin:0 auto;
+    display:grid;
+    grid-template-columns:repeat(12,1fr);
+    gap:var(--col-gap);
+  }
+  .band .big{
+    grid-column:1/9;
+    font-family:var(--display);
+    font-weight:700;
+    font-size:clamp(24px,3vw,40px);
+    letter-spacing:-0.01em;
+    line-height:1.2;
+  }
+  .band .big span{ color:var(--accent); }
+  .band .stats{
+    grid-column:9/13;
+    display:flex;
+    flex-direction:column;
+    gap:24px;
+    border-left:1px solid var(--line);
+    padding-left:28px;
+  }
+  .stat b{
+    display:block;
+    font-family:var(--display);
+    font-size:30px;
+    font-weight:800;
+  }
+  .stat span{
+    font-family:var(--mono);
+    font-size:12px;
+    color:var(--grey);
+    text-transform:uppercase;
+    letter-spacing:0.05em;
+  }
+
+  /* ---------- pricing ---------- */
+  .pricing{
+    max-width:1400px;
+    margin:0 auto;
+    padding:0 var(--edge) 40px;
+    display:grid;
+    grid-template-columns:repeat(12,1fr);
+    gap:var(--col-gap);
+  }
+  .plan{
+    grid-column:span 4;
+    border:1px solid var(--line);
+    padding:32px 28px;
+    display:flex;
+    flex-direction:column;
+    gap:18px;
+    transition:border-color .15s ease;
+  }
+  .plan.highlight{
+    border-color:var(--ink);
+    position:relative;
+  }
+  .plan.highlight::before{
+    content:'RECOMMENDED';
+    position:absolute;
+    top:-1px; left:-1px;
+    background:var(--ink);
+    color:var(--bg);
+    font-family:var(--mono);
+    font-size:10px;
+    letter-spacing:0.08em;
+    padding:5px 10px;
+  }
+  .plan h3{
+    font-family:var(--display);
+    font-size:18px;
+    font-weight:700;
+  }
+  .plan .price{
+    font-family:var(--display);
+    font-size:36px;
+    font-weight:800;
+  }
+  .plan .price span{
+    font-family:var(--body);
+    font-size:14px;
+    font-weight:500;
+    color:var(--grey);
+  }
+  .plan ul{ list-style:none; display:flex; flex-direction:column; gap:10px; margin:6px 0; }
+  .plan li{
+    font-size:14px;
+    color:var(--grey);
+    padding-left:16px;
+    position:relative;
+  }
+  .plan li::before{
+    content:'—';
+    position:absolute;
+    left:0;
+    color:var(--accent);
+  }
+
+  /* ---------- footer ---------- */
+  footer{
+    border-top:1px solid var(--line);
+    padding:40px var(--edge) 50px;
+    max-width:1400px;
+    margin:0 auto;
+    display:grid;
+    grid-template-columns:repeat(12,1fr);
+    gap:var(--col-gap);
+    font-size:13px;
+    color:var(--grey);
+  }
+  footer .fcol{ grid-column:span 3; display:flex; flex-direction:column; gap:10px; }
+  footer .fcol a{ text-decoration:none; color:var(--grey); }
+  footer .fcol a:hover{ color:var(--ink); }
+  footer .fcol h4{
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:var(--ink);
+    margin-bottom:4px;
+  }
+  .foot-bottom{
+    grid-column:1/13;
+    display:flex;
+    justify-content:space-between;
+    margin-top:30px;
+    padding-top:20px;
+    border-top:1px solid var(--line);
+    font-family:var(--mono);
+    font-size:11px;
+  }
+
+  /* ---------- responsive ---------- */
+  @media (max-width:860px){
+    :root{ --edge:22px; }
+    .hero{ padding-top:70px; }
+    .hero h1, .hero-meta, .hero-cta{ grid-column:1/13; }
+    .hero-meta{ padding-top:0; margin-top:18px; flex-direction:row; flex-wrap:wrap; gap:14px 28px;}
+    .sec-head h2{ grid-column:1/13; margin-top:8px; }
+    .sec-head .sec-note{ grid-column:1/13; text-align:left; }
+    .frow .ftitle, .frow .fdesc, .frow .fvisual{ grid-column:2/13; }
+    .frow .fvisual{ margin-top:14px; min-height:90px; }
+    .band .big, .band .stats{ grid-column:1/13; }
+    .band .stats{ border-left:none; padding-left:0; margin-top:26px; flex-direction:row; flex-wrap:wrap; }
+    .plan{ grid-column:1/13; }
+    .navlinks{ display:none; }
+    footer .fcol{ grid-column:span 6; margin-bottom:20px; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .hero-tag, .hero h1, .hero-meta, .hero-cta{ animation:none; opacity:1; }
+    html{ scroll-behavior:auto; }
+  }
+
+  :focus-visible{
+    outline:2px solid var(--accent);
+    outline-offset:2px;
+  }
+</style>
+</head>
+<body>
+
+<div class="grid-overlay" id="gridOverlay">
+  <span></span><span></span><span></span><span></span><span></span><span></span>
+  <span></span><span></span><span></span><span></span><span></span><span></span>
+</div>
+
+<div class="content">
+
+  <header>
+    <div class="nav">
+      <div class="logo"><span class="dot"></span>GRID</div>
+      <nav class="navlinks">
+        <a href="#system">Product</a>
+        <a href="#log">Log</a>
+        <a href="#pricing">Pricing</a>
+      </nav>
+      <div class="nav-right">
+        <button class="grid-toggle" id="gridToggle" aria-pressed="false">
+          <span class="sw"></span> SHOW GRID
+        </button>
+        <a href="#pricing" class="btn ghost">Sign in</a>
+        <a href="#pricing" class="btn">Get access</a>
+      </div>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="hero-tag">
+      <span class="coord">A1 — Structural planning</span>
+    </div>
+    <h1>Plan like a<br>system, not<br>a <em>spreadsheet.</em></h1>
+    <div class="hero-meta">
+      <p>Grid replaces scattered docs and status pings with one structural view of your team's work — rows, columns, and dependencies your whole team can read at a glance.</p>
+      <p style="color:var(--ink); font-weight:500;">Now in early access for design &amp; product teams.</p>
+    </div>
+    <div class="hero-cta">
+      <a href="#pricing" class="btn">Request access</a>
+      <span class="fine">NO CREDIT CARD — 200 TEAMS ONBOARDED</span>
+    </div>
+  </section>
+
+  <div class="wrap"><div class="rule"></div></div>
+
+  <div id="system" class="sec-head">
+    <span class="coord">B — System</span>
+    <h2>Three moves, one coordinate system.</h2>
+    <span class="sec-note">Everything in Grid maps to a cell.<br>Nothing floats.</span>
+  </div>
+
+  <div class="features">
+    <div class="frow">
+      <span class="fcoord">B1</span>
+      <h3 class="ftitle">Place work on a grid, not a list</h3>
+      <p class="fdesc">Every task, milestone, and owner sits at a fixed row/column intersection. Move a deadline and every dependent cell recalculates — no separate Gantt to keep in sync.</p>
+      <div class="fvisual" aria-hidden="true">
+        <div class="tick" style="left:20px; top:20px; width:60px; height:20px;"></div>
+        <div class="tick" style="left:100px; top:60px; width:80px; height:20px; opacity:0.5;"></div>
+        <div class="tick" style="left:40px; top:100px; width:40px; height:20px; opacity:0.7;"></div>
+      </div>
+    </div>
+    <div class="frow">
+      <span class="fcoord">B2</span>
+      <h3 class="ftitle">See load before you assign it</h3>
+      <p class="fdesc">Column density shows exactly how full each person's row is this week. Assign into empty cells first — Grid flags the overlaps before they become a crunch.</p>
+      <div class="fvisual" aria-hidden="true">
+        <div class="tick" style="left:20px; top:20px; width:30px; height:80px;"></div>
+        <div class="tick" style="left:70px; top:50px; width:30px; height:50px; opacity:0.6;"></div>
+        <div class="tick" style="left:120px; top:10px; width:30px; height:90px; opacity:0.8;"></div>
+      </div>
+    </div>
+    <div class="frow">
+      <span class="fcoord">B3</span>
+      <h3 class="ftitle">One log, every change</h3>
+      <p class="fdesc">Every edit to the grid — a moved date, a reassigned row — writes to a single running log. No status meeting required to know what shifted and why.</p>
+      <div class="fvisual" aria-hidden="true">
+        <div class="tick" style="left:20px; top:20px; width:100px; height:14px;"></div>
+        <div class="tick" style="left:20px; top:44px; width:70px; height:14px; opacity:0.6;"></div>
+        <div class="tick" style="left:20px; top:68px; width:130px; height:14px; opacity:0.8;"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="band">
+    <p class="big">"We stopped asking <span>where's the doc</span> and started pointing at a cell. That's the whole pitch."</p>
+    <div class="stats">
+      <div class="stat"><b>4.2h</b><span>Saved / week / lead</span></div>
+      <div class="stat"><b>200+</b><span>Teams in early access</span></div>
+      <div class="stat"><b>0</b><span>Standups required</span></div>
+    </div>
+  </div>
+
+  <div id="pricing" class="sec-head">
+    <span class="coord">C — Access</span>
+    <h2>Early access, two ways in.</h2>
+    <span class="sec-note">Cancel any time.<br>Team pricing on request.</span>
+  </div>
+
+  <div class="pricing">
+    <div class="plan">
+      <h3>Studio</h3>
+      <div class="price">$0 <span>/ up to 3 seats</span></div>
+      <ul>
+        <li>Full grid workspace</li>
+        <li>Unlimited rows &amp; columns</li>
+        <li>Change log, 30-day history</li>
+      </ul>
+      <a href="#" class="btn ghost">Start free</a>
+    </div>
+    <div class="plan highlight">
+      <h3>Team</h3>
+      <div class="price">$18 <span>/ seat / mo</span></div>
+      <ul>
+        <li>Everything in Studio</li>
+        <li>Load view across teams</li>
+        <li>Unlimited change history</li>
+        <li>Priority onboarding</li>
+      </ul>
+      <a href="#" class="btn">Request access</a>
+    </div>
+    <div class="plan">
+      <h3>Org</h3>
+      <div class="price">Custom</div>
+      <ul>
+        <li>Everything in Team</li>
+        <li>SSO &amp; audit export</li>
+        <li>Dedicated coordinate schema</li>
+      </ul>
+      <a href="#" class="btn ghost">Talk to us</a>
+    </div>
+  </div>
+
+  <footer>
+    <div class="fcol">
+      <h4>Grid</h4>
+      <a href="#">Product</a>
+      <a href="#">Change log</a>
+      <a href="#">Pricing</a>
+    </div>
+    <div class="fcol">
+      <h4>Company</h4>
+      <a href="#">About</a>
+      <a href="#">Careers</a>
+    </div>
+    <div class="fcol">
+      <h4>Resources</h4>
+      <a href="#">Docs</a>
+      <a href="#">API</a>
+    </div>
+    <div class="fcol">
+      <h4>Legal</h4>
+      <a href="#">Privacy</a>
+      <a href="#">Terms</a>
+    </div>
+    <div class="foot-bottom">
+      <span>© 2026 GRID — COORDINATE-BASED PLANNING</span>
+      <span>D1 / END OF PAGE</span>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+  const toggle = document.getElementById('gridToggle');
+  const overlay = document.getElementById('gridOverlay');
+  toggle.addEventListener('click', () => {
+    const active = toggle.classList.toggle('active');
+    overlay.classList.toggle('on', active);
+    toggle.setAttribute('aria-pressed', active);
+    toggle.lastChild.textContent = active ? ' HIDE GRID' : ' SHOW GRID';
+  });
+</script>
+
+</body>
+</html>

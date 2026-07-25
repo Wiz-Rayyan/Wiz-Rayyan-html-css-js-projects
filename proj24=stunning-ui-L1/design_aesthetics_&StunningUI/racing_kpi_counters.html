@@ -1,0 +1,206 @@
+<h2 class="sr-only">Three KPI cards with racing slot-machine style digit counters. Click "Simulate update" to see values flip up or down with a color flash, hover a card for a trend sparkline, and click a card for details.</h2>
+
+<div style="display:flex; justify-content:flex-end; margin-bottom:1rem;">
+  <button id="simulate-btn"><i class="ti ti-refresh" style="font-size:16px; vertical-align:-2px; margin-right:6px;" aria-hidden="true"></i>Simulate update</button>
+</div>
+
+<div id="kpi-grid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(190px, 1fr)); gap:16px;"></div>
+
+<div id="tooltip" style="position:absolute; display:none; background:var(--surface-2); border:0.5px solid var(--border-strong); border-radius:var(--radius); padding:8px 10px; box-shadow:0 4px 12px rgba(0,0,0,0.12); z-index:20; pointer-events:none;">
+  <div id="tooltip-label" style="font-size:12px; color:var(--text-secondary); margin-bottom:4px;"></div>
+  <svg id="tooltip-spark" width="120" height="36" viewBox="0 0 120 36"></svg>
+</div>
+
+<style>
+.kpi-card{position:relative; background:var(--surface-1); border-radius:12px; padding:1rem 1.25rem; cursor:pointer; overflow:hidden; transition:background var(--dur-slow, 0.5s) ease;}
+.kpi-card:hover{outline:0.5px solid var(--border-strong);}
+.kpi-label{font-size:13px; color:var(--text-secondary); margin:0 0 8px;}
+.kpi-value{display:flex; align-items:baseline; gap:2px; font-size:26px; font-weight:500; font-variant-numeric:tabular-nums;}
+.kpi-prefix{font-size:18px; color:var(--text-secondary); margin-right:2px;}
+.kpi-suffix{font-size:16px; color:var(--text-secondary); margin-left:2px;}
+.digit-track{perspective:300px; display:inline-block; overflow:hidden; height:32px; line-height:32px; width:16px; text-align:center;}
+.digit-inner{display:inline-block; transform-style:preserve-3d;}
+.digit-flip{animation:flipDigit 0.7s cubic-bezier(0.2,0.9,0.4,1.1);}
+@keyframes flipDigit{
+  0%{transform:rotateX(0deg);}
+  100%{transform:rotateX(360deg);}
+}
+.kpi-delta{font-size:12px; margin-top:6px; display:flex; align-items:center; gap:4px;}
+.delta-up{color:var(--text-success);}
+.delta-down{color:var(--text-danger);}
+.flash-up{background:var(--bg-success) !important;}
+.flash-down{background:var(--bg-danger) !important;}
+</style>
+
+<script>
+(function(){
+  var kpis = [
+    {id:'rev', label:'Revenue', prefix:'$', suffix:'', value:48213, decimals:0, history:[41,43,42,45,44,46,47,48.2]},
+    {id:'users', label:'Active users', prefix:'', suffix:'', value:9042, decimals:0, history:[7.2,7.6,7.9,8.1,8.5,8.8,8.9,9.0]},
+    {id:'conv', label:'Conversion rate', prefix:'', suffix:'%', value:4.7, decimals:1, history:[3.8,3.9,4.1,4.0,4.3,4.5,4.4,4.7]}
+  ];
+
+  var grid = document.getElementById('kpi-grid');
+  var tooltip = document.getElementById('tooltip');
+  var tooltipLabel = document.getElementById('tooltip-label');
+  var tooltipSpark = document.getElementById('tooltip-spark');
+
+  function formatValue(k){
+    return k.value.toFixed(k.decimals);
+  }
+
+  function buildCard(k){
+    var card = document.createElement('div');
+    card.className = 'kpi-card';
+    card.id = 'card-' + k.id;
+
+    var label = document.createElement('p');
+    label.className = 'kpi-label';
+    label.textContent = k.label;
+    card.appendChild(label);
+
+    var valueRow = document.createElement('div');
+    valueRow.className = 'kpi-value';
+    valueRow.id = 'value-' + k.id;
+    if(k.prefix){
+      var pre = document.createElement('span');
+      pre.className = 'kpi-prefix';
+      pre.textContent = k.prefix;
+      valueRow.appendChild(pre);
+    }
+    var digitsWrap = document.createElement('span');
+    digitsWrap.id = 'digits-' + k.id;
+    valueRow.appendChild(digitsWrap);
+    if(k.suffix){
+      var suf = document.createElement('span');
+      suf.className = 'kpi-suffix';
+      suf.textContent = k.suffix;
+      valueRow.appendChild(suf);
+    }
+    card.appendChild(valueRow);
+
+    var delta = document.createElement('div');
+    delta.className = 'kpi-delta';
+    delta.id = 'delta-' + k.id;
+    card.appendChild(delta);
+
+    renderDigits(k, digitsWrap, formatValue(k));
+
+    card.addEventListener('mouseenter', function(e){ showTooltip(k, card); });
+    card.addEventListener('mousemove', function(e){ positionTooltip(e); });
+    card.addEventListener('mouseleave', function(){ tooltip.style.display = 'none'; });
+    card.addEventListener('click', function(){
+      sendPrompt('Show full detail and history for the ' + k.label + ' KPI');
+    });
+
+    grid.appendChild(card);
+  }
+
+  function renderDigits(k, container, str){
+    container.innerHTML = '';
+    for(var i=0;i<str.length;i++){
+      var ch = str[i];
+      if(ch === '.'){
+        var dot = document.createElement('span');
+        dot.textContent = '.';
+        dot.style.margin = '0 1px';
+        container.appendChild(dot);
+        continue;
+      }
+      var track = document.createElement('span');
+      track.className = 'digit-track';
+      track.dataset.digit = ch;
+      var inner = document.createElement('span');
+      inner.className = 'digit-inner';
+      inner.textContent = ch;
+      track.appendChild(inner);
+      container.appendChild(track);
+    }
+  }
+
+  function updateDigits(k, container, newStr){
+    var tracks = container.querySelectorAll('.digit-track');
+    var newChars = newStr.replace('.', '').split('');
+    if(tracks.length !== newChars.length){
+      renderDigits(k, container, newStr);
+      return;
+    }
+    tracks.forEach(function(track, i){
+      var oldDigit = track.dataset.digit;
+      var newDigit = newChars[i];
+      if(oldDigit !== newDigit){
+        var inner = track.querySelector('.digit-inner');
+        inner.classList.remove('digit-flip');
+        void inner.offsetWidth;
+        inner.classList.add('digit-flip');
+        setTimeout(function(){
+          inner.textContent = newDigit;
+        }, 350);
+        track.dataset.digit = newDigit;
+      }
+    });
+  }
+
+  function flashCard(cardEl, up){
+    cardEl.classList.remove('flash-up','flash-down');
+    void cardEl.offsetWidth;
+    cardEl.classList.add(up ? 'flash-up' : 'flash-down');
+    setTimeout(function(){
+      cardEl.classList.remove('flash-up','flash-down');
+    }, 900);
+  }
+
+  function updateKPI(k){
+    var oldValue = k.value;
+    var pctChange = (Math.random() * 0.14) - 0.05;
+    var newValue = oldValue * (1 + pctChange);
+    if(k.decimals === 0){ newValue = Math.round(newValue); }
+    else { newValue = Math.round(newValue * 10) / 10; }
+    var up = newValue >= oldValue;
+
+    k.history.push(k.decimals === 0 ? newValue/1000 : newValue);
+    if(k.history.length > 8) k.history.shift();
+    k.value = newValue;
+
+    var digitsWrap = document.getElementById('digits-' + k.id);
+    updateDigits(k, digitsWrap, formatValue(k));
+
+    var cardEl = document.getElementById('card-' + k.id);
+    flashCard(cardEl, up);
+
+    var deltaEl = document.getElementById('delta-' + k.id);
+    var pct = Math.abs(pctChange * 100).toFixed(1);
+    deltaEl.className = 'kpi-delta ' + (up ? 'delta-up' : 'delta-down');
+    deltaEl.innerHTML = '<i class="ti ti-arrow-' + (up ? 'up' : 'down') + '-right" style="font-size:14px;" aria-hidden="true"></i>' + pct + '%';
+  }
+
+  function showTooltip(k, cardEl){
+    tooltipLabel.textContent = k.label + ' trend';
+    var hist = k.history;
+    var min = Math.min.apply(null, hist);
+    var max = Math.max.apply(null, hist);
+    var range = (max - min) || 1;
+    var w = 120, h = 36, pad = 4;
+    var pts = hist.map(function(v, i){
+      var x = pad + (i / (hist.length - 1)) * (w - pad*2);
+      var y = h - pad - ((v - min) / range) * (h - pad*2);
+      return x.toFixed(1) + ',' + y.toFixed(1);
+    }).join(' ');
+    tooltipSpark.innerHTML = '<polyline points="' + pts + '" fill="none" stroke="#378ADD" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
+    tooltip.style.display = 'block';
+  }
+
+  function positionTooltip(e){
+    tooltip.style.left = (e.pageX + 14) + 'px';
+    tooltip.style.top = (e.pageY - 40) + 'px';
+  }
+
+  kpis.forEach(buildCard);
+
+  document.getElementById('simulate-btn').addEventListener('click', function(){
+    kpis.forEach(function(k){
+      setTimeout(function(){ updateKPI(k); }, Math.random() * 150);
+    });
+  });
+})();
+</script>

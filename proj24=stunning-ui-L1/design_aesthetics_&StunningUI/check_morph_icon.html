@@ -1,0 +1,110 @@
+<div style="padding: 1rem 0; max-width: 360px;">
+<h2 class="sr-only">Interactive demo of an email input whose validation icon morphs between a loading spinner, a checkmark, and a cross depending on input validity.</h2>
+
+<label for="email-input" style="display:block; font-size:13px; color:var(--text-secondary); margin-bottom:6px;">Email address</label>
+<div style="position:relative;">
+  <input id="email-input" type="text" placeholder="name@company.com" style="width:100%; padding-right:40px;" />
+  <div id="icon-wrap" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); width:24px; height:24px; cursor:default;">
+    <svg id="morph-svg" viewBox="0 0 24 24" width="24" height="24" fill="none" style="display:block;">
+      <circle id="spinner" cx="12" cy="12" r="8" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-dasharray="30 20" opacity="0" style="transform-origin:12px 12px;"></circle>
+      <path id="check" d="M6 12.5L10 16.5L18 8" stroke="var(--text-success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0" style="transform-origin:12px 12px;"></path>
+      <g id="cross" opacity="0" style="transform-origin:12px 12px;">
+        <path d="M7 7L17 17" stroke="var(--text-danger)" stroke-width="2" stroke-linecap="round"></path>
+        <path d="M17 7L7 17" stroke="var(--text-danger)" stroke-width="2" stroke-linecap="round"></path>
+      </g>
+    </svg>
+  </div>
+  <div id="tooltip" role="tooltip" style="position:absolute; right:0; top:calc(100% + 6px); background:var(--surface-3); border:0.5px solid var(--border); border-radius:var(--radius); padding:6px 10px; font-size:12px; color:var(--text-secondary); white-space:nowrap; opacity:0; pointer-events:none; transition:opacity var(--dur-fast,120ms) var(--ease-out,ease); z-index:2;"></div>
+</div>
+<p id="status-line" style="font-size:12px; color:var(--text-muted); margin:8px 0 0;">Start typing an email address.</p>
+</div>
+
+<style>
+#email-input:focus { box-shadow: var(--focus-shadow); }
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinning { animation: spin 0.7s linear infinite; }
+@keyframes bounceIn {
+  0% { transform: scale(0.3); opacity: 0; }
+  60% { transform: scale(1.25); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.bounce { animation: bounceIn 0.4s var(--ease-overshoot, cubic-bezier(.34,1.56,.64,1)) forwards; }
+@keyframes shakeX {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-4px); }
+  40% { transform: translateX(4px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(3px); }
+}
+.shake { animation: shakeX 0.4s ease-in-out forwards; }
+.fade-out { opacity: 0 !important; transition: opacity 0.15s ease; }
+</style>
+
+<script>
+(function() {
+  const input = document.getElementById('email-input');
+  const spinner = document.getElementById('spinner');
+  const check = document.getElementById('check');
+  const cross = document.getElementById('cross');
+  const tooltip = document.getElementById('tooltip');
+  const iconWrap = document.getElementById('icon-wrap');
+  const statusLine = document.getElementById('status-line');
+
+  let timer = null;
+  let currentState = 'idle';
+  const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  function clearAll() {
+    [spinner, check, cross].forEach(el => {
+      el.style.opacity = 0;
+      el.classList.remove('spinning', 'bounce', 'shake');
+    });
+  }
+
+  function setState(state, message) {
+    currentState = state;
+    clearAll();
+    if (state === 'loading') {
+      spinner.style.opacity = 1;
+      spinner.classList.add('spinning');
+    } else if (state === 'valid') {
+      check.style.opacity = 1;
+      check.classList.add('bounce');
+    } else if (state === 'invalid') {
+      cross.style.opacity = 1;
+      cross.classList.add('bounce');
+      setTimeout(() => cross.classList.add('shake'), 380);
+    }
+    tooltip.textContent = message || '';
+    statusLine.textContent = message || 'Start typing an email address.';
+  }
+
+  input.addEventListener('input', () => {
+    const val = input.value.trim();
+    clearTimeout(timer);
+    if (!val) {
+      clearAll();
+      currentState = 'idle';
+      tooltip.textContent = '';
+      statusLine.textContent = 'Start typing an email address.';
+      return;
+    }
+    setState('loading', 'Checking...');
+    timer = setTimeout(() => {
+      if (emailRe.test(val)) {
+        setState('valid', 'Looks good — valid email format.');
+      } else {
+        setState('invalid', 'That does not look like a valid email.');
+      }
+    }, 650);
+  });
+
+  iconWrap.addEventListener('mouseenter', () => {
+    if (currentState === 'idle' || !tooltip.textContent) return;
+    tooltip.style.opacity = 1;
+  });
+  iconWrap.addEventListener('mouseleave', () => {
+    tooltip.style.opacity = 0;
+  });
+})();
+</script>

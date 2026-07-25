@@ -1,0 +1,204 @@
+<h2 class="sr-only">Live log stream viewer with new entries sliding in, error lines flashing red, search highlighting, and click-through detail</h2>
+<div style="display:flex; gap:8px; align-items:center; margin-bottom:12px;">
+  <input id="search" type="text" placeholder="Search logs" style="flex:1;" />
+  <button id="pauseBtn" style="white-space:nowrap;"><i class="ti ti-player-pause" aria-hidden="true" style="font-size:16px; vertical-align:-2px; margin-right:4px;"></i>Pause</button>
+</div>
+<div id="logContainer" style="background: var(--surface-1); border: 0.5px solid var(--border); border-radius: var(--radius); height: 360px; overflow-y: auto; font-family: var(--font-mono); font-size: 12.5px; padding: 8px 0; position: relative;"></div>
+
+<div id="modalWrap" style="display:none; min-height:400px; position: fixed; inset:0; background: rgba(0,0,0,0.45); align-items:center; justify-content:center; z-index:50;">
+  <div style="background: var(--surface-2); border-radius: 12px; border: 0.5px solid var(--border); padding: 1.25rem; width: 420px; max-width: 90vw;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <p style="font-weight:500; font-size:15px; margin:0;">Log detail</p>
+      <button id="closeModal" aria-label="Close" style="width:28px; height:28px; padding:0; display:flex; align-items:center; justify-content:center;"><i class="ti ti-x" aria-hidden="true"></i></button>
+    </div>
+    <div id="modalBody" style="font-family: var(--font-mono); font-size: 12.5px; white-space: pre-wrap; color: var(--text-secondary);"></div>
+  </div>
+</div>
+
+<div id="tooltip" style="display:none; position: fixed; background: var(--surface-3); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 4px 8px; font-size: 11px; color: var(--text-secondary); pointer-events:none; z-index: 60;"></div>
+
+<script>
+const container = document.getElementById('logContainer');
+const searchInput = document.getElementById('search');
+const pauseBtn = document.getElementById('pauseBtn');
+const tooltip = document.getElementById('tooltip');
+const modalWrap = document.getElementById('modalWrap');
+const modalBody = document.getElementById('modalBody');
+const closeModal = document.getElementById('closeModal');
+
+const services = ['auth-service','api-gateway','payments','worker-1','cache','db-proxy'];
+const levels = [
+  {name:'INFO', weight:6, color:'c-blue'},
+  {name:'WARN', weight:2, color:'c-amber'},
+  {name:'ERROR', weight:1, color:'c-red'}
+];
+const messages = {
+  INFO: ['Request completed in {n}ms','Health check passed','Connection pool at {n}%','Cache hit ratio {n}%','User session refreshed','Scheduled job finished'],
+  WARN: ['Response time elevated to {n}ms','Retrying connection, attempt {n}','Memory usage at {n}%','Deprecated endpoint called'],
+  ERROR: ['Connection timeout after {n}ms','Failed to write to database','Unhandled exception in handler','5xx response from upstream','Out of memory, restarting worker']
+};
+
+let paused = false;
+let logs = [];
+let idCounter = 0;
+
+function pickLevel(){
+  const total = levels.reduce((a,l)=>a+l.weight,0);
+  let r = Math.random()*total;
+  for(const l of levels){ if(r < l.weight) return l; r -= l.weight; }
+  return levels[0];
+}
+
+function makeLog(){
+  const level = pickLevel();
+  const service = services[Math.floor(Math.random()*services.length)];
+  const template = messages[level.name][Math.floor(Math.random()*messages[level.name].length)];
+  const n = Math.floor(Math.random()*900)+20;
+  const msg = template.replace('{n}', n);
+  const now = new Date();
+  idCounter++;
+  return {
+    id: idCounter,
+    time: now,
+    level: level.name,
+    color: level.color,
+    service,
+    msg,
+    trace: 'trace-' + Math.random().toString(36).slice(2,10)
+  };
+}
+
+function fmtTime(d){
+  return d.toTimeString().split(' ')[0] + '.' + String(d.getMilliseconds()).padStart(3,'0');
+}
+
+function levelBadgeStyle(level){
+  const map = {
+    INFO: 'background: var(--bg-accent); color: var(--text-accent);',
+    WARN: 'background: var(--bg-warning); color: var(--text-warning);',
+    ERROR: 'background: var(--bg-danger); color: var(--text-danger);'
+  };
+  return map[level];
+}
+
+function highlightMatch(text, query){
+  if(!query) return text;
+  const idx = text.toLowerCase().indexOf(query.toLowerCase());
+  if(idx === -1) return text;
+  const before = text.slice(0, idx);
+  const match = text.slice(idx, idx+query.length);
+  const after = text.slice(idx+query.length);
+  return before + '<mark style="background:#FAC775; color:#412402; border-radius:2px;">' + match + '</mark>' + after;
+}
+
+function renderLine(log, animate){
+  const query = searchInput.value.trim();
+  const row = document.createElement('div');
+  row.dataset.id = log.id;
+  row.style.cssText = 'display:flex; align-items:center; gap:10px; padding:5px 12px; border-bottom:0.5px solid var(--border); cursor:pointer; opacity:1;';
+  if(animate){
+    row.style.transform = 'translateX(-20px)';
+    row.style.opacity = '0';
+    row.style.transition = 'transform 0.35s ease-out, opacity 0.35s ease-out';
+  }
+  const matches = query && (log.msg.toLowerCase().includes(query.toLowerCase()) || log.service.toLowerCase().includes(query.toLowerCase()));
+
+  row.innerHTML =
+    '<span style="' + levelBadgeStyle(log.level) + ' font-size:10px; font-weight:500; padding:1px 6px; border-radius:4px; min-width:44px; text-align:center; flex-shrink:0;">' + log.level + '</span>' +
+    '<span style="color: var(--text-muted); flex-shrink:0; min-width:70px;">' + log.service + '</span>' +
+    '<span style="color: var(--text-primary); flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + highlightMatch(log.msg, query) + '</span>';
+
+  if(matches){
+    row.style.background = 'rgba(250,199,117,0.12)';
+  }
+
+  row.addEventListener('mouseenter', (e)=>{
+    tooltip.textContent = fmtTime(log.time);
+    tooltip.style.display = 'block';
+  });
+  row.addEventListener('mousemove', (e)=>{
+    tooltip.style.left = (e.clientX + 12) + 'px';
+    tooltip.style.top = (e.clientY + 12) + 'px';
+  });
+  row.addEventListener('mouseleave', ()=>{
+    tooltip.style.display = 'none';
+  });
+  row.addEventListener('click', ()=>{
+    modalBody.textContent =
+      'time: ' + fmtTime(log.time) + '\\n' +
+      'level: ' + log.level + '\\n' +
+      'service: ' + log.service + '\\n' +
+      'trace id: ' + log.trace + '\\n' +
+      'message: ' + log.msg;
+    modalWrap.style.display = 'flex';
+  });
+
+  container.appendChild(row);
+  if(animate){
+    requestAnimationFrame(()=>{
+      requestAnimationFrame(()=>{
+        row.style.transform = 'translateX(0)';
+        row.style.opacity = '1';
+      });
+    });
+  }
+  if(log.level === 'ERROR' && animate){
+    row.style.textShadow = '0 0 6px rgba(226,75,74,0.6)';
+    const originalBg = row.style.background;
+    row.style.background = 'rgba(226,75,74,0.25)';
+    setTimeout(()=>{
+      row.style.transition = 'background 0.6s ease-out, text-shadow 0.6s ease-out';
+      row.style.background = matches ? 'rgba(250,199,117,0.12)' : '';
+      row.style.textShadow = 'none';
+    }, 400);
+  }
+  return row;
+}
+
+function addLog(){
+  if(paused) return;
+  const log = makeLog();
+  logs.push(log);
+  if(logs.length > 200){
+    logs.shift();
+    if(container.firstChild) container.removeChild(container.firstChild);
+  }
+  const row = renderLine(log, true);
+  container.scrollTop = container.scrollHeight;
+}
+
+function rerenderAll(){
+  container.innerHTML = '';
+  logs.forEach(l => renderLine(l, false));
+  container.scrollTop = container.scrollHeight;
+}
+
+for(let i=0;i<15;i++){
+  logs.push(makeLog());
+}
+rerenderAll();
+
+setInterval(addLog, 1400);
+
+searchInput.addEventListener('input', ()=>{
+  rerenderAll();
+  const query = searchInput.value.trim();
+  if(query){
+    const match = Array.from(container.children).find(r => {
+      const log = logs.find(l => l.id === Number(r.dataset.id));
+      return log && (log.msg.toLowerCase().includes(query.toLowerCase()) || log.service.toLowerCase().includes(query.toLowerCase()));
+    });
+    if(match) match.scrollIntoView({block:'center'});
+  }
+});
+
+pauseBtn.addEventListener('click', ()=>{
+  paused = !paused;
+  pauseBtn.innerHTML = paused
+    ? '<i class="ti ti-player-play" aria-hidden="true" style="font-size:16px; vertical-align:-2px; margin-right:4px;"></i>Resume'
+    : '<i class="ti ti-player-pause" aria-hidden="true" style="font-size:16px; vertical-align:-2px; margin-right:4px;"></i>Pause';
+});
+
+closeModal.addEventListener('click', ()=>{ modalWrap.style.display = 'none'; });
+modalWrap.addEventListener('click', (e)=>{ if(e.target === modalWrap) modalWrap.style.display = 'none'; });
+</script>

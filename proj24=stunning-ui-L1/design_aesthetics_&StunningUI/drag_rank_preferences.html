@@ -1,0 +1,183 @@
+<h2 class="sr-only">Drag to rank features by importance, then submit your ranking</h2>
+<div style="max-width:420px;margin:0 auto;">
+  <p style="font-size:14px;color:var(--text-secondary);margin:0 0 1rem;">Drag to rank by what matters most to you</p>
+  <div id="list" style="position:relative;display:flex;flex-direction:column;gap:8px;"></div>
+  <button id="submit-btn" style="width:100%;margin-top:1.25rem;">Submit ranking</button>
+  <div id="toast" style="position:fixed;bottom:24px;left:50%;transform:translate(-50%,20px);background:var(--surface-2);border:0.5px solid var(--border-strong);border-radius:var(--radius);padding:10px 18px;font-size:14px;font-weight:500;display:flex;align-items:center;gap:8px;opacity:0;pointer-events:none;transition:opacity 0.25s ease,transform 0.25s ease;z-index:50;">
+    <i class="ti ti-check" style="color:var(--text-success);font-size:18px;" aria-hidden="true"></i>
+    <span id="toast-text">Ranking submitted</span>
+  </div>
+  <canvas id="confetti" style="position:fixed;inset:0;pointer-events:none;z-index:40;"></canvas>
+</div>
+<script>
+(function(){
+  var items = [
+    {id:'camera', label:'Camera quality', icon:'ti-camera'},
+    {id:'battery', label:'Battery life', icon:'ti-battery-4'},
+    {id:'price', label:'Price', icon:'ti-tag'},
+    {id:'screen', label:'Screen quality', icon:'ti-device-mobile'},
+    {id:'performance', label:'Performance', icon:'ti-cpu'}
+  ];
+
+  var list = document.getElementById('list');
+  var ITEM_H = 52;
+  var GAP = 8;
+  var rowH = ITEM_H + GAP;
+
+  function render(){
+    list.innerHTML = '';
+    list.style.height = (items.length * rowH - GAP) + 'px';
+    items.forEach(function(item, i){
+      var row = document.createElement('div');
+      row.className = 'rank-row';
+      row.dataset.id = item.id;
+      row.style.cssText = 'position:absolute;left:0;right:0;top:'+ (i*rowH) +'px;height:'+ITEM_H+'px;background:var(--surface-2);border:0.5px solid var(--border);border-radius:var(--radius);display:flex;align-items:center;padding:0 12px;gap:10px;transition:top 0.35s cubic-bezier(0.34,1.56,0.64,1),box-shadow 0.15s ease,border-color 0.15s ease;cursor:grab;touch-action:none;user-select:none;';
+      row.innerHTML =
+        '<span style="width:22px;height:22px;border-radius:50%;background:var(--surface-1);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;color:var(--text-secondary);flex-shrink:0;">'+(i+1)+'</span>'+
+        '<i class="ti '+item.icon+'" style="font-size:18px;color:var(--text-secondary);flex-shrink:0;" aria-hidden="true"></i>'+
+        '<span style="font-size:14px;flex:1;">'+item.label+'</span>'+
+        '<i class="ti ti-grip-vertical" style="font-size:18px;color:var(--text-muted);flex-shrink:0;" aria-hidden="true"></i>';
+      row.addEventListener('mouseenter', function(){ if(!row.classList.contains('dragging')) row.style.borderColor='var(--border-strong)'; });
+      row.addEventListener('mouseleave', function(){ if(!row.classList.contains('dragging')) row.style.borderColor='var(--border)'; });
+      row.addEventListener('pointerdown', onDown);
+      list.appendChild(row);
+    });
+  }
+
+  var dragging = null;
+  var startY = 0, startTop = 0, currentIndex = 0;
+
+  function onDown(e){
+    var row = e.currentTarget;
+    dragging = row;
+    currentIndex = items.findIndex(function(it){ return it.id === row.dataset.id; });
+    startY = e.clientY;
+    startTop = currentIndex * rowH;
+    row.setPointerCapture(e.pointerId);
+    row.classList.add('dragging');
+    row.style.transition = 'box-shadow 0.15s ease';
+    row.style.zIndex = 10;
+    row.style.boxShadow = '0 10px 24px rgba(0,0,0,0.18)';
+    row.style.transform = 'scale(1.05)';
+    row.style.cursor = 'grabbing';
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
+  }
+
+  function onMove(e){
+    if(!dragging) return;
+    var dy = e.clientY - startY;
+    var newTop = startTop + dy;
+    dragging.style.top = newTop + 'px';
+
+    var targetIndex = Math.round(newTop / rowH);
+    targetIndex = Math.max(0, Math.min(items.length - 1, targetIndex));
+
+    if(targetIndex !== currentIndex){
+      var moved = items.splice(currentIndex, 1)[0];
+      items.splice(targetIndex, 0, moved);
+      currentIndex = targetIndex;
+      items.forEach(function(item, i){
+        if(item.id === dragging.dataset.id) return;
+        var el = list.querySelector('[data-id="'+item.id+'"]');
+        if(el){
+          el.style.top = (i * rowH) + 'px';
+          var numEl = el.querySelector('span');
+          if(numEl) numEl.textContent = (i+1);
+        }
+      });
+    }
+  }
+
+  function onUp(e){
+    if(!dragging) return;
+    var row = dragging;
+    var finalIndex = items.findIndex(function(it){ return it.id === row.dataset.id; });
+    row.style.transition = 'top 0.35s cubic-bezier(0.34,1.56,0.64,1),box-shadow 0.2s ease,transform 0.2s cubic-bezier(0.34,1.56,0.64,1)';
+    row.style.top = (finalIndex * rowH) + 'px';
+    row.style.boxShadow = 'none';
+    row.style.transform = 'scale(1)';
+    row.style.cursor = 'grab';
+    row.style.zIndex = 1;
+    var numEl = row.querySelector('span');
+    if(numEl) numEl.textContent = (finalIndex+1);
+    setTimeout(function(){ row.classList.remove('dragging'); }, 350);
+    dragging = null;
+    document.removeEventListener('pointermove', onMove);
+    document.removeEventListener('pointerup', onUp);
+  }
+
+  render();
+
+  document.getElementById('submit-btn').addEventListener('click', function(){
+    var toast = document.getElementById('toast');
+    toast.style.opacity = '1';
+    toast.style.transform = 'translate(-50%,0)';
+    setTimeout(function(){
+      toast.style.opacity = '0';
+      toast.style.transform = 'translate(-50%,20px)';
+    }, 2200);
+    burstConfetti();
+  });
+
+  function burstConfetti(){
+    var canvas = document.getElementById('confetti');
+    var dpr = window.devicePixelRatio || 1;
+    canvas.width = window.innerWidth * dpr;
+    canvas.height = window.innerHeight * dpr;
+    canvas.style.width = window.innerWidth + 'px';
+    canvas.style.height = window.innerHeight + 'px';
+    var ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    var colors = ['#7F77DD','#1D9E75','#D85A30','#D4537E','#378ADD'];
+    var rect = document.getElementById('submit-btn').getBoundingClientRect();
+    var originX = rect.left + rect.width/2;
+    var originY = rect.top;
+    var particles = [];
+    for(var i=0;i<80;i++){
+      var angle = (Math.random() * Math.PI) + Math.PI;
+      var speed = 4 + Math.random() * 6;
+      particles.push({
+        x: originX, y: originY,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 2,
+        size: 4 + Math.random()*4,
+        color: colors[Math.floor(Math.random()*colors.length)],
+        rot: Math.random()*360,
+        vrot: (Math.random()-0.5)*20,
+        life: 1
+      });
+    }
+    var frame = 0;
+    function tick(){
+      frame++;
+      ctx.clearRect(0,0,window.innerWidth,window.innerHeight);
+      var alive = false;
+      particles.forEach(function(p){
+        if(p.life <= 0) return;
+        p.vy += 0.25;
+        p.x += p.vx;
+        p.y += p.vy;
+        p.rot += p.vrot;
+        p.life -= 0.012;
+        if(p.life > 0){
+          alive = true;
+          ctx.save();
+          ctx.globalAlpha = Math.max(p.life,0);
+          ctx.translate(p.x, p.y);
+          ctx.rotate(p.rot * Math.PI/180);
+          ctx.fillStyle = p.color;
+          ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size*0.6);
+          ctx.restore();
+        }
+      });
+      if(alive && frame < 200){
+        requestAnimationFrame(tick);
+      } else {
+        ctx.clearRect(0,0,window.innerWidth,window.innerHeight);
+      }
+    }
+    tick();
+  }
+})();
+</script>

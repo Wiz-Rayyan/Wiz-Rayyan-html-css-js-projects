@@ -1,0 +1,197 @@
+<h2 class="sr-only">A submit button that morphs between idle, loading, success, and error states with an animated icon and confetti on success.</h2>
+<div style="display:flex; flex-direction:column; align-items:center; gap:1.75rem; padding:1rem 0 0.5rem;">
+
+  <div style="position:relative; width:100%; max-width:420px; height:120px; display:flex; align-items:center; justify-content:center; overflow:visible;">
+    <canvas id="confetti" style="position:absolute; inset:0; width:100%; height:100%; pointer-events:none;"></canvas>
+    <button id="morphBtn" style="position:relative; display:inline-flex; align-items:center; justify-content:center; gap:8px; height:44px; padding:0 22px; border-radius:22px; border:0.5px solid var(--border-strong); background:var(--fill-primary); color:var(--on-primary); font-size:14px; font-weight:500; cursor:pointer; transition:width 0.35s var(--ease-out, ease), background-color 0.25s ease, border-color 0.25s ease; width:112px;">
+      <svg id="btnIcon" width="16" height="16" viewBox="0 0 16 16" style="flex:0 0 auto; overflow:visible;">
+        <circle id="spinner" cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="28" stroke-dashoffset="21" opacity="0" style="transform-origin:8px 8px;"></circle>
+        <path id="check" d="M3.5 8.5 L6.5 11.5 L12.5 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="16" stroke-dashoffset="16" opacity="0"></path>
+        <path id="cross" d="M4 4 L12 12 M12 4 L4 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="12" stroke-dashoffset="12" opacity="0"></path>
+      </svg>
+      <span id="btnLabel">Submit</span>
+    </button>
+  </div>
+
+  <div style="display:flex; gap:8px;">
+    <button id="forceSuccess" style="font-size:13px; padding:6px 14px;">Try a success</button>
+    <button id="forceError" style="font-size:13px; padding:6px 14px;">Try an error</button>
+  </div>
+
+</div>
+<script>
+(function(){
+  var btn = document.getElementById('morphBtn');
+  var label = document.getElementById('btnLabel');
+  var spinner = document.getElementById('spinner');
+  var check = document.getElementById('check');
+  var cross = document.getElementById('cross');
+  var canvas = document.getElementById('confetti');
+  var forceSuccessBtn = document.getElementById('forceSuccess');
+  var forceErrorBtn = document.getElementById('forceError');
+
+  var state = 'idle';
+  var spinTimer = null;
+  var resetTimer = null;
+  var pendingOutcome = null;
+
+  function setIcon(name){
+    spinner.style.opacity = name === 'loading' ? '1' : '0';
+    check.style.opacity = name === 'success' ? '1' : '0';
+    check.style.strokeDashoffset = name === 'success' ? '0' : '16';
+    cross.style.opacity = name === 'error' ? '1' : '0';
+    cross.style.strokeDashoffset = name === 'error' ? '0' : '12';
+    check.style.transition = 'stroke-dashoffset 0.35s ease 0.05s, opacity 0.15s ease';
+    cross.style.transition = 'stroke-dashoffset 0.3s ease 0.05s, opacity 0.15s ease';
+  }
+
+  function widthFor(text){
+    var probe = document.createElement('span');
+    probe.style.font = window.getComputedStyle(label).font;
+    probe.style.position = 'absolute';
+    probe.style.visibility = 'hidden';
+    probe.style.whiteSpace = 'nowrap';
+    probe.textContent = text;
+    document.body.appendChild(probe);
+    var w = probe.offsetWidth;
+    document.body.removeChild(probe);
+    return Math.max(112, w + 22 + 22 + 16 + 8);
+  }
+
+  function goIdle(){
+    state = 'idle';
+    clearInterval(spinTimer);
+    btn.style.background = 'var(--fill-primary)';
+    btn.style.borderColor = 'var(--border-strong)';
+    btn.style.color = 'var(--on-primary)';
+    label.textContent = 'Submit';
+    setIcon('none');
+    btn.style.width = widthFor('Submit') + 'px';
+    btn.style.animation = '';
+    btn.disabled = false;
+  }
+
+  function goLoading(){
+    state = 'loading';
+    label.textContent = 'Submitting…';
+    setIcon('loading');
+    btn.style.width = widthFor('Submitting…') + 'px';
+    btn.disabled = true;
+    var rot = 0;
+    spinTimer = setInterval(function(){
+      rot = (rot + 12) % 360;
+      spinner.style.transform = 'rotate(' + rot + 'deg)';
+    }, 16);
+  }
+
+  function goSuccess(){
+    clearInterval(spinTimer);
+    state = 'success';
+    label.textContent = 'Sent';
+    btn.style.background = 'var(--fill-success)';
+    btn.style.borderColor = 'var(--fill-success)';
+    btn.style.color = 'var(--on-success)';
+    setIcon('success');
+    btn.style.width = widthFor('Sent') + 'px';
+    burstConfetti();
+    resetTimer = setTimeout(goIdle, 2200);
+    btn.disabled = false;
+  }
+
+  function goError(){
+    clearInterval(spinTimer);
+    state = 'error';
+    label.textContent = 'Try again';
+    btn.style.background = 'var(--fill-danger)';
+    btn.style.borderColor = 'var(--fill-danger)';
+    btn.style.color = 'var(--on-danger)';
+    setIcon('error');
+    btn.style.width = widthFor('Try again') + 'px';
+    shake();
+    btn.disabled = false;
+  }
+
+  function shake(){
+    btn.style.animation = 'none';
+    void btn.offsetWidth;
+    btn.style.animation = 'morphShake 0.45s ease';
+  }
+
+  var styleTag = document.createElement('style');
+  styleTag.textContent = '@keyframes morphShake{10%,90%{transform:translateX(-1px)}20%,80%{transform:translateX(2px)}30%,50%,70%{transform:translateX(-4px)}40%,60%{transform:translateX(4px)}}';
+  document.head.appendChild(styleTag);
+
+  function burstConfetti(){
+    var ctx = canvas.getContext('2d');
+    var dpr = window.devicePixelRatio || 1;
+    var rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.scale(dpr, dpr);
+    var cx = rect.width / 2;
+    var cy = rect.height / 2 - 10;
+    var colors = ['#1D9E75','#639922','#378ADD','#7F77DD','#D85A30'];
+    var particles = [];
+    for (var i = 0; i < 34; i++){
+      var angle = Math.random() * Math.PI * 2;
+      var speed = 2 + Math.random() * 3.5;
+      particles.push({
+        x: cx, y: cy,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 1.5,
+        size: 3 + Math.random() * 3,
+        color: colors[i % colors.length],
+        rot: Math.random() * Math.PI,
+        vr: (Math.random() - 0.5) * 0.4,
+        life: 1
+      });
+    }
+    var start = null;
+    function frame(ts){
+      if (!start) start = ts;
+      var elapsed = ts - start;
+      ctx.clearRect(0, 0, rect.width, rect.height);
+      particles.forEach(function(p){
+        p.vy += 0.12;
+        p.x += p.vx;
+        p.y += p.vy;
+        p.rot += p.vr;
+        p.life -= 0.012;
+        if (p.life > 0){
+          ctx.save();
+          ctx.globalAlpha = Math.max(p.life, 0);
+          ctx.translate(p.x, p.y);
+          ctx.rotate(p.rot);
+          ctx.fillStyle = p.color;
+          ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
+          ctx.restore();
+        }
+      });
+      if (elapsed < 1400){
+        requestAnimationFrame(frame);
+      } else {
+        ctx.clearRect(0, 0, rect.width, rect.height);
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function trigger(outcome){
+    if (state === 'loading') return;
+    clearTimeout(resetTimer);
+    pendingOutcome = outcome;
+    goLoading();
+    setTimeout(function(){
+      if (pendingOutcome === 'error') goError(); else goSuccess();
+    }, 1100);
+  }
+
+  btn.addEventListener('click', function(){
+    if (state === 'idle' || state === 'error') trigger('success');
+  });
+  forceSuccessBtn.addEventListener('click', function(){ trigger('success'); });
+  forceErrorBtn.addEventListener('click', function(){ trigger('error'); });
+
+  goIdle();
+})();
+</script>

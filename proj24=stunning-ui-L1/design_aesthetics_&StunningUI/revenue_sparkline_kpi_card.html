@@ -1,0 +1,219 @@
+<h2 class="sr-only">Revenue KPI card with a mini trend sparkline. Hover the sparkline to see all values, click to open the full chart, or press update to redraw the trend with new data.</h2>
+
+<div id="card" style="background: var(--surface-2); border-radius: 12px; border: 0.5px solid var(--border); padding: 1.25rem 1.25rem 1rem; max-width: 340px;">
+  <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+    <div>
+      <p style="font-size: 13px; color: var(--text-secondary); margin: 0 0 4px;">Revenue</p>
+      <p id="value" style="font-size: 26px; font-weight: 500; margin: 0; font-variant-numeric: tabular-nums;">$84.2k</p>
+    </div>
+    <span id="delta" style="font-size: 12px; font-weight: 500; padding: 3px 8px; border-radius: var(--radius); background: var(--bg-success); color: var(--text-success); display: flex; align-items: center; gap: 2px;">
+      <i class="ti ti-arrow-up-right" aria-hidden="true" style="font-size: 13px;"></i>12.4%
+    </span>
+  </div>
+
+  <div id="sparkwrap" style="position: relative; margin-top: 14px; height: 72px; cursor: pointer;">
+    <svg id="spark" viewBox="0 0 300 72" width="100%" height="72" preserveAspectRatio="none" style="display: block; overflow: visible;">
+      <defs>
+        <linearGradient id="fillGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#1baf7a" stop-opacity="0.22"/>
+          <stop offset="100%" stop-color="#1baf7a" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      <path id="areaPath" d="" fill="url(#fillGrad)" stroke="none"></path>
+      <path id="linePath" d="" fill="none" stroke="#1baf7a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+      <line id="hoverLine" x1="0" y1="0" x2="0" y2="72" stroke="var(--border-strong)" stroke-width="1" opacity="0"></line>
+      <circle id="hoverDot" r="3.5" fill="#1baf7a" opacity="0"></circle>
+      <circle id="endDot" r="4" fill="#1baf7a"></circle>
+      <circle id="endPulse" r="4" fill="none" stroke="#1baf7a" stroke-width="2"></circle>
+    </svg>
+    <div id="tooltip" style="position: absolute; top: -8px; transform: translate(-50%, -100%); background: var(--surface-3); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 4px 8px; font-size: 12px; white-space: nowrap; pointer-events: none; opacity: 0; box-shadow: var(--shadow-popover);">
+      <span id="tooltipDay" style="color: var(--text-secondary);"></span>
+      <span id="tooltipVal" style="font-weight: 500; margin-left: 6px;"></span>
+    </div>
+  </div>
+
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+    <p style="font-size: 12px; color: var(--text-muted); margin: 0;">Last 14 days</p>
+    <button id="updateBtn" style="font-size: 12px; padding: 4px 10px;"><i class="ti ti-refresh" aria-hidden="true" style="font-size: 13px; vertical-align: -2px; margin-right: 3px;"></i>Update</button>
+  </div>
+</div>
+
+<div id="modalRoot"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+(function(){
+  var W = 300, H = 72, PAD = 6;
+  var days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun','Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  var data = [62,65,60,68,74,71,78,75,82,79,88,85,90,84.2];
+
+  function scaleX(i, n){ return (i/(n-1)) * W; }
+  function scaleY(v, min, max){
+    if(max === min) return H/2;
+    return H - PAD - ((v - min) / (max - min)) * (H - PAD*2);
+  }
+
+  function buildPaths(vals){
+    var min = Math.min.apply(null, vals);
+    var max = Math.max.apply(null, vals);
+    var n = vals.length;
+    var pts = vals.map(function(v,i){ return [scaleX(i,n), scaleY(v,min,max)]; });
+    var line = 'M' + pts.map(function(p){ return p[0].toFixed(1)+','+p[1].toFixed(1); }).join(' L');
+    var area = line + ' L' + W + ',' + H + ' L0,' + H + ' Z';
+    return { line: line, area: area, pts: pts, min: min, max: max };
+  }
+
+  var linePath = document.getElementById('linePath');
+  var areaPath = document.getElementById('areaPath');
+  var endDot = document.getElementById('endDot');
+  var endPulse = document.getElementById('endPulse');
+  var valueEl = document.getElementById('value');
+  var deltaEl = document.getElementById('delta');
+
+  var currentPts = [];
+
+  function render(vals, animate){
+    var b = buildPaths(vals);
+    currentPts = b.pts.map(function(p,i){ return {x:p[0], y:p[1], v:vals[i], day: days[i % days.length]}; });
+
+    if(animate){
+      var len = linePath.getTotalLength ? null : null;
+      linePath.setAttribute('d', b.line);
+      areaPath.setAttribute('d', b.area);
+      var length = linePath.getTotalLength();
+      linePath.style.transition = 'none';
+      linePath.style.strokeDasharray = length;
+      linePath.style.strokeDashoffset = length;
+      areaPath.style.transition = 'none';
+      areaPath.style.opacity = '0';
+      void linePath.getBoundingClientRect();
+      linePath.style.transition = 'stroke-dashoffset 0.8s cubic-bezier(.4,0,.2,1)';
+      areaPath.style.transition = 'opacity 0.8s ease 0.3s';
+      linePath.style.strokeDashoffset = '0';
+      areaPath.style.opacity = '1';
+    } else {
+      linePath.setAttribute('d', b.line);
+      areaPath.setAttribute('d', b.area);
+    }
+
+    var last = b.pts[b.pts.length - 1];
+    endDot.setAttribute('cx', last[0]);
+    endDot.setAttribute('cy', last[1]);
+    endPulse.setAttribute('cx', last[0]);
+    endPulse.setAttribute('cy', last[1]);
+
+    var total = vals.reduce(function(a,b){return a+b;}, 0);
+    valueEl.textContent = '$' + total.toFixed(1) + 'k';
+    var change = ((vals[vals.length-1] - vals[0]) / vals[0]) * 100;
+    var up = change >= 0;
+    deltaEl.style.background = up ? 'var(--bg-success)' : 'var(--bg-danger)';
+    deltaEl.style.color = up ? 'var(--text-success)' : 'var(--text-danger)';
+    deltaEl.innerHTML = '<i class="ti ti-arrow-' + (up ? 'up-right' : 'down-right') + '" aria-hidden="true" style="font-size:13px;"></i>' + Math.abs(change).toFixed(1) + '%';
+  }
+
+  render(data, true);
+
+  endPulse.style.animation = 'sparkPulse 2s ease-out infinite';
+  var styleTag = document.createElement('style');
+  styleTag.textContent = '@keyframes sparkPulse { 0% { r: 4; opacity: 0.8; } 100% { r: 11; opacity: 0; } }';
+  document.head.appendChild(styleTag);
+
+  var svg = document.getElementById('spark');
+  var wrap = document.getElementById('sparkwrap');
+  var hoverLine = document.getElementById('hoverLine');
+  var hoverDot = document.getElementById('hoverDot');
+  var tooltip = document.getElementById('tooltip');
+  var tooltipDay = document.getElementById('tooltipDay');
+  var tooltipVal = document.getElementById('tooltipVal');
+
+  function pointerMove(clientX){
+    var rect = svg.getBoundingClientRect();
+    var relX = (clientX - rect.left) / rect.width * W;
+    var closest = currentPts[0];
+    var minDist = Infinity;
+    currentPts.forEach(function(p){
+      var d = Math.abs(p.x - relX);
+      if(d < minDist){ minDist = d; closest = p; }
+    });
+    hoverLine.setAttribute('x1', closest.x);
+    hoverLine.setAttribute('x2', closest.x);
+    hoverLine.setAttribute('opacity', '1');
+    hoverDot.setAttribute('cx', closest.x);
+    hoverDot.setAttribute('cy', closest.y);
+    hoverDot.setAttribute('opacity', '1');
+
+    var pctX = (closest.x / W) * rect.width;
+    tooltip.style.left = pctX + 'px';
+    tooltip.style.opacity = '1';
+    tooltipDay.textContent = closest.day;
+    tooltipVal.textContent = '$' + closest.v.toFixed(1) + 'k';
+  }
+
+  wrap.addEventListener('mousemove', function(e){ pointerMove(e.clientX); });
+  wrap.addEventListener('mouseleave', function(){
+    hoverLine.setAttribute('opacity', '0');
+    hoverDot.setAttribute('opacity', '0');
+    tooltip.style.opacity = '0';
+  });
+
+  document.getElementById('updateBtn').addEventListener('click', function(){
+    var newData = data.map(function(v){
+      var next = v + (Math.random() * 16 - 7);
+      return Math.max(20, Math.round(next * 10) / 10);
+    });
+    data = newData;
+    render(data, true);
+  });
+
+  wrap.addEventListener('click', function(){ openModal(); });
+
+  function openModal(){
+    var root = document.getElementById('modalRoot');
+    root.innerHTML = '';
+    var overlay = document.createElement('div');
+    overlay.style.cssText = 'min-height: 460px; background: rgba(0,0,0,0.45); display: flex; align-items: center; justify-content: center; border-radius: 12px; padding: 1rem;';
+    var modal = document.createElement('div');
+    modal.style.cssText = 'background: var(--surface-2); border-radius: 12px; border: 0.5px solid var(--border); padding: 1.25rem; width: 100%; max-width: 460px;';
+    modal.innerHTML =
+      '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">' +
+        '<div>' +
+          '<p style="font-size:13px; color:var(--text-secondary); margin:0 0 2px;">Revenue, full trend</p>' +
+          '<p style="font-size:20px; font-weight:500; margin:0;">' + valueEl.textContent + '</p>' +
+        '</div>' +
+        '<button id="closeModal" aria-label="Close" style="width:32px; height:32px; padding:0; display:flex; align-items:center; justify-content:center;"><i class="ti ti-x" aria-hidden="true" style="font-size:16px;"></i></button>' +
+      '</div>' +
+      '<div style="position:relative; height:260px;"><canvas id="fullChart" role="img" aria-label="Line chart of daily revenue over the last 14 days"></canvas></div>';
+    overlay.appendChild(modal);
+    root.appendChild(overlay);
+
+    document.getElementById('closeModal').addEventListener('click', function(){ root.innerHTML = ''; });
+    overlay.addEventListener('click', function(e){ if(e.target === overlay) root.innerHTML = ''; });
+
+    new Chart(document.getElementById('fullChart'), {
+      type: 'line',
+      data: {
+        labels: days,
+        datasets: [{
+          label: 'Revenue ($k)',
+          data: data,
+          borderColor: '#1baf7a',
+          backgroundColor: 'rgba(27,175,122,0.12)',
+          borderWidth: 2,
+          pointRadius: 3,
+          pointBackgroundColor: '#1baf7a',
+          fill: true,
+          tension: 0.3
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { ticks: { callback: function(v){ return '$' + v + 'k'; } } }
+        }
+      }
+    });
+  }
+})();
+</script>

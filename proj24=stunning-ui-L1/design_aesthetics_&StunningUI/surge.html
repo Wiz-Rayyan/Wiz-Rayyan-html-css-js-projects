@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SURGE — Feel the current</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cyan:#00FFFF;
+    --magenta:#FF00FF;
+    --yellow:#FFE600;
+    --orange:#FF6600;
+    --green:#00FF00;
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box;}
+
+  html{scroll-behavior:smooth;}
+
+  body{
+    font-family:'Inter',Helvetica,Arial,sans-serif;
+    background:#050006;
+    color:#fff;
+    overflow-x:hidden;
+  }
+
+  /* grain texture, layered over everything */
+  .grain{
+    position:fixed;
+    inset:0;
+    z-index:999;
+    pointer-events:none;
+    opacity:0.07;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* ---------- NAV ---------- */
+  nav{
+    position:fixed;
+    top:0; left:0; right:0;
+    z-index:100;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:20px 40px;
+    backdrop-filter:blur(10px);
+    background:rgba(5,0,6,0.35);
+  }
+
+  .logo{
+    font-size:26px;
+    font-weight:900;
+    letter-spacing:1px;
+    background:linear-gradient(90deg,var(--cyan),var(--magenta),var(--yellow),var(--orange),var(--green));
+    background-size:400% 100%;
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+    animation:hueflow 6s linear infinite;
+  }
+
+  .navlinks{display:flex;gap:36px;}
+  .navlinks a{
+    color:#fff;
+    text-decoration:none;
+    font-weight:600;
+    font-size:14px;
+    letter-spacing:0.5px;
+    opacity:0.85;
+    transition:opacity 0.2s, text-shadow 0.2s;
+  }
+  .navlinks a:hover{
+    opacity:1;
+    text-shadow:0 0 12px rgba(255,255,255,0.8);
+  }
+
+  @keyframes hueflow{
+    0%{background-position:0% 50%;}
+    100%{background-position:400% 50%;}
+  }
+
+  /* ---------- HERO ---------- */
+  .hero{
+    position:relative;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding:0 24px;
+    background:linear-gradient(120deg,var(--cyan),var(--magenta),var(--yellow),var(--orange),var(--green),var(--cyan));
+    background-size:400% 400%;
+    animation:gradientshift 18s ease infinite;
+  }
+
+  @keyframes gradientshift{
+    0%{background-position:0% 50%;}
+    50%{background-position:100% 50%;}
+    100%{background-position:0% 50%;}
+  }
+
+  .hero.boosted{animation-duration:4s;}
+
+  .hero-inner{
+    position:relative;
+    z-index:2;
+    opacity:0;
+    transform:translateY(24px);
+    animation:riseIn 1s ease forwards 0.2s;
+  }
+
+  @keyframes riseIn{
+    to{opacity:1;transform:translateY(0);}
+  }
+
+  .eyebrow{
+    font-size:13px;
+    font-weight:800;
+    letter-spacing:4px;
+    text-transform:uppercase;
+    color:#000;
+    background:#fff;
+    display:inline-block;
+    padding:6px 16px;
+    border-radius:100px;
+    margin-bottom:28px;
+  }
+
+  h1{
+    font-size:clamp(48px,10vw,120px);
+    font-weight:900;
+    line-height:0.95;
+    letter-spacing:-2px;
+    color:#fff;
+    text-shadow:0 0 40px rgba(255,255,255,0.5), 0 0 80px rgba(255,0,255,0.4);
+    mix-blend-mode:overlay;
+  }
+
+  h1 span{
+    display:block;
+    -webkit-text-stroke:2px #fff;
+    color:transparent;
+    mix-blend-mode:normal;
+  }
+
+  .hero p{
+    max-width:520px;
+    margin:28px auto 40px;
+    font-size:18px;
+    font-weight:600;
+    color:#fff;
+    opacity:0.95;
+  }
+
+  .cta-row{
+    display:flex;
+    gap:16px;
+    justify-content:center;
+    flex-wrap:wrap;
+  }
+
+  button.btn, a.btn{
+    position:relative;
+    overflow:hidden;
+    border:none;
+    cursor:pointer;
+    font-family:inherit;
+    font-weight:800;
+    font-size:15px;
+    letter-spacing:0.5px;
+    padding:16px 36px;
+    border-radius:100px;
+    color:#000;
+    background:#fff;
+    transition:transform 0.15s ease, box-shadow 0.3s ease;
+    text-decoration:none;
+    display:inline-block;
+  }
+
+  .btn.primary{
+    color:#fff;
+    background:linear-gradient(135deg,var(--magenta),var(--orange),var(--yellow));
+    background-size:200% 200%;
+    background-position:0% 0%;
+    transition:background-position 0.4s ease, transform 0.15s ease;
+  }
+  .btn.primary:hover{
+    background-position:100% 100%;
+    transform:translateY(-2px) scale(1.03);
+    box-shadow:0 8px 30px rgba(255,0,255,0.5);
+  }
+  .btn.ghost:hover{
+    transform:translateY(-2px) scale(1.03);
+    box-shadow:0 8px 24px rgba(255,255,255,0.35);
+  }
+
+  .flash{
+    position:absolute;
+    inset:0;
+    border-radius:inherit;
+    background:radial-gradient(circle, #fff 0%, transparent 70%);
+    opacity:0;
+    pointer-events:none;
+  }
+  .flash.burst{
+    animation:burst 0.5s ease-out;
+  }
+  @keyframes burst{
+    0%{opacity:0.9; transform:scale(0.2);}
+    100%{opacity:0; transform:scale(2.6);}
+  }
+
+  .scroll-cue{
+    position:absolute;
+    bottom:36px;
+    left:50%;
+    transform:translateX(-50%);
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:3px;
+    text-transform:uppercase;
+    color:#fff;
+    opacity:0.8;
+    animation:bob 2s ease-in-out infinite;
+  }
+  @keyframes bob{
+    0%,100%{transform:translate(-50%,0);}
+    50%{transform:translate(-50%,8px);}
+  }
+
+  /* ---------- SECTION SHARED ---------- */
+  section{
+    padding:120px 40px;
+    max-width:1200px;
+    margin:0 auto;
+  }
+
+  .section-head{
+    text-align:center;
+    margin-bottom:64px;
+  }
+
+  .section-head .kicker{
+    font-size:13px;
+    font-weight:800;
+    letter-spacing:3px;
+    text-transform:uppercase;
+    background:linear-gradient(90deg,var(--cyan),var(--green));
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+  }
+
+  .section-head h2{
+    font-size:clamp(32px,5vw,56px);
+    font-weight:900;
+    letter-spacing:-1px;
+    margin-top:12px;
+  }
+
+  /* ---------- FLAVOR CARDS ---------- */
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(260px,1fr));
+    gap:28px;
+  }
+
+  .card{
+    position:relative;
+    border-radius:24px;
+    padding:36px 28px;
+    min-height:320px;
+    display:flex;
+    flex-direction:column;
+    justify-content:flex-end;
+    overflow:hidden;
+    color:#fff;
+    background-size:220% 220%;
+    background-position:0% 0%;
+    transition:background-position 0.6s ease, transform 0.35s ease, box-shadow 0.35s ease;
+    cursor:pointer;
+  }
+
+  .card:hover{
+    background-position:100% 100%;
+    transform:translateY(-8px);
+  }
+
+  .card::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    background:linear-gradient(180deg, transparent 30%, rgba(0,0,0,0.55) 100%);
+  }
+
+  .card-content{position:relative; z-index:1;}
+
+  .card-tag{
+    font-size:12px;
+    font-weight:800;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    opacity:0.85;
+    margin-bottom:8px;
+  }
+
+  .card h3{
+    font-size:28px;
+    font-weight:900;
+    letter-spacing:-0.5px;
+  }
+
+  .card p{
+    font-size:14px;
+    font-weight:600;
+    opacity:0.9;
+    margin-top:8px;
+  }
+
+  .card.c1{background-image:linear-gradient(135deg,var(--cyan),var(--magenta));}
+  .card.c2{background-image:linear-gradient(135deg,var(--magenta),var(--yellow));}
+  .card.c3{background-image:linear-gradient(135deg,var(--yellow),var(--orange));}
+  .card.c4{background-image:linear-gradient(135deg,var(--green),var(--cyan));}
+  .card.c5{background-image:linear-gradient(135deg,var(--orange),var(--magenta),var(--cyan));}
+  .card.c6{background-image:linear-gradient(135deg,var(--cyan),var(--green),var(--yellow));}
+
+  /* ---------- STATS STRIP ---------- */
+  .strip{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+    gap:24px;
+    border-radius:24px;
+    padding:48px 32px;
+    background:linear-gradient(115deg,var(--magenta),var(--cyan),var(--green),var(--yellow));
+    background-size:300% 300%;
+    animation:gradientshift 14s ease infinite;
+    text-align:center;
+  }
+  .strip div h4{
+    font-size:44px;
+    font-weight:900;
+  }
+  .strip div p{
+    font-size:13px;
+    font-weight:700;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    opacity:0.9;
+    margin-top:4px;
+  }
+
+  /* ---------- FOOTER CTA ---------- */
+  footer{
+    position:relative;
+    padding:140px 40px 80px;
+    text-align:center;
+    background:linear-gradient(135deg,var(--green),var(--cyan),var(--magenta),var(--orange));
+    background-size:300% 300%;
+    animation:gradientshift 20s ease infinite;
+  }
+  footer h2{
+    font-size:clamp(36px,7vw,72px);
+    font-weight:900;
+    letter-spacing:-1px;
+    margin-bottom:32px;
+  }
+  footer .foot-links{
+    margin-top:70px;
+    display:flex;
+    justify-content:center;
+    gap:32px;
+    flex-wrap:wrap;
+    font-size:13px;
+    font-weight:700;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    opacity:0.85;
+  }
+  footer .foot-links a{color:#fff; text-decoration:none;}
+  footer .foot-links a:hover{text-decoration:underline;}
+
+  @media (max-width:640px){
+    nav{padding:16px 20px;}
+    .navlinks{gap:18px;}
+    .navlinks a{font-size:12px;}
+    section{padding:80px 20px;}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.01ms !important; animation-iteration-count:1 !important; transition-duration:0.01ms !important;}
+  }
+</style>
+</head>
+<body>
+
+<div class="grain"></div>
+
+<nav>
+  <div class="logo">SURGE</div>
+  <div class="navlinks">
+    <a href="#flavors">Flavors</a>
+    <a href="#stats">Why surge</a>
+    <a href="#join">Get it</a>
+  </div>
+</nav>
+
+<section class="hero" id="hero">
+  <div class="hero-inner">
+    <span class="eyebrow">Zero sugar · full voltage</span>
+    <h1>FEEL THE<span>SURGE</span></h1>
+    <p>Five colors, one current. Carbonated energy built for the drop, the set, the 3am second wind.</p>
+    <div class="cta-row">
+      <button class="btn primary" onclick="burst(this)">Shop the drop<span class="flash"></span></button>
+      <a class="btn ghost" href="#flavors" onclick="burst(this)">See flavors<span class="flash"></span></a>
+    </div>
+  </div>
+  <div class="scroll-cue">Scroll ↓</div>
+</section>
+
+<section id="flavors">
+  <div class="section-head">
+    <div class="kicker">The lineup</div>
+    <h2>Six flavors. Zero chill.</h2>
+  </div>
+  <div class="grid">
+    <div class="card c1" onclick="burst(this)">
+      <div class="card-content">
+        <div class="card-tag">Electric</div>
+        <h3>Cyan Static</h3>
+        <p>Blue raspberry, ice cold finish</p>
+      </div>
+      <span class="flash"></span>
+    </div>
+    <div class="card c2" onclick="burst(this)">
+      <div class="card-content">
+        <div class="card-tag">Wild</div>
+        <h3>Magenta Bloom</h3>
+        <p>Dragonfruit and pink guava</p>
+      </div>
+      <span class="flash"></span>
+    </div>
+    <div class="card c3" onclick="burst(this)">
+      <div class="card-content">
+        <div class="card-tag">Loud</div>
+        <h3>Solar Yellow</h3>
+        <p>Pineapple mango sunrise</p>
+      </div>
+      <span class="flash"></span>
+    </div>
+    <div class="card c4" onclick="burst(this)">
+      <div class="card-content">
+        <div class="card-tag">Feral</div>
+        <h3>Toxic Lime</h3>
+        <p>Green apple and lime zest</p>
+      </div>
+      <span class="flash"></span>
+    </div>
+    <div class="card c5" onclick="burst(this)">
+      <div class="card-content">
+        <div class="card-tag">Unstable</div>
+        <h3>Ember Bleed</h3>
+        <p>Blood orange, chili edge</p>
+      </div>
+      <span class="flash"></span>
+    </div>
+    <div class="card c6" onclick="burst(this)">
+      <div class="card-content">
+        <div class="card-tag">Peak</div>
+        <h3>Aurora Rush</h3>
+        <p>Lemon lime, mint snap</p>
+      </div>
+      <span class="flash"></span>
+    </div>
+  </div>
+</section>
+
+<section id="stats">
+  <div class="strip">
+    <div><h4>200mg</h4><p>Caffeine per can</p></div>
+    <div><h4>0g</h4><p>Sugar</p></div>
+    <div><h4>6</h4><p>Flavors, one shelf</p></div>
+    <div><h4>24/7</h4><p>Drop schedule</p></div>
+  </div>
+</section>
+
+<footer id="join">
+  <h2>Grab the can.<br>Ride the gradient.</h2>
+  <button class="btn primary" onclick="burst(this)">Find surge near you<span class="flash"></span></button>
+  <div class="foot-links">
+    <a href="#hero">Back to top</a>
+    <a href="#flavors">Flavors</a>
+    <a href="#">Instagram</a>
+    <a href="#">TikTok</a>
+  </div>
+</footer>
+
+<script>
+  function burst(el){
+    const flash = el.querySelector('.flash');
+    if(!flash) return;
+    flash.classList.remove('burst');
+    void flash.offsetWidth;
+    flash.classList.add('burst');
+  }
+
+  // scroll-linked gradient shift on hero
+  const hero = document.getElementById('hero');
+  window.addEventListener('scroll', () => {
+    const y = window.scrollY;
+    const pct = Math.min(100, y / 6);
+    hero.style.backgroundPosition = (pct) + '% 50%';
+  }, { passive: true });
+
+  // hover intensifies hero animation speed
+  hero.addEventListener('mouseenter', () => hero.classList.add('boosted'));
+  hero.addEventListener('mouseleave', () => hero.classList.remove('boosted'));
+</script>
+
+</body>
+</html>

@@ -1,0 +1,144 @@
+<div style="position: relative; min-height: 420px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+<h2 class="sr-only" style="position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0);">Success celebration card showing form submission confirmation with confetti and floating stars</h2>
+
+<canvas id="confetti-canvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;"></canvas>
+
+<div id="stars-layer" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;"></div>
+
+<div id="card" style="position: relative; background: var(--surface-2); border: 0.5px solid var(--border); border-radius: 16px; padding: 2.5rem 2rem; width: 320px; text-align: center; transform: scale(0.9); opacity: 0; transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.4s ease;">
+
+  <div style="width: 56px; height: 56px; border-radius: 50%; background: var(--bg-success); display: flex; align-items: center; justify-content: center; margin: 0 auto 1.25rem;">
+    <i class="ti ti-check" style="font-size: 28px; color: var(--text-success);" aria-hidden="true"></i>
+  </div>
+
+  <div id="message" style="transform: translateY(20px); opacity: 0; transition: transform 0.45s ease 0.15s, opacity 0.45s ease 0.15s;">
+    <p style="font-weight: 500; font-size: 17px; margin: 0 0 6px;">Submission received</p>
+    <p style="font-size: 14px; color: var(--text-secondary); margin: 0 0 20px; line-height: 1.5;">Thanks for completing the form. We'll be in touch shortly.</p>
+    <button id="dismiss-btn" style="width: 100%;">Dismiss</button>
+  </div>
+</div>
+</div>
+
+<script>
+const card = document.getElementById('card');
+const message = document.getElementById('message');
+const dismissBtn = document.getElementById('dismiss-btn');
+const starsLayer = document.getElementById('stars-layer');
+const canvas = document.getElementById('confetti-canvas');
+const ctx = canvas.getContext('2d');
+const container = card.parentElement;
+
+function sizeCanvas() {
+  const rect = container.getBoundingClientRect();
+  canvas.width = rect.width;
+  canvas.height = rect.height;
+}
+sizeCanvas();
+window.addEventListener('resize', sizeCanvas);
+
+requestAnimationFrame(() => {
+  card.style.transform = 'scale(1)';
+  card.style.opacity = '1';
+  message.style.transform = 'translateY(0)';
+  message.style.opacity = '1';
+});
+
+const starColors = ['#EF9F27', '#D4537E', '#7F77DD'];
+const starCount = 8;
+for (let i = 0; i < starCount; i++) {
+  const star = document.createElement('div');
+  const size = 10 + Math.random() * 8;
+  const left = 5 + Math.random() * 90;
+  const top = 5 + Math.random() * 90;
+  const delay = Math.random() * 3;
+  const duration = 3 + Math.random() * 2;
+  const color = starColors[i % starColors.length];
+  star.style.cssText = `position:absolute; left:${left}%; top:${top}%; width:${size}px; height:${size}px; pointer-events:auto; animation: float-star ${duration}s ease-in-out ${delay}s infinite; cursor: pointer;`;
+  star.innerHTML = `<i class="ti ti-star" style="font-size:${size}px; color:${color};" aria-hidden="true"></i>`;
+  star.addEventListener('mouseenter', () => {
+    star.style.animation = 'none';
+    star.style.transform = 'scale(1.4) rotate(15deg)';
+    star.style.transition = 'transform 0.25s ease';
+    star.style.filter = `drop-shadow(0 0 4px ${color})`;
+  });
+  star.addEventListener('mouseleave', () => {
+    star.style.filter = 'none';
+    star.style.transform = '';
+    star.style.transition = '';
+    star.style.animation = `float-star ${duration}s ease-in-out 0s infinite`;
+  });
+  starsLayer.appendChild(star);
+}
+
+const styleTag = document.createElement('style');
+styleTag.textContent = `
+@keyframes float-star {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-14px) rotate(10deg); }
+}
+`;
+document.head.appendChild(styleTag);
+
+const confettiColors = ['#7F77DD', '#1D9E75', '#D85A30', '#D4537E', '#EF9F27'];
+let particles = [];
+
+function launchConfetti() {
+  particles = [];
+  const count = 90;
+  const originX = canvas.width / 2;
+  const originY = canvas.height / 2.5;
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 3 + Math.random() * 6;
+    particles.push({
+      x: originX,
+      y: originY,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed - 2,
+      size: 4 + Math.random() * 4,
+      color: confettiColors[Math.floor(Math.random() * confettiColors.length)],
+      rotation: Math.random() * 360,
+      rotationSpeed: (Math.random() - 0.5) * 12,
+      life: 1
+    });
+  }
+  requestAnimationFrame(animateConfetti);
+}
+
+function animateConfetti() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  let alive = false;
+  particles.forEach(p => {
+    p.vy += 0.15;
+    p.x += p.vx;
+    p.y += p.vy;
+    p.rotation += p.rotationSpeed;
+    p.life -= 0.008;
+    if (p.life > 0) {
+      alive = true;
+      ctx.save();
+      ctx.globalAlpha = Math.max(p.life, 0);
+      ctx.translate(p.x, p.y);
+      ctx.rotate((p.rotation * Math.PI) / 180);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
+      ctx.restore();
+    }
+  });
+  if (alive) {
+    requestAnimationFrame(animateConfetti);
+  } else {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+}
+
+setTimeout(launchConfetti, 150);
+
+dismissBtn.addEventListener('click', () => {
+  card.style.transition = 'transform 0.35s ease, opacity 0.35s ease';
+  card.style.transform = 'scale(0.85)';
+  card.style.opacity = '0';
+  starsLayer.style.transition = 'opacity 0.35s ease';
+  starsLayer.style.opacity = '0';
+});
+</script>

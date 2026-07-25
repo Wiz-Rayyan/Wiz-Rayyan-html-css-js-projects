@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEON://SECTOR_07 — UI KIT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0a0a0a;
+    --bg2: #0d0d0d;
+    --panel: rgba(0,0,0,0.8);
+    --cyan: #00ffff;
+    --magenta: #ff00ff;
+    --yellow: #ffe600;
+    --green: #00ff41;
+    --line: rgba(0,255,255,0.3);
+    --font-display: 'Orbitron', sans-serif;
+    --font-alt: 'Rajdhani', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  }
+
+  *{ box-sizing: border-box; }
+
+  html,body{
+    margin:0;
+    padding:0;
+    background: var(--bg);
+    color: #d8fdfd;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    overflow-x: hidden;
+  }
+
+  /* ---------- texture layers ---------- */
+  .scanlines{
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 50;
+    background: repeating-linear-gradient(
+      to bottom,
+      rgba(255,255,255,0.04) 0px,
+      rgba(255,255,255,0.04) 1px,
+      transparent 2px,
+      transparent 3px
+    );
+    mix-blend-mode: overlay;
+  }
+
+  .vignette{
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 49;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.75) 100%);
+  }
+
+  .grain{
+    position: fixed;
+    inset:0;
+    pointer-events:none;
+    z-index: 48;
+    opacity: 0.05;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .sweep{
+    position: fixed;
+    top:0; left:0; right:0;
+    height: 120px;
+    z-index: 60;
+    pointer-events:none;
+    background: linear-gradient(to bottom, rgba(0,255,255,0.15), transparent);
+    animation: sweepDown 2.2s ease-out forwards;
+  }
+  @keyframes sweepDown{
+    0%{ transform: translateY(-140px); opacity:1;}
+    100%{ transform: translateY(100vh); opacity:0;}
+  }
+
+  .grid-bg{
+    position: fixed;
+    inset:0;
+    z-index:0;
+    background-image:
+      linear-gradient(rgba(0,255,255,0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,255,255,0.05) 1px, transparent 1px);
+    background-size: 42px 42px;
+    mask-image: radial-gradient(ellipse at 50% 0%, black 0%, transparent 75%);
+  }
+
+  /* ---------- layout ---------- */
+  .wrap{
+    position: relative;
+    z-index: 1;
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 28px 120px;
+  }
+
+  /* ---------- topbar ---------- */
+  header.topbar{
+    position: relative;
+    z-index: 2;
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    padding: 18px 28px;
+    border-bottom: 1px solid var(--line);
+    background: linear-gradient(to bottom, rgba(0,0,0,0.9), rgba(0,0,0,0.6));
+  }
+
+  .logo{
+    font-family: var(--font-display);
+    font-weight:900;
+    letter-spacing: 3px;
+    font-size: 18px;
+    color: var(--cyan);
+    text-shadow: 2px 0 var(--magenta), -2px 0 var(--cyan);
+  }
+  .logo span{ color: var(--green); text-shadow: 2px 0 var(--magenta), -2px 0 var(--green);}
+
+  nav.topnav{
+    display:flex;
+    gap: 28px;
+  }
+  nav.topnav a{
+    color: #9fefef;
+    text-decoration:none;
+    font-family: var(--font-alt);
+    font-weight:600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-size: 13px;
+    padding-bottom: 4px;
+    border-bottom: 2px solid transparent;
+    transition: all .15s ease;
+  }
+  nav.topnav a:hover, nav.topnav a.active{
+    color: var(--cyan);
+    border-bottom-color: var(--cyan);
+    text-shadow: 0 0 8px var(--cyan);
+  }
+
+  .status-chip{
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--green);
+    border: 1px solid rgba(0,255,65,0.4);
+    padding: 5px 10px;
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .status-chip .dot{
+    width:6px; height:6px;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: blink 1.4s infinite;
+  }
+  @keyframes blink{ 50%{ opacity:.2; } }
+
+  /* ---------- hero ---------- */
+  .hero{
+    position:relative;
+    padding: 90px 0 60px;
+    border-bottom: 1px solid var(--line);
+  }
+  .hero .eyebrow{
+    font-family: var(--font-mono);
+    color: var(--magenta);
+    letter-spacing: 4px;
+    font-size: 12px;
+    margin-bottom: 18px;
+  }
+  .hero .eyebrow::before{ content: "// "; color: var(--cyan);}
+
+  h1.glitch{
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: clamp(38px, 6vw, 76px);
+    line-height: 1.02;
+    text-transform: uppercase;
+    margin: 0 0 20px;
+    color: #f5ffff;
+    position: relative;
+    letter-spacing: 1px;
+  }
+  h1.glitch::before, h1.glitch::after{
+    content: attr(data-text);
+    position: absolute;
+    left:0; top:0;
+    width:100%;
+    overflow:hidden;
+  }
+  h1.glitch::before{
+    color: var(--cyan);
+    animation: glitchTop 4.5s infinite linear alternate-reverse;
+    clip-path: inset(0 0 60% 0);
+  }
+  h1.glitch::after{
+    color: var(--magenta);
+    animation: glitchBottom 3.8s infinite linear alternate-reverse;
+    clip-path: inset(60% 0 0 0);
+  }
+  @keyframes glitchTop{
+    0%{ transform: translate(0,0);} 20%{ transform: translate(-3px,-1px);}
+    40%{ transform: translate(3px,1px);} 60%{ transform: translate(-2px,0);}
+    80%{ transform: translate(2px,-1px);} 100%{ transform: translate(0,0);}
+  }
+  @keyframes glitchBottom{
+    0%{ transform: translate(0,0);} 25%{ transform: translate(2px,1px);}
+    50%{ transform: translate(-3px,0);} 75%{ transform: translate(1px,-1px);}
+    100%{ transform: translate(0,0);}
+  }
+
+  .hero p.lead{
+    font-family: var(--font-alt);
+    font-size: 18px;
+    color: #9fd9d9;
+    max-width: 560px;
+    line-height: 1.5;
+    margin: 0 0 32px;
+  }
+
+  .hero-actions{ display:flex; gap:16px; flex-wrap:wrap; }
+
+  /* ---------- buttons ---------- */
+  .btn{
+    font-family: var(--font-mono);
+    font-weight:700;
+    font-size: 13px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 13px 26px;
+    background: transparent;
+    border: 1px solid var(--cyan);
+    color: var(--cyan);
+    cursor: pointer;
+    position: relative;
+    border-radius: 0;
+    transition: transform .12s ease, box-shadow .18s ease, background .18s ease;
+    overflow:hidden;
+  }
+  .btn::after{
+    content:"";
+    position:absolute;
+    top:0; left:-120%;
+    width: 60%; height:100%;
+    background: linear-gradient(120deg, transparent, rgba(0,255,255,0.25), transparent);
+    transition: left .5s ease;
+  }
+  .btn:hover{
+    background: rgba(0,255,255,0.08);
+    box-shadow: 0 0 24px rgba(0,255,255,0.45);
+    transform: scale(1.02);
+  }
+  .btn:hover::after{ left: 130%; }
+  .btn:active{ animation: jitter .18s linear; }
+
+  .btn.magenta{ border-color: var(--magenta); color: var(--magenta); }
+  .btn.magenta:hover{ background: rgba(255,0,255,0.08); box-shadow: 0 0 24px rgba(255,0,255,0.45); }
+
+  .btn.yellow{ border-color: var(--yellow); color: var(--yellow); }
+  .btn.yellow:hover{ background: rgba(255,230,0,0.08); box-shadow: 0 0 24px rgba(255,230,0,0.45); }
+
+  .btn.solid{
+    background: var(--cyan);
+    color: #001414;
+  }
+  .btn.solid:hover{ background: #33ffff; }
+
+  @keyframes jitter{
+    0%{ transform: translate(0,0);} 25%{ transform: translate(-2px,1px);}
+    50%{ transform: translate(2px,-1px);} 75%{ transform: translate(-1px,0);}
+    100%{ transform: translate(0,0);}
+  }
+
+  /* ---------- section headers ---------- */
+  .section{ padding: 70px 0; border-bottom: 1px solid var(--line); }
+  .section:last-child{ border-bottom: none; }
+  .section-head{
+    display:flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 36px;
+    flex-wrap: wrap;
+    gap:10px;
+  }
+  .section-head h2{
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    font-size: 24px;
+    letter-spacing: 2px;
+    color: #eaffff;
+    margin:0;
+    display:flex;
+    align-items:center;
+    gap:12px;
+  }
+  .section-head h2::before{
+    content:"";
+    width: 10px; height:10px;
+    background: var(--green);
+    box-shadow: 0 0 10px var(--green);
+    display:inline-block;
+  }
+  .section-head .idx{
+    font-family: var(--font-mono);
+    color: #5b8a8a;
+    font-size: 12px;
+    letter-spacing: 2px;
+  }
+
+  /* ---------- cards ---------- */
+  .card-grid{
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 20px;
+  }
+  .card{
+    border-radius:0;
+    border:1px solid var(--line);
+    background: var(--panel);
+    box-shadow: 0 0 24px rgba(0,255,255,0.08);
+    padding: 22px;
+    position:relative;
+    transition: box-shadow .2s ease, border-color .2s ease, transform .2s ease;
+  }
+  .card::before{
+    content:"";
+    position:absolute; top:0; left:0;
+    width: 22px; height: 22px;
+    border-top:2px solid var(--cyan);
+    border-left:2px solid var(--cyan);
+  }
+  .card::after{
+    content:"";
+    position:absolute; bottom:0; right:0;
+    width: 22px; height: 22px;
+    border-bottom:2px solid var(--cyan);
+    border-right:2px solid var(--cyan);
+  }
+  .card:hover{
+    border-color: rgba(0,255,255,0.7);
+    box-shadow: 0 0 28px rgba(0,255,255,0.25);
+    transform: scale(1.02);
+  }
+  .card .tag{
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--yellow);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    display:block;
+  }
+  .card h3{
+    font-family: var(--font-display);
+    font-size: 16px;
+    color: #f0ffff;
+    margin: 0 0 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .card p{
+    font-family: var(--font-alt);
+    color: #a9d6d6;
+    font-size: 14px;
+    line-height: 1.5;
+    margin:0 0 16px;
+  }
+  .card .meta{
+    display:flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #557;
+    border-top: 1px dashed rgba(0,255,255,0.2);
+    padding-top: 10px;
+  }
+  .card.magenta{ border-color: rgba(255,0,255,0.3); box-shadow: 0 0 24px rgba(255,0,255,0.08); }
+  .card.magenta::before, .card.magenta::after{ border-color: var(--magenta); }
+  .card.magenta:hover{ border-color: rgba(255,0,255,0.7); box-shadow: 0 0 28px rgba(255,0,255,0.25); }
+  .card.magenta .tag{ color: var(--magenta); }
+
+  .card.green{ border-color: rgba(0,255,65,0.3); box-shadow: 0 0 24px rgba(0,255,65,0.08); }
+  .card.green::before, .card.green::after{ border-color: var(--green); }
+  .card.green:hover{ border-color: rgba(0,255,65,0.7); box-shadow: 0 0 28px rgba(0,255,65,0.25); }
+  .card.green .tag{ color: var(--green); }
+
+  /* ---------- badges ---------- */
+  .badge-row{ display:flex; flex-wrap:wrap; gap:12px; }
+  .badge{
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 6px 12px;
+    border: 1px solid var(--cyan);
+    color: var(--cyan);
+  }
+  .badge.solid{ background: var(--cyan); color:#001414; border-color: var(--cyan); }
+  .badge.magenta{ border-color: var(--magenta); color: var(--magenta); }
+  .badge.yellow{ border-color: var(--yellow); color: var(--yellow); }
+  .badge.green{ border-color: var(--green); color: var(--green); }
+  .badge.danger{ border-color: #ff3b3b; color: #ff3b3b; }
+
+  /* ---------- form ---------- */
+  .form-panel{
+    border: 1px solid var(--line);
+    background: var(--panel);
+    padding: 30px;
+    max-width: 520px;
+    box-shadow: 0 0 24px rgba(0,255,255,0.08);
+  }
+  label{
+    display:block;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--cyan);
+    margin-bottom: 8px;
+  }
+  input[type=text], input[type=password], select{
+    width:100%;
+    background: #050505;
+    border: 1px solid rgba(0,255,255,0.35);
+    color: #d8fdfd;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    padding: 11px 12px;
+    border-radius:0;
+    margin-bottom: 20px;
+    outline:none;
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  input:focus, select:focus{
+    border-color: var(--cyan);
+    box-shadow: 0 0 14px rgba(0,255,255,0.35);
+  }
+  input::placeholder{ color: #3d6b6b; }
+
+  /* ---------- nav sidebar demo ---------- */
+  .side-demo{
+    display:grid;
+    grid-template-columns: 200px 1fr;
+    border: 1px solid var(--line);
+    min-height: 260px;
+    background: var(--panel);
+  }
+  .side-demo aside{
+    border-right: 1px solid var(--line);
+    padding: 20px 0;
+  }
+  .side-demo aside a{
+    display:block;
+    padding: 12px 22px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #7fd6d6;
+    text-decoration: none;
+    border-left: 2px solid transparent;
+    transition: all .15s ease;
+  }
+  .side-demo aside a:hover{
+    color: var(--cyan);
+    border-left-color: var(--cyan);
+    background: rgba(0,255,255,0.06);
+  }
+  .side-demo aside a.active{
+    color: var(--cyan);
+    border-left-color: var(--cyan);
+    background: rgba(0,255,255,0.08);
+    text-shadow: 0 0 8px var(--cyan);
+  }
+  .side-demo main{
+    padding: 26px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: #7fbcbc;
+    line-height: 1.9;
+  }
+  .side-demo main .readout-line{
+    display:flex;
+    gap: 10px;
+  }
+  .side-demo main .readout-line span.k{ color: var(--yellow); min-width: 120px; }
+
+  /* ---------- terminal typing readout ---------- */
+  .terminal{
+    background:#050505;
+    border:1px solid var(--line);
+    padding: 20px 24px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--green);
+    min-height: 120px;
+    box-shadow: 0 0 24px rgba(0,255,65,0.08);
+  }
+  .terminal .caret{
+    display:inline-block;
+    width:8px; height:14px;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: blink 1s steps(1) infinite;
+    vertical-align: middle;
+    margin-left: 2px;
+  }
+
+  /* ---------- footer ---------- */
+  footer{
+    text-align:center;
+    padding: 40px 0 10px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: #3d6b6b;
+    letter-spacing: 1px;
+  }
+
+  @media (max-width: 640px){
+    .side-demo{ grid-template-columns: 1fr; }
+    .side-demo aside{ border-right:none; border-bottom: 1px solid var(--line); }
+  }
+</style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+<div class="scanlines"></div>
+<div class="grain"></div>
+<div class="vignette"></div>
+<div class="sweep"></div>
+
+<header class="topbar">
+  <div class="logo">NEON<span>://</span>SECTOR_07</div>
+  <nav class="topnav">
+    <a href="#" class="active">Home_</a>
+    <a href="#components">Components_</a>
+    <a href="#forms">Forms_</a>
+    <a href="#nav">Navigation_</a>
+  </nav>
+  <div class="status-chip"><span class="dot"></span>LINK_STABLE</div>
+</header>
+
+<div class="wrap">
+
+  <section class="hero">
+    <div class="eyebrow">SYSTEM_ONLINE // ACCESS_LEVEL: ROOT</div>
+    <h1 class="glitch" data-text="BUILD IN THE DARK.">BUILD IN THE DARK.</h1>
+    <p class="lead">A cyberpunk noir component kit — neon glow, scanlines, sharp angles, zero compromise. Built for games, Web3, and anything that wants to feel like it's running on stolen hardware.</p>
+    <div class="hero-actions">
+      <button class="btn solid">Initialize_</button>
+      <button class="btn magenta">View_Source</button>
+      <button class="btn yellow">Docs.exe</button>
+    </div>
+  </section>
+
+  <section class="section" id="components">
+    <div class="section-head">
+      <h2>Data Cards</h2>
+      <span class="idx">MODULE_01 / CARDS</span>
+    </div>
+    <div class="card-grid">
+      <div class="card">
+        <span class="tag">Uplink</span>
+        <h3>Node 44-Alpha</h3>
+        <p>Encrypted relay running at 88% capacity. Traffic rerouted through three proxy shells.</p>
+        <div class="meta"><span>LATENCY 12ms</span><span>ACTIVE</span></div>
+      </div>
+      <div class="card magenta">
+        <span class="tag">Contract</span>
+        <h3>Ghost Protocol</h3>
+        <p>Smart contract deployed to the underlayer. Auto-executes on block confirmation.</p>
+        <div class="meta"><span>GAS 0.004</span><span>PENDING</span></div>
+      </div>
+      <div class="card green">
+        <span class="tag">Biometric</span>
+        <h3>Runner ID: KAI-9</h3>
+        <p>Neural signature verified. Cybernetic implants nominal, no rejection detected.</p>
+        <div class="meta"><span>SYNC 100%</span><span>CLEARED</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <h2>Status Badges</h2>
+      <span class="idx">MODULE_02 / BADGES</span>
+    </div>
+    <div class="badge-row">
+      <span class="badge solid">Online</span>
+      <span class="badge">Standby</span>
+      <span class="badge magenta">Encrypted</span>
+      <span class="badge yellow">Warning</span>
+      <span class="badge green">Verified</span>
+      <span class="badge danger">Breach</span>
+    </div>
+  </section>
+
+  <section class="section" id="forms">
+    <div class="section-head">
+      <h2>Access Terminal</h2>
+      <span class="idx">MODULE_03 / FORM</span>
+    </div>
+    <div class="form-panel">
+      <label>Operator ID</label>
+      <input type="text" placeholder="user@sector07.net">
+      <label>Passkey</label>
+      <input type="password" placeholder="••••••••••••">
+      <label>Clearance Level</label>
+      <select>
+        <option>LEVEL 1 — Civilian</option>
+        <option>LEVEL 4 — Corp</option>
+        <option>LEVEL 9 — Root</option>
+      </select>
+      <button class="btn solid" style="width:100%;">Authenticate_</button>
+    </div>
+  </section>
+
+  <section class="section" id="nav">
+    <div class="section-head">
+      <h2>Sidebar Navigation</h2>
+      <span class="idx">MODULE_04 / NAV</span>
+    </div>
+    <div class="side-demo">
+      <aside>
+        <a href="#" class="active">// Overview</a>
+        <a href="#">// Assets</a>
+        <a href="#">// Contracts</a>
+        <a href="#">// Runners</a>
+        <a href="#">// Blacksite</a>
+      </aside>
+      <main>
+        <div class="readout-line"><span class="k">GRID_STATUS</span><span>STABLE</span></div>
+        <div class="readout-line"><span class="k">ACTIVE_NODES</span><span>1,204</span></div>
+        <div class="readout-line"><span class="k">THREAT_LEVEL</span><span style="color:var(--yellow)">ELEVATED</span></div>
+        <div class="readout-line"><span class="k">LAST_SYNC</span><span>00:00:04 AGO</span></div>
+      </main>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <h2>Terminal Readout</h2>
+      <span class="idx">MODULE_05 / OUTPUT</span>
+    </div>
+    <div class="terminal" id="term"></div>
+  </section>
+
+</div>
+
+<footer>© 2077 SECTOR_07 NETWORKS — ALL SIGNALS MONITORED</footer>
+
+<script>
+  const lines = [
+    "> booting sector_07 kernel...",
+    "> handshake with proxy shell 3... OK",
+    "> decrypting local cache... OK",
+    "> welcome back, runner_"
+  ];
+  const term = document.getElementById('term');
+  let li = 0, ci = 0;
+  function typeLine(){
+    if(li >= lines.length) return;
+    const line = lines[li];
+    if(ci <= line.length){
+      term.innerHTML = lines.slice(0, li).map(l => '<div>'+l+'</div>').join('') +
+                        '<div>' + line.slice(0, ci) + '<span class="caret"></span></div>';
+      ci++;
+      setTimeout(typeLine, 28);
+    } else {
+      li++; ci = 0;
+      setTimeout(typeLine, 300);
+    }
+  }
+  typeLine();
+
+  document.querySelectorAll('.btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      btn.style.animation = 'none';
+      void btn.offsetWidth;
+      btn.style.animation = 'jitter .18s linear';
+    });
+  });
+</script>
+
+</body>
+</html>

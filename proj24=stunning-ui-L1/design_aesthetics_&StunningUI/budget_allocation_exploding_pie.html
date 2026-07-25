@@ -1,0 +1,177 @@
+<h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);">Pie chart of annual budget allocation across five departments. Hover a slice to see it explode outward with its value, click for detail, double-click to reset.</h2>
+<div style="display:flex; flex-wrap:wrap; gap:1.5rem; align-items:flex-start;">
+  <div style="flex:0 0 300px; position:relative;">
+    <svg id="pie" viewBox="0 0 300 300" style="width:100%; overflow:visible; cursor:pointer;"></svg>
+  </div>
+  <div id="detail" style="flex:1 1 260px; min-width:220px; background:var(--surface-2); border:0.5px solid var(--border); border-radius:12px; padding:1rem 1.25rem; opacity:0; transform:translateX(24px); transition:opacity 0.3s ease, transform 0.3s ease; pointer-events:none;">
+    <div id="detail-content"></div>
+  </div>
+</div>
+<div id="legend" style="display:flex; flex-wrap:wrap; gap:14px; margin-top:1rem; font-size:12px; color:var(--text-secondary);"></div>
+<p style="font-size:12px; color:var(--text-muted); margin:0.75rem 0 0;">Hover a slice to explode it. Click for details. Double-click to reset.</p>
+
+<script>
+(function(){
+  var data = [
+    { name: "Engineering", value: 3200000, color: "#2a78d6", colorDark: "#3987e5", history: [2400000, 2700000, 2950000, 3200000] },
+    { name: "Marketing",   value: 1800000, color: "#eda100", colorDark: "#c98500", history: [1500000, 1550000, 1700000, 1800000] },
+    { name: "Sales",       value: 1500000, color: "#1baf7a", colorDark: "#199e70", history: [1100000, 1250000, 1400000, 1500000] },
+    { name: "R and D",     value: 1100000, color: "#4a3aa7", colorDark: "#9085e9", history: [800000, 900000, 1000000, 1100000] },
+    { name: "Operations",  value: 900000,  color: "#eb6834", colorDark: "#d95926", history: [950000, 920000, 880000, 900000] }
+  ];
+
+  function isDark(){
+    var m = document.documentElement.getAttribute('data-mode');
+    if (m === 'dark') return true;
+    if (m === 'light') return false;
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  }
+
+  var total = data.reduce(function(a,d){ return a + d.value; }, 0);
+  var cx = 150, cy = 150, r = 95, labelR = 128;
+
+  function polar(cx, cy, radius, angleDeg){
+    var rad = (angleDeg - 90) * Math.PI / 180;
+    return { x: cx + radius * Math.cos(rad), y: cy + radius * Math.sin(rad) };
+  }
+  function slicePath(startAngle, endAngle){
+    var start = polar(cx, cy, r, endAngle);
+    var end = polar(cx, cy, r, startAngle);
+    var large = (endAngle - startAngle) <= 180 ? "0" : "1";
+    return ["M", cx, cy, "L", start.x, start.y, "A", r, r, 0, large, 0, end.x, end.y, "Z"].join(" ");
+  }
+
+  var svg = document.getElementById('pie');
+  var ns = "http://www.w3.org/2000/svg";
+  var cumulative = 0;
+  var slices = [];
+  var legend = document.getElementById('legend');
+  var detail = document.getElementById('detail');
+  var detailContent = document.getElementById('detail-content');
+  var activeIndex = null;
+
+  data.forEach(function(d, i){
+    var pct = d.value / total * 100;
+    var startAngle = cumulative / total * 360;
+    var endAngle = (cumulative + d.value) / total * 360;
+    var mid = (startAngle + endAngle) / 2;
+    cumulative += d.value;
+
+    var fill = isDark() ? d.colorDark : d.color;
+
+    var g = document.createElementNS(ns, "g");
+
+    var path = document.createElementNS(ns, "path");
+    path.setAttribute("d", slicePath(startAngle, endAngle));
+    path.setAttribute("fill", fill);
+    path.style.transformBox = "fill-box";
+    path.style.transformOrigin = "center";
+    path.style.transition = "transform 0.28s cubic-bezier(0.34,1.4,0.64,1), filter 0.28s ease";
+    path.style.stroke = "var(--surface-2)";
+    path.style.strokeWidth = "1.5";
+
+    var dx = Math.cos((mid - 90) * Math.PI / 180) * 20;
+    var dy = Math.sin((mid - 90) * Math.PI / 180) * 20;
+    var rot = (i % 2 === 0) ? 5 : -5;
+
+    var labelPos = polar(cx, cy, labelR, mid);
+    var label = document.createElementNS(ns, "text");
+    label.setAttribute("text-anchor", "middle");
+    label.setAttribute("dominant-baseline", "middle");
+    label.setAttribute("font-size", "11");
+    label.setAttribute("font-weight", "500");
+    label.style.opacity = "0";
+    label.style.transition = "opacity 0.28s ease, transform 0.28s ease";
+    label.style.transform = "translate(" + (cx - labelPos.x) + "px," + (cy - labelPos.y) + "px)";
+    label.style.fill = "var(--text-primary)";
+    var tspan1 = document.createElementNS(ns, "tspan");
+    tspan1.setAttribute("x", labelPos.x);
+    tspan1.setAttribute("dy", "-0.2em");
+    tspan1.textContent = d.name;
+    var tspan2 = document.createElementNS(ns, "tspan");
+    tspan2.setAttribute("x", labelPos.x);
+    tspan2.setAttribute("dy", "1.2em");
+    tspan2.setAttribute("font-weight", "400");
+    tspan2.style.fill = "var(--text-secondary)";
+    tspan2.textContent = Math.round(pct) + "%";
+    label.appendChild(tspan1);
+    label.appendChild(tspan2);
+
+    function setHover(on){
+      if (on){
+        path.style.transform = "translate(" + dx + "px," + dy + "px) rotate(" + rot + "deg)";
+        path.style.filter = "drop-shadow(0 6px 10px rgba(0,0,0,0.35))";
+        label.style.opacity = "1";
+        label.style.transform = "translate(0px,0px)";
+      } else {
+        path.style.transform = "translate(0px,0px) rotate(0deg)";
+        path.style.filter = "none";
+        label.style.opacity = "0";
+        label.style.transform = "translate(" + (cx - labelPos.x) + "px," + (cy - labelPos.y) + "px)";
+      }
+    }
+
+    path.addEventListener("mouseenter", function(){ setHover(true); });
+    path.addEventListener("mouseleave", function(){ if (activeIndex !== i) setHover(false); });
+    path.addEventListener("click", function(e){
+      e.stopPropagation();
+      activeIndex = i;
+      showDetail(i);
+    });
+
+    g.appendChild(path);
+    svg.appendChild(g);
+    svg.appendChild(label);
+    slices.push({ setHover: setHover });
+
+    var legendItem = document.createElement('span');
+    legendItem.style.display = "flex";
+    legendItem.style.alignItems = "center";
+    legendItem.style.gap = "5px";
+    var sw = document.createElement('span');
+    sw.style.width = "10px";
+    sw.style.height = "10px";
+    sw.style.borderRadius = "2px";
+    sw.style.background = fill;
+    sw.style.display = "inline-block";
+    legendItem.appendChild(sw);
+    legendItem.appendChild(document.createTextNode(d.name + " " + Math.round(pct) + "%"));
+    legend.appendChild(legendItem);
+  });
+
+  function fmtMoney(v){
+    return "$" + (v/1000000).toFixed(2) + "M";
+  }
+
+  function showDetail(i){
+    var d = data[i];
+    var pct = (d.value / total * 100).toFixed(1);
+    var maxHist = Math.max.apply(null, d.history);
+    var bars = d.history.map(function(v){
+      var h = Math.round((v / maxHist) * 40) + 4;
+      return '<div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:4px;"><div style="width:100%; height:44px; display:flex; align-items:flex-end;"><div style="width:100%; height:' + h + 'px; background:var(--text-accent); border-radius:2px 2px 0 0;"></div></div></div>';
+    }).join("");
+
+    detailContent.innerHTML =
+      '<p style="font-size:15px; font-weight:500; margin:0 0 2px;">' + d.name + '</p>' +
+      '<p style="font-size:24px; font-weight:500; margin:0 0 2px;">' + fmtMoney(d.value) + '</p>' +
+      '<p style="font-size:13px; color:var(--text-secondary); margin:0 0 16px;">' + pct + '% of total budget</p>' +
+      '<p style="font-size:12px; color:var(--text-muted); margin:0 0 6px;">Last 4 quarters</p>' +
+      '<div style="display:flex; gap:6px;">' + bars + '</div>';
+
+    detail.style.opacity = "1";
+    detail.style.transform = "translateX(0px)";
+    detail.style.pointerEvents = "auto";
+  }
+
+  function resetAll(){
+    activeIndex = null;
+    slices.forEach(function(s){ s.setHover(false); });
+    detail.style.opacity = "0";
+    detail.style.transform = "translateX(24px)";
+    detail.style.pointerEvents = "none";
+  }
+
+  svg.addEventListener("dblclick", resetAll);
+})();
+</script>

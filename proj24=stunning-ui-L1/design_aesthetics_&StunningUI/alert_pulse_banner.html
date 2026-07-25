@@ -1,0 +1,97 @@
+<h2 class="sr-only">Interactive demo of an alert banner that slides in, pulses by severity, and can be dismissed or opened for details</h2>
+<div style="display:flex; gap:8px; margin-bottom:1.5rem;">
+  <button id="btn-info" type="button">Trigger info</button>
+  <button id="btn-warning" type="button">Trigger warning</button>
+  <button id="btn-critical" type="button">Trigger critical</button>
+</div>
+
+<div id="stage" style="position:relative; height:76px; overflow:hidden;">
+  <div id="banner" role="alert" style="position:absolute; top:0; left:0; right:0; display:flex; align-items:center; gap:10px; padding:12px 16px; border-radius:var(--radius); cursor:pointer; transform:translateY(-120%); transition:transform 0.4s var(--ease-out, ease);">
+    <i id="banner-icon" class="ti ti-info-circle" style="font-size:20px;" aria-hidden="true"></i>
+    <span id="banner-text" style="flex:1; font-size:14px; font-weight:500;"></span>
+    <button id="banner-dismiss" type="button" aria-label="Dismiss alert" style="width:28px; height:28px; padding:0; display:flex; align-items:center; justify-content:center; border:none; background:transparent;">
+      <i class="ti ti-x" style="font-size:16px;" aria-hidden="true"></i>
+    </button>
+  </div>
+</div>
+
+<p id="detail" style="font-size:13px; color:var(--text-secondary); margin-top:0.5rem; min-height:18px;"></p>
+
+<style>
+@keyframes pulse-info { 0%,100% { box-shadow: 0 0 0 0 rgba(55,138,221,0.5); } 50% { box-shadow: 0 0 0 8px rgba(55,138,221,0); } }
+@keyframes pulse-warning { 0%,100% { box-shadow: 0 0 0 0 rgba(186,117,23,0.5); } 50% { box-shadow: 0 0 0 8px rgba(186,117,23,0); } }
+@keyframes pulse-critical { 0%,100% { box-shadow: 0 0 0 0 rgba(163,45,45,0.55); } 50% { box-shadow: 0 0 0 8px rgba(163,45,45,0); } }
+@keyframes icon-pop { 0%,100% { transform: scale(1) rotate(0deg); } 50% { transform: scale(1.2) rotate(-8deg); } }
+</style>
+
+<script>
+const severities = {
+  info: {
+    bg: 'var(--bg-accent)', text: 'var(--text-accent)', icon: 'ti-info-circle',
+    message: 'New version deployed to production.',
+    detail: 'Deployment finished at 14:02 UTC. No errors reported.',
+    anim: 'pulse-info'
+  },
+  warning: {
+    bg: 'var(--bg-warning)', text: 'var(--text-warning)', icon: 'ti-alert-triangle',
+    message: 'CPU usage above 80% on 2 nodes.',
+    detail: 'Nodes web-03 and web-07 have been elevated for 6 minutes.',
+    anim: 'pulse-warning'
+  },
+  critical: {
+    bg: 'var(--bg-danger)', text: 'var(--text-danger)', icon: 'ti-alert-octagon',
+    message: 'Database connection pool exhausted.',
+    detail: 'Primary database is rejecting new connections. On-call notified.',
+    anim: 'pulse-critical'
+  }
+};
+
+const banner = document.getElementById('banner');
+const bannerIcon = document.getElementById('banner-icon');
+const bannerText = document.getElementById('banner-text');
+const detail = document.getElementById('detail');
+const dismissBtn = document.getElementById('banner-dismiss');
+let hideTimer = null;
+
+function showAlert(level) {
+  const s = severities[level];
+  clearTimeout(hideTimer);
+  detail.textContent = '';
+  banner.style.background = s.bg;
+  banner.style.color = s.text;
+  bannerText.textContent = s.message;
+  bannerIcon.className = 'ti ' + s.icon;
+  bannerIcon.style.color = s.text;
+  bannerIcon.style.animation = 'icon-pop 1s ease-in-out infinite';
+  banner.style.animation = s.anim + ' 1.6s ease-in-out infinite';
+  banner.dataset.level = level;
+  banner.dataset.detail = s.detail;
+  requestAnimationFrame(() => {
+    banner.style.transform = 'translateY(0)';
+  });
+}
+
+function hideAlert() {
+  banner.style.transform = 'translateY(-120%)';
+  banner.style.animation = 'none';
+  bannerIcon.style.animation = 'none';
+}
+
+document.getElementById('btn-info').addEventListener('click', () => showAlert('info'));
+document.getElementById('btn-warning').addEventListener('click', () => showAlert('warning'));
+document.getElementById('btn-critical').addEventListener('click', () => showAlert('critical'));
+
+dismissBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  hideAlert();
+  detail.textContent = '';
+});
+
+banner.addEventListener('click', () => {
+  if (banner.style.transform === 'translateY(0px)' || banner.style.transform === 'translateY(0)') {
+    detail.textContent = banner.dataset.detail || '';
+  }
+});
+
+showAlert('info');
+</script>

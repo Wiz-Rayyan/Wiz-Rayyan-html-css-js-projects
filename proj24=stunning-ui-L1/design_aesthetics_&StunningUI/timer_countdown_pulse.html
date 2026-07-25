@@ -1,0 +1,182 @@
+<h2 class="sr-only">Circular countdown timer with a pulsing ring that speeds up and turns red as time runs low</h2>
+<div style="display:flex; flex-direction:column; align-items:center; gap:1.5rem; padding:1rem 0;">
+
+  <div style="position:relative; width:220px; height:220px; display:flex; align-items:center; justify-content:center;">
+    <svg id="ring" width="220" height="220" viewBox="0 0 220 220" style="position:absolute; top:0; left:0; transform:rotate(-90deg);">
+      <circle cx="110" cy="110" r="96" fill="none" stroke="var(--border)" stroke-width="10"></circle>
+      <circle id="arc" cx="110" cy="110" r="96" fill="none" stroke="#639922" stroke-width="10" stroke-linecap="round" stroke-dasharray="603.19" stroke-dashoffset="0"></circle>
+    </svg>
+    <div id="pulseDot" style="position:absolute; width:220px; height:220px; border-radius:50%; pointer-events:none;"></div>
+    <div id="timeLabel" style="font-size:40px; font-weight:500; color:var(--text-primary); z-index:2;">30</div>
+  </div>
+
+  <div id="statusLabel" style="font-size:14px; color:var(--text-secondary); min-height:20px;">Ready</div>
+
+  <div style="display:flex; align-items:center; gap:12px;">
+    <label style="font-size:14px; color:var(--text-secondary);">Duration</label>
+    <input type="range" id="duration" min="5" max="60" step="5" value="30" style="width:140px;">
+    <span id="durationOut" style="font-size:14px; font-weight:500; min-width:32px;">30s</span>
+  </div>
+
+  <div style="display:flex; gap:10px;">
+    <button id="startBtn"><i class="ti ti-player-play" aria-hidden="true" style="margin-right:6px; vertical-align:-2px;"></i>Start</button>
+    <button id="pauseBtn"><i class="ti ti-player-pause" aria-hidden="true" style="margin-right:6px; vertical-align:-2px;"></i>Pause</button>
+    <button id="resetBtn"><i class="ti ti-refresh" aria-hidden="true" style="margin-right:6px; vertical-align:-2px;"></i>Reset</button>
+  </div>
+
+</div>
+
+<style>
+@keyframes pulseAnim {
+  0% { transform: scale(1); opacity: 0.55; }
+  100% { transform: scale(1.25); opacity: 0; }
+}
+@keyframes shakeAnim {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+#pulseDot::before {
+  content: "";
+  position: absolute;
+  top: 12px; left: 12px; right: 12px; bottom: 12px;
+  border-radius: 50%;
+  border: 3px solid #639922;
+  animation: pulseAnim 1s ease-out infinite;
+}
+.shake { animation: shakeAnim 0.4s ease; }
+.glow circle#arc { filter: drop-shadow(0 0 6px rgba(226,75,74,0.7)); }
+</style>
+
+<script>
+(function(){
+  const arc = document.getElementById('arc');
+  const ring = document.getElementById('ring');
+  const pulseDot = document.getElementById('pulseDot');
+  const timeLabel = document.getElementById('timeLabel');
+  const statusLabel = document.getElementById('statusLabel');
+  const durationInput = document.getElementById('duration');
+  const durationOut = document.getElementById('durationOut');
+  const startBtn = document.getElementById('startBtn');
+  const pauseBtn = document.getElementById('pauseBtn');
+  const resetBtn = document.getElementById('resetBtn');
+
+  const R = 96;
+  const CIRC = 2 * Math.PI * R;
+  arc.setAttribute('stroke-dasharray', CIRC.toFixed(2));
+
+  let totalTime = parseInt(durationInput.value, 10);
+  let remaining = totalTime;
+  let running = false;
+  let rafId = null;
+  let lastTs = null;
+  let pulseStyleEl = document.createElement('style');
+  document.body.appendChild(pulseStyleEl);
+
+  function colorForFraction(frac) {
+    if (frac > 0.5) return '#639922';
+    if (frac > 0.2) return '#BA7517';
+    return '#E24B4A';
+  }
+
+  function updatePulseSpeed(frac) {
+    const speed = 1 - 0.8 * (1 - frac);
+    const clamped = Math.max(0.2, Math.min(1, speed));
+    pulseStyleEl.textContent = '#pulseDot::before { animation-duration: ' + clamped.toFixed(2) + 's; }';
+  }
+
+  function render() {
+    const frac = Math.max(0, remaining / totalTime);
+    const offset = CIRC * (1 - frac);
+    arc.setAttribute('stroke-dashoffset', offset.toFixed(2));
+    const color = colorForFraction(frac);
+    arc.setAttribute('stroke', color);
+    pulseDot.style.setProperty('--pulse-color', color);
+    document.querySelector('style').sheet;
+    pulseStyleEl.textContent += ' #pulseDot::before { border-color: ' + color + '; }';
+    updatePulseSpeed(frac);
+    timeLabel.textContent = Math.ceil(remaining);
+    timeLabel.style.color = remaining <= 10 ? '#E24B4A' : 'var(--text-primary)';
+
+    if (remaining <= 10 && remaining > 0) {
+      ring.parentElement.classList.add('glow');
+    } else {
+      ring.parentElement.classList.remove('glow');
+    }
+  }
+
+  function tick(ts) {
+    if (!running) return;
+    if (lastTs === null) lastTs = ts;
+    const dt = (ts - lastTs) / 1000;
+    lastTs = ts;
+    remaining -= dt;
+    if (remaining <= 0) {
+      remaining = 0;
+      render();
+      timeUp();
+      return;
+    }
+    render();
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function timeUp() {
+    running = false;
+    statusLabel.textContent = "Time's up";
+    const container = document.querySelector('div[style*="position:relative"]');
+    if (container) {
+      container.classList.add('shake');
+      setTimeout(() => container.classList.remove('shake'), 400);
+    }
+    let flashes = 0;
+    const flashInterval = setInterval(() => {
+      arc.setAttribute('stroke', flashes % 2 === 0 ? '#E24B4A' : 'var(--border)');
+      flashes++;
+      if (flashes > 5) {
+        clearInterval(flashInterval);
+        arc.setAttribute('stroke', '#E24B4A');
+      }
+    }, 150);
+  }
+
+  function start() {
+    if (running) return;
+    if (remaining <= 0) remaining = totalTime;
+    running = true;
+    lastTs = null;
+    statusLabel.textContent = 'Running';
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function pause() {
+    running = false;
+    if (rafId) cancelAnimationFrame(rafId);
+    statusLabel.textContent = remaining > 0 ? 'Paused' : 'Ready';
+  }
+
+  function reset() {
+    running = false;
+    if (rafId) cancelAnimationFrame(rafId);
+    totalTime = parseInt(durationInput.value, 10);
+    remaining = totalTime;
+    lastTs = null;
+    statusLabel.textContent = 'Ready';
+    ring.parentElement.classList.remove('glow');
+    render();
+  }
+
+  durationInput.addEventListener('input', () => {
+    durationOut.textContent = durationInput.value + 's';
+    if (!running) reset();
+  });
+
+  startBtn.addEventListener('click', start);
+  pauseBtn.addEventListener('click', pause);
+  resetBtn.addEventListener('click', reset);
+
+  render();
+})();
+</script>

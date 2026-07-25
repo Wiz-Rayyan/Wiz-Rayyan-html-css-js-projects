@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Neon / Glow Border Input</title>
+<style>
+  :root{
+    --cyan:#00f0ff;
+    --magenta:#ff00e5;
+    --green:#39ff88;
+    --red:#ff2b4e;
+    --bg:#07080d;
+    --panel:#0d0f18;
+    --ink:#c9d6ea;
+    --muted:#5c6a86;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    height:100%;
+    margin:0;
+    background:
+      radial-gradient(circle at 20% 10%, rgba(0,240,255,0.06), transparent 40%),
+      radial-gradient(circle at 80% 90%, rgba(255,0,229,0.06), transparent 40%),
+      var(--bg);
+    color:var(--ink);
+    font-family:'Courier New', ui-monospace, SFMono-Regular, Menlo, monospace;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:40px 16px;
+  }
+
+  .terminal{
+    width:100%;
+    max-width:420px;
+    background:linear-gradient(180deg, var(--panel), #090a12);
+    border:1px solid rgba(0,240,255,0.15);
+    border-radius:6px;
+    padding:32px 28px 28px;
+    position:relative;
+    box-shadow:0 0 60px rgba(0,240,255,0.05), inset 0 0 40px rgba(0,0,0,0.4);
+  }
+
+  .terminal::before{
+    content:'';
+    position:absolute;
+    top:0; left:24px; right:24px; height:1px;
+    background:linear-gradient(90deg, transparent, var(--cyan), var(--magenta), transparent);
+    opacity:0.6;
+  }
+
+  .eyebrow{
+    font-size:11px;
+    letter-spacing:3px;
+    color:var(--muted);
+    margin:0 0 4px;
+  }
+
+  h1{
+    font-size:17px;
+    letter-spacing:2px;
+    margin:0 0 28px;
+    color:var(--cyan);
+    text-shadow:0 0 12px rgba(0,240,255,0.5);
+    font-weight:400;
+  }
+
+  .field{ margin-bottom:24px; }
+
+  .field label{
+    display:block;
+    font-size:11px;
+    letter-spacing:2px;
+    color:var(--muted);
+    margin-bottom:8px;
+  }
+
+  /* --- the neon wrap: this is the whole trick --- */
+  @property --angle{
+    syntax:'<angle>';
+    initial-value:0deg;
+    inherits:false;
+  }
+
+  .neon-wrap{
+    position:relative;
+    border-radius:4px;
+    padding:2px;
+    isolation:isolate;
+  }
+
+  .neon-wrap::before{
+    content:'';
+    position:absolute;
+    inset:0;
+    border-radius:4px;
+    padding:2px;
+    background:conic-gradient(from var(--angle), var(--cyan), var(--magenta), var(--cyan));
+    -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite:xor;
+    mask-composite:exclude;
+    opacity:0;
+    transition:opacity .25s ease;
+    animation:rotate 2.5s linear infinite;
+    animation-play-state:paused;
+    z-index:1;
+  }
+
+  .neon-wrap::after{
+    content:'';
+    position:absolute;
+    inset:-1px;
+    border-radius:6px;
+    background:transparent;
+    box-shadow:0 0 0px var(--cyan);
+    transition:box-shadow .25s ease, opacity .25s ease;
+    opacity:0;
+    pointer-events:none;
+    z-index:0;
+  }
+
+  @keyframes rotate{
+    to{ --angle:360deg; }
+  }
+
+  .neon-wrap:focus-within::before,
+  .neon-wrap:focus-within::after{
+    opacity:1;
+  }
+  .neon-wrap:focus-within::before{
+    animation-play-state:running;
+  }
+  .neon-wrap:focus-within::after{
+    box-shadow:0 0 18px 1px var(--cyan);
+  }
+  .neon-wrap:focus-within.typing::after{
+    box-shadow:0 0 28px 4px var(--cyan);
+  }
+
+  .neon-wrap input{
+    position:relative;
+    z-index:2;
+    width:100%;
+    background:#0a0c14;
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:3px;
+    padding:12px 14px;
+    color:var(--ink);
+    font-family:inherit;
+    font-size:14px;
+    outline:none;
+  }
+  .neon-wrap input::placeholder{ color:var(--muted); }
+
+  /* valid state: green neon */
+  .neon-wrap.valid::before{
+    background:conic-gradient(from var(--angle), var(--green), #0af08a, var(--green));
+    opacity:1;
+    animation-play-state:paused;
+  }
+  .neon-wrap.valid::after{
+    opacity:1;
+    box-shadow:0 0 16px 2px var(--green);
+    animation:pulseGreen 1.5s ease-in-out infinite;
+  }
+  .neon-wrap.valid input{ border-color:transparent; }
+
+  /* invalid state: red neon + shake */
+  .neon-wrap.invalid::before{
+    background:conic-gradient(from var(--angle), var(--red), #ff6b81, var(--red));
+    opacity:1;
+    animation-play-state:paused;
+  }
+  .neon-wrap.invalid::after{
+    opacity:1;
+    box-shadow:0 0 16px 2px var(--red);
+    animation:pulseRed 1.5s ease-in-out infinite;
+  }
+  .neon-wrap.invalid input{ border-color:transparent; }
+  .neon-wrap.shake{ animation:shake .4s ease; }
+
+  @keyframes pulseGreen{
+    0%,100%{ box-shadow:0 0 14px 1px var(--green); }
+    50%{ box-shadow:0 0 26px 4px var(--green); }
+  }
+  @keyframes pulseRed{
+    0%,100%{ box-shadow:0 0 14px 1px var(--red); }
+    50%{ box-shadow:0 0 26px 4px var(--red); }
+  }
+  @keyframes shake{
+    0%,100%{ transform:translateX(0); }
+    20%{ transform:translateX(-6px); }
+    40%{ transform:translateX(6px); }
+    60%{ transform:translateX(-4px); }
+    80%{ transform:translateX(4px); }
+  }
+
+  .hint{
+    font-size:11px;
+    margin-top:6px;
+    min-height:14px;
+    letter-spacing:0.5px;
+  }
+  .hint.ok{ color:var(--green); }
+  .hint.err{ color:var(--red); }
+  .hint.idle{ color:var(--muted); }
+
+  .submit{
+    width:100%;
+    margin-top:8px;
+    padding:12px;
+    background:transparent;
+    border:1px solid var(--cyan);
+    color:var(--cyan);
+    letter-spacing:3px;
+    font-size:12px;
+    font-family:inherit;
+    border-radius:3px;
+    cursor:pointer;
+    transition:all .2s ease;
+  }
+  .submit:hover{
+    background:rgba(0,240,255,0.08);
+    box-shadow:0 0 20px rgba(0,240,255,0.35);
+  }
+</style>
+</head>
+<body>
+
+<div class="terminal">
+  <p class="eyebrow">SECURE ACCESS // 0x4F2A</p>
+  <h1>&gt; AUTHENTICATE</h1>
+
+  <div class="field">
+    <label for="user">CALLSIGN</label>
+    <div class="neon-wrap" id="wrap-user">
+      <input id="user" type="text" placeholder="e.g. NIGHTRUNNER_07" autocomplete="off">
+    </div>
+    <p class="hint idle" id="hint-user">3+ characters, letters and numbers only</p>
+  </div>
+
+  <div class="field">
+    <label for="mail">COMM LINK</label>
+    <div class="neon-wrap" id="wrap-mail">
+      <input id="mail" type="text" placeholder="you@network.io" autocomplete="off">
+    </div>
+    <p class="hint idle" id="hint-mail">Standard email format required</p>
+  </div>
+
+  <div class="field">
+    <label for="pass">CIPHER KEY</label>
+    <div class="neon-wrap" id="wrap-pass">
+      <input id="pass" type="password" placeholder="••••••••" autocomplete="off">
+    </div>
+    <p class="hint idle" id="hint-pass">Minimum 8 characters</p>
+  </div>
+
+  <button class="submit">CONNECT →</button>
+</div>
+
+<script>
+  function bindField(inputId, wrapId, hintId, validate, okMsg, errMsg, idleMsg){
+    const input = document.getElementById(inputId);
+    const wrap = document.getElementById(wrapId);
+    const hint = document.getElementById(hintId);
+    let typingTimer;
+
+    input.addEventListener('input', () => {
+      wrap.classList.add('typing');
+      clearTimeout(typingTimer);
+      typingTimer = setTimeout(() => wrap.classList.remove('typing'), 200);
+
+      wrap.classList.remove('valid','invalid');
+      hint.className = 'hint idle';
+      hint.textContent = idleMsg;
+    });
+
+    input.addEventListener('blur', () => {
+      if(input.value.length === 0){
+        wrap.classList.remove('valid','invalid');
+        hint.className = 'hint idle';
+        hint.textContent = idleMsg;
+        return;
+      }
+      if(validate(input.value)){
+        wrap.classList.remove('invalid');
+        wrap.classList.add('valid');
+        hint.className = 'hint ok';
+        hint.textContent = okMsg;
+      } else {
+        wrap.classList.remove('valid');
+        wrap.classList.add('invalid','shake');
+        hint.className = 'hint err';
+        hint.textContent = errMsg;
+        setTimeout(() => wrap.classList.remove('shake'), 400);
+      }
+    });
+  }
+
+  bindField('user','wrap-user','hint-user',
+    v => /^[a-zA-Z0-9_]{3,}$/.test(v),
+    'CALLSIGN VERIFIED',
+    'INVALID CALLSIGN FORMAT',
+    '3+ characters, letters and numbers only'
+  );
+
+  bindField('mail','wrap-mail','hint-mail',
+    v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v),
+    'LINK ESTABLISHED',
+    'MALFORMED COMM LINK',
+    'Standard email format required'
+  );
+
+  bindField('pass','wrap-pass','hint-pass',
+    v => v.length >= 8,
+    'KEY STRENGTH ACCEPTABLE',
+    'KEY TOO SHORT',
+    'Minimum 8 characters'
+  );
+</script>
+
+</body>
+</html>

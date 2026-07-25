@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Glowing Line Chart</title>
+<style>
+  :root{
+    --bg:#0b0e14;
+    --panel:#11151f;
+    --grid:#1c222c;
+    --grid2:#1c222c;
+    --text:#e7ebf3;
+    --muted:#7c8494;
+    --line:#3ee6c4;
+    --line-glow:#3ee6c4;
+    --accent:#8b7cff;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0;padding:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    height:100%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .card{
+    width:min(900px,94vw);
+    background:linear-gradient(180deg,#121826 0%,#0e131d 100%);
+    border:1px solid #232b3a;
+    border-radius:18px;
+    padding:28px 28px 20px;
+    box-shadow:0 20px 60px rgba(0,0,0,0.5);
+  }
+  .head{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    margin-bottom:6px;
+  }
+  .head h1{
+    font-size:18px;
+    font-weight:600;
+    margin:0 0 4px;
+    letter-spacing:0.2px;
+  }
+  .head p{
+    margin:0;
+    font-size:13px;
+    color:var(--muted);
+  }
+  .badge{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    background:rgba(62,230,196,0.08);
+    border:1px solid rgba(62,230,196,0.25);
+    color:var(--line);
+    font-size:13px;
+    font-weight:600;
+    padding:6px 12px;
+    border-radius:999px;
+    white-space:nowrap;
+  }
+  .dot-pulse{
+    width:6px;height:6px;border-radius:50%;
+    background:var(--line);
+    box-shadow:0 0 6px var(--line);
+    animation:pulseDot 1.6s ease-in-out infinite;
+  }
+  @keyframes pulseDot{
+    0%,100%{opacity:1;transform:scale(1);}
+    50%{opacity:0.4;transform:scale(0.7);}
+  }
+  .chart-wrap{
+    position:relative;
+    margin-top:10px;
+  }
+  svg{
+    width:100%;
+    height:auto;
+    display:block;
+    overflow:visible;
+  }
+  .grid-line{
+    stroke:#202838;
+    stroke-width:1;
+  }
+  .axis-label{
+    fill:var(--muted);
+    font-size:11px;
+    font-family:inherit;
+  }
+  .glow-path{
+    fill:none;
+    stroke:var(--line);
+    stroke-width:2.5;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+    filter:drop-shadow(0 0 6px rgba(62,230,196,0.9)) drop-shadow(0 0 14px rgba(62,230,196,0.5));
+    transition:stroke-width 0.2s ease;
+    cursor:pointer;
+  }
+  .glow-path.thick{
+    stroke-width:4;
+  }
+  .fill-area{
+    opacity:0.9;
+  }
+  .sparkle{
+    filter:drop-shadow(0 0 8px rgba(255,255,255,0.9)) drop-shadow(0 0 16px rgba(62,230,196,0.8));
+  }
+  .sparkle-core{
+    fill:#ffffff;
+  }
+  .sparkle-ring{
+    fill:none;
+    stroke:var(--line);
+    stroke-width:1.5;
+    opacity:0;
+  }
+  .hover-dot{
+    fill:#ffffff;
+    stroke:var(--line);
+    stroke-width:2;
+    filter:drop-shadow(0 0 6px rgba(62,230,196,0.9));
+    opacity:0;
+    pointer-events:none;
+  }
+  .hover-line{
+    stroke:rgba(255,255,255,0.15);
+    stroke-width:1;
+    stroke-dasharray:3,3;
+    opacity:0;
+    pointer-events:none;
+  }
+  .pt-hit{
+    fill:transparent;
+    cursor:pointer;
+  }
+  .tooltip{
+    position:absolute;
+    pointer-events:none;
+    background:#1a2030;
+    border:1px solid #2c3547;
+    border-radius:10px;
+    padding:8px 12px;
+    font-size:12px;
+    color:var(--text);
+    opacity:0;
+    transform:translate(-50%,-115%);
+    transition:opacity 0.12s ease;
+    white-space:nowrap;
+    box-shadow:0 8px 24px rgba(0,0,0,0.45);
+  }
+  .tooltip .tv{
+    font-size:15px;
+    font-weight:700;
+    color:var(--line);
+  }
+  .tooltip .tl{
+    color:var(--muted);
+    font-size:11px;
+    margin-top:2px;
+  }
+  .modal-overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.6);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:50;
+  }
+  .modal-overlay.show{
+    display:flex;
+  }
+  .modal{
+    width:min(360px,86vw);
+    background:#131a27;
+    border:1px solid #262f42;
+    border-radius:16px;
+    padding:22px;
+    box-shadow:0 30px 80px rgba(0,0,0,0.6);
+  }
+  .modal h3{
+    margin:0 0 2px;
+    font-size:16px;
+  }
+  .modal .sub{
+    color:var(--muted);
+    font-size:12px;
+    margin-bottom:16px;
+  }
+  .modal .big{
+    font-size:32px;
+    font-weight:700;
+    color:var(--line);
+    margin-bottom:4px;
+  }
+  .modal .row{
+    display:flex;
+    justify-content:space-between;
+    padding:8px 0;
+    border-top:1px solid #232b3a;
+    font-size:13px;
+  }
+  .modal .row span:first-child{color:var(--muted);}
+  .modal-close{
+    margin-top:16px;
+    width:100%;
+    padding:10px;
+    border-radius:10px;
+    border:1px solid #2c3547;
+    background:#1a2030;
+    color:var(--text);
+    font-size:13px;
+    font-weight:600;
+    cursor:pointer;
+  }
+  .modal-close:hover{
+    background:#202838;
+  }
+  .trend-up{color:#3ee6c4;}
+  .trend-down{color:#ff6b6b;}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="head">
+    <div>
+      <h1>Revenue growth</h1>
+      <p>Monthly recurring revenue, last 8 months</p>
+    </div>
+    <div class="badge"><span class="dot-pulse"></span>Live</div>
+  </div>
+
+  <div class="chart-wrap" id="chartWrap">
+    <svg id="chartSvg" viewBox="0 0 760 320" preserveAspectRatio="xMidYMid meet">
+      <defs>
+        <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#3ee6c4" stop-opacity="0.35"/>
+          <stop offset="100%" stop-color="#3ee6c4" stop-opacity="0"/>
+        </linearGradient>
+        <radialGradient id="sparkleGrad" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#ffffff" stop-opacity="1"/>
+          <stop offset="60%" stop-color="#3ee6c4" stop-opacity="0.6"/>
+          <stop offset="100%" stop-color="#3ee6c4" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+
+      <g id="gridLines"></g>
+      <g id="axisLabels"></g>
+
+      <path id="fillArea" class="fill-area" fill="url(#areaGrad)"></path>
+      <path id="glowPath" class="glow-path"></path>
+
+      <line id="hoverLine" class="hover-line" x1="0" y1="0" x2="0" y2="270"></line>
+      <g id="pointsGroup"></g>
+
+      <circle id="sparkleGlow" class="sparkle" r="14" fill="url(#sparkleGrad)" opacity="0"></circle>
+      <circle id="sparkleCore" class="sparkle sparkle-core" r="4" opacity="0"></circle>
+      <circle id="sparkleRing" class="sparkle-ring" r="8"></circle>
+
+      <circle id="hoverDot" class="hover-dot" r="5"></circle>
+    </svg>
+    <div class="tooltip" id="tooltip">
+      <div class="tv" id="tooltipVal"></div>
+      <div class="tl" id="tooltipLabel"></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h3 id="modalMonth">Month</h3>
+    <div class="sub" id="modalSub">Trend analysis</div>
+    <div class="big" id="modalValue">$0</div>
+    <div class="row"><span>Change from prior month</span><span id="modalChange">+0%</span></div>
+    <div class="row"><span>Change from start</span><span id="modalChangeStart">+0%</span></div>
+    <div class="row"><span>Position in range</span><span id="modalPosition">-</span></div>
+    <button class="modal-close" onclick="closeModal()">Close</button>
+  </div>
+</div>
+
+<script>
+const labels = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug"];
+const values = [42, 48, 45, 58, 67, 63, 79, 91];
+
+const W = 760, H = 320;
+const padL = 40, padR = 20, padT = 20, padB = 40;
+const plotW = W - padL - padR;
+const plotH = H - padT - padB;
+
+const minV = Math.min(...values) * 0.85;
+const maxV = Math.max(...values) * 1.08;
+
+function xFor(i){ return padL + (i/(values.length-1)) * plotW; }
+function yFor(v){ return padT + plotH - ((v - minV)/(maxV - minV)) * plotH; }
+
+const points = values.map((v,i) => [xFor(i), yFor(v)]);
+
+function catmullRomToBezier(pts){
+  if(pts.length < 3) return `M${pts[0][0]},${pts[0][1]} L${pts[1][0]},${pts[1][1]}`;
+  let d = `M${pts[0][0]},${pts[0][1]}`;
+  for(let i=0;i<pts.length-1;i++){
+    const p0 = pts[i-1] || pts[i];
+    const p1 = pts[i];
+    const p2 = pts[i+1];
+    const p3 = pts[i+2] || p2;
+    const cp1x = p1[0] + (p2[0]-p0[0])/6;
+    const cp1y = p1[1] + (p2[1]-p0[1])/6;
+    const cp2x = p2[0] - (p3[0]-p1[0])/6;
+    const cp2y = p2[1] - (p3[1]-p1[1])/6;
+    d += ` C${cp1x},${cp1y} ${cp2x},${cp2y} ${p2[0]},${p2[1]}`;
+  }
+  return d;
+}
+
+const linePath = catmullRomToBezier(points);
+const areaPath = linePath + ` L${points[points.length-1][0]},${padT+plotH} L${points[0][0]},${padT+plotH} Z`;
+
+document.getElementById('glowPath').setAttribute('d', linePath);
+document.getElementById('fillArea').setAttribute('d', areaPath);
+
+const gridG = document.getElementById('gridLines');
+const axisG = document.getElementById('axisLabels');
+const gridCount = 4;
+for(let i=0;i<=gridCount;i++){
+  const y = padT + (plotH/gridCount)*i;
+  const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+  line.setAttribute('x1', padL);
+  line.setAttribute('x2', W-padR);
+  line.setAttribute('y1', y);
+  line.setAttribute('y2', y);
+  line.setAttribute('class','grid-line');
+  gridG.appendChild(line);
+}
+labels.forEach((lab,i)=>{
+  const t = document.createElementNS('http://www.w3.org/2000/svg','text');
+  t.setAttribute('x', xFor(i));
+  t.setAttribute('y', H-14);
+  t.setAttribute('text-anchor','middle');
+  t.setAttribute('class','axis-label');
+  t.textContent = lab;
+  axisG.appendChild(t);
+});
+
+const pointsGroup = document.getElementById('pointsGroup');
+points.forEach((p,i)=>{
+  const hit = document.createElementNS('http://www.w3.org/2000/svg','circle');
+  hit.setAttribute('cx', p[0]);
+  hit.setAttribute('cy', p[1]);
+  hit.setAttribute('r', 14);
+  hit.setAttribute('class','pt-hit');
+  hit.addEventListener('mouseenter', ()=>showHover(i));
+  hit.addEventListener('mouseleave', hideHover);
+  hit.addEventListener('click', ()=>openModal(i));
+  pointsGroup.appendChild(hit);
+});
+
+const pathEl = document.getElementById('glowPath');
+const len = pathEl.getTotalLength();
+pathEl.style.strokeDasharray = len;
+pathEl.style.strokeDashoffset = len;
+
+const fillEl = document.getElementById('fillArea');
+fillEl.style.opacity = 0;
+
+const sparkleGlow = document.getElementById('sparkleGlow');
+const sparkleCore = document.getElementById('sparkleCore');
+const sparkleRing = document.getElementById('sparkleRing');
+const endPoint = points[points.length-1];
+sparkleGlow.setAttribute('cx', endPoint[0]);
+sparkleGlow.setAttribute('cy', endPoint[1]);
+sparkleCore.setAttribute('cx', endPoint[0]);
+sparkleCore.setAttribute('cy', endPoint[1]);
+sparkleRing.setAttribute('cx', endPoint[0]);
+sparkleRing.setAttribute('cy', endPoint[1]);
+
+let start = null;
+const duration = 1400;
+function animateLine(ts){
+  if(!start) start = ts;
+  const progress = Math.min((ts - start)/duration, 1);
+  const eased = 1 - Math.pow(1-progress, 3);
+  pathEl.style.strokeDashoffset = len * (1 - eased);
+  fillEl.style.opacity = eased * 0.9;
+  if(progress < 1){
+    requestAnimationFrame(animateLine);
+  } else {
+    sparkleGlow.style.opacity = 1;
+    sparkleCore.style.opacity = 1;
+    startSparklePulse();
+  }
+}
+requestAnimationFrame(animateLine);
+
+function startSparklePulse(){
+  let t0 = null;
+  function pulse(ts){
+    if(!t0) t0 = ts;
+    const elapsed = (ts - t0) % 1800;
+    const p = elapsed / 1800;
+    const scale = 1 + 0.3*Math.sin(p*Math.PI*2);
+    sparkleGlow.setAttribute('r', 14*scale);
+    const ringP = (elapsed % 1800) / 1800;
+    const ringR = 6 + ringP*16;
+    sparkleRing.setAttribute('r', ringR);
+    sparkleRing.setAttribute('opacity', (1-ringP)*0.6);
+    requestAnimationFrame(pulse);
+  }
+  requestAnimationFrame(pulse);
+}
+
+const tooltip = document.getElementById('tooltip');
+const tooltipVal = document.getElementById('tooltipVal');
+const tooltipLabel = document.getElementById('tooltipLabel');
+const hoverDot = document.getElementById('hoverDot');
+const hoverLine = document.getElementById('hoverLine');
+const wrap = document.getElementById('chartWrap');
+const svgEl = document.getElementById('chartSvg');
+
+function showHover(i){
+  const p = points[i];
+  pathEl.classList.add('thick');
+  hoverDot.setAttribute('cx', p[0]);
+  hoverDot.setAttribute('cy', p[1]);
+  hoverDot.style.opacity = 1;
+  hoverLine.setAttribute('x1', p[0]);
+  hoverLine.setAttribute('x2', p[0]);
+  hoverLine.setAttribute('y1', padT);
+  hoverLine.setAttribute('y2', padT+plotH);
+  hoverLine.style.opacity = 1;
+
+  const rect = svgEl.getBoundingClientRect();
+  const scaleX = rect.width / W;
+  const scaleY = rect.height / H;
+  const screenX = p[0]*scaleX;
+  const screenY = p[1]*scaleY;
+
+  tooltipVal.textContent = '$' + (values[i]*1000).toLocaleString();
+  tooltipLabel.textContent = labels[i];
+  tooltip.style.left = screenX + 'px';
+  tooltip.style.top = screenY + 'px';
+  tooltip.style.opacity = 1;
+}
+function hideHover(){
+  pathEl.classList.remove('thick');
+  hoverDot.style.opacity = 0;
+  hoverLine.style.opacity = 0;
+  tooltip.style.opacity = 0;
+}
+
+const modalOverlay = document.getElementById('modalOverlay');
+function openModal(i){
+  const v = values[i];
+  const prev = i > 0 ? values[i-1] : v;
+  const first = values[0];
+  const changePrev = ((v - prev)/prev*100).toFixed(1);
+  const changeStart = ((v - first)/first*100).toFixed(1);
+  const rangeMin = Math.min(...values);
+  const rangeMax = Math.max(...values);
+  const posPct = (((v - rangeMin)/(rangeMax - rangeMin))*100).toFixed(0);
+
+  document.getElementById('modalMonth').textContent = labels[i] + ' revenue';
+  document.getElementById('modalSub').textContent = 'Trend analysis';
+  document.getElementById('modalValue').textContent = '$' + (v*1000).toLocaleString();
+  const changeEl = document.getElementById('modalChange');
+  changeEl.textContent = (changePrev >= 0 ? '+' : '') + changePrev + '%';
+  changeEl.className = changePrev >= 0 ? 'trend-up' : 'trend-down';
+  const changeStartEl = document.getElementById('modalChangeStart');
+  changeStartEl.textContent = (changeStart >= 0 ? '+' : '') + changeStart + '%';
+  changeStartEl.className = changeStart >= 0 ? 'trend-up' : 'trend-down';
+  document.getElementById('modalPosition').textContent = posPct + 'th percentile of range';
+
+  modalOverlay.classList.add('show');
+}
+function closeModal(){
+  modalOverlay.classList.remove('show');
+}
+modalOverlay.addEventListener('click', (e)=>{
+  if(e.target === modalOverlay) closeModal();
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,190 @@
+<h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;">Live service health dashboard showing status dots grouped by category, with hover details, click-through service panels, and simulated alerts.</h2>
+<style>
+@keyframes pulse-healthy{0%{transform:scale(0.9);opacity:.55}70%{transform:scale(1.9);opacity:0}100%{opacity:0}}
+@keyframes pulse-degraded{0%{transform:scale(0.9);opacity:.55}70%{transform:scale(2.1);opacity:0}100%{opacity:0}}
+@keyframes pulse-down{0%{transform:scale(0.9);opacity:.65}70%{transform:scale(2.3);opacity:0}100%{opacity:0}}
+@keyframes flash-down{0%,100%{filter:brightness(1)}50%{filter:brightness(1.5)}}
+@keyframes toast-in{from{transform:translateX(12px);opacity:0}to{transform:translateX(0);opacity:1}}
+.dot-wrap{position:relative;width:32px;height:32px;display:flex;align-items:center;justify-content:center;background:none;border:none;padding:0;cursor:pointer}
+.ring{position:absolute;width:16px;height:16px;border-radius:50%;border:1.5px solid transparent;pointer-events:none}
+.ring.healthy{border-color:var(--border-success);animation:pulse-healthy 1s ease-out infinite}
+.ring.degraded{border-color:var(--border-warning);animation:pulse-degraded 2s ease-out infinite}
+.ring.down{border-color:var(--border-danger);animation:pulse-down .5s ease-out infinite}
+.dot{width:16px;height:16px;border-radius:50%;position:relative;z-index:1}
+.dot.healthy{background:var(--fill-success)}
+.dot.degraded{background:var(--fill-warning)}
+.dot.down{background:var(--fill-danger);animation:flash-down .5s ease-in-out infinite}
+.tooltip{position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--surface-3);border:0.5px solid var(--border-strong);border-radius:var(--radius);padding:6px 10px;font-size:12px;color:var(--text-primary);white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .12s;z-index:5}
+.dot-wrap:hover .tooltip,.dot-wrap:focus-visible .tooltip{opacity:1}
+.dot-wrap:focus-visible{outline:2px solid var(--border-accent);outline-offset:3px;border-radius:50%}
+</style>
+<div style="font-family:var(--font-sans);">
+  <div id="summary" style="display:flex;gap:8px;margin-bottom:1.25rem;"></div>
+  <div id="categories"></div>
+  <div id="panel-wrap" style="max-height:0;overflow:hidden;transition:max-height .25s ease;"></div>
+</div>
+<div id="toast-host" style="position:relative;height:0;"></div>
+<script>
+(function(){
+var cats=[
+ {name:"API gateway",items:[
+   {id:"auth",name:"Auth API",status:"healthy",uptime:99.98,incident:"14d ago",hist:[98,99,97,99,100,99,100]},
+   {id:"pub",name:"Public API",status:"healthy",uptime:99.95,incident:"9d ago",hist:[96,98,99,97,99,100,99]},
+   {id:"webhooks",name:"Webhooks",status:"degraded",uptime:98.10,incident:"22m ago",hist:[99,97,88,91,85,90,88]},
+   {id:"ratelimit",name:"Rate limiter",status:"healthy",uptime:99.99,incident:"31d ago",hist:[100,100,99,100,100,99,100]}
+ ]},
+ {name:"Core services",items:[
+   {id:"billing",name:"Billing",status:"healthy",uptime:99.90,incident:"18d ago",hist:[99,98,99,97,99,98,99]},
+   {id:"search",name:"Search",status:"healthy",uptime:99.87,incident:"6d ago",hist:[97,98,96,99,97,98,99]},
+   {id:"notif",name:"Notifications",status:"degraded",uptime:97.40,incident:"4m ago",hist:[99,95,90,86,89,84,87]},
+   {id:"sched",name:"Scheduler",status:"healthy",uptime:99.96,incident:"27d ago",hist:[100,99,100,99,100,100,99]}
+ ]},
+ {name:"Data stores",items:[
+   {id:"pridb",name:"Primary DB",status:"healthy",uptime:99.99,incident:"41d ago",hist:[100,100,99,100,100,100,99]},
+   {id:"repdb",name:"Replica DB",status:"down",uptime:92.10,incident:"2m ago",hist:[99,97,80,60,35,20,10]},
+   {id:"cache",name:"Cache",status:"healthy",uptime:99.93,incident:"11d ago",hist:[99,98,99,100,99,98,100]},
+   {id:"objstore",name:"Object storage",status:"healthy",uptime:99.99,incident:"52d ago",hist:[100,100,100,99,100,100,100]}
+ ]},
+ {name:"Edge / CDN",items:[
+   {id:"cdn",name:"CDN edge",status:"healthy",uptime:99.97,incident:"19d ago",hist:[99,100,99,98,100,99,100]},
+   {id:"lb",name:"Load balancer",status:"healthy",uptime:99.99,incident:"33d ago",hist:[100,99,100,100,99,100,100]},
+   {id:"dns",name:"DNS",status:"healthy",uptime:100,incident:"never",hist:[100,100,100,100,100,100,100]},
+   {id:"tls",name:"TLS termination",status:"healthy",uptime:99.98,incident:"25d ago",hist:[99,100,99,100,99,100,99]}
+ ]}
+];
+var services={};
+cats.forEach(function(c){c.items.forEach(function(s){services[s.id]=s;})});
+var selectedId=null;
+var labels={healthy:"Healthy",degraded:"Degraded",down:"Down"};
+
+function counts(){
+  var c={healthy:0,degraded:0,down:0};
+  Object.values(services).forEach(function(s){c[s.status]++});
+  return c;
+}
+
+function renderSummary(){
+  var c=counts();
+  var order=[["healthy","success"],["degraded","warning"],["down","danger"]];
+  document.getElementById("summary").innerHTML=order.map(function(o){
+    return '<div style="display:flex;align-items:center;gap:6px;background:var(--surface-1);border-radius:var(--radius);padding:6px 12px;font-size:13px;">'+
+      '<span style="width:8px;height:8px;border-radius:50%;background:var(--fill-'+o[1]+');"></span>'+
+      '<span style="color:var(--text-secondary);">'+labels[o[0]]+'</span>'+
+      '<span style="font-weight:500;">'+c[o[0]]+'</span></div>';
+  }).join("");
+}
+
+function renderGrid(){
+  document.getElementById("categories").innerHTML=cats.map(function(c){
+    return '<div style="margin-bottom:1.25rem;">'+
+      '<p style="font-size:13px;color:var(--text-secondary);margin:0 0 10px;">'+c.name+'</p>'+
+      '<div style="display:flex;gap:14px;flex-wrap:wrap;">'+
+      c.items.map(function(s){
+        return '<button class="dot-wrap" data-id="'+s.id+'" aria-label="'+s.name+', '+labels[s.status]+', '+s.uptime+' percent uptime">'+
+          '<span class="ring '+s.status+'"></span>'+
+          '<span class="dot '+s.status+'"></span>'+
+          '<span class="tooltip">'+s.name+' · '+labels[s.status]+' · '+s.uptime+'% uptime</span>'+
+        '</button>';
+      }).join("")+
+      '</div></div>';
+  }).join("");
+  Array.prototype.forEach.call(document.querySelectorAll(".dot-wrap"),function(el){
+    el.addEventListener("click",function(){
+      selectedId=el.getAttribute("data-id");
+      renderPanel();
+    });
+  });
+}
+
+function sparkline(hist,status){
+  var w=180,h=40,max=100,min=Math.min.apply(null,hist)-5;
+  var range=(max-min)||1;
+  var pts=hist.map(function(v,i){
+    var x=(i/(hist.length-1))*w;
+    var y=h-((v-min)/range)*h;
+    return x.toFixed(1)+","+y.toFixed(1);
+  }).join(" ");
+  var colorVar=status==="down"?"var(--text-danger)":status==="degraded"?"var(--text-warning)":"var(--text-success)";
+  return '<svg viewBox="0 0 '+w+' '+h+'" width="100%" height="'+h+'" preserveAspectRatio="none" role="img" aria-label="uptime trend">'+
+    '<polyline points="'+pts+'" fill="none" stroke="'+colorVar+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'+
+  '</svg>';
+}
+
+function renderPanel(){
+  var wrap=document.getElementById("panel-wrap");
+  if(!selectedId){
+    wrap.style.maxHeight="0";
+    return;
+  }
+  var s=services[selectedId];
+  var roleMap={healthy:"success",degraded:"warning",down:"danger"};
+  var role=roleMap[s.status];
+  wrap.innerHTML='<div style="background:var(--surface-1);border-radius:12px;padding:1rem 1.25rem;margin-top:4px;">'+
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">'+
+      '<div style="display:flex;align-items:center;gap:10px;">'+
+        '<span style="width:10px;height:10px;border-radius:50%;background:var(--fill-'+role+');"></span>'+
+        '<span style="font-weight:500;font-size:15px;">'+s.name+'</span>'+
+      '</div>'+
+      '<button id="panel-close" aria-label="Close service detail" style="width:28px;height:28px;padding:0;"><i class="ti ti-x" aria-hidden="true"></i></button>'+
+    '</div>'+
+    '<div style="display:flex;gap:24px;flex-wrap:wrap;margin-bottom:14px;">'+
+      '<div><p style="font-size:12px;color:var(--text-muted);margin:0 0 2px;">Status</p><p style="font-size:14px;color:var(--text-'+role+');margin:0;font-weight:500;">'+labels[s.status]+'</p></div>'+
+      '<div><p style="font-size:12px;color:var(--text-muted);margin:0 0 2px;">Uptime (30d)</p><p style="font-size:14px;margin:0;font-weight:500;">'+s.uptime+'%</p></div>'+
+      '<div><p style="font-size:12px;color:var(--text-muted);margin:0 0 2px;">Last incident</p><p style="font-size:14px;margin:0;font-weight:500;">'+s.incident+'</p></div>'+
+    '</div>'+
+    '<p style="font-size:12px;color:var(--text-muted);margin:0 0 6px;">Uptime trend, last 7 checks</p>'+
+    sparkline(s.hist,s.status)+
+  '</div>';
+  wrap.style.maxHeight="260px";
+  document.getElementById("panel-close").addEventListener("click",function(){
+    selectedId=null;
+    renderPanel();
+  });
+}
+
+function showToast(text,role){
+  var host=document.getElementById("toast-host");
+  var t=document.createElement("div");
+  t.style.cssText="position:absolute;top:-8px;right:0;background:var(--surface-2);border:0.5px solid var(--border-strong);border-left:2px solid var(--border-"+role+");border-radius:var(--radius);padding:10px 14px;font-size:13px;display:flex;align-items:center;gap:8px;animation:toast-in .2s ease;max-width:260px;";
+  t.innerHTML='<i class="ti ti-bell" aria-hidden="true" style="font-size:16px;color:var(--text-'+role+');"></i><span>'+text+'</span>';
+  host.appendChild(t);
+  setTimeout(function(){
+    t.style.transition="opacity .2s";
+    t.style.opacity="0";
+    setTimeout(function(){t.remove();},220);
+  },4000);
+}
+
+function refresh(){
+  renderSummary();
+  renderGrid();
+  renderPanel();
+}
+refresh();
+
+var ids=Object.keys(services);
+setInterval(function(){
+  var id=ids[Math.floor(Math.random()*ids.length)];
+  var s=services[id];
+  if(s.status==="healthy" && Math.random()<0.5){
+    s.status="degraded";
+    s.incident="just now";
+    showToast(s.name+" is now degraded",'warning');
+  } else if(s.status==="degraded"){
+    if(Math.random()<0.4){
+      s.status="down";
+      s.incident="just now";
+      showToast(s.name+" went down",'danger');
+    } else {
+      s.status="healthy";
+      showToast(s.name+" recovered",'success');
+    }
+  } else if(s.status==="down"){
+    s.status="healthy";
+    s.incident="just now";
+    showToast(s.name+" recovered",'success');
+  }
+  refresh();
+},5000);
+})();
+</script>

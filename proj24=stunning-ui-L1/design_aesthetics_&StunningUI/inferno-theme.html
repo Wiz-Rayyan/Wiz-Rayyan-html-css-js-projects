@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EMBERWORKS — Fire-Forged Hot Sauce</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-deep: #1A0A00;
+    --bg-charcoal: #1A1A1A;
+    --bg-red: #1A0A0A;
+    --flame: #FF6600;
+    --intense-red: #FF0000;
+    --gold: #FFE600;
+    --ember: #FF3300;
+    --charcoal: #1A1A1A;
+    --text: #FFEFE0;
+    --text-dim: #C9A98F;
+    --font-display: 'Bebas Neue', 'Inter', sans-serif;
+    --font-body: 'Inter', sans-serif;
+  }
+
+  *{ margin:0; padding:0; box-sizing:border-box; }
+
+  html{ scroll-behavior: smooth; }
+
+  body{
+    background: radial-gradient(ellipse at 50% -10%, #3a1200 0%, var(--bg-deep) 45%, var(--bg-red) 100%);
+    color: var(--text);
+    font-family: var(--font-body);
+    overflow-x: hidden;
+    min-height: 100vh;
+  }
+
+  /* ambient ember particles */
+  .embers{
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    overflow: hidden;
+  }
+  .embers span{
+    position: absolute;
+    bottom: -10px;
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: var(--gold);
+    box-shadow: 0 0 6px 2px var(--ember);
+    opacity: 0;
+    animation: rise linear infinite;
+  }
+  @keyframes rise{
+    0%{ transform: translateY(0) translateX(0); opacity: 0; }
+    10%{ opacity: 1; }
+    90%{ opacity: 0.7; }
+    100%{ transform: translateY(-110vh) translateX(var(--drift, 20px)); opacity: 0; }
+  }
+
+  /* ===== NAV ===== */
+  nav{
+    position: sticky; top: 0; z-index: 50;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 40px;
+    background: rgba(26,10,0,0.75);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255,102,0,0.25);
+  }
+  .logo{
+    font-family: var(--font-display);
+    font-size: 28px;
+    letter-spacing: 2px;
+    background: linear-gradient(180deg, var(--gold) 0%, var(--flame) 60%, var(--intense-red) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow: 0 0 20px rgba(255,102,0,0.35);
+  }
+  .navlinks{ display: flex; gap: 36px; list-style: none; }
+  .navlinks a{
+    color: var(--text-dim);
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    position: relative;
+    transition: color 0.25s ease;
+  }
+  .navlinks a::after{
+    content: '';
+    position: absolute;
+    left: 50%; bottom: -8px;
+    width: 0; height: 2px;
+    background: linear-gradient(90deg, var(--flame), var(--gold));
+    box-shadow: 0 0 8px var(--flame);
+    transition: width 0.3s ease, left 0.3s ease;
+  }
+  .navlinks a:hover{ color: var(--gold); }
+  .navlinks a:hover::after{ width: 100%; left: 0; }
+
+  /* ===== HERO ===== */
+  .hero{
+    position: relative;
+    z-index: 2;
+    min-height: 92vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 40px 24px;
+  }
+  .flame-glow{
+    position: absolute;
+    bottom: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 900px; max-width: 140vw; height: 500px;
+    background: radial-gradient(ellipse at 50% 100%, rgba(255,102,0,0.45), rgba(255,51,0,0.15) 40%, transparent 70%);
+    filter: blur(10px);
+    z-index: -1;
+    animation: flicker 4s ease-in-out infinite;
+  }
+  @keyframes flicker{
+    0%,100%{ opacity: 1; transform: translateX(-50%) scaleY(1); }
+    50%{ opacity: 0.85; transform: translateX(-50%) scaleY(1.06); }
+  }
+  .eyebrow{
+    font-weight: 700;
+    letter-spacing: 4px;
+    font-size: 12px;
+    text-transform: uppercase;
+    color: var(--ember);
+    margin-bottom: 18px;
+    display: flex; align-items: center; gap: 10px;
+    justify-content: center;
+  }
+  .eyebrow::before, .eyebrow::after{
+    content: '';
+    width: 30px; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--flame));
+  }
+  .eyebrow::after{ background: linear-gradient(90deg, var(--flame), transparent); }
+
+  h1.hero-title{
+    font-family: var(--font-display);
+    font-size: clamp(64px, 12vw, 148px);
+    line-height: 0.9;
+    letter-spacing: 2px;
+    background: linear-gradient(180deg, #FFE600 0%, #FF6600 45%, #FF0000 90%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow: 0 0 60px rgba(255,51,0,0.4);
+    margin-bottom: 20px;
+  }
+  .hero p.sub{
+    max-width: 560px;
+    color: var(--text-dim);
+    font-size: 17px;
+    line-height: 1.6;
+    margin-bottom: 40px;
+  }
+
+  .btn-row{ display: flex; gap: 18px; flex-wrap: wrap; justify-content: center; }
+
+  .btn{
+    position: relative;
+    font-family: var(--font-body);
+    font-weight: 900;
+    font-size: 14px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 16px 34px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.3s ease;
+  }
+  .btn-primary{
+    background: linear-gradient(135deg, var(--flame), var(--intense-red));
+    color: #1A0A00;
+    box-shadow: 0 4px 20px rgba(255,51,0,0.35);
+  }
+  .btn-primary:hover{
+    transform: translateY(-2px);
+    box-shadow: 0 8px 34px rgba(255,102,0,0.6), 0 0 40px rgba(255,230,0,0.25);
+  }
+  .btn-primary:active{ transform: translateY(0) scale(0.97); }
+  .btn-ghost{
+    background: transparent;
+    color: var(--gold);
+    border: 1.5px solid rgba(255,230,0,0.4);
+  }
+  .btn-ghost:hover{
+    border-color: var(--gold);
+    box-shadow: 0 0 24px rgba(255,230,0,0.25);
+    color: #fff;
+  }
+
+  /* burst particles on click, injected via JS */
+  .burst-particle{
+    position: fixed;
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--gold);
+    pointer-events: none;
+    z-index: 999;
+  }
+
+  /* ===== SECTION ===== */
+  section{
+    position: relative;
+    z-index: 2;
+    padding: 100px 40px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .section-head{
+    text-align: center;
+    margin-bottom: 60px;
+  }
+  .section-head .eyebrow{ justify-content: center; }
+  h2.section-title{
+    font-family: var(--font-display);
+    font-size: clamp(36px, 5vw, 56px);
+    letter-spacing: 1px;
+    color: var(--text);
+  }
+  h2.section-title span{ color: var(--flame); }
+
+  /* ===== CARDS ===== */
+  .grid{
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 28px;
+  }
+  .card{
+    position: relative;
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.2)), var(--charcoal);
+    border-radius: 8px;
+    padding: 32px 26px;
+    border: 1px solid rgba(255,102,0,0.18);
+    overflow: hidden;
+    transition: transform 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease;
+  }
+  .card::before{
+    content: '';
+    position: absolute;
+    inset: 0;
+    padding: 1px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--flame), transparent 40%, var(--intense-red) 100%);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0;
+    transition: opacity 0.35s ease;
+  }
+  .card:hover{
+    transform: translateY(-6px);
+    border-color: transparent;
+    box-shadow: 0 20px 50px rgba(255,51,0,0.25), 0 0 0 1px rgba(255,102,0,0.3);
+  }
+  .card:hover::before{ opacity: 1; }
+  .card .ember-dot{
+    position: absolute;
+    top: 18px; right: 18px;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--ember);
+    box-shadow: 0 0 10px 3px rgba(255,51,0,0.6);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse{
+    0%,100%{ opacity: 0.5; transform: scale(1); }
+    50%{ opacity: 1; transform: scale(1.3); }
+  }
+  .card .heat{
+    font-family: var(--font-display);
+    font-size: 44px;
+    color: var(--flame);
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+  }
+  .card h3{
+    font-size: 19px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    color: var(--text);
+  }
+  .card p{
+    font-size: 14px;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+
+  /* ===== STATS BAR ===== */
+  .stats{
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    gap: 32px;
+    padding: 50px 40px;
+    background: linear-gradient(180deg, rgba(255,51,0,0.06), transparent);
+    border-top: 1px solid rgba(255,102,0,0.15);
+    border-bottom: 1px solid rgba(255,102,0,0.15);
+  }
+  .stat{ text-align: center; }
+  .stat .num{
+    font-family: var(--font-display);
+    font-size: 52px;
+    background: linear-gradient(180deg, var(--gold), var(--flame));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .stat .label{
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+
+  /* ===== FOOTER CTA ===== */
+  .cta-block{
+    text-align: center;
+    padding: 120px 24px;
+    position: relative;
+  }
+  .cta-block h2{
+    font-family: var(--font-display);
+    font-size: clamp(40px, 8vw, 84px);
+    color: var(--text);
+    margin-bottom: 28px;
+    letter-spacing: 1px;
+  }
+  .cta-block h2 em{
+    font-style: normal;
+    background: linear-gradient(135deg, var(--gold), var(--intense-red));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  footer{
+    padding: 30px 40px;
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 12px;
+    letter-spacing: 1px;
+    border-top: 1px solid rgba(255,102,0,0.15);
+  }
+
+  /* reveal on scroll */
+  .reveal{
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  .reveal.visible{ opacity: 1; transform: translateY(0); }
+
+  @media (max-width: 800px){
+    .grid{ grid-template-columns: 1fr; }
+    .navlinks{ display: none; }
+    section{ padding: 70px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="embers" id="embers"></div>
+
+<nav>
+  <div class="logo">EMBERWORKS</div>
+  <ul class="navlinks">
+    <li><a href="#lineup">Lineup</a></li>
+    <li><a href="#heat">Heat Index</a></li>
+    <li><a href="#story">Origin</a></li>
+  </ul>
+  <button class="btn btn-ghost" style="padding:10px 22px; font-size:12px;">Shop</button>
+</nav>
+
+<div class="hero">
+  <div class="flame-glow"></div>
+  <div class="eyebrow">Small Batch · Fire Forged</div>
+  <h1 class="hero-title">BOTTLED<br>COMBUSTION</h1>
+  <p class="sub">Hot sauce aged over live embers, not shortcuts. Every batch is smoked for six hours before it ever touches a chili. This is heat with a memory.</p>
+  <div class="btn-row">
+    <button class="btn btn-primary">Shop The Lineup</button>
+    <button class="btn btn-ghost">Watch It Smoke</button>
+  </div>
+</div>
+
+<section id="lineup">
+  <div class="section-head reveal">
+    <div class="eyebrow">The Lineup</div>
+    <h2 class="section-title">Pick Your <span>Threshold</span></h2>
+  </div>
+  <div class="grid">
+    <div class="card reveal">
+      <div class="ember-dot"></div>
+      <div class="heat">3</div>
+      <h3>First Light</h3>
+      <p>Smoked fresno and roasted garlic. A warm-up round for people who still have a tongue tomorrow.</p>
+    </div>
+    <div class="card reveal">
+      <div class="ember-dot"></div>
+      <div class="heat">7</div>
+      <h3>Coalwalker</h3>
+      <p>Habanero, charred pineapple, and mesquite smoke. Built for people who mean it when they say "extra."</p>
+    </div>
+    <div class="card reveal">
+      <div class="ember-dot"></div>
+      <div class="heat">10</div>
+      <h3>Last Ember</h3>
+      <p>Ghost pepper and carbon-black chili oil. One drop per plate. No exceptions, no refunds.</p>
+    </div>
+  </div>
+</section>
+
+<div class="stats reveal">
+  <div class="stat"><div class="num">6 hrs</div><div class="label">Smoked Per Batch</div></div>
+  <div class="stat"><div class="num">14</div><div class="label">Pepper Varieties</div></div>
+  <div class="stat"><div class="num">900°F</div><div class="label">Roasting Peak</div></div>
+  <div class="stat"><div class="num">0</div><div class="label">Shortcuts Taken</div></div>
+</div>
+
+<div class="cta-block">
+  <h2 class="reveal">Ready to <em>get burned?</em></h2>
+  <div class="btn-row reveal">
+    <button class="btn btn-primary">Build A 3-Pack</button>
+  </div>
+</div>
+
+<footer>© 2026 EMBERWORKS — Handle with respect.</footer>
+
+<script>
+  // ambient embers
+  const emberContainer = document.getElementById('embers');
+  for(let i=0;i<28;i++){
+    const s = document.createElement('span');
+    s.style.left = Math.random()*100 + 'vw';
+    s.style.setProperty('--drift', (Math.random()*80-40)+'px');
+    s.style.animationDuration = (6 + Math.random()*6) + 's';
+    s.style.animationDelay = (Math.random()*8) + 's';
+    s.style.width = s.style.height = (2 + Math.random()*3) + 'px';
+    emberContainer.appendChild(s);
+  }
+
+  // button fire burst on click
+  document.querySelectorAll('.btn-primary').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{
+      const rect = btn.getBoundingClientRect();
+      for(let i=0;i<16;i++){
+        const p = document.createElement('div');
+        p.className = 'burst-particle';
+        const colors = ['#FFE600','#FF6600','#FF3300','#FF0000'];
+        p.style.background = colors[Math.floor(Math.random()*colors.length)];
+        p.style.left = (rect.left + rect.width/2) + 'px';
+        p.style.top = (rect.top + rect.height/2) + 'px';
+        document.body.appendChild(p);
+        const angle = Math.random()*Math.PI*2;
+        const dist = 40 + Math.random()*80;
+        const dx = Math.cos(angle)*dist;
+        const dy = Math.sin(angle)*dist;
+        p.animate([
+          { transform: 'translate(0,0) scale(1)', opacity: 1 },
+          { transform: `translate(${dx}px, ${dy}px) scale(0)`, opacity: 0 }
+        ], { duration: 500 + Math.random()*300, easing: 'cubic-bezier(.2,.8,.2,1)' });
+        setTimeout(()=>p.remove(), 900);
+      }
+    });
+  });
+
+  // scroll reveal
+  const observer = new IntersectionObserver((entries)=>{
+    entries.forEach(entry=>{
+      if(entry.isIntersecting){
+        entry.target.classList.add('visible');
+      }
+    });
+  }, { threshold: 0.15 });
+  document.querySelectorAll('.reveal').forEach(el=>observer.observe(el));
+</script>
+
+</body>
+</html>

@@ -1,0 +1,56 @@
+<div class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;">Quiz with four flip cards. Click a card to flip it and reveal whether the answer is correct.</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px;padding:1rem 0;perspective:1000px;">
+</div>
+
+<script>
+const cardsData = [
+  { q: "The Great Wall of China is visible from space with the naked eye.", a: false, detail: "Astronauts confirm it's too narrow to see unaided from orbit." },
+  { q: "Octopuses have three hearts.", a: true, detail: "Two pump blood to the gills, one to the rest of the body." },
+  { q: "Bananas are berries.", a: true, detail: "Botanically, they grow from a single flower with one ovary." },
+  { q: "Goldfish have a memory span of only a few seconds.", a: false, detail: "Studies show they can remember things for months." }
+];
+
+const grid = document.currentScript.previousElementSibling;
+grid.innerHTML = "";
+
+cardsData.forEach((item, i) => {
+  const scene = document.createElement("div");
+  scene.style.cssText = "perspective:1000px;height:170px;cursor:pointer;";
+
+  const card = document.createElement("div");
+  card.style.cssText = "position:relative;width:100%;height:100%;transition:transform 0.5s;transform-style:preserve-3d;";
+
+  const face = (bg, border, content, isFront) => {
+    const el = document.createElement("div");
+    el.style.cssText = `position:absolute;inset:0;backface-visibility:hidden;border-radius:12px;border:0.5px solid ${border};background:${bg};display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:1rem;gap:8px;${isFront ? "" : "transform:rotateY(180deg);"}`;
+    el.innerHTML = content;
+    return el;
+  };
+
+  const front = face("var(--surface-2)", "var(--border)",
+    `<i class="ti ti-help-circle" style="font-size:22px;color:var(--text-muted);" aria-hidden="true"></i>
+     <p style="font-size:13px;line-height:1.5;margin:0;color:var(--text-primary);">${item.q}</p>`, true);
+
+  const correctColor = { bg: "var(--bg-success)", border: "var(--border-success)", icon: "ti-check", text: "var(--text-success)" };
+  const wrongColor = { bg: "var(--bg-danger)", border: "var(--border-danger)", icon: "ti-x", text: "var(--text-danger)" };
+  const c = correctColor;
+
+  const back = face("var(--surface-1)", "var(--border)",
+    `<i class="ti ${item.a ? 'ti-check' : 'ti-x'}" style="font-size:26px;color:${item.a ? 'var(--text-success)' : 'var(--text-danger)'};" aria-hidden="true"></i>
+     <p style="font-size:13px;font-weight:500;margin:0;color:var(--text-primary);">${item.a ? "true" : "false"}</p>
+     <p style="font-size:12px;line-height:1.5;margin:0;color:var(--text-secondary);">${item.detail}</p>`, false);
+
+  card.appendChild(front);
+  card.appendChild(back);
+  scene.appendChild(card);
+  grid.appendChild(scene);
+
+  let flipped = false;
+  scene.addEventListener("click", () => {
+    flipped = !flipped;
+    card.style.transform = flipped ? "rotateY(180deg)" : "rotateY(0deg)";
+    scene.style.boxShadow = flipped ? "0 0 0 2px var(--border-accent)" : "none";
+    scene.style.borderRadius = "12px";
+  });
+});
+</script>

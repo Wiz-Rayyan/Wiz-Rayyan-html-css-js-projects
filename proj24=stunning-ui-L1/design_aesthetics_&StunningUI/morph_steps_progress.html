@@ -1,0 +1,144 @@
+<h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);">A 4 step progress indicator where step numbers morph into checkmarks as you advance, connecting lines fill with color, and step content crossfades between steps.</h2>
+
+<div style="padding: 1.5rem 0.5rem 0;">
+  <div id="track" style="display:flex; align-items:center; margin-bottom:2rem;"></div>
+
+  <div style="position:relative; min-height:120px;">
+    <div id="content-wrap"></div>
+  </div>
+
+  <div style="display:flex; justify-content:space-between; margin-top:1.5rem;">
+    <button id="backBtn">Back</button>
+    <button id="nextBtn">Next</button>
+  </div>
+</div>
+
+<script>
+const steps = [
+  { title: "Account", desc: "Set your name and email address to create your account." },
+  { title: "Plan", desc: "Choose the plan that fits your team's size and needs." },
+  { title: "Payment", desc: "Add a payment method to activate your subscription." },
+  { title: "Confirm", desc: "Review your details before finishing setup." }
+];
+
+let current = 0;
+
+const track = document.getElementById('track');
+const contentWrap = document.getElementById('content-wrap');
+const backBtn = document.getElementById('backBtn');
+const nextBtn = document.getElementById('nextBtn');
+
+function circleHTML(i) {
+  return '<div class="circle-outer" data-idx="' + i + '" style="position:relative; width:36px; height:36px; border-radius:50%; border:1.5px solid var(--border-strong); background:var(--surface-2); display:flex; align-items:center; justify-content:center; flex-shrink:0; cursor:pointer; transition: border-color 0.35s var(--ease-out, ease), background 0.35s ease, transform 0.3s ease;">' +
+    '<span class="num" style="position:absolute; font-size:14px; font-weight:500; color:var(--text-secondary); transition: opacity 0.3s ease, transform 0.3s ease;">' + (i+1) + '</span>' +
+    '<i class="ti ti-check check" aria-hidden="true" style="position:absolute; font-size:16px; color:var(--on-accent, #fff); opacity:0; transform: scale(0.5) rotate(-45deg); transition: opacity 0.3s ease, transform 0.35s cubic-bezier(.34,1.56,.64,1);"></i>' +
+  '</div>';
+}
+
+function lineHTML(i) {
+  return '<div class="line" data-idx="' + i + '" style="flex:1; height:2px; margin:0 6px; background:var(--border); position:relative; overflow:hidden;">' +
+    '<div class="line-fill" style="position:absolute; left:0; top:0; height:100%; width:0%; background:var(--fill-accent, var(--text-accent)); transition: width 0.4s ease;"></div>' +
+  '</div>';
+}
+
+function buildTrack() {
+  let html = '';
+  steps.forEach((s, i) => {
+    html += circleHTML(i);
+    if (i < steps.length - 1) html += lineHTML(i);
+  });
+  track.innerHTML = html;
+  track.querySelectorAll('.circle-outer').forEach(el => {
+    el.addEventListener('click', () => goTo(parseInt(el.dataset.idx)));
+  });
+}
+
+function renderContent(idx, animate) {
+  const s = steps[idx];
+  const div = document.createElement('div');
+  div.style.cssText = 'opacity:0; transform: scale(0.95); transition: opacity 0.35s ease, transform 0.35s ease;';
+  div.innerHTML = '<p style="font-size:13px; color:var(--text-accent); font-weight:500; margin:0 0 4px;">step ' + (idx+1) + ' of ' + steps.length + '</p>' +
+    '<h3 style="margin:0 0 8px;">' + s.title + '</h3>' +
+    '<p style="font-size:14px; color:var(--text-secondary); margin:0; line-height:1.7;">' + s.desc + '</p>';
+
+  const old = contentWrap.firstChild;
+  if (old && animate) {
+    old.style.opacity = '0';
+    old.style.transform = 'scale(0.95)';
+    setTimeout(() => old.remove(), 350);
+  } else if (old) {
+    old.remove();
+  }
+
+  contentWrap.style.position = 'relative';
+  div.style.position = old ? 'absolute' : 'static';
+  div.style.top = '0';
+  div.style.left = '0';
+  div.style.width = '100%';
+  contentWrap.appendChild(div);
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      div.style.opacity = '1';
+      div.style.transform = 'scale(1)';
+    });
+  });
+}
+
+function updateCircles() {
+  const circles = track.querySelectorAll('.circle-outer');
+  const lines = track.querySelectorAll('.line-fill');
+  circles.forEach((c, i) => {
+    const num = c.querySelector('.num');
+    const check = c.querySelector('.check');
+    if (i < current) {
+      c.style.background = 'var(--fill-accent, var(--text-accent))';
+      c.style.borderColor = 'var(--fill-accent, var(--text-accent))';
+      num.style.opacity = '0';
+      num.style.transform = 'scale(0.5) rotate(45deg)';
+      check.style.opacity = '1';
+      check.style.transform = 'scale(1) rotate(0deg)';
+    } else if (i === current) {
+      c.style.background = 'var(--surface-2)';
+      c.style.borderColor = 'var(--text-accent)';
+      c.style.transform = 'scale(1.1)';
+      num.style.opacity = '1';
+      num.style.color = 'var(--text-accent)';
+      num.style.transform = 'scale(1) rotate(0deg)';
+      check.style.opacity = '0';
+      check.style.transform = 'scale(0.5) rotate(-45deg)';
+    } else {
+      c.style.background = 'var(--surface-2)';
+      c.style.borderColor = 'var(--border-strong)';
+      c.style.transform = 'scale(1)';
+      num.style.opacity = '1';
+      num.style.color = 'var(--text-secondary)';
+      num.style.transform = 'scale(1) rotate(0deg)';
+      check.style.opacity = '0';
+      check.style.transform = 'scale(0.5) rotate(-45deg)';
+    }
+    if (i !== current) c.style.transform = 'scale(1)';
+  });
+  lines.forEach((l, i) => {
+    l.style.width = (i < current) ? '100%' : '0%';
+  });
+  backBtn.style.opacity = current === 0 ? '0.4' : '1';
+  backBtn.disabled = current === 0;
+  nextBtn.textContent = current === steps.length - 1 ? 'Finish' : 'Next';
+}
+
+function goTo(idx) {
+  if (idx === current) return;
+  current = idx;
+  updateCircles();
+  renderContent(current, true);
+}
+
+backBtn.addEventListener('click', () => { if (current > 0) goTo(current - 1); });
+nextBtn.addEventListener('click', () => {
+  if (current < steps.length - 1) goTo(current + 1);
+});
+
+buildTrack();
+updateCircles();
+renderContent(current, false);
+</script>

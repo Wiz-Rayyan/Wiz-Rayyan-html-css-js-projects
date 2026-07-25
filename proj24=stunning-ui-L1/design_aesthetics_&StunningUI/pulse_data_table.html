@@ -1,0 +1,191 @@
+
+<h2 class="sr-only">A live stock table where rows flash cyan when their price updates, values animate with a flip effect, hovering reveals row actions, and clicking a row opens a detail panel.</h2>
+<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+  <div style="font-size:13px; color:var(--text-secondary);">Live order book <span id="status-dot" style="display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--fill-success); margin-left:6px; vertical-align:middle;"></span></div>
+  <button id="toggle-btn" style="font-size:13px; padding:4px 12px;"><i class="ti ti-player-pause" style="font-size:14px; vertical-align:-2px; margin-right:4px;" aria-hidden="true"></i>Pause</button>
+</div>
+
+<table style="width:100%; border-collapse:collapse; font-size:14px; table-layout:fixed;">
+  <thead>
+    <tr style="border-bottom:0.5px solid var(--border);">
+      <th style="text-align:left; padding:8px 6px; font-weight:500; color:var(--text-secondary); font-size:12px; width:26%;">Symbol</th>
+      <th style="text-align:right; padding:8px 6px; font-weight:500; color:var(--text-secondary); font-size:12px; width:24%;">Price</th>
+      <th style="text-align:right; padding:8px 6px; font-weight:500; color:var(--text-secondary); font-size:12px; width:24%;">Change</th>
+      <th style="text-align:right; padding:8px 6px; font-weight:500; color:var(--text-secondary); font-size:12px; width:26%;">Volume</th>
+    </tr>
+  </thead>
+  <tbody id="table-body"></tbody>
+</table>
+
+<div id="detail-panel" style="display:none; margin-top:12px; background:var(--surface-1); border-radius:12px; padding:1rem 1.25rem;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+    <span id="detail-symbol" style="font-weight:500; font-size:16px;"></span>
+    <button id="detail-close" style="padding:2px 8px; font-size:12px;" aria-label="Close detail"><i class="ti ti-x" style="font-size:14px;" aria-hidden="true"></i></button>
+  </div>
+  <div style="display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:8px;">
+    <div style="background:var(--surface-2); border-radius:var(--radius); padding:0.75rem;">
+      <p style="font-size:12px; color:var(--text-secondary); margin:0 0 4px;">Day high</p>
+      <p id="detail-high" style="font-size:16px; font-weight:500; margin:0;"></p>
+    </div>
+    <div style="background:var(--surface-2); border-radius:var(--radius); padding:0.75rem;">
+      <p style="font-size:12px; color:var(--text-secondary); margin:0 0 4px;">Day low</p>
+      <p id="detail-low" style="font-size:16px; font-weight:500; margin:0;"></p>
+    </div>
+    <div style="background:var(--surface-2); border-radius:var(--radius); padding:0.75rem;">
+      <p style="font-size:12px; color:var(--text-secondary); margin:0 0 4px;">Updates</p>
+      <p id="detail-updates" style="font-size:16px; font-weight:500; margin:0;"></p>
+    </div>
+  </div>
+</div>
+
+<style>
+.p-row { border-bottom: 0.5px solid var(--border); transition: background 1s ease; cursor: pointer; }
+.p-row:hover { background: var(--surface-1); }
+.p-row td { padding: 10px 6px; vertical-align: middle; }
+.flip { display: inline-block; }
+.flip.animate { animation: flipnum 0.4s ease; }
+@keyframes flipnum { 0% { transform: translateY(0); opacity: 1; } 40% { transform: translateY(-6px); opacity: 0; } 41% { transform: translateY(6px); } 100% { transform: translateY(0); opacity: 1; } }
+.row-actions { opacity: 0; transition: opacity 0.15s ease; display: inline-flex; gap: 4px; margin-left: 8px; }
+.p-row:hover .row-actions { opacity: 1; }
+.action-btn { width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; border-radius: 4px; border: 0.5px solid var(--border-strong); background: var(--surface-2); cursor: pointer; }
+.action-btn:hover { background: var(--surface-1); }
+</style>
+
+<script>
+const stocks = [
+  { symbol: 'NVEX', name: 'Nova Exchange', price: 412.30, change: 1.2, volume: 2400000, high: 418.10, low: 405.50, updates: 0 },
+  { symbol: 'QNTM', name: 'Quantum Fields', price: 88.15, change: -0.6, volume: 980000, high: 91.00, low: 87.40, updates: 0 },
+  { symbol: 'HLIX', name: 'Helix Robotics', price: 231.75, change: 0.4, volume: 1560000, high: 234.20, low: 228.90, updates: 0 },
+  { symbol: 'ORBT', name: 'Orbital Systems', price: 54.90, change: -1.8, volume: 3120000, high: 58.30, low: 54.10, updates: 0 },
+  { symbol: 'VRTX', name: 'Vertex Materials', price: 149.60, change: 2.1, volume: 720000, high: 151.00, low: 146.75, updates: 0 }
+];
+
+let running = true;
+let timer = null;
+let selectedSymbol = null;
+
+function fmtPrice(v) { return '$' + v.toFixed(2); }
+function fmtChange(v) { return (v >= 0 ? '+' : '') + v.toFixed(2) + '%'; }
+function fmtVolume(v) { return (v / 1e6).toFixed(2) + 'M'; }
+
+function renderRow(s) {
+  const changeColor = s.change >= 0 ? 'var(--text-success)' : 'var(--text-danger)';
+  return `
+    <tr class="p-row" data-symbol="${s.symbol}" id="row-${s.symbol}">
+      <td style="font-weight:500;">${s.symbol}
+        <span class="row-actions">
+          <span class="action-btn" data-action="edit" data-symbol="${s.symbol}" aria-label="Edit ${s.symbol}"><i class="ti ti-edit" style="font-size:13px;" aria-hidden="true"></i></span>
+          <span class="action-btn" data-action="delete" data-symbol="${s.symbol}" aria-label="Remove ${s.symbol}"><i class="ti ti-trash" style="font-size:13px;" aria-hidden="true"></i></span>
+        </span>
+      </td>
+      <td style="text-align:right;"><span class="flip" id="price-${s.symbol}">${fmtPrice(s.price)}</span></td>
+      <td style="text-align:right; color:${changeColor};"><span class="flip" id="change-${s.symbol}">${fmtChange(s.change)}</span></td>
+      <td style="text-align:right; color:var(--text-secondary);"><span class="flip" id="volume-${s.symbol}">${fmtVolume(s.volume)}</span></td>
+    </tr>
+  `;
+}
+
+function renderTable() {
+  document.getElementById('table-body').innerHTML = stocks.map(renderRow).join('');
+  attachRowHandlers();
+}
+
+function attachRowHandlers() {
+  document.querySelectorAll('.p-row').forEach(row => {
+    row.addEventListener('click', (e) => {
+      if (e.target.closest('.action-btn')) return;
+      const sym = row.getAttribute('data-symbol');
+      openDetail(sym);
+    });
+  });
+  document.querySelectorAll('.action-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const sym = btn.getAttribute('data-symbol');
+      const action = btn.getAttribute('data-action');
+      if (action === 'edit') sendPrompt('Edit the price alert settings for ' + sym);
+      if (action === 'delete') sendPrompt('Remove ' + sym + ' from my watchlist');
+    });
+  });
+}
+
+function openDetail(sym) {
+  const s = stocks.find(x => x.symbol === sym);
+  if (!s) return;
+  selectedSymbol = sym;
+  document.getElementById('detail-symbol').textContent = s.symbol + ' \u2014 ' + s.name;
+  document.getElementById('detail-high').textContent = fmtPrice(s.high);
+  document.getElementById('detail-low').textContent = fmtPrice(s.low);
+  document.getElementById('detail-updates').textContent = s.updates;
+  document.getElementById('detail-panel').style.display = 'block';
+}
+
+document.getElementById('detail-close').addEventListener('click', () => {
+  document.getElementById('detail-panel').style.display = 'none';
+  selectedSymbol = null;
+});
+
+function pulseRow(sym) {
+  const row = document.getElementById('row-' + sym);
+  if (!row) return;
+  row.style.background = 'rgba(29, 158, 117, 0.22)';
+  setTimeout(() => { row.style.background = ''; }, 900);
+}
+
+function flipUpdate(id, newText) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.remove('animate');
+  void el.offsetWidth;
+  el.classList.add('animate');
+  setTimeout(() => { el.textContent = newText; }, 160);
+}
+
+function tick() {
+  const idx = Math.floor(Math.random() * stocks.length);
+  const s = stocks[idx];
+  const delta = (Math.random() - 0.5) * s.price * 0.02;
+  s.price = Math.max(1, s.price + delta);
+  s.change = s.change + (Math.random() - 0.5) * 0.8;
+  s.volume += Math.floor(Math.random() * 50000);
+  s.high = Math.max(s.high, s.price);
+  s.low = Math.min(s.low, s.price);
+  s.updates += 1;
+
+  flipUpdate('price-' + s.symbol, fmtPrice(s.price));
+  flipUpdate('change-' + s.symbol, fmtChange(s.change));
+  flipUpdate('volume-' + s.symbol, fmtVolume(s.volume));
+  const changeEl = document.getElementById('change-' + s.symbol);
+  if (changeEl && changeEl.parentElement) {
+    changeEl.parentElement.style.color = s.change >= 0 ? 'var(--text-success)' : 'var(--text-danger)';
+  }
+  pulseRow(s.symbol);
+
+  if (selectedSymbol === s.symbol) openDetail(s.symbol);
+}
+
+function startTicking() {
+  timer = setInterval(tick, 1400);
+}
+function stopTicking() {
+  clearInterval(timer);
+}
+
+document.getElementById('toggle-btn').addEventListener('click', () => {
+  running = !running;
+  const btn = document.getElementById('toggle-btn');
+  const dot = document.getElementById('status-dot');
+  if (running) {
+    btn.innerHTML = '<i class="ti ti-player-pause" style="font-size:14px; vertical-align:-2px; margin-right:4px;" aria-hidden="true"></i>Pause';
+    dot.style.background = 'var(--fill-success)';
+    startTicking();
+  } else {
+    btn.innerHTML = '<i class="ti ti-player-play" style="font-size:14px; vertical-align:-2px; margin-right:4px;" aria-hidden="true"></i>Resume';
+    dot.style.background = 'var(--text-muted)';
+    stopTicking();
+  }
+});
+
+renderTable();
+startTicking();
+</script>

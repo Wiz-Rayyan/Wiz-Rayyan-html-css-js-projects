@@ -1,0 +1,201 @@
+<h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);">Area chart of CPU usage over 24 hours with an animated water-like fill wave. Hover to see exact values, click to replay the last three days.</h2>
+<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px;">
+  <span id="readVal" style="font-size:28px;font-weight:500;color:var(--text-primary);">--%</span>
+  <span id="readLabel" style="font-size:13px;color:var(--text-secondary);">CPU usage · now</span>
+</div>
+<div style="position:relative;width:100%;cursor:pointer;" id="wrap">
+  <svg id="chart" viewBox="0 0 640 260" style="width:100%;display:block;" preserveAspectRatio="none">
+    <defs>
+      <linearGradient id="fillGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#1D9E75" stop-opacity="0.55"/>
+        <stop offset="100%" stop-color="#534AB7" stop-opacity="0.12"/>
+      </linearGradient>
+      <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#1D9E75"/>
+        <stop offset="100%" stop-color="#7F77DD"/>
+      </linearGradient>
+    </defs>
+    <line x1="20" y1="220" x2="620" y2="220" stroke="var(--border)" stroke-width="0.5"/>
+    <path id="areaPath" fill="url(#fillGrad)" stroke="none"></path>
+    <path id="linePath" fill="none" stroke="url(#lineGrad)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+    <line id="hoverLine" x1="0" y1="20" x2="0" y2="220" stroke="var(--border-strong)" stroke-width="0.5" style="display:none;"/>
+    <circle id="hoverDot" r="4" fill="#1D9E75" stroke="var(--surface-2)" stroke-width="2" style="display:none;"/>
+    <text id="dayLabel" x="20" y="14" font-size="12" fill="var(--text-muted)">today</text>
+  </svg>
+  <div id="tooltip" style="position:absolute;display:none;pointer-events:none;background:var(--surface-1);border:0.5px solid var(--border);border-radius:var(--radius);padding:4px 8px;font-size:12px;color:var(--text-primary);transform:translate(-50%,-115%);white-space:nowrap;"></div>
+  <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-top:4px;padding:0 20px;">
+    <span>12am</span><span>6am</span><span>12pm</span><span>6pm</span><span>11pm</span>
+  </div>
+</div>
+<div style="font-size:12px;color:var(--text-muted);margin-top:10px;">Click the chart to replay the last three days</div>
+<script>
+(function(){
+  var svg = document.getElementById('chart');
+  var areaPath = document.getElementById('areaPath');
+  var linePath = document.getElementById('linePath');
+  var hoverLine = document.getElementById('hoverLine');
+  var hoverDot = document.getElementById('hoverDot');
+  var tooltip = document.getElementById('tooltip');
+  var dayLabel = document.getElementById('dayLabel');
+  var readVal = document.getElementById('readVal');
+  var readLabel = document.getElementById('readLabel');
+  var wrap = document.getElementById('wrap');
+
+  var current = [22,18,15,14,16,20,28,35,42,55,62,58,50,53,60,68,72,65,58,48,40,35,28,24];
+  var history = [
+    { label: '2 days ago', data: [30,26,20,17,18,22,26,30,38,44,50,55,60,64,66,62,58,52,46,40,36,32,30,28] },
+    { label: 'yesterday', data: [26,20,16,15,17,24,33,40,48,60,68,64,56,58,63,70,75,70,62,50,42,36,30,26] }
+  ];
+
+  var padX=20, padTop=20, padBottom=40, plotW=600, plotH=200, baseY=220;
+  var display = current.slice();
+  var phase = 0;
+  var amp = 3;
+  var raf = null;
+  var hovering = false;
+  var playing = false;
+
+  function xAt(frac){ return padX + frac*plotW; }
+  function yFor(v){ return baseY - (v/100)*plotH; }
+
+  function valueAt(arr, frac){
+    var pos = frac*(arr.length-1);
+    var i0 = Math.floor(pos), i1 = Math.min(arr.length-1, i0+1);
+    var t = pos - i0;
+    return arr[i0] + (arr[i1]-arr[i0])*t;
+  }
+
+  function buildPaths(arr, ph, ampNow){
+    var samples = [];
+    var N = 120;
+    for(var s=0;s<=N;s++){
+      var frac = s/N;
+      var v = valueAt(arr, frac);
+      var ripple = ampNow*(Math.sin(frac*18+ph) + 0.5*Math.sin(frac*7+ph*1.3));
+      samples.push([xAt(frac), yFor(v)+ripple]);
+    }
+    var d = 'M'+samples[0][0].toFixed(1)+','+samples[0][1].toFixed(1);
+    for(var i=0;i<samples.length-1;i++){
+      d += ' L'+samples[i+1][0].toFixed(1)+','+samples[i+1][1].toFixed(1);
+    }
+    var area = d + ' L'+samples[samples.length-1][0].toFixed(1)+','+baseY+' L'+samples[0][0].toFixed(1)+','+baseY+' Z';
+    return { line: d, area: area };
+  }
+
+  function render(arr, ph, ampNow){
+    var p = buildPaths(arr, ph, ampNow);
+    linePath.setAttribute('d', p.line);
+    areaPath.setAttribute('d', p.area);
+  }
+
+  function tick(){
+    phase += 0.02;
+    render(display, phase, amp);
+    raf = requestAnimationFrame(tick);
+  }
+  function start(){ if(!raf && !hovering && !playing){ raf = requestAnimationFrame(tick); } }
+  function stop(){ if(raf){ cancelAnimationFrame(raf); raf = null; } }
+
+  function updateReadout(hourIdx){
+    if(hourIdx == null){
+      readVal.textContent = Math.round(current[current.length-1]) + '%';
+      readLabel.textContent = 'CPU usage · now';
+    } else {
+      var h = hourIdx % 24;
+      var label = h===0?'12am':h<12?h+'am':h===12?'12pm':(h-12)+'pm';
+      readVal.textContent = Math.round(current[h]) + '%';
+      readLabel.textContent = 'CPU usage · '+label;
+    }
+  }
+  updateReadout(null);
+  render(display, phase, amp);
+  start();
+
+  svg.addEventListener('mousemove', function(e){
+    if(playing) return;
+    hovering = true;
+    stop();
+    var rect = svg.getBoundingClientRect();
+    var scaleX = 640/rect.width;
+    var mx = (e.clientX - rect.left)*scaleX;
+    var frac = Math.max(0, Math.min(1, (mx-padX)/plotW));
+    var hourIdx = Math.round(frac*23);
+    var v = current[hourIdx];
+    var px = xAt(hourIdx/23);
+    var py = yFor(v);
+    render(display, phase, 0);
+    hoverLine.setAttribute('x1', px); hoverLine.setAttribute('x2', px);
+    hoverLine.style.display = 'block';
+    hoverDot.setAttribute('cx', px); hoverDot.setAttribute('cy', py);
+    hoverDot.style.display = 'block';
+    var rectWrap = wrap.getBoundingClientRect();
+    tooltip.style.left = ((px/640)*rectWrap.width) + 'px';
+    tooltip.style.top = ((py/260)*rect.height) + 'px';
+    tooltip.textContent = Math.round(v)+'% at '+(hourIdx===0?'12am':hourIdx<12?hourIdx+'am':hourIdx===12?'12pm':(hourIdx-12)+'pm');
+    tooltip.style.display = 'block';
+    updateReadout(hourIdx);
+  });
+
+  svg.addEventListener('mouseleave', function(){
+    hovering = false;
+    hoverLine.style.display = 'none';
+    hoverDot.style.display = 'none';
+    tooltip.style.display = 'none';
+    updateReadout(null);
+    start();
+  });
+
+  function morph(fromArr, toArr, durMs, onDone){
+    var t0 = performance.now();
+    function step(now){
+      var t = Math.min(1, (now-t0)/durMs);
+      var ease = t<0.5 ? 2*t*t : -1+(4-2*t)*t;
+      var interp = fromArr.map(function(v,i){ return v + (toArr[i]-v)*ease; });
+      phase += 0.03;
+      render(interp, phase, amp*0.6);
+      if(t<1){ raf = requestAnimationFrame(step); } else { onDone(); }
+    }
+    raf = requestAnimationFrame(step);
+  }
+
+  function hold(arr, durMs, onDone){
+    var t0 = performance.now();
+    function step(now){
+      phase += 0.02;
+      render(arr, phase, amp);
+      if(now-t0<durMs){ raf = requestAnimationFrame(step); } else { onDone(); }
+    }
+    raf = requestAnimationFrame(step);
+  }
+
+  svg.addEventListener('click', function(){
+    if(playing) return;
+    playing = true;
+    stop();
+    hoverLine.style.display='none'; hoverDot.style.display='none'; tooltip.style.display='none';
+    var seq = history.concat([{label:'today', data: current}]);
+    var idx = 0;
+    var from = display.slice();
+    function next(){
+      if(idx >= seq.length){
+        playing = false;
+        display = current.slice();
+        dayLabel.textContent = 'today';
+        updateReadout(null);
+        start();
+        return;
+      }
+      var item = seq[idx];
+      dayLabel.textContent = item.label;
+      morph(from, item.data, 700, function(){
+        hold(item.data, 500, function(){
+          from = item.data;
+          idx++;
+          next();
+        });
+      });
+    }
+    next();
+  });
+})();
+</script>

@@ -1,0 +1,135 @@
+<h2 class="sr-only">Interactive demo of filter tags that bounce in and out, with products reflowing smoothly using a FLIP animation.</h2>
+<div style="padding: 1rem 0;">
+  <div id="tag-bar" style="display: flex; flex-wrap: wrap; gap: 8px; min-height: 36px; margin-bottom: 1.5rem;"></div>
+  <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 1.5rem;">
+    <span style="font-size: 13px; color: var(--text-secondary); align-self: center; margin-right: 4px;">Add filter:</span>
+    <button data-add="Color: blue" style="font-size: 13px; padding: 4px 10px; height: auto;">Color: blue</button>
+    <button data-add="Size: M" style="font-size: 13px; padding: 4px 10px; height: auto;">Size: M</button>
+    <button data-add="Brand: Nova" style="font-size: 13px; padding: 4px 10px; height: auto;">Brand: Nova</button>
+    <button data-add="Price: under $50" style="font-size: 13px; padding: 4px 10px; height: auto;">Price: under $50</button>
+    <button data-add="In stock" style="font-size: 13px; padding: 4px 10px; height: auto;">In stock</button>
+    <button id="clear-all" style="font-size: 13px; padding: 4px 10px; height: auto; color: var(--text-danger); border-color: var(--border-danger);">Clear all</button>
+  </div>
+  <div id="grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px;"></div>
+</div>
+
+<script>
+const allProducts = [
+  {id: 1, name: 'Aero jacket', tags: ['Color: blue', 'In stock'], icon: 'ti-jacket'},
+  {id: 2, name: 'Nova sneakers', tags: ['Brand: Nova', 'Size: M', 'In stock'], icon: 'ti-shoe'},
+  {id: 3, name: 'Cotton tee', tags: ['Color: blue', 'Size: M', 'Price: under $50'], icon: 'ti-shirt'},
+  {id: 4, name: 'Nova cap', tags: ['Brand: Nova', 'Price: under $50', 'In stock'], icon: 'ti-hat'},
+  {id: 5, name: 'Denim shorts', tags: ['Size: M', 'Price: under $50'], icon: 'ti-shirt'},
+  {id: 6, name: 'Blue hoodie', tags: ['Color: blue', 'In stock'], icon: 'ti-shirt'},
+  {id: 7, name: 'Nova backpack', tags: ['Brand: Nova', 'In stock'], icon: 'ti-backpack'},
+  {id: 8, name: 'Running socks', tags: ['Size: M', 'Price: under $50', 'In stock'], icon: 'ti-sock'}
+];
+
+let activeTags = [];
+const tagBar = document.getElementById('tag-bar');
+const grid = document.getElementById('grid');
+
+function makeTagEl(tag) {
+  const el = document.createElement('div');
+  el.dataset.tag = tag;
+  el.style.cssText = 'display:flex;align-items:center;gap:6px;background:var(--bg-accent);color:var(--text-accent);border-radius:999px;padding:6px 8px 6px 12px;font-size:13px;font-weight:500;transform:scale(0);transition:transform 0.35s cubic-bezier(.34,1.56,.64,1);';
+  el.innerHTML = '<span>' + tag + '</span><button aria-label="Remove filter ' + tag + '" style="all:unset;cursor:pointer;display:flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;color:var(--text-accent);"><i class="ti ti-x" style="font-size:13px;" aria-hidden="true"></i></button>';
+  el.querySelector('button').addEventListener('mouseenter', e => e.currentTarget.style.background = 'var(--fill-accent-hover, rgba(0,0,0,0.08))');
+  el.querySelector('button').addEventListener('mouseleave', e => e.currentTarget.style.background = 'transparent');
+  el.querySelector('button').addEventListener('click', () => removeTag(tag));
+  return el;
+}
+
+function addTag(tag) {
+  if (activeTags.includes(tag)) return;
+  activeTags.push(tag);
+  const el = makeTagEl(tag);
+  tagBar.appendChild(el);
+  requestAnimationFrame(() => requestAnimationFor(el));
+  renderProducts();
+}
+
+function requestAnimationFor(el) {
+  requestAnimationFrame(() => { el.style.transform = 'scale(1)'; });
+}
+
+function removeTag(tag) {
+  activeTags = activeTags.filter(t => t !== tag);
+  const el = tagBar.querySelector('[data-tag="' + CSS.escape(tag) + '"]');
+  if (el) {
+    el.style.transition = 'transform 0.25s ease, opacity 0.25s ease';
+    el.style.transform = 'scale(0)';
+    el.style.opacity = '0';
+    setTimeout(() => el.remove(), 250);
+  }
+  renderProducts();
+}
+
+function clearAll() {
+  const els = Array.from(tagBar.children);
+  els.forEach((el, i) => {
+    setTimeout(() => {
+      el.style.transition = 'transform 0.25s ease, opacity 0.25s ease';
+      el.style.transform = 'scale(0)';
+      el.style.opacity = '0';
+      setTimeout(() => el.remove(), 250);
+    }, i * 60);
+  });
+  activeTags = [];
+  setTimeout(renderProducts, els.length * 60 + 100);
+}
+
+function matchesFilters(product) {
+  return activeTags.every(t => product.tags.includes(t));
+}
+
+function cardHTML(p) {
+  return '<div data-id="' + p.id + '" style="background:var(--surface-2);border:0.5px solid var(--border);border-radius:12px;padding:1rem;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;">' +
+    '<i class="ti ' + p.icon + '" style="font-size:24px;color:var(--text-secondary);" aria-hidden="true"></i>' +
+    '<span style="font-size:13px;font-weight:500;">' + p.name + '</span>' +
+  '</div>';
+}
+
+function renderProducts() {
+  const visible = allProducts.filter(matchesFilters);
+  const firstRects = {};
+  Array.from(grid.children).forEach(child => {
+    firstRects[child.dataset.id] = child.getBoundingClientRect();
+  });
+
+  grid.innerHTML = visible.map(cardHTML).join('');
+
+  Array.from(grid.children).forEach(child => {
+    const id = child.dataset.id;
+    const first = firstRects[id];
+    if (first) {
+      const last = child.getBoundingClientRect();
+      const dx = first.left - last.left;
+      const dy = first.top - last.top;
+      if (dx || dy) {
+        child.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
+        child.style.transition = 'transform 0s';
+        requestAnimationFrame(() => {
+          child.style.transition = 'transform 0.3s cubic-bezier(.2,.8,.2,1)';
+          child.style.transform = 'translate(0,0)';
+        });
+      }
+    } else {
+      child.style.opacity = '0';
+      child.style.transform = 'scale(0.9)';
+      child.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+      requestAnimationFrame(() => {
+        child.style.opacity = '1';
+        child.style.transform = 'scale(1)';
+      });
+    }
+  });
+}
+
+document.querySelectorAll('[data-add]').forEach(btn => {
+  btn.addEventListener('click', () => addTag(btn.dataset.add));
+});
+document.getElementById('clear-all').addEventListener('click', clearAll);
+
+renderProducts();
+</script>

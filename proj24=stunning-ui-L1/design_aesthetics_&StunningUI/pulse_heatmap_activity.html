@@ -1,0 +1,218 @@
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:12px;flex-wrap:wrap">
+  <h2 class="sr-only">Pulsing glow heatmap of regional activity intensity over time, with hover detail and click drill-down</h2>
+  <div style="font-size:13px;color:var(--text-secondary)">Live activity heatmap</div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <span style="width:6px;height:6px;border-radius:50%;background:#1D9E75;display:inline-block" id="livedot"></span>
+    <span style="font-size:12px;color:var(--text-secondary)" id="statustext">live</span>
+  </div>
+</div>
+
+<div style="position:relative;width:100%;height:380px;background:#0a0e14;border-radius:12px;overflow:hidden;border:0.5px solid var(--border)">
+  <canvas id="hm" style="position:absolute;inset:0;width:100%;height:100%"></canvas>
+  <div id="tooltip" style="position:absolute;pointer-events:none;display:none;background:rgba(20,24,32,0.95);color:#fff;font-size:12px;padding:6px 10px;border-radius:6px;border:0.5px solid rgba(255,255,255,0.15);white-space:nowrap;z-index:5"></div>
+</div>
+
+<div style="display:flex;align-items:center;gap:10px;margin-top:14px">
+  <button id="playBtn" style="width:36px;height:36px;padding:0;display:flex;align-items:center;justify-content:center;flex-shrink:0" aria-label="Play timeline"><i class="ti ti-player-play" aria-hidden="true"></i></button>
+  <span style="font-size:12px;color:var(--text-secondary);min-width:52px" id="timeLabel">00:00</span>
+  <input type="range" min="0" max="23" value="23" step="1" id="timeSlider" style="flex:1" />
+  <span style="font-size:12px;color:var(--text-secondary);min-width:52px;text-align:right" id="timeLabelEnd">23:00</span>
+</div>
+
+<div style="display:flex;gap:12px;margin-top:12px;flex-wrap:wrap" id="legendRow"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+(function(){
+  const regions = [
+    {name:'Downtown', x:0.28, y:0.35},
+    {name:'Harbor district', x:0.68, y:0.28},
+    {name:'North campus', x:0.45, y:0.15},
+    {name:'Riverside', x:0.18, y:0.68},
+    {name:'Market square', x:0.52, y:0.52},
+    {name:'East industrial', x:0.82, y:0.62},
+    {name:'Old town', x:0.35, y:0.82},
+    {name:'Stadium zone', x:0.72, y:0.85}
+  ];
+
+  const HOURS = 24;
+  function seededRandom(seed){
+    let s = seed;
+    return function(){ s = (s*9301+49297) % 233280; return s/233280; };
+  }
+
+  const series = regions.map((r,i) => {
+    const rnd = seededRandom(i*97+13);
+    const base = 0.3 + rnd()*0.3;
+    const peakHour = Math.floor(rnd()*24);
+    const vals = [];
+    for (let h=0; h<HOURS; h++){
+      const dist = Math.min(Math.abs(h-peakHour), 24-Math.abs(h-peakHour));
+      const wave = Math.exp(-(dist*dist)/18);
+      const noise = (rnd()-0.5)*0.08;
+      vals.push(Math.max(0.05, Math.min(1, base + wave*0.65 + noise)));
+    }
+    return {...r, vals};
+  });
+
+  const canvas = document.getElementById('hm');
+  const ctx = canvas.getContext('2d');
+  const tooltip = document.getElementById('tooltip');
+  const slider = document.getElementById('timeSlider');
+  const timeLabel = document.getElementById('timeLabel');
+  const timeLabelEnd = document.getElementById('timeLabelEnd');
+  const playBtn = document.getElementById('playBtn');
+  const statusText = document.getElementById('statustext');
+  const livedot = document.getElementById('livedot');
+
+  let W=0,H=0,DPR=1;
+  function resize(){
+    const rect = canvas.parentElement.getBoundingClientRect();
+    DPR = window.devicePixelRatio || 1;
+    W = rect.width; H = rect.height;
+    canvas.width = W*DPR; canvas.height = H*DPR;
+    canvas.style.width = W+'px'; canvas.style.height = H+'px';
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  let hourIndex = 23;
+  let playing = false;
+  let playTimer = null;
+  let t0 = performance.now();
+  let hoverPoint = null;
+
+  function fmtHour(h){
+    return String(h).padStart(2,'0')+':00';
+  }
+
+  function colorForIntensity(i){
+    if (i > 0.75) return {r:226,g:75,b:74};
+    if (i > 0.5) return {r:239,g:159,b:39};
+    if (i > 0.28) return {r:29,g:158,b:117};
+    return {r:55,g:138,b:221};
+  }
+
+  function draw(now){
+    const dt = (now - t0)/1000;
+    const pulse = 0.8 + 0.4*(0.5+0.5*Math.sin(dt*1.6));
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle = '#0a0e14';
+    ctx.fillRect(0,0,W,H);
+
+    ctx.globalCompositeOperation = 'lighter';
+    const points = series.map(s => {
+      const intensity = s.vals[hourIndex];
+      const px = s.x*W, py = s.y*H;
+      const radius = (28 + intensity*70) * pulse;
+      const alpha = Math.min(0.9, intensity*pulse);
+      const c = colorForIntensity(intensity);
+      const grad = ctx.createRadialGradient(px,py,0,px,py,radius);
+      grad.addColorStop(0, `rgba(${c.r},${c.g},${c.b},${alpha})`);
+      grad.addColorStop(0.5, `rgba(${c.r},${c.g},${c.b},${alpha*0.35})`);
+      grad.addColorStop(1, `rgba(${c.r},${c.g},${c.b},0)`);
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(px,py,radius,0,Math.PI*2);
+      ctx.fill();
+      return {...s, px, py, radius, intensity};
+    });
+    ctx.globalCompositeOperation = 'source-over';
+
+    if (hoverPoint){
+      ctx.beginPath();
+      ctx.arc(hoverPoint.px, hoverPoint.py, 5, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(hoverPoint.px, hoverPoint.py, hoverPoint.radius+2, 0, Math.PI*2);
+      ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+
+    canvas._points = points;
+    requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
+
+  canvas.addEventListener('mousemove', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+    const points = canvas._points || [];
+    let closest = null, closestDist = 40;
+    for (const p of points){
+      const d = Math.hypot(p.px-mx, p.py-my);
+      if (d < closestDist){ closest = p; closestDist = d; }
+    }
+    if (closest){
+      hoverPoint = closest;
+      tooltip.style.display = 'block';
+      tooltip.style.left = (closest.px+12)+'px';
+      tooltip.style.top = (closest.py-12)+'px';
+      tooltip.innerHTML = closest.name + '<br>' + Math.round(closest.intensity*100) + '% activity';
+      canvas.style.cursor = 'pointer';
+    } else {
+      hoverPoint = null;
+      tooltip.style.display = 'none';
+      canvas.style.cursor = 'default';
+    }
+  });
+  canvas.addEventListener('mouseleave', () => {
+    hoverPoint = null;
+    tooltip.style.display = 'none';
+  });
+  canvas.addEventListener('click', () => {
+    if (hoverPoint){
+      sendPrompt('Show a detailed activity breakdown for ' + hoverPoint.name + ' at ' + fmtHour(hourIndex));
+    }
+  });
+
+  slider.addEventListener('input', () => {
+    hourIndex = parseInt(slider.value, 10);
+    timeLabel.textContent = fmtHour(hourIndex);
+    if (playing) stopPlay();
+  });
+  timeLabel.textContent = fmtHour(hourIndex);
+  timeLabelEnd.textContent = fmtHour(23);
+
+  function stopPlay(){
+    playing = false;
+    clearInterval(playTimer);
+    playBtn.innerHTML = '<i class="ti ti-player-play" aria-hidden="true"></i>';
+    playBtn.setAttribute('aria-label','Play timeline');
+    statusText.textContent = 'live';
+    livedot.style.background = '#1D9E75';
+  }
+  function startPlay(){
+    playing = true;
+    playBtn.innerHTML = '<i class="ti ti-player-pause" aria-hidden="true"></i>';
+    playBtn.setAttribute('aria-label','Pause timeline');
+    statusText.textContent = 'replaying history';
+    livedot.style.background = '#EF9F27';
+    playTimer = setInterval(() => {
+      hourIndex = (hourIndex+1) % HOURS;
+      slider.value = hourIndex;
+      timeLabel.textContent = fmtHour(hourIndex);
+      if (hourIndex === 23){ stopPlay(); }
+    }, 450);
+  }
+  playBtn.addEventListener('click', () => {
+    if (playing) stopPlay(); else startPlay();
+  });
+
+  const legend = document.getElementById('legendRow');
+  const tiers = [
+    {label:'Low', color:'#378ADD'},
+    {label:'Moderate', color:'#1D9E75'},
+    {label:'High', color:'#EF9F27'},
+    {label:'Critical', color:'#E24B4A'}
+  ];
+  legend.innerHTML = tiers.map(t =>
+    `<span style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-secondary)">
+      <span style="width:10px;height:10px;border-radius:50%;background:${t.color};display:inline-block"></span>${t.label}
+    </span>`
+  ).join('');
+})();
+</script>
